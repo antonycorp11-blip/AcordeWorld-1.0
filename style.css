@@ -2233,17 +2233,3 @@ body.mobile-play #gameCanvas {
   background: linear-gradient(135deg, #0369a1, #0284c7);
   transform: translateY(-1px);
 }
-.magic-btn {
-  background: linear-gradient(135deg, #8b5cf6, #d946ef) !important;
-  border-color: #f0abfc !important;
-  box-shadow: 0 2px 10px rgba(217, 70, 239, 0.4) !important;
-}
-.magic-btn:hover {
-  background: linear-gradient(135deg, #7c3aed, #c026d3) !important;
-}
-.magic-pill {
-  background: linear-gradient(135deg, #8b5cf6, #d946ef) !important;
-  color: #ffffff !important;
-  border-color: #f0abfc !important;
-  box-shadow: 0 0 10px rgba(217, 70, 239, 0.4) !important;
-}

@@ -97,9 +97,6 @@
               <input type="file" id="megaFileInput" accept="image/*" class="hidden">
             </div>
             <div class="mega-control-item">
-              <button id="megaAutoPaintBtn" class="mega-upload-btn magic-btn">🪄 Auto-Detectar Piso (Clique no Chão)</button>
-            </div>
-            <div class="mega-control-item">
               <label for="zoomRange">🔍 Zoom (Scroll do Mouse): <b id="zoomVal">2.0x</b></label>
               <input type="range" id="zoomRange" min="1.0" max="4.0" step="0.1" value="2.0">
             </div>
@@ -652,10 +649,9 @@
 
           <!-- Collision mode -->
           <div class="tools-group" id="collisionToolsGroup" style="display:none">
-            <div class="tools-group-title">🛣️ Pintura de Colisão & Auto-Piso</div>
+            <div class="tools-group-title">🛣️ Pintura de Colisão</div>
             <div class="tools-buttons">
               <button class="tool-pill active" data-ctool="road">🟢 Caminho</button>
-              <button class="tool-pill magic-pill" data-ctool="magic" id="magicWandToolBtn">🪄 Varinha Mágica</button>
               <button class="tool-pill" data-ctool="roof">🔵 Telhado</button>
               <button class="tool-pill" data-ctool="door">🟣 Porta</button>
               <button class="tool-pill" data-ctool="eraser">🔴 Borracha</button>
@@ -665,14 +661,6 @@
                 <option value="70">70px</option>
                 <option value="120">120px</option>
               </select>
-              <label for="magicTolSelect" class="tool-label-sm">Tolerância:
-                <select id="magicTolSelect" class="select-sm-tool">
-                  <option value="20">20 (Estrict)</option>
-                  <option value="35" selected>35 (Médio)</option>
-                  <option value="50">50 (Amplo)</option>
-                  <option value="70">70 (Max)</option>
-                </select>
-              </label>
               <button class="tool-pill dim" id="autoRoofBtn" title="Preenche o teto com tudo que não é caminhável">🏠 Teto Automático</button>
               <button class="tool-pill dim" id="fillDefaultBtn">🪄 Padrão</button>
               <button class="tool-pill danger" id="clearLayerBtn">🗑️ Limpar</button>
