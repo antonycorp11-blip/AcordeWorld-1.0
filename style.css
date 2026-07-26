@@ -2216,3 +2216,20 @@ body.mobile-play #gameCanvas {
   background: rgba(56, 189, 248, 0.2);
   transform: scale(1.05);
 }
+.mega-upload-btn {
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  color: #ffffff;
+  border: 1px solid #7dd3fc;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.mega-upload-btn:hover {
+  background: linear-gradient(135deg, #0369a1, #0284c7);
+  transform: translateY(-1px);
+}

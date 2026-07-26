@@ -3745,6 +3745,35 @@ function initMegaWorldControls() {
   const megaCloseBtn = document.getElementById('megaCloseBtn');
   const megaPillBtn = document.getElementById('megaPillBtn');
   const megaModeBtn = document.getElementById('megaModeBtn');
+  const uploadMega2KBtn = document.getElementById('uploadMega2KBtn');
+  const megaFileInput = document.getElementById('megaFileInput');
+
+  if (uploadMega2KBtn && megaFileInput) {
+    uploadMega2KBtn.addEventListener('click', () => megaFileInput.click());
+    megaFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      showToast('⏳ Processando imagem HD...');
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const b64 = ev.target.result;
+        const img = new Image();
+        img.onload = () => {
+          bgImages['mega_world'] = img;
+          showToast(`🎉 Imagem HD Carregada! (${img.naturalWidth}x${img.naturalHeight}px)`);
+        };
+        img.src = b64;
+        try {
+          await fetch('/upload_image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: 'mega_map_1.jpg', image: b64 })
+          });
+        } catch(err) {}
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 
   // Mouse Wheel Zoom directly on canvas!
   if (canvas) {
