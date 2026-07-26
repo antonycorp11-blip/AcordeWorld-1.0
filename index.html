@@ -33,6 +33,7 @@
     <div class="header-center">
       <button id="playBtn" class="play-btn">▶ Jogar</button>
       <button id="stopBtn" class="stop-btn hidden">⏹ Parar</button>
+      <button id="megaModeBtn" class="header-btn mega-btn">🗺️ Mega Cenário 2K</button>
     </div>
 
     <div class="header-right">
@@ -80,6 +81,28 @@
 
         <!-- Toast -->
         <div id="toastEl" class="toast hidden"></div>
+
+        <!-- Mega Cenário Floating Controls Overlay -->
+        <div id="megaControlBar" class="mega-control-bar hidden">
+          <div class="mega-bar-header">
+            <span class="mega-bar-title">🗺️ Mega Cenário (Modo Zoom & Câmera)</span>
+            <button id="megaCloseBtn" class="mega-close-btn" title="Fechar Painel">✖</button>
+          </div>
+          <div class="mega-bar-controls">
+            <div class="mega-control-item">
+              <label for="zoomRange">🔍 Zoom: <b id="zoomVal">2.0x</b></label>
+              <input type="range" id="zoomRange" min="1.0" max="4.0" step="0.1" value="2.0">
+            </div>
+            <div class="mega-control-item">
+              <label for="playerSizeRange">👤 Tamanho Player: <b id="playerSizeVal">48px</b></label>
+              <input type="range" id="playerSizeRange" min="20" max="120" step="2" value="48">
+            </div>
+            <div class="mega-control-item">
+              <label for="playerSpeedRange">🏃 Velocidade: <b id="playerSpeedVal">4.0</b></label>
+              <input type="range" id="playerSpeedRange" min="2" max="12" step="0.5" value="4">
+            </div>
+          </div>
+        </div>
 
         <!-- WASD (play mode) -->
         <div id="wasdPanel" class="wasd-panel hidden">
@@ -467,6 +490,7 @@
           <div class="btab-col">
             <div class="btab-section-title">🌍 Mapa Ativo</div>
             <select id="activeMapSelect" class="select-compact">
+              <option value="mega_world">🗺️ Mega Cenário 2K (Zoom & Câmera)</option>
               <option value="0_0">🏰 Vila Medieval (0,0)</option>
               <option value="1_0">🌲 Floresta Mágica (1,0)</option>
               <option value="2_0">🎹 Conservatório (2,0)</option>

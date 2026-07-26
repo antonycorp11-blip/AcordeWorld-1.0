@@ -97,6 +97,7 @@ function getNeighbor(key, dir) {
 // ============================================================
 const bgImages = {};
 const bgSources = {
+  'mega_world': 'assets/mega_map_1.jpg',
   '0_0':'assets/background.jpg', '1_0':'assets/background2.jpg',
   '2_0':'assets/conservatory.jpg', '0_1':'assets/gate.jpg', '1_1':'assets/forest_entry.jpg',
   '2_1':'assets/forest_training.jpg', '3_1':'assets/forest_clearing.jpg', '3_0':'assets/forest_deep.jpg',
@@ -1152,8 +1153,25 @@ function hasRoadPaint(key) {
 }
 function invalidateRoadPaint(key) { delete roadPaintCache[key]; }
 
+let megaMapZoom = 2.0;
+let playerCustomHeight = 48;
+let megaCameraX = 0;
+let megaCameraY = 0;
+
+function getMegaWorldDimensions() {
+  const bg = bgImages['mega_world'];
+  if (bg && bg.complete && bg.naturalWidth) {
+    return {
+      w: Math.max(2048, bg.naturalWidth * 2),
+      h: Math.max(1142, bg.naturalHeight * 2)
+    };
+  }
+  return { w: 2048, h: 1142 };
+}
+
 function isWalkable(x,y) {
-  if (x < 24 || x > SCREEN_W - 24 || y < 28 || y > SCREEN_H - 28) return false;
+  const dims = currentKey === 'mega_world' ? getMegaWorldDimensions() : { w: SCREEN_W, h: SCREEN_H };
+  if (x < 24 || x > dims.w - 24 || y < 28 || y > dims.h - 28) return false;
   if (currentScene !== 'world') return true;   // interiors have no painted collision
   if (!hasRoadPaint(currentKey)) return true;
   const L = getLayers(currentKey);
@@ -2510,7 +2528,20 @@ function renderCollisionOverlay(k){
 // ============================================================
 // CANVAS MOUSE EVENTS
 // ============================================================
-function getM(e){const rect=canvas.getBoundingClientRect();const sx=SCREEN_W/rect.width,sy=SCREEN_H/rect.height;const cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY;return{x:(cx-rect.left)*sx,y:(cy-rect.top)*sy};}
+function getM(e){
+  const rect=canvas.getBoundingClientRect();
+  const sx=SCREEN_W/rect.width,sy=SCREEN_H/rect.height;
+  const cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY;
+  const rx = (cx-rect.left)*sx, ry = (cy-rect.top)*sy;
+
+  if (currentKey === 'mega_world' || activeMapSelect?.value === 'mega_world') {
+    return {
+      x: megaCameraX + rx / megaMapZoom,
+      y: megaCameraY + ry / megaMapZoom
+    };
+  }
+  return { x: rx, y: ry };
+}
 
 function onPointerDown(m){
   // An open dialogue owns the pointer whatever the editor mode is — otherwise the
@@ -3369,10 +3400,32 @@ function loop(now){
   if(engineMode==='worldmap'){renderWorldMap(now);return;}
 
   const mapKey=isPlayMode?currentKey:(activeMapSelect?.value||currentKey);
+  const isMegaWorld = mapKey === 'mega_world';
+
   ctx.clearRect(0,0,SCREEN_W,SCREEN_H);ctx.imageSmoothingEnabled=false;
 
-  if(currentScene==='world'||!isPlayMode){const bg=bgImages[mapKey];if(bg?.complete)ctx.drawImage(bg,0,0,SCREEN_W,SCREEN_H);}
-  else { const st=interiorDef()?.still?.(); if(st)ctx.drawImage(st,0,0,SCREEN_W,SCREEN_H); }
+  if (isMegaWorld) {
+    const dims = getMegaWorldDimensions();
+    const viewW = SCREEN_W / megaMapZoom;
+    const viewH = SCREEN_H / megaMapZoom;
+
+    megaCameraX = player.x - viewW / 2;
+    megaCameraY = player.y - viewH / 2;
+    megaCameraX = Math.max(0, Math.min(dims.w - viewW, megaCameraX));
+    megaCameraY = Math.max(0, Math.min(dims.h - viewH, megaCameraY));
+
+    ctx.save();
+    ctx.scale(megaMapZoom, megaMapZoom);
+    ctx.translate(-megaCameraX, -megaCameraY);
+
+    const bg = bgImages['mega_world'];
+    if (bg?.complete) {
+      ctx.drawImage(bg, 0, 0, dims.w, dims.h);
+    }
+  } else {
+    if(currentScene==='world'||!isPlayMode){const bg=bgImages[mapKey];if(bg?.complete)ctx.drawImage(bg,0,0,SCREEN_W,SCREEN_H);}
+    else { const st=interiorDef()?.still?.(); if(st)ctx.drawImage(st,0,0,SCREEN_W,SCREEN_H); }
+  }
 
   if(isPlayMode){
     if(!playerLocked){
@@ -3392,8 +3445,9 @@ function loop(now){
         if(canMoveTo(tx,ty)){player.x=tx;player.y=ty;}
         else if(canMoveTo(tx,player.y))player.x=tx;
         else if(canMoveTo(player.x,ty))player.y=ty;
-        player.x = Math.max(28, Math.min(SCREEN_W - 28, player.x));
-        player.y = Math.max(32, Math.min(SCREEN_H - 32, player.y));
+        const dims = isMegaWorld ? getMegaWorldDimensions() : { w: SCREEN_W, h: SCREEN_H };
+        player.x = Math.max(28, Math.min(dims.w - 28, player.x));
+        player.y = Math.max(32, Math.min(dims.h - 32, player.y));
         player.animTimer++;
         if(player.animTimer>=(sprint?3:6)){player.animTimer=0;player.animFrame=(player.animFrame+1)%4;if(player.animFrame%2===1){spawnDust(player.x,player.y);playStep(sprint);}}
       } else {player.animFrame=0;player.animTimer=0;}
@@ -3494,6 +3548,9 @@ function loop(now){
         ctx.stroke();
         ctx.restore();
       });
+    }
+    if (isMegaWorld) {
+      ctx.restore();
     }
     renderDlg(now);
     if(statusPos)statusPos.textContent=`X: ${Math.round(player.x)}  Y: ${Math.round(player.y)}`;
@@ -3641,11 +3698,68 @@ document.addEventListener('DOMContentLoaded',()=>{
   loadSpotSheets();
   initHotbar();
   initScenarioUploader();
+  initMegaWorldControls();
   blockIOSGestures();
   if(wantsMobilePlay())enterMobilePlay();
   setTimeout(()=>loadingOverlay?.classList.add('hidden'),600);
   requestAnimationFrame(loop);
 });
+
+function initMegaWorldControls() {
+  const zoomRange = document.getElementById('zoomRange');
+  const zoomVal = document.getElementById('zoomVal');
+  const playerSizeRange = document.getElementById('playerSizeRange');
+  const playerSizeVal = document.getElementById('playerSizeVal');
+  const playerSpeedRange = document.getElementById('playerSpeedRange');
+  const playerSpeedVal = document.getElementById('playerSpeedVal');
+  const megaBar = document.getElementById('megaControlBar');
+  const megaCloseBtn = document.getElementById('megaCloseBtn');
+  const megaModeBtn = document.getElementById('megaModeBtn');
+
+  if (zoomRange) {
+    zoomRange.addEventListener('input', (e) => {
+      megaMapZoom = parseFloat(e.target.value);
+      if (zoomVal) zoomVal.textContent = megaMapZoom.toFixed(1) + 'x';
+    });
+  }
+
+  if (playerSizeRange) {
+    playerSizeRange.addEventListener('input', (e) => {
+      playerCustomHeight = parseInt(e.target.value, 10);
+      if (playerSizeVal) playerSizeVal.textContent = playerCustomHeight + 'px';
+      player.height = playerCustomHeight;
+      player.width = Math.round(playerCustomHeight * (48 / 64));
+    });
+  }
+
+  if (playerSpeedRange) {
+    playerSpeedRange.addEventListener('input', (e) => {
+      const spd = parseFloat(e.target.value);
+      if (playerSpeedVal) playerSpeedVal.textContent = spd.toFixed(1);
+      player.speed = spd;
+      player.sprintSpeed = spd * 1.7;
+    });
+  }
+
+  if (megaCloseBtn) {
+    megaCloseBtn.addEventListener('click', () => {
+      megaBar?.classList.add('hidden');
+    });
+  }
+
+  if (megaModeBtn) {
+    megaModeBtn.addEventListener('click', () => {
+      currentKey = 'mega_world';
+      if (activeMapSelect) activeMapSelect.value = 'mega_world';
+      megaBar?.classList.remove('hidden');
+      const dims = getMegaWorldDimensions();
+      player.x = dims.w / 2;
+      player.y = dims.h / 2;
+      if (!isPlayMode) startPlay();
+      showToast('🗺️ Mega Cenário 2K (Modo Zoom & Câmera) Ativado!');
+    });
+  }
+}
 
 async function finishInit(){
   await loadWorldConfig();await loadLayers();await loadNPCs();await loadQuests();await loadShopCatalog();await loadMonsters();await loadSkillTree();
