@@ -1163,13 +1163,13 @@ let megaCameraY = 0;
 
 function getMegaWorldDimensions() {
   const bg = bgImages['mega_world'];
-  if (bg && bg.complete && bg.naturalWidth) {
+  if (bg && bg.complete && bg.naturalWidth > 0) {
     return {
-      w: Math.max(2048, bg.naturalWidth * 2),
-      h: Math.max(1142, bg.naturalHeight * 2)
+      w: bg.naturalWidth,
+      h: bg.naturalHeight
     };
   }
-  return { w: 2048, h: 1142 };
+  return { w: 1024, h: 571 };
 }
 
 function isWalkable(x,y) {
@@ -3423,6 +3423,8 @@ function loop(now){
     megaCameraY = Math.max(0, Math.min(dims.h - viewH, megaCameraY));
 
     ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.scale(megaMapZoom, megaMapZoom);
     ctx.translate(-megaCameraX, -megaCameraY);
 
@@ -4677,7 +4679,7 @@ function initHotbar() {
 
   // Hotkey listener (1, 2, 3)
   window.addEventListener('keydown', (e) => {
-    if (!isPlayMode || talking || shopOpen || inventoryOpen) return;
+    if (!isPlayMode || dlg.state !== DLG_STATE.CLOSED || shopOpen || inventoryOpen) return;
     if (e.key === '1') { equipped.activeTool = 'axe'; updateHotbarUI(); }
     if (e.key === '2') { equipped.activeTool = 'pickaxe'; updateHotbarUI(); }
     if (e.key === '3') {
