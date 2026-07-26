@@ -3555,6 +3555,7 @@ function loop(now){
         ctx.ellipse(n.x,n.y,b.w*0.55+pulse*3,b.w*0.24+pulse*2,0,0,Math.PI*2);
         ctx.stroke();
         ctx.restore();
+      });
     }
     renderDlg(now);
     if(statusPos)statusPos.textContent=`X: ${Math.round(player.x)}  Y: ${Math.round(player.y)}`;
