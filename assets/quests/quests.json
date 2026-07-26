@@ -1,0 +1,33 @@
+{
+  "quests": [
+    {
+      "id": "welcome_to_acordelot",
+      "title": "Bem-vindo a Acordelot",
+      "description": "Você chegou à primeira cidade do Reino da Música.",
+      "objectives": [
+        {
+          "id": "meet_mentor",
+          "text": "Encontre seu mentor na Praça Central",
+          "completed": false,
+          "trigger_map": "0_0",
+          "trigger_x": 512,
+          "trigger_y": 300,
+          "trigger_radius": 120
+        }
+      ],
+      "path_waypoints": {
+        "0_1": [
+          { "x": 512, "y": 280 },
+          { "x": 512, "y": 200 },
+          { "x": 512, "y": 80 }
+        ],
+        "0_0": [
+          { "x": 512, "y": 530 },
+          { "x": 512, "y": 430 },
+          { "x": 512, "y": 330 },
+          { "x": 512, "y": 300 }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check game.js)",
+      "Bash(grep -n '^[a-zA-Z_$]' game.js)"
+    ]
+  }
+}

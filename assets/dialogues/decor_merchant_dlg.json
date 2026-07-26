@@ -1,0 +1,19 @@
+{
+  "npc_id": "decor_merchant",
+  "npc_name": "Mercador Tibério",
+  "steps": [
+    {
+      "id": "start",
+      "type": "lines",
+      "lines": [
+        "Olá viajante!",
+        "Seja bem-vindo a Acordelot."
+      ],
+      "next": "end"
+    },
+    {
+      "id": "end",
+      "type": "end"
+    }
+  ]
+}

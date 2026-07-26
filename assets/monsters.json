@@ -1,0 +1,181 @@
+{
+  "types": {
+    "tempo_toad": {
+      "name": "Sapo do Tempo",
+      "sprite": "assets/monsters/tempo_toad.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 62,
+      "hp": 30,
+      "damage": 6,
+      "speed": 0.9,
+      "aggroRange": 150,
+      "touchRange": 34,
+      "drop": {
+        "item": "clave",
+        "min": 1,
+        "max": 2
+      }
+    },
+    "octave_owl": {
+      "name": "Coruja da Oitava",
+      "sprite": "assets/monsters/octave_owl.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        1,
+        1
+      ],
+      "height": 66,
+      "hp": 26,
+      "damage": 5,
+      "speed": 1.5,
+      "aggroRange": 200,
+      "touchRange": 34,
+      "drop": {
+        "item": "clave",
+        "min": 1,
+        "max": 2
+      }
+    },
+    "bass_crawler": {
+      "name": "Rastejante da Clave de Fá",
+      "sprite": "assets/monsters/bass_crawler.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 58,
+      "hp": 40,
+      "damage": 8,
+      "speed": 0.7,
+      "aggroRange": 140,
+      "touchRange": 36,
+      "drop": {
+        "item": "clave",
+        "min": 2,
+        "max": 3
+      }
+    },
+    "treble_flyer": {
+      "name": "Voador da Clave de Sol",
+      "sprite": "assets/monsters/treble_flyer.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 60,
+      "hp": 22,
+      "damage": 4,
+      "speed": 1.7,
+      "aggroRange": 210,
+      "touchRange": 32,
+      "drop": {
+        "item": "clave",
+        "min": 1,
+        "max": 1
+      }
+    },
+    "coda_crawler": {
+      "name": "Rastejante da Coda",
+      "sprite": "assets/monsters/coda_crawler.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 60,
+      "hp": 35,
+      "damage": 7,
+      "speed": 0.8,
+      "aggroRange": 150,
+      "touchRange": 34,
+      "drop": {
+        "item": "clave",
+        "min": 1,
+        "max": 3
+      }
+    }
+  },
+  "spawns": [
+    {
+      "id": "m1",
+      "type": "tempo_toad",
+      "mapKey": "2_1",
+      "x": 300,
+      "y": 380
+    },
+    {
+      "id": "m2",
+      "type": "tempo_toad",
+      "mapKey": "2_1",
+      "x": 720,
+      "y": 330
+    },
+    {
+      "id": "m3",
+      "type": "octave_owl",
+      "mapKey": "2_1",
+      "x": 520,
+      "y": 250
+    },
+    {
+      "id": "m4",
+      "type": "treble_flyer",
+      "mapKey": "2_1",
+      "x": 830,
+      "y": 450
+    },
+    {
+      "id": "m5",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 246,
+      "y": 214
+    },
+    {
+      "id": "m6",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 694,
+      "y": 187
+    },
+    {
+      "id": "m7",
+      "type": "octave_owl",
+      "mapKey": "3_1",
+      "x": 758,
+      "y": 490
+    },
+    {
+      "id": "m8",
+      "type": "bass_crawler",
+      "mapKey": "3_0",
+      "x": 300,
+      "y": 320
+    },
+    {
+      "id": "m9",
+      "type": "coda_crawler",
+      "mapKey": "3_0",
+      "x": 640,
+      "y": 420
+    },
+    {
+      "id": "m10",
+      "type": "treble_flyer",
+      "mapKey": "3_0",
+      "x": 800,
+      "y": 260
+    }
+  ]
+}
