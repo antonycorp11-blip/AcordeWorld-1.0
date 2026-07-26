@@ -2475,6 +2475,75 @@ function paintAt(x,y,k){
   if(collisionTool==='road'||collisionTool==='eraser')invalidateRoadPaint(k);
   if(paintSaveTimer)clearTimeout(paintSaveTimer);paintSaveTimer=setTimeout(()=>saveAllLayers(false),500);
 }
+
+let magicWandTolerance = 35;
+
+function autoDetectRoadFromClick(sampleX, sampleY, mapKey) {
+  const bg = bgImages[mapKey];
+  if (!bg || !bg.complete) {
+    showToast('⚠️ Imagem do cenário ainda está carregando...');
+    return;
+  }
+
+  const dims = mapKey === 'mega_world' ? getMegaWorldDimensions() : { w: SCREEN_W, h: SCREEN_H };
+  const w = dims.w;
+  const h = dims.h;
+
+  const off = document.createElement('canvas');
+  off.width = w;
+  off.height = h;
+  const ctxOff = off.getContext('2d');
+  ctxOff.drawImage(bg, 0, 0, w, h);
+
+  const sx = Math.max(0, Math.min(w - 1, Math.floor(sampleX)));
+  const sy = Math.max(0, Math.min(h - 1, Math.floor(sampleY)));
+
+  const bgData = ctxOff.getImageData(0, 0, w, h);
+  const pixels = bgData.data;
+
+  const targetIdx = (sy * w + sx) * 4;
+  const targetR = pixels[targetIdx];
+  const targetG = pixels[targetIdx + 1];
+  const targetB = pixels[targetIdx + 2];
+
+  const L = getLayers(mapKey);
+  const roadCanvas = L.roadCanvas;
+  if (roadCanvas.width !== w || roadCanvas.height !== h) {
+    roadCanvas.width = w;
+    roadCanvas.height = h;
+  }
+
+  const roadCtx = L.roadCtx;
+  const roadImgData = roadCtx.createImageData(w, h);
+  const roadPixels = roadImgData.data;
+
+  const tol = magicWandTolerance;
+  let count = 0;
+
+  for (let i = 0; i < pixels.length; i += 4) {
+    const r = pixels[i];
+    const g = pixels[i + 1];
+    const b = pixels[i + 2];
+
+    const dr = r - targetR;
+    const dg = g - targetG;
+    const db = b - targetB;
+    const diff = Math.sqrt(0.3 * dr * dr + 0.59 * dg * dg + 0.11 * db * db);
+
+    if (diff <= tol) {
+      roadPixels[i] = 34;
+      roadPixels[i + 1] = 197;
+      roadPixels[i + 2] = 94;
+      roadPixels[i + 3] = 215;
+      count++;
+    }
+  }
+
+  roadCtx.putImageData(roadImgData, 0, 0);
+  invalidateRoadPaint(mapKey);
+  saveAllLayers(true);
+  showToast(`🪄 Piso Auto-Detectado! (${count}px de estrada pintados de verde). O personagem agora só anda sobre o piso!`);
+}
 // Depth pass. In a top-down scene almost everything you can't walk on is scenery you
 // should be able to walk *behind*: copy those pixels into the foreground layer and they
 // draw over the player. Not perfect — it also lifts low bushes — but it's a starting
@@ -2587,7 +2656,13 @@ function onPointerDown(m){
     else if(worldMapSubTool==='delete'){deleteScene(m.x,m.y);}
     return;
   }
-  if(engineMode==='collision'){isPainting=true;endStroke();paintStroke(m.x,m.y,activeMapSelect?.value||currentKey);return;}
+  if(engineMode==='collision'){
+    if (collisionTool === 'magic') {
+      autoDetectRoadFromClick(m.x, m.y, activeMapSelect?.value || currentKey);
+      return;
+    }
+    isPainting=true;endStroke();paintStroke(m.x,m.y,activeMapSelect?.value||currentKey);return;
+  }
   if(engineMode==='scene'){
     if(isPlayMode){tryTalk();return;} // tapping near an NPC starts the conversation
     if(npcPlacingMode){placeNPC(m.x,m.y);return;}
@@ -3747,6 +3822,23 @@ function initMegaWorldControls() {
   const megaModeBtn = document.getElementById('megaModeBtn');
   const uploadMega2KBtn = document.getElementById('uploadMega2KBtn');
   const megaFileInput = document.getElementById('megaFileInput');
+  const megaAutoPaintBtn = document.getElementById('megaAutoPaintBtn');
+  const magicTolSelect = document.getElementById('magicTolSelect');
+
+  if (magicTolSelect) {
+    magicTolSelect.addEventListener('change', (e) => {
+      magicWandTolerance = parseInt(e.target.value, 10);
+      showToast(`🎚️ Tolerância de Cor definida: ${magicWandTolerance}`);
+    });
+  }
+
+  if (megaAutoPaintBtn) {
+    megaAutoPaintBtn.addEventListener('click', () => {
+      setMode('collision');
+      setCollisionTool('magic');
+      showToast('👉 Clique em qualquer ponto do chão no mapa para auto-detectar o piso!');
+    });
+  }
 
   if (uploadMega2KBtn && megaFileInput) {
     uploadMega2KBtn.addEventListener('click', () => megaFileInput.click());

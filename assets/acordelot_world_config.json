@@ -79,7 +79,6 @@
     "3_0": "assets/forest_deep.jpg"
   },
   "sceneNames": {
-    "mega_world": "🗺️ Mega Cenário 2K",
     "0_0": "\ud83c\udff0 Vila Medieval",
     "1_0": "\ud83c\udf32 Floresta M\u00e1gica",
     "2_0": "\ud83c\udfb9 Conservat\u00f3rio",
@@ -87,6 +86,7 @@
     "1_1": "\ud83c\udf3f Entrada Floresta",
     "2_1": "\ud83c\udf33 Bosque de Treino",
     "3_1": "\ud83c\udf43 Clareira",
-    "3_0": "\ud83c\udf32 Floresta Profunda"
+    "3_0": "\ud83c\udf32 Floresta Profunda",
+    "mega_world": "\ud83d\uddfa\ufe0f Mega Cen\u00e1rio 2K"
   }
 }
