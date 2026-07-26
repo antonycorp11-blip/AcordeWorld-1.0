@@ -267,6 +267,9 @@ async function loadWorldConfig() {
       }catch(ee){}
     }
   }
+  bgSources['mega_world'] = 'assets/mega_map_1.jpg';
+  SCENE_NAMES['mega_world'] = '🗺️ Mega Cenário 2K';
+
   for (const [k, src] of Object.entries(bgSources)) {
     if (!bgImages[k]) {
       const img = new Image();
@@ -3405,6 +3408,11 @@ function loop(now){
   ctx.clearRect(0,0,SCREEN_W,SCREEN_H);ctx.imageSmoothingEnabled=false;
 
   if (isMegaWorld) {
+    if (!bgImages['mega_world']) {
+      const img = new Image();
+      img.src = 'assets/mega_map_1.jpg';
+      bgImages['mega_world'] = img;
+    }
     const dims = getMegaWorldDimensions();
     const viewW = SCREEN_W / megaMapZoom;
     const viewH = SCREEN_H / megaMapZoom;
@@ -3419,8 +3427,8 @@ function loop(now){
     ctx.translate(-megaCameraX, -megaCameraY);
 
     const bg = bgImages['mega_world'];
-    if (bg?.complete) {
-      ctx.drawImage(bg, 0, 0, dims.w, dims.h);
+    if (bg) {
+      try { ctx.drawImage(bg, 0, 0, dims.w, dims.h); } catch(e) {}
     }
   } else {
     if(currentScene==='world'||!isPlayMode){const bg=bgImages[mapKey];if(bg?.complete)ctx.drawImage(bg,0,0,SCREEN_W,SCREEN_H);}

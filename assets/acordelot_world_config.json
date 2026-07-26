@@ -68,6 +68,7 @@
     }
   },
   "bgSources": {
+    "mega_world": "assets/mega_map_1.jpg",
     "0_0": "assets/background.jpg",
     "1_0": "assets/background2.jpg",
     "2_0": "assets/conservatory.jpg",
@@ -78,6 +79,7 @@
     "3_0": "assets/forest_deep.jpg"
   },
   "sceneNames": {
+    "mega_world": "🗺️ Mega Cenário 2K",
     "0_0": "\ud83c\udff0 Vila Medieval",
     "1_0": "\ud83c\udf32 Floresta M\u00e1gica",
     "2_0": "\ud83c\udfb9 Conservat\u00f3rio",
