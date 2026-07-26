@@ -3405,6 +3405,9 @@ function loop(now){
   const mapKey=isPlayMode?currentKey:(activeMapSelect?.value||currentKey);
   const isMegaWorld = mapKey === 'mega_world';
 
+  const dpr = canvas.width / SCREEN_W;
+  ctx.save();
+  ctx.scale(dpr, dpr);
   ctx.clearRect(0,0,SCREEN_W,SCREEN_H);ctx.imageSmoothingEnabled=false;
 
   if (isMegaWorld) {
@@ -3572,14 +3575,28 @@ function loop(now){
   if (isMegaWorld) {
     ctx.restore();
   }
+  ctx.restore();
 }
 
 // ============================================================
 // INIT
 // ============================================================
+function setupHighDPICanvas() {
+  if (!canvas) return;
+  const dpr = Math.max(2, window.devicePixelRatio || 2);
+  const targetW = Math.round(SCREEN_W * dpr);
+  const targetH = Math.round(SCREEN_H * dpr);
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
+  }
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
   canvas=document.getElementById('gameCanvas');
   ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;
+  setupHighDPICanvas();
+  window.addEventListener('resize', setupHighDPICanvas);
   bindCanvasEvents();
   skinShopVideo=document.getElementById('skinShopVideo');
   loadingOverlay=document.getElementById('loadingOverlay');
@@ -3724,8 +3741,22 @@ function initMegaWorldControls() {
   const playerSpeedRange = document.getElementById('playerSpeedRange');
   const playerSpeedVal = document.getElementById('playerSpeedVal');
   const megaBar = document.getElementById('megaControlBar');
+  const megaMinBtn = document.getElementById('megaMinBtn');
   const megaCloseBtn = document.getElementById('megaCloseBtn');
+  const megaPillBtn = document.getElementById('megaPillBtn');
   const megaModeBtn = document.getElementById('megaModeBtn');
+
+  // Mouse Wheel Zoom directly on canvas!
+  if (canvas) {
+    canvas.addEventListener('wheel', (e) => {
+      if (currentKey !== 'mega_world' && activeMapSelect?.value !== 'mega_world') return;
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.15 : -0.15;
+      megaMapZoom = Math.max(1.0, Math.min(4.0, megaMapZoom + delta));
+      if (zoomRange) zoomRange.value = megaMapZoom.toFixed(1);
+      if (zoomVal) zoomVal.textContent = megaMapZoom.toFixed(1) + 'x';
+    }, { passive: false });
+  }
 
   if (zoomRange) {
     zoomRange.addEventListener('input', (e) => {
@@ -3752,9 +3783,24 @@ function initMegaWorldControls() {
     });
   }
 
+  if (megaMinBtn) {
+    megaMinBtn.addEventListener('click', () => {
+      megaBar?.classList.add('hidden');
+      megaPillBtn?.classList.remove('hidden');
+    });
+  }
+
+  if (megaPillBtn) {
+    megaPillBtn.addEventListener('click', () => {
+      megaPillBtn?.classList.add('hidden');
+      megaBar?.classList.remove('hidden');
+    });
+  }
+
   if (megaCloseBtn) {
     megaCloseBtn.addEventListener('click', () => {
       megaBar?.classList.add('hidden');
+      megaPillBtn?.classList.add('hidden');
     });
   }
 
@@ -3763,6 +3809,7 @@ function initMegaWorldControls() {
       currentKey = 'mega_world';
       if (activeMapSelect) activeMapSelect.value = 'mega_world';
       megaBar?.classList.remove('hidden');
+      megaPillBtn?.classList.add('hidden');
       const dims = getMegaWorldDimensions();
       player.x = dims.w / 2;
       player.y = dims.h / 2;

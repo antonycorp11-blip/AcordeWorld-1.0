@@ -85,12 +85,15 @@
         <!-- Mega Cenário Floating Controls Overlay -->
         <div id="megaControlBar" class="mega-control-bar hidden">
           <div class="mega-bar-header">
-            <span class="mega-bar-title">🗺️ Mega Cenário (Modo Zoom & Câmera)</span>
-            <button id="megaCloseBtn" class="mega-close-btn" title="Fechar Painel">✖</button>
+            <span class="mega-bar-title">⚙️ Ajustes de Zoom & Player</span>
+            <div class="mega-btn-actions">
+              <button id="megaMinBtn" class="mega-icon-btn" title="Minimizar"> — </button>
+              <button id="megaCloseBtn" class="mega-icon-btn" title="Fechar">✖</button>
+            </div>
           </div>
-          <div class="mega-bar-controls">
+          <div id="megaBarBody" class="mega-bar-controls">
             <div class="mega-control-item">
-              <label for="zoomRange">🔍 Zoom: <b id="zoomVal">2.0x</b></label>
+              <label for="zoomRange">🔍 Zoom (Scroll do Mouse): <b id="zoomVal">2.0x</b></label>
               <input type="range" id="zoomRange" min="1.0" max="4.0" step="0.1" value="2.0">
             </div>
             <div class="mega-control-item">
@@ -103,6 +106,7 @@
             </div>
           </div>
         </div>
+        <button id="megaPillBtn" class="mega-pill-btn hidden">⚙️ Ajustes 2K</button>
 
         <!-- WASD (play mode) -->
         <div id="wasdPanel" class="wasd-panel hidden">
