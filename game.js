@@ -3870,6 +3870,8 @@ function initMegaWorldControls() {
       if (!isPlayMode) togglePlay();
       showToast('📸 Cenário Recriado de Foto Ativado!');
     });
+  }
+
   initMainMenu();
   initQuestBuilder();
   loadHeroSprites();
