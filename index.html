@@ -461,6 +461,100 @@
             </div>
           </div>
 
+          <!-- Player HUD: health, coins, xp, level, inventory (play mode) -->
+          <div id="playerHud" class="player-hud hidden">
+            <div class="hud-vitals">
+              <div class="lvl-badge">
+                <span class="lvl-crown">👑</span>
+                <span id="lvlNum">1</span>
+              </div>
+              <div class="hud-bars">
+                <div class="bar hp" title="Pontos de Vida">
+                  <i id="hpFill"></i>
+                  <span id="hpText" class="bar-val-text">100 / 100</span>
+                </div>
+                <div class="bar xp" title="Experiência">
+                  <i id="xpFill"></i>
+                  <span id="xpLabel">XP 0 / 100</span>
+                </div>
+              </div>
+            </div>
+            <div class="hud-right">
+              <div class="chip coin-chip" title="Moedas de Ouro">
+                <span id="coinEmoji" class="hud-emoji">🪙</span>
+                <span id="coinCount">0</span>
+              </div>
+              <div class="chip clave-chip" title="Claves Musicais">
+                <span class="hud-emoji">🎼</span>
+                <span id="claveCount">0</span>
+              </div>
+              <button id="charBtn" class="icon-btn attr-btn" title="Atributos & Habilidades">
+                <span class="hud-emoji">⚔️</span>
+                <span id="pointDot" class="dot hidden"></span>
+              </button>
+              <button id="invBtn" class="icon-btn inv-btn" title="Mochila / Inventário">
+                <span id="invEmoji" class="hud-emoji">🎒</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Character sheet: attributes + skill tree -->
+          <div id="charOverlay" class="sheet-overlay hidden">
+            <div class="sheet">
+              <header class="sheet-head">
+                <div class="sheet-id">
+                  <div class="lvl-badge big"><span id="csLevel">1</span></div>
+                  <div>
+                    <h2 id="csName">Aventureiro</h2>
+                    <div class="sheet-xp"><i id="csXpFill"></i></div>
+                    <small id="csXpText">0 / 100 XP</small>
+                  </div>
+                </div>
+                <button id="charClose" class="sheet-close" aria-label="Fechar">✕</button>
+              </header>
+              <nav class="sheet-tabs">
+                <button class="sheet-tab active" data-cstab="attrs">Atributos</button>
+                <button class="sheet-tab" data-cstab="skills">Habilidades</button>
+              </nav>
+              <section id="csAttrs" class="sheet-body"></section>
+              <section id="csSkills" class="sheet-body hidden"></section>
+            </div>
+          </div>
+
+          <!-- Shop / Inventory sheet -->
+          <div id="storeOverlay" class="store-overlay hidden">
+            <div class="store-sheet">
+              <div class="store-head">
+                <h2 id="storeTitle">Loja de Skins</h2>
+                <div class="store-coins">
+                  <img id="storeCoinIcon" class="hud-icon hidden" alt="">
+                  <span id="storeCoinEmoji" class="hud-emoji">🪙</span>
+                  <span id="storeCoins">0</span>
+                </div>
+                <button id="storeClose" class="store-close" aria-label="Fechar">✕</button>
+              </div>
+              <div id="storeTabs" class="store-tabs"></div>
+              <div id="storeGrid" class="store-grid"></div>
+              <p id="storeEmpty" class="store-empty hidden">Nada aqui ainda.</p>
+            </div>
+          </div>
+
+          <!-- Forging ceremony -->
+          <div id="forgeAnvilOverlay" class="anvil-overlay hidden">
+            <div class="anvil-box">
+              <div class="anvil-title">Forjando…</div>
+              <div class="anvil-stage">
+                <div class="anvil-art"></div>
+                <div class="anvil-sparks"></div>
+              </div>
+              <div class="anvil-name">—</div>
+              <div class="anvil-track"><i class="anvil-fill"></i></div>
+            </div>
+          </div>
+
+          <!-- Map Transition Fade Overlay -->
+          <div id="mapFadeOverlay" class="map-fade-overlay hidden"></div>
+
           <!-- Quest notification -->
           <div id="questNotification" class="quest-notif hidden">
             <div class="quest-notif-badge">✨ Missão Desbloqueada</div>

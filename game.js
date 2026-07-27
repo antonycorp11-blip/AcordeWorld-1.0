@@ -3893,7 +3893,6 @@ const processedHeroSprites = {};
 function loadHeroSprites() {
   for (const [id, hero] of Object.entries(HERO_DEFINITIONS)) {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     img.onload = () => {
       processHeroSprite(id, img);
       renderHeroAvatars();
@@ -3905,17 +3904,18 @@ function loadHeroSprites() {
 
 function processHeroSprite(id, imgRaw) {
   try {
+    if (!imgRaw || !imgRaw.complete || imgRaw.naturalWidth < 10) return;
     const off = document.createElement('canvas');
-    off.width = imgRaw.width || 1;
-    off.height = imgRaw.height || 1;
-    const oc = off.getContext('2d');
+    off.width = imgRaw.naturalWidth;
+    off.height = imgRaw.naturalHeight;
+    const oc = off.getContext('2d', { willReadFrequently: true });
     oc.drawImage(imgRaw, 0, 0);
     const idata = oc.getImageData(0, 0, off.width, off.height);
     const d = idata.data;
 
-    // Remove white & near-white backgrounds (>220 on RGB)
+    // Remove white & near-white backgrounds (>190 on RGB)
     for (let i = 0; i < d.length; i += 4) {
-      if (d[i] > 220 && d[i+1] > 220 && d[i+2] > 220) {
+      if (d[i] > 190 && d[i+1] > 190 && d[i+2] > 190) {
         d[i+3] = 0;
       }
     }
@@ -3931,8 +3931,8 @@ function processHeroSprite(id, imgRaw) {
 
 function renderHeroAvatars() {
   for (const [id, hero] of Object.entries(HERO_DEFINITIONS)) {
-    const spr = processedHeroSprites[id];
-    if (!spr) continue;
+    const spr = processedHeroSprites[id] || (id === 'arthur' ? processedSprite : null);
+    if (!spr || spr.width < 10) continue;
 
     const frameW = Math.floor(spr.width / 4);
     const frameH = Math.floor(spr.height / 4);
@@ -3943,8 +3943,8 @@ function renderHeroAvatars() {
     const actx = avatarCanvas.getContext('2d');
     actx.imageSmoothingEnabled = false;
 
-    // Crop front-facing head/body frame (0, 0, frameW, frameH)
-    actx.drawImage(spr, 0, 0, frameW, frameH, 0, 0, 44, 44);
+    // Crop top 60% of front-facing frame (head & torso)
+    actx.drawImage(spr, 0, 0, frameW, Math.floor(frameH * 0.65), 0, 0, 44, 44);
 
     const card = document.querySelector(`.hero-select-card[data-heroid="${id}"]`);
     if (card) {
