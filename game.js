@@ -1164,19 +1164,18 @@ let playerCustomHeight = 48;
 let megaCameraX = 0;
 let megaCameraY = 0;
 
-function getMegaWorldDimensions() {
-  const bg = bgImages['mega_world'];
+function getMapDimensions(key) {
+  const bg = bgImages[key];
   if (bg && bg.complete && bg.naturalWidth > 0) {
-    return {
-      w: bg.naturalWidth,
-      h: bg.naturalHeight
-    };
+    return { w: bg.naturalWidth, h: bg.naturalHeight };
   }
-  return { w: 1024, h: 571 };
+  if (key === 'photo_recriado') return { w: 1376, h: 768 };
+  if (key === 'mega_world') return { w: 2048, h: 1142 };
+  return { w: SCREEN_W, h: SCREEN_H };
 }
 
 function isWalkable(x,y) {
-  const dims = currentKey === 'mega_world' ? getMegaWorldDimensions() : { w: SCREEN_W, h: SCREEN_H };
+  const dims = getMapDimensions(currentKey);
   if (x < 24 || x > dims.w - 24 || y < 28 || y > dims.h - 28) return false;
   if (currentScene !== 'world') return true;   // interiors have no painted collision
   if (!hasRoadPaint(currentKey)) return true;
@@ -3413,13 +3412,15 @@ function loop(now){
   ctx.scale(dpr, dpr);
   ctx.clearRect(0,0,SCREEN_W,SCREEN_H);ctx.imageSmoothingEnabled=false;
 
-  if (isMegaWorld) {
-    if (!bgImages['mega_world']) {
+  const isLargeMap = isMegaWorld || mapKey === 'photo_recriado';
+
+  if (isLargeMap) {
+    if (!bgImages[mapKey]) {
       const img = new Image();
-      img.src = 'assets/mega_map_1.jpg';
-      bgImages['mega_world'] = img;
+      img.src = bgSources[mapKey] || 'assets/photo_recriado_bg.jpg';
+      bgImages[mapKey] = img;
     }
-    const dims = getMegaWorldDimensions();
+    const dims = getMapDimensions(mapKey);
     const viewW = SCREEN_W / megaMapZoom;
     const viewH = SCREEN_H / megaMapZoom;
 
@@ -3434,7 +3435,7 @@ function loop(now){
     ctx.scale(megaMapZoom, megaMapZoom);
     ctx.translate(-megaCameraX, -megaCameraY);
 
-    const bg = bgImages['mega_world'];
+    const bg = bgImages[mapKey];
     if (bg) {
       try { ctx.drawImage(bg, 0, 0, dims.w, dims.h); } catch(e) {}
     }
@@ -3575,7 +3576,7 @@ function loop(now){
     if(statusPos)statusPos.textContent=`X: ${Math.round(mouseCanvasX)}  Y: ${Math.round(mouseCanvasY)}`;
   }
 
-  if (isMegaWorld) {
+  if (isLargeMap) {
     ctx.restore();
   }
   ctx.restore();
