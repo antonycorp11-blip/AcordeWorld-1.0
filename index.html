@@ -702,6 +702,84 @@
             </div>
           </div>
 
+          <!-- ═══ RETRO 16-BIT INVENTORY & PROFILE OVERLAY ═══ -->
+          <div id="inventoryOverlay" class="inv-musical-overlay hidden">
+            <div class="inv-musical-frame">
+              <!-- Header Window Tabs -->
+              <div class="inv-head-banner">
+                <div class="inv-window-tabs">
+                  <button class="win-tab active" data-wintab="bag">🎒 BOLSA DE COLETA</button>
+                  <button class="win-tab" data-wintab="profile">👤 PERFIL &amp; EQUIPAMENTOS</button>
+                </div>
+                <button id="invCloseBtn" class="inv-close-x" title="Fechar (ESC)">✕ FECHAR</button>
+              </div>
+
+              <!-- WINDOW 1: BOLSA DE COLETA (BAG) -->
+              <div id="winTabBag" class="win-tab-content">
+                <div class="inv-bag-parchment">
+                  <div class="inv-bag-title">ITENS &amp; MATERIAIS COLETADOS</div>
+                  <div id="invGridSlots" class="inv-grid-5x5">
+                    <!-- 25 Item slots generated via JS -->
+                  </div>
+                  <div id="invItemDetailBox" class="inv-item-detail">
+                    <span id="detailItemIcon" class="detail-icon">🎒</span>
+                    <div class="detail-info">
+                      <strong id="detailItemName">Selecione um item</strong>
+                      <span id="detailItemDesc">Mochila limpa. Colete madeira e pedras pelo mundo!</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="inv-bag-actions">
+                  <button id="invSortBtn" class="inv-btn-gold">⇅ ORGANIZAR</button>
+                  <button id="invTrashBtn" class="inv-btn-red">🗑️ DESCARTAR</button>
+                  <button id="invCloseFooterBtn" class="inv-btn-blue">SAIR ✕</button>
+                </div>
+              </div>
+
+              <!-- WINDOW 2: PERFIL DO HERÓI & EQUIPAMENTOS -->
+              <div id="winTabProfile" class="win-tab-content hidden">
+                <div class="profile-split-box">
+                  <!-- Left: Live Hero Viewport Canvas & Attributes -->
+                  <div class="profile-left-col">
+                    <div class="profile-title-bar">⚔️ VISUAL DO HERÓI &amp; ATRIBUTOS</div>
+                    <div class="hero-canvas-frame">
+                      <canvas id="charPreviewCanvas" width="180" height="220"></canvas>
+                    </div>
+                    <div class="attr-upgrade-list">
+                      <div class="attr-line">
+                        <span>⚡ Ataque (Dmg): <strong id="valAtkStat">15</strong></span>
+                        <button class="btn-up-stat" data-stat="atk">＋ Up</button>
+                      </div>
+                      <div class="attr-line">
+                        <span>🛡️ Defesa (Arm): <strong id="valDefStat">8</strong></span>
+                        <button class="btn-up-stat" data-stat="def">＋ Up</button>
+                      </div>
+                      <div class="attr-line">
+                        <span>❤️ Vida (Max HP): <strong id="valHpStat">100</strong></span>
+                        <button class="btn-up-stat" data-stat="hp">＋ Up</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Right: Equipment Paperdoll Slots -->
+                  <div class="profile-right-col">
+                    <div class="profile-title-bar">🛡️ COSMÉTICOS &amp; EQUIPAMENTOS</div>
+                    <div class="gear-paperdoll-grid">
+                      <div class="gear-slot-box" title="Chapéu / Capacete"><span class="gear-slot-label">YELMO</span></div>
+                      <div class="gear-slot-box" title="Túnica / Armadura"><span class="gear-slot-label">TÚNICA</span></div>
+                      <div class="gear-slot-box" title="Luvas de Combate"><span class="gear-slot-label">LUVAS</span></div>
+                      <div class="gear-slot-box" title="Botas de Couro"><span class="gear-slot-label">BOTAS</span></div>
+                      <div class="gear-slot-box" title="Arma / Picareta"><span class="gear-slot-label">ARMA</span></div>
+                      <div class="gear-slot-box" title="Amuleto Musical"><span class="gear-slot-label">AMULETO</span></div>
+                      <div class="gear-slot-box" title="Anel de Encantamento"><span class="gear-slot-label">ANEL</span></div>
+                      <div class="gear-slot-box" title="Instrumento Musical"><span class="gear-slot-label">LIRA</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div><!-- end inv-musical-frame -->
+          </div><!-- end inventoryOverlay -->
+
         </div><!-- end canvas-stage -->
       </div><!-- end viewport-container -->
     </main><!-- end viewport-area -->
