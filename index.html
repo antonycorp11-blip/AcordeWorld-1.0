@@ -59,6 +59,7 @@
       <!-- Sidebar Tab Navigation Bar -->
       <div class="sidebar-tabs">
         <button class="bottom-tab sidebar-tab active" data-btab="scenetools" id="sceneToolsTab">🛣️ Pincéis</button>
+        <button class="bottom-tab sidebar-tab" data-btab="quests" id="questsTab">📜 Missões</button>
         <button class="bottom-tab sidebar-tab" data-btab="npcgallery" id="npcGalleryTab">🎭 NPCs</button>
         <button class="bottom-tab sidebar-tab" data-btab="elements" id="elementsGalleryTab">🗺️ Objetos</button>
         <button class="bottom-tab sidebar-tab" data-btab="hierarchy">👾 Lista</button>
@@ -68,6 +69,57 @@
 
       <!-- Sidebar Content Body -->
       <div class="sidebar-content-area">
+
+        <!-- TAB: Quest Creator & Visual Narrative Builder -->
+        <div id="btab-quests" class="btab-content hidden">
+          <div class="quest-builder-container">
+            <div class="tools-group-title">📜 Criador de Missões & Narrativa</div>
+            
+            <div class="insp-field">
+              <label>Título da Missão:</label>
+              <input type="text" id="questTitleInput" class="insp-input" placeholder="Ex: Coleta de Recursos no Bosque">
+            </div>
+
+            <div class="insp-field">
+              <label>Descrição / Diálogo da Missão:</label>
+              <textarea id="questDescInput" class="insp-input" rows="2" placeholder="Ex: O Ferreiro Dorn precisa de 3 Madeiras para consertar a ponte."></textarea>
+            </div>
+
+            <div class="tools-row">
+              <div class="insp-field half-width">
+                <label>Tipo de Objetivo:</label>
+                <select id="questTypeSelect" class="insp-input">
+                  <option value="collect">📦 Coleta (Recursos)</option>
+                  <option value="mob">⚔️ Derrotar Monstros</option>
+                  <option value="npc">💬 Falar com NPC</option>
+                </select>
+              </div>
+
+              <div class="insp-field half-width">
+                <label>Qtd Requerida:</label>
+                <input type="number" id="questAmountInput" class="insp-input" min="1" max="50" value="3">
+              </div>
+            </div>
+
+            <div class="insp-field">
+              <label>Recompensa:</label>
+              <select id="questRewardSelect" class="insp-input">
+                <option value="100 XP + Poção de Vida">🧪 100 XP + Poção de Vida</option>
+                <option value="250 XP + Machado de Bronze">🪓 250 XP + Machado de Bronze</option>
+                <option value="500 XP + Espada de Ouro">⚔️ 500 XP + Espada de Ouro</option>
+              </select>
+            </div>
+
+            <div class="tools-row margin-top-sm">
+              <button id="createQuestBtn" class="btn-apply full-width" style="background: linear-gradient(135deg, #d97706, #f59e0b);">✨ Criar Missão no Editor</button>
+            </div>
+
+            <div style="margin-top: 10px; font-weight: 700; color: #38bdf8; font-size: 11px;">📜 Missões Ativas (Clique para Testar):</div>
+            <div id="questListBuilder" class="quest-builder-list" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto;">
+              <div class="empty-msg">Nenhuma missão criada ainda</div>
+            </div>
+          </div>
+        </div>
 
         <!-- TAB: Scene Tools & Collision Brushes -->
         <div id="btab-scenetools" class="btab-content">
@@ -414,6 +466,60 @@
             <div class="quest-notif-badge">✨ Missão Desbloqueada</div>
             <div id="questNotifTitle" class="quest-notif-title">—</div>
             <div id="questNotifObj" class="quest-notif-obj">—</div>
+          </div>
+
+          <!-- PRE-GAME MAIN MENU & CHARACTER SELECTION OVERLAY -->
+          <div id="mainMenuOverlay" class="main-menu-overlay hidden">
+            <div class="main-menu-card">
+              <div class="menu-title-section">
+                <div class="menu-game-title">⚔️ ACORDELOT ENGINE</div>
+                <div class="menu-subtitle">Selecione seu Personagem e Inicie sua Aventura</div>
+              </div>
+
+              <div class="menu-name-row">
+                <label for="menuPlayerName" class="menu-label">👤 Nome do seu Jogador:</label>
+                <input type="text" id="menuPlayerName" class="menu-name-input" value="Aventureiro" placeholder="Digite seu nome..." maxlength="16">
+              </div>
+
+              <div class="menu-name-row">
+                <label class="menu-label">🎭 Escolha seu Herói (2 Masculinos, 2 Femininos):</label>
+                <div class="hero-select-grid">
+                  <!-- Hero 1 (Male) -->
+                  <div class="hero-select-card selected" data-heroid="arthur" data-heroname="Arthur" data-herogender="Masculino">
+                    <div class="hero-avatar-box">⚔️</div>
+                    <span class="hero-card-name">Arthur</span>
+                    <span class="hero-card-class">Guerreiro</span>
+                    <span class="hero-gender-badge">Masculino</span>
+                  </div>
+
+                  <!-- Hero 2 (Male) -->
+                  <div class="hero-select-card" data-heroid="lucian" data-heroname="Lucian" data-herogender="Masculino">
+                    <div class="hero-avatar-box">🎶</div>
+                    <span class="hero-card-name">Lucian</span>
+                    <span class="hero-card-class">Bardo Mago</span>
+                    <span class="hero-gender-badge">Masculino</span>
+                  </div>
+
+                  <!-- Heroine 1 (Female) -->
+                  <div class="hero-select-card" data-heroid="elena" data-heroname="Elena" data-herogender="Feminino">
+                    <div class="hero-avatar-box">🏹</div>
+                    <span class="hero-card-name">Elena</span>
+                    <span class="hero-card-class">Arqueira</span>
+                    <span class="hero-gender-badge">Feminino</span>
+                  </div>
+
+                  <!-- Heroine 2 (Female) -->
+                  <div class="hero-select-card" data-heroid="lyra" data-heroname="Lyra" data-herogender="Feminino">
+                    <div class="hero-avatar-box">🔮</div>
+                    <span class="hero-card-name">Lyra</span>
+                    <span class="hero-card-class">Maga Guardiã</span>
+                    <span class="hero-gender-badge">Feminino</span>
+                  </div>
+                </div>
+              </div>
+
+              <button id="startAdventureBtn" class="btn-start-adventure">⚔️ INICIAR AVENTURA ✦</button>
+            </div>
           </div>
 
           <!-- Loading -->

@@ -3645,7 +3645,15 @@ document.addEventListener('DOMContentLoaded',()=>{
   // WV subtools
   document.querySelectorAll('[data-wvtool]').forEach(btn=>btn.addEventListener('click',()=>setWVTool(btn.dataset.wvtool)));
 
-  playBtn?.addEventListener('click',()=>{initAudio();togglePlay();});
+  playBtn?.addEventListener('click', () => {
+    initAudio();
+    const menu = document.getElementById('mainMenuOverlay');
+    if (menu && !isPlayMode) {
+      menu.classList.remove('hidden');
+    } else {
+      togglePlay();
+    }
+  });
   stopBtn?.addEventListener('click',()=>togglePlay());
   saveProjectBtn?.addEventListener('click',()=>{saveAllLayers(false);saveNPCs();showToast('💾 Projeto salvo!');});
   saveLayersBtn?.addEventListener('click',()=>saveAllLayers(true));
@@ -3862,12 +3870,155 @@ function initMegaWorldControls() {
       if (!isPlayMode) togglePlay();
       showToast('📸 Cenário Recriado de Foto Ativado!');
     });
+  initMainMenu();
+  initQuestBuilder();
+  loadHeroSprites();
+}
+
+const HERO_DEFINITIONS = {
+  'arthur': { id: 'arthur', name: 'Arthur', class: 'Guerreiro', gender: 'Masculino', src: 'assets/spritesheet.jpg' },
+  'lucian': { id: 'lucian', name: 'Lucian', class: 'Bardo Mago', gender: 'Masculino', src: 'assets/spritesheet.jpg' },
+  'elena': { id: 'elena', name: 'Elena', class: 'Arqueira', gender: 'Feminino', src: 'assets/female_hero_1.jpg' },
+  'lyra': { id: 'lyra', name: 'Lyra', class: 'Maga Guardiã', gender: 'Feminino', src: 'assets/female_hero_2.jpg' }
+};
+let selectedHeroId = 'arthur';
+const heroImages = {};
+const processedHeroSprites = {};
+
+function loadHeroSprites() {
+  for (const [id, hero] of Object.entries(HERO_DEFINITIONS)) {
+    const img = new Image();
+    img.src = hero.src;
+    img.onload = () => processHeroSprite(id, img);
+    heroImages[id] = img;
   }
 }
 
+function processHeroSprite(id, imgRaw) {
+  try {
+    const off = document.createElement('canvas');
+    off.width = imgRaw.width || 1; off.height = imgRaw.height || 1;
+    const oc = off.getContext('2d'); oc.drawImage(imgRaw, 0, 0);
+    const idata = oc.getImageData(0, 0, off.width, off.height); const d = idata.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if ((d[i] > 210 && d[i+1] > 210 && d[i+2] > 210) || (d[i] < 25 && d[i+1] < 25 && d[i+2] < 25)) d[i+3] = 0;
+    }
+    oc.putImageData(idata, 0, 0);
+    processedHeroSprites[id] = off;
+    if (id === selectedHeroId) processedSprite = off;
+  } catch(e) {}
+}
+
+function initMainMenu() {
+  const mainMenuOverlay = document.getElementById('mainMenuOverlay');
+  const menuPlayerName = document.getElementById('menuPlayerName');
+  const startAdventureBtn = document.getElementById('startAdventureBtn');
+  const heroCards = document.querySelectorAll('.hero-select-card');
+
+  heroCards.forEach(card => {
+    card.addEventListener('click', () => {
+      heroCards.forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedHeroId = card.dataset.heroid;
+      if (processedHeroSprites[selectedHeroId]) {
+        processedSprite = processedHeroSprites[selectedHeroId];
+      }
+    });
+  });
+
+  startAdventureBtn?.addEventListener('click', () => {
+    if (menuPlayerName && menuPlayerName.value.trim()) {
+      playerName = menuPlayerName.value.trim();
+    }
+    mainMenuOverlay?.classList.add('hidden');
+    if (!isPlayMode) togglePlay();
+    showToast(`⚔️ Bem-vindo a Acordelot, ${playerName}!`);
+  });
+}
+
+function initQuestBuilder() {
+  const createQuestBtn = document.getElementById('createQuestBtn');
+  const questTitleInput = document.getElementById('questTitleInput');
+  const questDescInput = document.getElementById('questDescInput');
+  const questTypeSelect = document.getElementById('questTypeSelect');
+  const questAmountInput = document.getElementById('questAmountInput');
+  const questRewardSelect = document.getElementById('questRewardSelect');
+
+  createQuestBtn?.addEventListener('click', () => {
+    const title = questTitleInput?.value.trim() || 'Nova Missão';
+    const desc = questDescInput?.value.trim() || 'Complete o objetivo para ganhar a recompensa.';
+    const type = questTypeSelect?.value || 'collect';
+    const amount = parseInt(questAmountInput?.value || '3', 10);
+    const reward = questRewardSelect?.value || '100 XP + Poção de Vida';
+
+    const newQuest = {
+      id: `quest_${Date.now()}`,
+      title: title,
+      description: desc,
+      type: type,
+      targetAmount: amount,
+      currentAmount: 0,
+      reward: reward,
+      completed: false,
+      active: true
+    };
+
+    questsData.push(newQuest);
+    renderQuestBuilderList();
+    activateQuestInGame(newQuest);
+    showToast(`✨ Missão "${title}" Criada e Ativada!`);
+
+    if (questTitleInput) questTitleInput.value = '';
+    if (questDescInput) questDescInput.value = '';
+  });
+
+  renderQuestBuilderList();
+}
+
+function renderQuestBuilderList() {
+  const questListBuilder = document.getElementById('questListBuilder');
+  if (!questListBuilder) return;
+  if (!questsData.length) {
+    questListBuilder.innerHTML = `<div class="empty-msg">Nenhuma missão criada ainda</div>`;
+    return;
+  }
+
+  questListBuilder.innerHTML = questsData.map((q, idx) => `
+    <div class="quest-card-item">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="quest-card-title">📜 ${q.title || 'Missão'}</span>
+        <span class="quest-type-tag quest-type-${q.type || 'collect'}">${q.type || 'coleta'}</span>
+      </div>
+      <div style="font-size:10px; color:#cbd5e1;">${q.description || ''}</div>
+      <div style="font-size:9px; color:#f59e0b; font-weight:bold;">Progresso: ${q.currentAmount || 0}/${q.targetAmount || 3} · Recompensa: ${q.reward || '100 XP'}</div>
+      <button class="btn-card-add" onclick="testQuest(${idx})" style="background:#d97706; margin-top:4px;">▶ Testar Missão em Tempo Real</button>
+    </div>
+  `).join('');
+}
+
+function activateQuestInGame(q) {
+  const notif = document.getElementById('questNotification');
+  const titleEl = document.getElementById('questNotifTitle');
+  const objEl = document.getElementById('questNotifObj');
+  if (titleEl) titleEl.textContent = `📜 ${q.title}`;
+  if (objEl) objEl.textContent = `${q.description} (${q.currentAmount || 0}/${q.targetAmount || 3})`;
+  notif?.classList.remove('hidden');
+}
+
+window.testQuest = function(idx) {
+  const q = questsData[idx];
+  if (!q) return;
+  q.completed = false;
+  q.currentAmount = 0;
+  q.active = true;
+  activateQuestInGame(q);
+  showToast(`▶ Testando Missão: "${q.title}"`);
+};
+
 async function finishInit(){
   await loadWorldConfig();await loadLayers();await loadNPCs();await loadQuests();await loadShopCatalog();await loadMonsters();await loadSkillTree();
-  refreshMapSelect();               // grid positions are known only after the config loads
+  refreshMapSelect();
+  renderQuestBuilderList();
   loadingOverlay?.classList.add('hidden');updateMapStatus();
   showToast('🎵 Acordelot Engine carregado!');
 }
