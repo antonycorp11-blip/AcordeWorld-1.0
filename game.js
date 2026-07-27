@@ -1175,7 +1175,7 @@ function getMapDimensions(key) {
 }
 
 function isWalkable(x,y) {
-  const dims = getMapDimensions(currentKey);
+  const dims = currentKey === 'mega_world' ? getMegaWorldDimensions() : { w: SCREEN_W, h: SCREEN_H };
   if (x < 24 || x > dims.w - 24 || y < 28 || y > dims.h - 28) return false;
   if (currentScene !== 'world') return true;   // interiors have no painted collision
   if (!hasRoadPaint(currentKey)) return true;
@@ -3412,15 +3412,13 @@ function loop(now){
   ctx.scale(dpr, dpr);
   ctx.clearRect(0,0,SCREEN_W,SCREEN_H);ctx.imageSmoothingEnabled=false;
 
-  const isLargeMap = isMegaWorld || mapKey === 'photo_recriado';
-
-  if (isLargeMap) {
-    if (!bgImages[mapKey]) {
+  if (isMegaWorld) {
+    if (!bgImages['mega_world']) {
       const img = new Image();
-      img.src = bgSources[mapKey] || 'assets/photo_recriado_bg.jpg';
-      bgImages[mapKey] = img;
+      img.src = 'assets/mega_map_1.jpg';
+      bgImages['mega_world'] = img;
     }
-    const dims = getMapDimensions(mapKey);
+    const dims = getMapDimensions('mega_world');
     const viewW = SCREEN_W / megaMapZoom;
     const viewH = SCREEN_H / megaMapZoom;
 
@@ -3435,7 +3433,7 @@ function loop(now){
     ctx.scale(megaMapZoom, megaMapZoom);
     ctx.translate(-megaCameraX, -megaCameraY);
 
-    const bg = bgImages[mapKey];
+    const bg = bgImages['mega_world'];
     if (bg) {
       try { ctx.drawImage(bg, 0, 0, dims.w, dims.h); } catch(e) {}
     }
@@ -3576,7 +3574,7 @@ function loop(now){
     if(statusPos)statusPos.textContent=`X: ${Math.round(mouseCanvasX)}  Y: ${Math.round(mouseCanvasY)}`;
   }
 
-  if (isLargeMap) {
+  if (isMegaWorld) {
     ctx.restore();
   }
   ctx.restore();
