@@ -2244,8 +2244,10 @@ function getOutfitSprite(tint) {
   return c;
 }
 function activeSprite() {
-  const hero = typeof HERO_DEFINITIONS !== 'undefined' && HERO_DEFINITIONS[selectedHeroId];
-  const heroSpr = (hero && hero.tint && getOutfitSprite(hero.tint)) || processedSprite;
+  // Use the selected hero's processed sprite if loaded and valid
+  const heroSpr = (typeof processedHeroSprites !== 'undefined' && processedHeroSprites[selectedHeroId] && processedHeroSprites[selectedHeroId].width > 10)
+    ? processedHeroSprites[selectedHeroId]
+    : processedSprite;
   const it = equipped.outfit && itemById(equipped.outfit);
   return (it && it.tint && getOutfitSprite(it.tint)) || heroSpr || processedSprite;
 }
@@ -3852,7 +3854,7 @@ function initMegaWorldControls() {
       currentKey = 'mega_world';
       if (activeMapSelect) activeMapSelect.value = 'mega_world';
       megaBar?.classList.remove('hidden');
-      megaPillBtn?.classList.add('hidden');
+      megaPillBtn?.classList.remove('hidden');
       const dims = getMegaWorldDimensions();
       player.x = dims.w / 2;
       player.y = dims.h / 2;
@@ -3890,6 +3892,11 @@ let selectedHeroId = 'arthur';
 const heroImages = {};
 const processedHeroSprites = {};
 
+function hero_isPNG(id) {
+  const def = HERO_DEFINITIONS[id];
+  return def && def.src && def.src.toLowerCase().endsWith('.png');
+}
+
 function loadHeroSprites() {
   for (const [id, hero] of Object.entries(HERO_DEFINITIONS)) {
     const img = new Image();
@@ -3908,51 +3915,58 @@ function processHeroSprite(id, imgRaw) {
     const off = document.createElement('canvas');
     off.width = imgRaw.naturalWidth;
     off.height = imgRaw.naturalHeight;
-    const oc = off.getContext('2d', { willReadFrequently: true });
+    const oc = off.getContext('2d');
     oc.drawImage(imgRaw, 0, 0);
-    const idata = oc.getImageData(0, 0, off.width, off.height);
-    const d = idata.data;
 
-    // Remove white & near-white backgrounds (>190 on RGB)
-    for (let i = 0; i < d.length; i += 4) {
-      if (d[i] > 190 && d[i+1] > 190 && d[i+2] > 190) {
-        d[i+3] = 0;
-      }
+    // PNG heroes (Lucian, Elena, Lyra) already have RGBA transparency.
+    // Only strip white for the original JPG spritesheet (Arthur).
+    if (!hero_isPNG(id)) {
+      try {
+        const idata = oc.getImageData(0, 0, off.width, off.height);
+        const d = idata.data;
+        for (let i = 0; i < d.length; i += 4) {
+          if (d[i] > 200 && d[i+1] > 200 && d[i+2] > 200) d[i+3] = 0;
+        }
+        oc.putImageData(idata, 0, 0);
+      } catch(e) { /* canvas security error — use image as-is */ }
     }
 
-    oc.putImageData(idata, 0, 0);
     processedHeroSprites[id] = off;
-
-    if (id === selectedHeroId) {
-      processedSprite = off;
-    }
+    if (id === selectedHeroId) processedSprite = off;
   } catch(e) {}
 }
 
 function renderHeroAvatars() {
-  for (const [id, hero] of Object.entries(HERO_DEFINITIONS)) {
-    const spr = processedHeroSprites[id] || (id === 'arthur' ? processedSprite : null);
-    if (!spr || spr.width < 10) continue;
+  for (const [id] of Object.entries(HERO_DEFINITIONS)) {
+    // Prefer the processed canvas; fall back to the raw HTMLImageElement
+    const spr = processedHeroSprites[id];
+    const img = heroImages[id];
+    const src = (spr && spr.width > 10) ? spr
+              : (img && img.complete && img.naturalWidth > 10) ? img
+              : null;
+    if (!src) continue;
 
-    const frameW = Math.floor(spr.width / 4);
-    const frameH = Math.floor(spr.height / 4);
+    const srcW = src instanceof HTMLImageElement ? src.naturalWidth  : src.width;
+    const srcH = src instanceof HTMLImageElement ? src.naturalHeight : src.height;
+    const frameW = Math.floor(srcW / 4);
+    const frameH = Math.floor(srcH / 4);
 
-    const avatarCanvas = document.createElement('canvas');
-    avatarCanvas.width = 44;
-    avatarCanvas.height = 44;
-    const actx = avatarCanvas.getContext('2d');
-    actx.imageSmoothingEnabled = false;
+    const av = document.createElement('canvas');
+    av.width = 52; av.height = 52;
+    const ac = av.getContext('2d');
+    ac.imageSmoothingEnabled = false;
 
-    // Crop top 60% of front-facing frame (head & torso)
-    actx.drawImage(spr, 0, 0, frameW, Math.floor(frameH * 0.65), 0, 0, 44, 44);
+    // Dark background so any white fringe blends into the card
+    ac.fillStyle = 'rgba(15,23,42,0.9)';
+    ac.fillRect(0, 0, 52, 52);
+
+    // Front-facing head + torso: row 0, column 0, top 70% of frame height
+    ac.drawImage(src, 0, 0, frameW, Math.floor(frameH * 0.70), 2, 2, 48, 48);
 
     const card = document.querySelector(`.hero-select-card[data-heroid="${id}"]`);
     if (card) {
       const box = card.querySelector('.hero-avatar-box');
-      if (box) {
-        box.innerHTML = '';
-        box.appendChild(avatarCanvas);
-      }
+      if (box) { box.innerHTML = ''; box.appendChild(av); }
     }
   }
 }
@@ -3970,9 +3984,8 @@ function initMainMenu() {
       heroCards.forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       selectedHeroId = card.dataset.heroid;
-      if (processedHeroSprites[selectedHeroId]) {
-        processedSprite = processedHeroSprites[selectedHeroId];
-      }
+      const spr = processedHeroSprites[selectedHeroId];
+      if (spr && spr.width > 10) processedSprite = spr;
     });
   });
 
