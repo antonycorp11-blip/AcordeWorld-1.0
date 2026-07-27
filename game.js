@@ -136,6 +136,7 @@ function processPlayerSprite() {
     const id = oc.getImageData(0,0,off.width,off.height); const d = id.data;
     for (let i=0; i<d.length; i+=4) { if (d[i]>210 && d[i+1]>210 && d[i+2]>210) d[i+3]=0; }
     oc.putImageData(id,0,0); processedSprite = off;
+    if (typeof renderHeroAvatars === 'function') renderHeroAvatars();
   } catch(e) {}
 }
 
@@ -2243,8 +2244,10 @@ function getOutfitSprite(tint) {
   return c;
 }
 function activeSprite() {
+  const hero = typeof HERO_DEFINITIONS !== 'undefined' && HERO_DEFINITIONS[selectedHeroId];
+  const heroSpr = (hero && hero.tint && getOutfitSprite(hero.tint)) || processedSprite;
   const it = equipped.outfit && itemById(equipped.outfit);
-  return (it && it.tint && getOutfitSprite(it.tint)) || processedSprite;
+  return (it && it.tint && getOutfitSprite(it.tint)) || heroSpr || processedSprite;
 }
 
 function drawSkin(spr, w, top) {
@@ -3878,37 +3881,41 @@ function initMegaWorldControls() {
 }
 
 const HERO_DEFINITIONS = {
-  'arthur': { id: 'arthur', name: 'Arthur', class: 'Guerreiro', gender: 'Masculino', src: 'assets/spritesheet.jpg' },
-  'lucian': { id: 'lucian', name: 'Lucian', class: 'Bardo Mago', gender: 'Masculino', src: 'assets/spritesheet.jpg' },
-  'elena': { id: 'elena', name: 'Elena', class: 'Arqueira', gender: 'Feminino', src: 'assets/female_hero_1.jpg' },
-  'lyra': { id: 'lyra', name: 'Lyra', class: 'Maga Guardiã', gender: 'Feminino', src: 'assets/female_hero_2.jpg' }
+  'arthur': { id: 'arthur', name: 'Arthur', class: 'Guerreiro', gender: 'Masculino', tint: null },
+  'lucian': { id: 'lucian', name: 'Lucian', class: 'Bardo Mago', gender: 'Masculino', tint: '#38bdf8' },
+  'elena': { id: 'elena', name: 'Elena', class: 'Arqueira', gender: 'Feminino', tint: '#22c55e' },
+  'lyra': { id: 'lyra', name: 'Lyra', class: 'Maga Guardiã', gender: 'Feminino', tint: '#a855f7' }
 };
 let selectedHeroId = 'arthur';
-const heroImages = {};
-const processedHeroSprites = {};
 
-function loadHeroSprites() {
+function renderHeroAvatars() {
+  if (!processedSprite) return;
   for (const [id, hero] of Object.entries(HERO_DEFINITIONS)) {
-    const img = new Image();
-    img.src = hero.src;
-    img.onload = () => processHeroSprite(id, img);
-    heroImages[id] = img;
+    const spr = hero.tint ? getOutfitSprite(hero.tint) : processedSprite;
+    if (!spr) continue;
+
+    const avatarCanvas = document.createElement('canvas');
+    avatarCanvas.width = 44;
+    avatarCanvas.height = 44;
+    const actx = avatarCanvas.getContext('2d');
+    actx.imageSmoothingEnabled = false;
+    
+    // Crop front-facing head/chest frame from top-left (sx: 0, sy: 0, sw: 48, sh: 52)
+    actx.drawImage(spr, 0, 0, 48, 52, 0, 0, 44, 44);
+
+    const card = document.querySelector(`.hero-select-card[data-heroid="${id}"]`);
+    if (card) {
+      const box = card.querySelector('.hero-avatar-box');
+      if (box) {
+        box.innerHTML = '';
+        box.appendChild(avatarCanvas);
+      }
+    }
   }
 }
 
-function processHeroSprite(id, imgRaw) {
-  try {
-    const off = document.createElement('canvas');
-    off.width = imgRaw.width || 1; off.height = imgRaw.height || 1;
-    const oc = off.getContext('2d'); oc.drawImage(imgRaw, 0, 0);
-    const idata = oc.getImageData(0, 0, off.width, off.height); const d = idata.data;
-    for (let i = 0; i < d.length; i += 4) {
-      if ((d[i] > 210 && d[i+1] > 210 && d[i+2] > 210) || (d[i] < 25 && d[i+1] < 25 && d[i+2] < 25)) d[i+3] = 0;
-    }
-    oc.putImageData(idata, 0, 0);
-    processedHeroSprites[id] = off;
-    if (id === selectedHeroId) processedSprite = off;
-  } catch(e) {}
+function loadHeroSprites() {
+  if (processedSprite) renderHeroAvatars();
 }
 
 function initMainMenu() {
@@ -3917,14 +3924,13 @@ function initMainMenu() {
   const startAdventureBtn = document.getElementById('startAdventureBtn');
   const heroCards = document.querySelectorAll('.hero-select-card');
 
+  renderHeroAvatars();
+
   heroCards.forEach(card => {
     card.addEventListener('click', () => {
       heroCards.forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       selectedHeroId = card.dataset.heroid;
-      if (processedHeroSprites[selectedHeroId]) {
-        processedSprite = processedHeroSprites[selectedHeroId];
-      }
     });
   });
 
