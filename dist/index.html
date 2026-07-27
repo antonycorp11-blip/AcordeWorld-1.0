@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Acordelot Engine — Reino da Harmonia</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="engine-shell">
+
+  <!-- ═══ ENGINE HEADER ═══ -->
+  
+
+  <!-- ═══ MAIN WORKSPACE (LEFT SIDEBAR EDITOR + RIGHT GAME CANVAS) ═══ -->
+  <div id="main-editor-layout">
+
+    <!-- ═══ LEFT SIDEBAR (EDITOR PANEL) ═══ -->
+    
+
+    <!-- ═══ RIGHT VIEWPORT (REAL-TIME GAME CANVAS) ═══ -->
+    <main id="viewport-area">
+      <div id="viewport-container">
+        <div id="canvas-stage">
+          <video id="skinShopVideo" src="assets/loja_de_skins.mp4" loop autoplay playsinline class="video-bg hidden"></video>
+          <video id="forgeVideo" src="assets/ferraria_interno.mp4" loop autoplay playsinline class="video-bg hidden"></video>
+          <canvas id="gameCanvas" width="1024" height="571"></canvas>
+
+          <!-- Name input overlay -->
+          <div id="nameInputOverlay" class="game-overlay hidden">
+            <div class="name-window">
+              <div class="name-window-deco tl">✦</div>
+              <div class="name-window-deco tr">✦</div>
+              <div class="name-window-deco bl">✦</div>
+              <div class="name-window-deco br">✦</div>
+              <div class="name-win-icon">⚔️</div>
+              <div class="name-win-title">Nome do Aventureiro</div>
+              <div class="name-win-sub">Como deseja ser chamado neste reino?</div>
+              <input type="text" id="playerNameInput" class="name-field" placeholder="Digite seu nome..." maxlength="20" autocomplete="off" spellcheck="false">
+              <button id="confirmNameBtn" class="confirm-btn">Confirmar ✦</button>
+            </div>
+          </div>
+
+          <!-- Player HUD: health, coins, xp, level, inventory (play mode) -->
+          <div id="playerHud" class="player-hud hidden">
+            <div class="hud-vitals">
+              <div class="lvl-badge">
+                <span class="lvl-crown">👑</span>
+                <span id="lvlNum">1</span>
+              </div>
+              <div class="hud-bars">
+                <div class="bar hp" title="Pontos de Vida">
+                  <i id="hpFill"></i>
+                  <span id="hpText" class="bar-val-text">100 / 100</span>
+                </div>
+                <div class="bar xp" title="Experiência">
+                  <i id="xpFill"></i>
+                  <span id="xpLabel">XP 0 / 100</span>
+                </div>
+              </div>
+            </div>
+            <div class="hud-right">
+              <div class="chip coin-chip" title="Moedas de Ouro">
+                <span id="coinEmoji" class="hud-emoji">🪙</span>
+                <span id="coinCount">0</span>
+              </div>
+              <div class="chip clave-chip" title="Claves Musicais">
+                <span class="hud-emoji">🎼</span>
+                <span id="claveCount">0</span>
+              </div>
+              <button id="charBtn" class="icon-btn attr-btn" title="Atributos & Habilidades">
+                <span class="hud-emoji">⚔️</span>
+                <span id="pointDot" class="dot hidden"></span>
+              </button>
+              <button id="invBtn" class="icon-btn inv-btn" title="Mochila / Inventário">
+                <span id="invEmoji" class="hud-emoji">🎒</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Character sheet: attributes + skill tree -->
+          <div id="charOverlay" class="sheet-overlay hidden">
+            <div class="sheet">
+              <header class="sheet-head">
+                <div class="sheet-id">
+                  <div class="lvl-badge big"><span id="csLevel">1</span></div>
+                  <div>
+                    <h2 id="csName">Aventureiro</h2>
+                    <div class="sheet-xp"><i id="csXpFill"></i></div>
+                    <small id="csXpText">0 / 100 XP</small>
+                  </div>
+                </div>
+                <button id="charClose" class="sheet-close" aria-label="Fechar">✕</button>
+              </header>
+              <nav class="sheet-tabs">
+                <button class="sheet-tab active" data-cstab="attrs">Atributos</button>
+                <button class="sheet-tab" data-cstab="skills">Habilidades</button>
+              </nav>
+              <section id="csAttrs" class="sheet-body"></section>
+              <section id="csSkills" class="sheet-body hidden"></section>
+            </div>
+          </div>
+
+          <!-- Shop / Inventory sheet -->
+          <div id="storeOverlay" class="store-overlay hidden">
+            <div class="store-sheet">
+              <div class="store-head">
+                <h2 id="storeTitle">Loja de Skins</h2>
+                <div class="store-coins">
+                  <img id="storeCoinIcon" class="hud-icon hidden" alt="">
+                  <span id="storeCoinEmoji" class="hud-emoji">🪙</span>
+                  <span id="storeCoins">0</span>
+                </div>
+                <button id="storeClose" class="store-close" aria-label="Fechar">✕</button>
+              </div>
+              <div id="storeTabs" class="store-tabs"></div>
+              <div id="storeGrid" class="store-grid"></div>
+              <p id="storeEmpty" class="store-empty hidden">Nada aqui ainda.</p>
+            </div>
+          </div>
+
+          <!-- Forging ceremony -->
+          <div id="forgeAnvilOverlay" class="anvil-overlay hidden">
+            <div class="anvil-box">
+              <div class="anvil-title">Forjando…</div>
+              <div class="anvil-stage">
+                <div class="anvil-art"></div>
+                <div class="anvil-sparks"></div>
+              </div>
+              <div class="anvil-name">—</div>
+              <div class="anvil-track"><i class="anvil-fill"></i></div>
+            </div>
+          </div>
+
+          <!-- Map Transition Fade Overlay -->
+          <div id="mapFadeOverlay" class="map-fade-overlay hidden"></div>
+
+          <!-- Quest notification -->
+          <div id="questNotification" class="quest-notif hidden">
+            <div class="quest-notif-badge">✨ Missão Desbloqueada</div>
+            <div id="questNotifTitle" class="quest-notif-title">—</div>
+            <div id="questNotifObj" class="quest-notif-obj">—</div>
+          </div>
+
+          <!-- PRE-GAME MAIN MENU & CHARACTER SELECTION OVERLAY -->
+          <div id="mainMenuOverlay" class="main-menu-overlay hidden">
+            <div class="main-menu-card">
+              <div class="menu-title-section">
+                <div class="menu-game-title">⚔️ ACORDELOT ENGINE</div>
+                <div class="menu-subtitle">Selecione seu Personagem e Inicie sua Aventura</div>
+              </div>
+
+              <div class="menu-name-row">
+                <label for="menuPlayerName" class="menu-label">👤 Nome do seu Jogador:</label>
+                <input type="text" id="menuPlayerName" class="menu-name-input" value="Aventureiro" placeholder="Digite seu nome..." maxlength="16">
+              </div>
+
+              <div class="menu-name-row">
+                <label class="menu-label">🎭 Escolha seu Herói (2 Masculinos, 2 Femininos):</label>
+                <div class="hero-select-grid">
+                  <!-- Hero 1 (Male) -->
+                  <div class="hero-select-card selected" data-heroid="arthur" data-heroname="Arthur" data-herogender="Masculino">
+                    <div class="hero-avatar-box">⚔️</div>
+                    <span class="hero-card-name">Arthur</span>
+                    <span class="hero-card-class">Guerreiro</span>
+                    <span class="hero-gender-badge">Masculino</span>
+                  </div>
+
+                  <!-- Hero 2 (Male) -->
+                  <div class="hero-select-card" data-heroid="lucian" data-heroname="Lucian" data-herogender="Masculino">
+                    <div class="hero-avatar-box">🎶</div>
+                    <span class="hero-card-name">Lucian</span>
+                    <span class="hero-card-class">Bardo Mago</span>
+                    <span class="hero-gender-badge">Masculino</span>
+                  </div>
+
+                  <!-- Heroine 1 (Female) -->
+                  <div class="hero-select-card" data-heroid="elena" data-heroname="Elena" data-herogender="Feminino">
+                    <div class="hero-avatar-box">🏹</div>
+                    <span class="hero-card-name">Elena</span>
+                    <span class="hero-card-class">Arqueira</span>
+                    <span class="hero-gender-badge">Feminino</span>
+                  </div>
+
+                  <!-- Heroine 2 (Female) -->
+                  <div class="hero-select-card" data-heroid="lyra" data-heroname="Lyra" data-herogender="Feminino">
+                    <div class="hero-avatar-box">🔮</div>
+                    <span class="hero-card-name">Lyra</span>
+                    <span class="hero-card-class">Maga Guardiã</span>
+                    <span class="hero-gender-badge">Feminino</span>
+                  </div>
+                </div>
+              </div>
+
+              <button id="startAdventureBtn" class="btn-start-adventure">⚔️ INICIAR AVENTURA ✦</button>
+            </div>
+          </div>
+
+          <!-- Loading -->
+          <div id="loadingOverlay" class="loading-overlay">
+            <div class="loading-logo">🎵</div>
+            <div class="spinner"></div>
+            <p>Carregando Acordelot Engine...</p>
+          </div>
+
+          <!-- Toast -->
+          <div id="toastEl" class="toast hidden"></div>
+
+          <!-- Mega Cenário Floating Controls Overlay -->
+          <div id="megaControlBar" class="mega-control-bar hidden">
+            <div class="mega-bar-header">
+              <span class="mega-bar-title">⚙️ Ajustes de Zoom & Player</span>
+              <div class="mega-btn-actions">
+                <button id="megaMinBtn" class="mega-icon-btn" title="Minimizar"> — </button>
+                <button id="megaCloseBtn" class="mega-icon-btn" title="Fechar">✖</button>
+              </div>
+            </div>
+            <div id="megaBarBody" class="mega-bar-controls">
+              <div class="mega-control-item">
+                <button id="uploadMega2KBtn" class="mega-upload-btn">📁 Carregar Imagem 2K do Mac</button>
+                <input type="file" id="megaFileInput" accept="image/*" class="hidden">
+              </div>
+              <div class="mega-control-item">
+                <label for="zoomRange">🔍 Zoom (Scroll do Mouse): <b id="zoomVal">2.0x</b></label>
+                <input type="range" id="zoomRange" min="1.0" max="4.0" step="0.1" value="2.0">
+              </div>
+              <div class="mega-control-item">
+                <label for="playerSizeRange">👤 Tamanho Player: <b id="playerSizeVal">48px</b></label>
+                <input type="range" id="playerSizeRange" min="20" max="120" step="2" value="48">
+              </div>
+              <div class="mega-control-item">
+                <label for="playerSpeedRange">🏃 Velocidade: <b id="playerSpeedVal">4.0</b></label>
+                <input type="range" id="playerSpeedRange" min="2" max="12" step="0.5" value="4">
+              </div>
+            </div>
+          </div>
+          <button id="megaPillBtn" class="mega-pill-btn hidden">⚙️ Ajustes 2K</button>
+
+          <!-- WASD (play mode) -->
+          <div id="wasdPanel" class="wasd-panel hidden">
+            <div class="key-row"><div class="key-cap" id="keyW">W</div></div>
+            <div class="key-row">
+              <div class="key-cap" id="keyA">A</div>
+              <div class="key-cap" id="keyS">S</div>
+              <div class="key-cap" id="keyD">D</div>
+            </div>
+          </div>
+
+          <!-- Hotbar UI -->
+          <div id="gameHotbar" class="game-hotbar hidden">
+            <div class="hotbar-slot active" data-hotslot="1">
+              <span class="hotbar-num">1</span>
+              <span class="hotbar-icon">🪓</span>
+              <span class="hotbar-label" id="hotAxeLabel">BRONZE</span>
+            </div>
+            <div class="hotbar-slot" data-hotslot="2">
+              <span class="hotbar-num">2</span>
+              <span class="hotbar-icon">⛏️</span>
+              <span class="hotbar-label" id="hotPickLabel">BRONZE</span>
+            </div>
+            <div class="hotbar-slot" data-hotslot="3">
+              <span class="hotbar-num">3</span>
+              <span class="hotbar-icon">🧪</span>
+              <span class="hotbar-label" id="hotPotionCount">0</span>
+            </div>
+            <div class="hotbar-divider"></div>
+            <div class="hotbar-mode" id="hotModeToggle" title="Alternar entre Coleta e Batalha">
+              <span class="hotbar-mode-icon" id="hotModeIcon">⛏️</span>
+              <span class="hotbar-mode-text" id="hotModeText">Coleta</span>
+            </div>
+          </div>
+
+          <!-- Mobile Joystick Zone -->
+          <div id="touchZone" class="touch-controls hidden">
+            <div class="stick-zone" id="stickZone">
+              <div class="stick-base">
+                <div class="stick-knob" id="stickKnob"></div>
+              </div>
+            </div>
+            <div class="touch-actions">
+              <button class="touch-action btn-talk" id="btnTouchTalk">E · Falar</button>
+            </div>
+          </div>
+
+          <!-- ═══ RETRO 16-BIT INVENTORY & PROFILE OVERLAY ═══ -->
+          <div id="inventoryOverlay" class="inv-musical-overlay hidden">
+            <div class="inv-musical-frame">
+              <!-- Header Window Tabs -->
+              <div class="inv-head-banner">
+                <div class="inv-window-tabs">
+                  <button class="win-tab active" data-wintab="bag">🎒 BOLSA DE COLETA</button>
+                  <button class="win-tab" data-wintab="profile">👤 PERFIL &amp; EQUIPAMENTOS</button>
+                </div>
+                <button id="invCloseBtn" class="inv-close-x" title="Fechar (ESC)">✕ FECHAR</button>
+              </div>
+
+              <!-- WINDOW 1: BOLSA DE COLETA (BAG) -->
+              <div id="winTabBag" class="win-tab-content">
+                <div class="inv-bag-parchment">
+                  <div class="inv-bag-title">ITENS &amp; MATERIAIS COLETADOS</div>
+                  <div id="invGridSlots" class="inv-grid-5x5">
+                    <!-- 25 Item slots generated via JS -->
+                  </div>
+                  <div id="invItemDetailBox" class="inv-item-detail">
+                    <span id="detailItemIcon" class="detail-icon">🎒</span>
+                    <div class="detail-info">
+                      <strong id="detailItemName">Selecione um item</strong>
+                      <span id="detailItemDesc">Mochila limpa. Colete madeira e pedras pelo mundo!</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="inv-bag-actions">
+                  <button id="invSortBtn" class="inv-btn-gold">⇅ ORGANIZAR</button>
+                  <button id="invTrashBtn" class="inv-btn-red">🗑️ DESCARTAR</button>
+                  <button id="invCloseFooterBtn" class="inv-btn-blue">SAIR ✕</button>
+                </div>
+              </div>
+
+              <!-- WINDOW 2: PERFIL DO HERÓI & EQUIPAMENTOS -->
+              <div id="winTabProfile" class="win-tab-content hidden">
+                <div class="profile-split-box">
+                  <!-- Left: Live Hero Viewport Canvas & Attributes -->
+                  <div class="profile-left-col">
+                    <div class="profile-title-bar">⚔️ VISUAL DO HERÓI &amp; ATRIBUTOS</div>
+                    <div class="hero-canvas-frame">
+                      <canvas id="charPreviewCanvas" width="180" height="220"></canvas>
+                    </div>
+                    <div class="attr-upgrade-list">
+                      <div class="attr-line">
+                        <span>⚡ Ataque (Dmg): <strong id="valAtkStat">15</strong></span>
+                        <button class="btn-up-stat" data-stat="atk">＋ Up</button>
+                      </div>
+                      <div class="attr-line">
+                        <span>🛡️ Defesa (Arm): <strong id="valDefStat">8</strong></span>
+                        <button class="btn-up-stat" data-stat="def">＋ Up</button>
+                      </div>
+                      <div class="attr-line">
+                        <span>❤️ Vida (Max HP): <strong id="valHpStat">100</strong></span>
+                        <button class="btn-up-stat" data-stat="hp">＋ Up</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Right: Equipment Paperdoll Slots -->
+                  <div class="profile-right-col">
+                    <div class="profile-title-bar">🛡️ COSMÉTICOS &amp; EQUIPAMENTOS</div>
+                    <div class="gear-paperdoll-grid">
+                      <div class="gear-slot-box" title="Chapéu / Capacete"><span class="gear-slot-label">YELMO</span></div>
+                      <div class="gear-slot-box" title="Túnica / Armadura"><span class="gear-slot-label">TÚNICA</span></div>
+                      <div class="gear-slot-box" title="Luvas de Combate"><span class="gear-slot-label">LUVAS</span></div>
+                      <div class="gear-slot-box" title="Botas de Couro"><span class="gear-slot-label">BOTAS</span></div>
+                      <div class="gear-slot-box" title="Arma / Picareta"><span class="gear-slot-label">ARMA</span></div>
+                      <div class="gear-slot-box" title="Amuleto Musical"><span class="gear-slot-label">AMULETO</span></div>
+                      <div class="gear-slot-box" title="Anel de Encantamento"><span class="gear-slot-label">ANEL</span></div>
+                      <div class="gear-slot-box" title="Instrumento Musical"><span class="gear-slot-label">LIRA</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div><!-- end inv-musical-frame -->
+          </div><!-- end inventoryOverlay -->
+
+        </div><!-- end canvas-stage -->
+
+        <!-- ═══ EDITOR DE MUNDO (aba Mapa-Múndi) ═══ -->
+        <div id="world-editor" class="hidden">
+          <canvas id="worldCanvas"></canvas>
+          <div class="we-toolbar">
+            <button class="we-btn" id="weZoomOut" title="Afastar">−</button>
+            <span class="we-zoom" id="weZoomLabel">100%</span>
+            <button class="we-btn" id="weZoomIn" title="Aproximar">+</button>
+            <span class="we-sep"></span>
+            <button class="we-btn wide" id="weCenter">⌖ Centralizar</button>
+            <button class="we-btn wide" id="weSave">💾 Salvar Mundo</button>
+          </div>
+          <div class="we-hint" id="weHint">
+            Arraste um cenário da galeria para o grid. Encoste dois e a passagem se cria sozinha.
+          </div>
+        </div>
+      </div><!-- end viewport-container -->
+    </main><!-- end viewport-area -->
+
+  </div><!-- end main-editor-layout -->
+
+</div><!-- end engine-shell -->
+
+<!-- ═══ DIALOGUE EDITOR MODAL ═══ -->
+
+
+<!-- ═══ SIGNPOST LINKING WIZARD OVERLAY ═══ -->
+
+
+<script src="config.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

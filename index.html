@@ -34,8 +34,7 @@
     <div class="header-center">
       <button id="playBtn" class="play-btn">▶ Jogar</button>
       <button id="stopBtn" class="stop-btn hidden">⏹ Parar</button>
-      <button id="megaModeBtn" class="header-btn mega-btn">🗺️ Mega Cenário 2K</button>
-      <button id="photoRecriadoBtn" class="header-btn photo-btn">📸 Cenário Recriado</button>
+      <button id="testarCenaBtn" class="header-btn">🎬 Rodar Abertura</button>
     </div>
 
     <div class="header-right">
@@ -166,13 +165,15 @@
 
             <!-- World map mode -->
             <div class="tools-group" id="worldMapToolsGroup" style="display:none">
-              <div class="tools-group-title">🗺️ Grid de Transições & Cenários</div>
+              <div class="tools-group-title">🗺️ Cenários do Mundo</div>
               <div class="tools-vertical-buttons">
                 <button class="tool-pill accent full-width" id="uploadScenarioBtn">🖼️ ＋ Novo Cenário</button>
-                <button class="tool-pill active full-width" data-wvtool="drag">🖐️ Mover Cenários</button>
-                <button class="tool-pill full-width" data-wvtool="spawn">📍 Definir Spawn</button>
-                <button class="tool-pill danger full-width" data-wvtool="delete">🗑️ Excluir Cenário</button>
               </div>
+              <p class="we-side-hint">
+                Arraste um cartão para o grid à direita. Encostar dois cenários já cria a
+                passagem nos dois sentidos.
+              </p>
+              <div id="sceneGallery" class="scene-gallery"></div>
             </div>
 
           </div>
@@ -781,6 +782,22 @@
           </div><!-- end inventoryOverlay -->
 
         </div><!-- end canvas-stage -->
+
+        <!-- ═══ EDITOR DE MUNDO (aba Mapa-Múndi) ═══ -->
+        <div id="world-editor" class="hidden">
+          <canvas id="worldCanvas"></canvas>
+          <div class="we-toolbar">
+            <button class="we-btn" id="weZoomOut" title="Afastar">−</button>
+            <span class="we-zoom" id="weZoomLabel">100%</span>
+            <button class="we-btn" id="weZoomIn" title="Aproximar">+</button>
+            <span class="we-sep"></span>
+            <button class="we-btn wide" id="weCenter">⌖ Centralizar</button>
+            <button class="we-btn wide" id="weSave">💾 Salvar Mundo</button>
+          </div>
+          <div class="we-hint" id="weHint">
+            Arraste um cenário da galeria para o grid. Encoste dois e a passagem se cria sozinha.
+          </div>
+        </div>
       </div><!-- end viewport-container -->
     </main><!-- end viewport-area -->
 

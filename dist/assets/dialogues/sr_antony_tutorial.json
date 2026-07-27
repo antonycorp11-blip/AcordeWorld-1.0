@@ -1,0 +1,76 @@
+{
+  "npc_id": "sr_antony_guide",
+  "npc_name": "Sr. Antony — Líder de Acordelot",
+  "steps": [
+    {
+      "id": "start",
+      "type": "lines",
+      "lines": [
+        "Ah! Saudações, jovem viajante! Seja muito bem-vindo ao Reino da Música!",
+        "Eu sou o Sr. Antony, o ancião e líder da nossa amada cidade de Acordelot.",
+        "Sinto que você tem uma grande melodia em seu coração, mas vejo que ainda está se acostumando com estes caminhos."
+      ],
+      "next": "ask_help"
+    },
+    {
+      "id": "ask_help",
+      "type": "choice",
+      "choices": [
+        {
+          "text": "Honrado em conhecê-lo, Sr. Antony! Pode me ensinar como andar por aqui?",
+          "next": "tutorial_movement"
+        },
+        {
+          "text": "Quem é você e o que é este lugar?",
+          "next": "lore_info"
+        }
+      ]
+    },
+    {
+      "id": "lore_info",
+      "type": "lines",
+      "lines": [
+        "Esta é Acordelot, a capital da harmonia! Onde cada nota musical ecoa nas pedras e na floresta.",
+        "Eu cuido do nosso povo e guio os novos aventureiros para que encontrem seu próprio ritmo."
+      ],
+      "next": "tutorial_movement"
+    },
+    {
+      "id": "tutorial_movement",
+      "type": "lines",
+      "lines": [
+        "Para se movimentar pelo mundo, use as teclas [W, A, S, D] no seu teclado (ou direcionais). Se quiser correr, segure [Shift]!",
+        "Fale com o Guarda Renaldo logo adiante nos portões da cidade para obter permissão de entrada.",
+        "E acompanhe as luzes douradas no chão — elas guiam você diretamente às suas missões!"
+      ],
+      "next": "ask_name"
+    },
+    {
+      "id": "ask_name",
+      "type": "lines",
+      "lines": [
+        "Antes que você parta em sua jornada... como devemos chamar você nas nossas canções?"
+      ],
+      "next": "input_name"
+    },
+    {
+      "id": "input_name",
+      "type": "name_input",
+      "next": "welcome_player"
+    },
+    {
+      "id": "welcome_player",
+      "type": "lines",
+      "lines": [
+        "Um belo nome, {PLAYER_NAME}! Que as melodias de Acordelot protejam cada passo seu.",
+        "Vá em frente e fale com o Guarda Renaldo nos Portões Reais. A cidade aguarda sua chegada!"
+      ],
+      "next": "end_tutorial"
+    },
+    {
+      "id": "end_tutorial",
+      "type": "end",
+      "quest_unlock": "welcome_acordelot"
+    }
+  ]
+}

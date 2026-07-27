@@ -97,8 +97,6 @@ function getNeighbor(key, dir) {
 // ============================================================
 const bgImages = {};
 const bgSources = {
-  'photo_recriado': 'assets/photo_recriado_bg.jpg',
-  'mega_world': 'assets/mega_map_1.jpg',
   '0_0':'assets/background.jpg', '1_0':'assets/background2.jpg',
   '2_0':'assets/conservatory.jpg', '0_1':'assets/gate.jpg', '1_1':'assets/forest_entry.jpg',
   '2_1':'assets/forest_training.jpg', '3_1':'assets/forest_clearing.jpg', '3_0':'assets/forest_deep.jpg',
@@ -195,6 +193,7 @@ function serialisableNPC(n) {
 }
 
 async function saveNPCs() {
+  if (IS_PLAY_BUILD) return;
   const payload = { npcs: npcData.map(serialisableNPC) };
   localStorage.setItem('wasd_npcs_v2', JSON.stringify(payload));
   try { await fetch('/save_npcs', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }); } catch(e) {}
@@ -238,8 +237,9 @@ function loadLayerKey(k) {
   });
 }
 async function saveAllLayers(notify=false) {
+  if (IS_PLAY_BUILD) return;
   rebuildGrid();
-  const wc={gridPos,spawns,bgSources,sceneNames:SCENE_NAMES}, payload={worldConfig:wc};
+  const wc={gridPos,spawns,bgSources,sceneNames:SCENE_NAMES,startMap}, payload={worldConfig:wc};
   for (const k of Object.keys(bgSources)) {
     const L=getLayers(k);
     const rd=L.roadCanvas.toDataURL('image/png'), fg=L.fgCanvas.toDataURL('image/png'), dr=L.doorCanvas.toDataURL('image/png');
@@ -257,6 +257,7 @@ async function loadWorldConfig() {
     if(c.spawns)Object.assign(spawns,c.spawns);
     if(c.bgSources)Object.assign(bgSources,c.bgSources);
     if(c.sceneNames)Object.assign(SCENE_NAMES,c.sceneNames);
+    if(c.startMap)startMap=c.startMap;
   } catch(e) {
     const ls=localStorage.getItem('wasd_world_config_v17');
     if(ls){
@@ -266,14 +267,10 @@ async function loadWorldConfig() {
         if(c.spawns)Object.assign(spawns,c.spawns);
         if(c.bgSources)Object.assign(bgSources,c.bgSources);
         if(c.sceneNames)Object.assign(SCENE_NAMES,c.sceneNames);
+        if(c.startMap)startMap=c.startMap;
       }catch(ee){}
     }
   }
-  bgSources['photo_recriado'] = 'assets/photo_recriado_bg.jpg';
-  SCENE_NAMES['photo_recriado'] = '📸 Cenário Recriado de Foto';
-  bgSources['mega_world'] = 'assets/mega_map_1.jpg';
-  SCENE_NAMES['mega_world'] = '🗺️ Mega Cenário 2K';
-
   for (const [k, src] of Object.entries(bgSources)) {
     if (!bgImages[k]) {
       const img = new Image();
@@ -289,6 +286,9 @@ async function loadWorldConfig() {
 // PLAYER
 // ============================================================
 let currentKey = '0_1', currentScene = 'world', playerName = '';
+// Cenário onde o jogo começa. Vem do acordelot_world_config.json (campo `startMap`),
+// para trocar o ponto de surgimento sem mexer em código.
+let startMap = '0_1';
 const player = { x:512, y:400, width:48, height:64, speed:3.9, sprintSpeed:6.65, direction:'down', isMoving:false, animFrame:0, animTimer:0 };
 let playerLocked = false, savedDoorPos = {x:512,y:380}, savedDoorMap = null, lastTransTime=0, lastDoorTime=0, lastDeadEndToast=0 /* unused */;
 const keys = {w:false,a:false,s:false,d:false,shift:false};
@@ -305,6 +305,7 @@ function doAction() {
 }
 
 window.addEventListener('keydown', e => {
+  if ((e.code==='Space'||e.code==='Enter'||e.code==='KeyE') && avancarCena()) { e.preventDefault(); return; }
   if (dlg.state !== DLG_STATE.CLOSED) { handleDlgKey(e); return; }
   // Arrow-key nudge for pixel-level placement while editing (Shift = 10px steps).
   if (!isPlayMode && selectedNPC && engineMode==='scene' && e.key.startsWith('Arrow')
@@ -1242,6 +1243,97 @@ function leaveInterior() {
   showToast('🏰 Voltou ao mapa!');
 }
 
+// ============================================================
+// TRAVESSIA ENTRE CENÁRIOS
+// Encostar dois cenários no Mapa-Múndi já cria a passagem, nos dois sentidos. Andar até
+// a borda atravessa. Onde o jogador aparece do outro lado é definido por uma placa; sem
+// placa, ele surge na borda oposta na mesma altura, de modo que voltar reto o traz de
+// volta ao mesmo ponto.
+// ============================================================
+const EDGE_BAND = 14;          // largura da faixa que dispara a travessia
+const ARRIVAL_INSET = 46;      // quanto para dentro o jogador nasce, longe da beirada
+
+function oppositeDir(d){ return {north:'south',south:'north',east:'west',west:'east'}[d]; }
+
+// Placa do mapa de destino que marca a chegada vinda de `fromDir`: a mais próxima da
+// borda por onde o jogador entra.
+function arrivalSignpost(destKey, fromDir) {
+  const borda = oppositeDir(fromDir);
+  const dist = n =>
+    borda==='west'  ? n.x :
+    borda==='east'  ? SCREEN_W - n.x :
+    borda==='north' ? n.y : SCREEN_H - n.y;
+  return npcData
+    .filter(n => n.type==='signpost' && n.mapKey===destKey && dist(n) < 260)
+    .sort((a,b) => dist(a) - dist(b))[0] || null;
+}
+
+function arrivalPoint(destKey, fromDir, along) {
+  const placa = arrivalSignpost(destKey, fromDir);
+  if (placa) return { x: placa.x, y: placa.y };
+  // Sem placa: borda oposta, mantendo a coordenada perpendicular.
+  if (fromDir==='east')  return { x: ARRIVAL_INSET,              y: along };
+  if (fromDir==='west')  return { x: SCREEN_W - ARRIVAL_INSET,   y: along };
+  if (fromDir==='north') return { x: along, y: SCREEN_H - ARRIVAL_INSET };
+  return                        { x: along, y: ARRIVAL_INSET };
+}
+
+// Se a chegada cair fora do caminho pintado, desliza pela borda até achar chão.
+function settleArrival(destKey, p, eixo) {
+  const anterior = currentKey;
+  currentKey = destKey;
+  try {
+    if (canMoveTo(p.x, p.y)) return p;
+    for (let d = 10; d <= 300; d += 10) {
+      for (const s of [-1, 1]) {
+        const x = eixo==='y' ? p.x : p.x + d*s;
+        const y = eixo==='y' ? p.y + d*s : p.y;
+        if (x < 24 || x > SCREEN_W-24 || y < 24 || y > SCREEN_H-24) continue;
+        if (canMoveTo(x, y)) return { x, y };
+      }
+    }
+    return p;
+  } finally { currentKey = anterior; }
+}
+
+function checkTransitions() {
+  if(!isPlayMode || currentScene!=='world' || playerLocked) return;
+  const agora = performance.now();
+  if (agora - lastTransTime < 900) return;
+
+  let dir = null;
+  if (player.x >= SCREEN_W - EDGE_BAND) dir = 'east';
+  else if (player.x <= EDGE_BAND)       dir = 'west';
+  else if (player.y <= EDGE_BAND)       dir = 'north';
+  else if (player.y >= SCREEN_H - EDGE_BAND) dir = 'south';
+  if (!dir) return;
+
+  const destino = getNeighbor(currentKey, dir);
+  if (!destino) {
+    if (agora - lastDeadEndToast > 2500) {
+      lastDeadEndToast = agora;
+      showToast('🚧 Não há cenário deste lado — encoste um no Mapa-Múndi.');
+    }
+    return;
+  }
+
+  const along = (dir==='north'||dir==='south') ? player.x : player.y;
+  const eixo  = (dir==='north'||dir==='south') ? 'x' : 'y';
+  const p = settleArrival(destino, arrivalPoint(destino, dir, along), eixo);
+
+  lastTransTime = agora;
+  currentKey = destino;
+  player.x = p.x; player.y = p.y;
+  if (activeMapSelect && bgSources[destino]) activeMapSelect.value = destino;
+  if (pathGuide.active && pathGuide.questId) {
+    const q = activeQuests.find(q => q.id === pathGuide.questId);
+    if (q) { pathGuide.waypoints = (q.path_waypoints?.[currentKey]) || []; pathGuide.particles = []; }
+  }
+  updateMapStatus();
+  showToast(SCENE_NAMES[destino] || destino);
+  if (isPlayMode) talvezIniciarCenaDoMapa(destino);
+}
+
 function checkDoors() {
   if(!isPlayMode)return;
   const now=performance.now();if(now-lastDoorTime<1200)return;
@@ -1359,7 +1451,18 @@ async function loadMonsters() {
   Object.entries(monsterDefs).forEach(([type, def]) => {
     if (!def.sprite) return;
     const img = new Image();
-    img.onload = () => { try { monsterSprites[type] = prepareSpriteCell(img, def); } catch (e) {} };
+    img.onload = () => {
+      try {
+        monsterSprites[type] = prepareSpriteCell(img, def);
+        // Folhas com linha de caminhada ganham quadros próprios, usados só quando o
+        // monstro está de fato se deslocando.
+        if (def.walkRow != null) {
+          monsterWalk[type] = [];
+          for (let i = 0; i < (def.walkFrames || def.cols || 4); i++)
+            monsterWalk[type].push(prepareSpriteCell(img, { ...def, cell: [i, def.walkRow] }));
+        }
+      } catch (e) {}
+    };
     img.onerror = () => {};
     img.src = def.sprite;
   });
@@ -1412,6 +1515,7 @@ function monsterAt(mx, my) {
 }
 
 async function saveMonsters() {
+  if (IS_PLAY_BUILD) return;
   const payload = {
     types: monsterDefs,
     spawns: monsters.map(m => ({ id:m.id, type:m.type, mapKey:m.mapKey, x:Math.round(m.x), y:Math.round(m.y) })),
@@ -1419,6 +1523,8 @@ async function saveMonsters() {
   localStorage.setItem('acordelot_monsters_v1', JSON.stringify(payload));
   try { await fetch('/save_monsters', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }); } catch(e) {}
 }
+
+const monsterWalk = {};
 
 function updateMonsters(now) {
   if (!isPlayMode || currentScene !== 'world') return;
@@ -1434,8 +1540,22 @@ function updateMonsters(now) {
     const dx = player.x - m.x, dy = player.y - m.y;
     const dist = Math.hypot(dx, dy);
 
-    // Monsters hold their post — the player walks to them. They only turn to face.
     if (dist < (def.aggroRange ?? 160)) m.facing = dx < 0 ? -1 : 1;
+
+    // Perseguição é opcional: os monstros do mundo ficam no posto (o jogador vai até
+    // eles), mas os de cena avançam. Só andam onde o jogador poderia andar — nada de
+    // atravessar árvore ou parede.
+    const persegue = m.persegue ?? def.persegue ?? false;
+    if (persegue && !playerLocked && playerHp > 0 &&
+        dist < (def.aggroRange ?? 160) && dist > (def.touchRange ?? 34) * 0.75) {
+      const sp = def.speed ?? 1;
+      const px = m.x + (dx / dist) * sp, py = m.y + (dy / dist) * sp;
+      const ax = m.x, ay = m.y;
+      if (canMoveTo(px, py)) { m.x = px; m.y = py; }
+      else if (canMoveTo(px, m.y)) m.x = px;      // desliza pela parede
+      else if (canMoveTo(m.x, py)) m.y = py;
+      if (m.x !== ax || m.y !== ay) m.andandoAte = now + 120;
+    }
 
     // Contact damage, rate-limited so brushing past isn't instant death.
     if (!playerLocked && playerHp > 0 && dist < (def.touchRange ?? 34) && now - m.lastHit > 900) {
@@ -1460,9 +1580,12 @@ function drawHealthBar(x, topY, w, ratio, colour) {
 function renderMonsters(now) {
   monsters.forEach(m => {
     if (m.dead || m.mapKey !== currentKey) return;
-    const spr = monsterSprites[m.type];
+    const quadros = monsterWalk[m.type];
+    const andando = quadros && now < (m.andandoAte || 0);
+    const spr = andando ? quadros[Math.floor(now / 130) % quadros.length]
+                        : monsterSprites[m.type];
     const b = monsterBounds(m);
-    const hop = Math.abs(Math.sin(now * 0.004 + m.phase)) * 3;
+    const hop = Math.abs(Math.sin(now * 0.004 + m.phase)) * (andando ? 5 : 3);
 
     ctx.save();
     if (now < m.hurtUntil) ctx.globalAlpha = (Math.floor(now / 60) % 2) ? 0.35 : 1; // hit flash
@@ -2225,7 +2348,9 @@ function hslToRgb(h, s, l) {
 const outfitSprites = {}; // tint -> recoloured copy of processedSprite
 function getOutfitSprite(tint) {
   if (!processedSprite) return null;
-  if (outfitSprites[tint]) return outfitSprites[tint];
+  // A tinta é por herói: trocar de personagem tem que invalidar o recolorido anterior.
+  const chave = `${selectedHeroId}|${tint}`;
+  if (outfitSprites[chave]) return outfitSprites[chave];
   const c = document.createElement('canvas');
   c.width = processedSprite.width; c.height = processedSprite.height;
   const cx = c.getContext('2d', { willReadFrequently: true });
@@ -2240,7 +2365,7 @@ function getOutfitSprite(tint) {
     d[i] = out.r; d[i+1] = out.g; d[i+2] = out.b;
   }
   cx.putImageData(id, 0, 0);
-  outfitSprites[tint] = c;
+  outfitSprites[chave] = c;
   return c;
 }
 function activeSprite() {
@@ -2554,6 +2679,7 @@ function getM(e){
 }
 
 function onPointerDown(m){
+  if (avancarCena()) return;      // uma cena em curso consome o toque
   // An open dialogue owns the pointer whatever the editor mode is — otherwise the
   // editor branches below return early and taps never reach the choices.
   if(dlg.state===DLG_STATE.CHOOSING){ const i=choiceAt(m.x,m.y); if(i>=0)selectChoice(i); return; }
@@ -2569,17 +2695,7 @@ function onPointerDown(m){
       if(cell){
         const destKey=keyAtCell(cell.col,cell.row);
         if(destKey && destKey !== signpostWizard.sourceMapKey){
-          signpostWizard.destMapKey = destKey;
-          signpostWizard.step = 2;
-          // Switch to destination map in scene mode so user can place return signpost
-          if(activeMapSelect) activeMapSelect.value = destKey;
-          currentKey = destKey;
-          setMode('scene');
-          npcPlacingMode = true;
-          canvas.classList.add('cursor-crosshair');
-          updateWizardUI();
-          updateMapStatus();
-          refreshNPCHierarchy();
+          escolherDestinoDaPlaca(destKey);
           return;
         } else if(destKey === signpostWizard.sourceMapKey){
           showToast('⚠️ Selecione um mapa diferente do atual!');
@@ -2944,7 +3060,13 @@ let touchAction=null, touchControls=null;
 
 // A phone gets the game; `?play` forces it anywhere (handy for testing on desktop),
 // `?edit` forces the editor back on a tablet.
+// A single codebase serves both the desktop editor and the published game. The deploy
+// build ships a config.js that sets this flag; everything editor-related then switches
+// off, including every write back to the server (which doesn't exist on GitHub Pages).
+const IS_PLAY_BUILD = (typeof window !== 'undefined' && window.ACORDELOT_BUILD === 'play');
+
 function wantsMobilePlay() {
+  if (IS_PLAY_BUILD) return true;
   const q=new URLSearchParams(location.search);
   if(q.has('edit'))return false;
   if(q.has('play'))return true;
@@ -3086,6 +3208,22 @@ function startSignpostWizard(sourceMapKey = null, sourceX = 512, sourceY = 300) 
   setMode('worldmap');
   updateWizardUI();
   showToast('🗺️ Passo 1: Clique no mapa de destino no Grid!');
+}
+
+// Passo 1 → 2: guarda o destino e leva o editor para lá, já em modo de posicionar,
+// para o usuário só clicar onde o jogador deve chegar.
+function escolherDestinoDaPlaca(destKey) {
+  signpostWizard.destMapKey = destKey;
+  signpostWizard.step = 2;
+  if (activeMapSelect) activeMapSelect.value = destKey;
+  currentKey = destKey;
+  setMode('scene');
+  npcPlacingMode = true;
+  canvas.classList.add('cursor-crosshair');
+  updateWizardUI();
+  updateMapStatus();
+  refreshNPCHierarchy();
+  showToast(`🪧 Passo 2: clique no cenário "${SCENE_NAMES[destKey] || destKey}" onde o jogador deve chegar.`);
 }
 
 function updateWizardUI() {
@@ -3292,14 +3430,874 @@ function refreshNPCHierarchy(){
 // ============================================================
 // MODE MANAGEMENT
 // ============================================================
+
+// ============================================================
+// EDITOR DE MUNDO
+// Substitui o antigo grid 5x4 desenhado por cima do jogo. Aqui o mundo é um plano
+// infinito: `gridPos[id] = {col,row}` aceita negativos, então cenário pode ir para
+// qualquer lado. Encostar dois cria a passagem — quem lê isso é getNeighbor().
+// ============================================================
+const WE = {
+  cv: null, ctx: null,
+  zoom: 0.34, panX: 0, panY: 0,          // pan em pixels de tela
+  drag: null,                             // {tipo:'pan'|'cena', id, offX, offY}
+  hover: null,
+  dragFromGallery: null,
+  raf: null,
+};
+
+const WE_CELL_W = SCREEN_W, WE_CELL_H = SCREEN_H;   // uma célula = um cenário inteiro
+const WE_GAP = 26;                                   // respiro visual entre células
+
+function weCellRect(col, row) {
+  return {
+    x: col * (WE_CELL_W + WE_GAP),
+    y: row * (WE_CELL_H + WE_GAP),
+    w: WE_CELL_W, h: WE_CELL_H,
+  };
+}
+function weWorldToScreen(x, y) {
+  return { x: x * WE.zoom + WE.panX, y: y * WE.zoom + WE.panY };
+}
+function weScreenToWorld(x, y) {
+  return { x: (x - WE.panX) / WE.zoom, y: (y - WE.panY) / WE.zoom };
+}
+function weCellAtScreen(sx, sy) {
+  const w = weScreenToWorld(sx, sy);
+  return {
+    col: Math.floor(w.x / (WE_CELL_W + WE_GAP)),
+    row: Math.floor(w.y / (WE_CELL_H + WE_GAP)),
+  };
+}
+function weKeyAt(col, row) {
+  for (const [k, p] of Object.entries(gridPos)) if (p.col === col && p.row === row) return k;
+  return null;
+}
+
+function weResize() {
+  if (!WE.cv) return;
+  const r = WE.cv.parentElement.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  WE.cv.width = Math.round(r.width * dpr);
+  WE.cv.height = Math.round(r.height * dpr);
+  WE.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function weCenter() {
+  const chaves = Object.keys(gridPos);
+  const r = WE.cv.getBoundingClientRect();
+  if (!chaves.length) {
+    WE.zoom = 0.34;
+    WE.panX = r.width / 2; WE.panY = r.height / 2;
+    return;
+  }
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  chaves.forEach(k => {
+    const c = weCellRect(gridPos[k].col, gridPos[k].row);
+    x0 = Math.min(x0, c.x); y0 = Math.min(y0, c.y);
+    x1 = Math.max(x1, c.x + c.w); y1 = Math.max(y1, c.y + c.h);
+  });
+  const pad = 120;
+  WE.zoom = Math.max(0.06, Math.min(1.2,
+    Math.min((r.width - pad) / (x1 - x0), (r.height - pad) / (y1 - y0))));
+  WE.panX = r.width / 2 - ((x0 + x1) / 2) * WE.zoom;
+  WE.panY = r.height / 2 - ((y0 + y1) / 2) * WE.zoom;
+}
+
+function weSetZoom(z, cx, cy) {
+  const r = WE.cv.getBoundingClientRect();
+  cx = cx ?? r.width / 2; cy = cy ?? r.height / 2;
+  const antes = weScreenToWorld(cx, cy);
+  WE.zoom = Math.max(0.05, Math.min(1.6, z));
+  const depois = weScreenToWorld(cx, cy);
+  WE.panX += (depois.x - antes.x) * WE.zoom;
+  WE.panY += (depois.y - antes.y) * WE.zoom;
+  const lbl = document.getElementById('weZoomLabel');
+  if (lbl) lbl.textContent = Math.round(WE.zoom * 100) + '%';
+}
+
+function weRender() {
+  if (!WE.ctx || engineMode !== 'worldmap') return;
+  const c = WE.ctx, r = WE.cv.getBoundingClientRect();
+  c.clearRect(0, 0, r.width, r.height);
+
+  // Malha de fundo, para o vazio não parecer um buraco sem escala.
+  const passo = (WE_CELL_W + WE_GAP) * WE.zoom;
+  if (passo > 14) {
+    c.strokeStyle = 'rgba(148,163,184,.08)';
+    c.lineWidth = 1;
+    const x0 = WE.panX % passo, y0 = WE.panY % passo;
+    c.beginPath();
+    for (let x = x0; x < r.width; x += passo) { c.moveTo(x, 0); c.lineTo(x, r.height); }
+    for (let y = y0; y < r.height; y += passo) { c.moveTo(0, y); c.lineTo(r.width, y); }
+    c.stroke();
+  }
+
+  const arrastando = WE.drag?.tipo === 'cena' ? WE.drag.id : null;
+
+  // Fronteiras acesas entre cenários vizinhos: a passagem que o encaixe criou.
+  c.lineWidth = Math.max(2, 5 * WE.zoom);
+  c.strokeStyle = 'rgba(74,222,128,.75)';
+  for (const [k, p] of Object.entries(gridPos)) {
+    for (const [dir, dc, dr] of [['east', 1, 0], ['south', 0, 1]]) {
+      const viz = weKeyAt(p.col + dc, p.row + dr);
+      if (!viz) continue;
+      const a = weCellRect(p.col, p.row);
+      const s = weWorldToScreen(a.x, a.y);
+      c.beginPath();
+      if (dir === 'east') {
+        const x = s.x + a.w * WE.zoom + (WE_GAP * WE.zoom) / 2;
+        c.moveTo(x, s.y + a.h * WE.zoom * 0.25);
+        c.lineTo(x, s.y + a.h * WE.zoom * 0.75);
+      } else {
+        const y = s.y + a.h * WE.zoom + (WE_GAP * WE.zoom) / 2;
+        c.moveTo(s.x + a.w * WE.zoom * 0.25, y);
+        c.lineTo(s.x + a.w * WE.zoom * 0.75, y);
+      }
+      c.stroke();
+    }
+  }
+
+  // Cenários posicionados
+  for (const [k, p] of Object.entries(gridPos)) {
+    if (k === arrastando) continue;
+    weDesenhaCena(k, p.col, p.row, false);
+  }
+
+  // Alvo enquanto arrasta
+  if (WE.drag?.tipo === 'cena' || WE.dragFromGallery) {
+    const cel = WE.hover;
+    if (cel) {
+      const rect = weCellRect(cel.col, cel.row);
+      const s = weWorldToScreen(rect.x, rect.y);
+      const ocupado = weKeyAt(cel.col, cel.row);
+      c.save();
+      c.setLineDash([8, 6]);
+      c.lineWidth = 2;
+      c.strokeStyle = ocupado && ocupado !== arrastando ? '#f87171' : '#38bdf8';
+      c.strokeRect(s.x, s.y, rect.w * WE.zoom, rect.h * WE.zoom);
+      c.restore();
+    }
+    if (arrastando) weDesenhaCena(arrastando, WE.hover?.col ?? 0, WE.hover?.row ?? 0, true);
+  }
+
+  // Assistente de placas: marca a origem e acende o cenário sob o cursor, para o
+  // clique de escolher destino não ser um chute.
+  if (signpostWizard.active && signpostWizard.step === 1) {
+    const org = gridPos[signpostWizard.sourceMapKey];
+    if (org) {
+      const rect = weCellRect(org.col, org.row);
+      const s = weWorldToScreen(rect.x, rect.y);
+      c.save();
+      c.lineWidth = 3; c.strokeStyle = '#fbbf24';
+      c.strokeRect(s.x, s.y, rect.w * WE.zoom, rect.h * WE.zoom);
+      c.fillStyle = '#fbbf24'; c.font = 'bold 12px Outfit, sans-serif';
+      c.fillText('ORIGEM', s.x + 8, s.y + 18);
+      c.restore();
+    }
+    const cel = WE.hover, alvo = cel && weKeyAt(cel.col, cel.row);
+    if (alvo && alvo !== signpostWizard.sourceMapKey) {
+      const rect = weCellRect(cel.col, cel.row);
+      const s = weWorldToScreen(rect.x, rect.y);
+      c.save();
+      c.fillStyle = 'rgba(74,222,128,.22)';
+      c.fillRect(s.x, s.y, rect.w * WE.zoom, rect.h * WE.zoom);
+      c.lineWidth = 3; c.strokeStyle = '#4ade80';
+      c.strokeRect(s.x, s.y, rect.w * WE.zoom, rect.h * WE.zoom);
+      c.restore();
+    }
+  }
+}
+
+function weDesenhaCena(k, col, row, fantasma) {
+  const c = WE.ctx;
+  const rect = weCellRect(col, row);
+  const s = weWorldToScreen(rect.x, rect.y);
+  const w = rect.w * WE.zoom, h = rect.h * WE.zoom;
+  if (s.x > WE.cv.width || s.y > WE.cv.height || s.x + w < 0 || s.y + h < 0) return;
+
+  c.save();
+  if (fantasma) c.globalAlpha = 0.7;
+  const img = bgImages[k];
+  if (img?.complete) c.drawImage(img, s.x, s.y, w, h);
+  else { c.fillStyle = '#131c28'; c.fillRect(s.x, s.y, w, h); }
+
+  const sel = WE.hover && !WE.drag && weKeyAt(WE.hover.col, WE.hover.row) === k;
+  c.lineWidth = sel ? 3 : 1.5;
+  c.strokeStyle = k === currentKey ? '#38bdf8' : sel ? '#e2e8f0' : 'rgba(148,163,184,.5)';
+  c.strokeRect(s.x, s.y, w, h);
+
+  // Rótulo legível em qualquer zoom
+  const nome = SCENE_NAMES[k] || k;
+  c.font = '600 12px Outfit, sans-serif';
+  const tw = c.measureText(nome).width + 14;
+  c.fillStyle = 'rgba(5,8,14,.82)';
+  c.fillRect(s.x + 6, s.y + h - 26, Math.min(tw, w - 12), 20);
+  c.fillStyle = '#e2e8f0';
+  c.textBaseline = 'middle';
+  c.fillText(nome, s.x + 13, s.y + h - 16);
+
+  // Marca do spawn
+  const sp = spawns[k];
+  if (sp && WE.zoom > 0.12) {
+    const px = s.x + (sp.x / SCREEN_W) * w, py = s.y + (sp.y / SCREEN_H) * h;
+    c.fillStyle = '#fbbf24';
+    c.beginPath(); c.arc(px, py, 4, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#000'; c.lineWidth = 1.2; c.stroke();
+  }
+  c.restore();
+}
+
+function weLoop() {
+  weRender();
+  WE.raf = requestAnimationFrame(weLoop);
+}
+
+function weBind() {
+  WE.cv = document.getElementById('worldCanvas');
+  if (!WE.cv) return;
+  WE.ctx = WE.cv.getContext('2d');
+
+  const pos = e => {
+    const r = WE.cv.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+
+  WE.cv.addEventListener('pointerdown', e => {
+    WE.cv.setPointerCapture(e.pointerId);
+    const p = pos(e);
+    const cel = weCellAtScreen(p.x, p.y);
+    const k = weKeyAt(cel.col, cel.row);
+
+    // Passo 1 do assistente de placas acontece aqui: o Mapa-Múndi tem área própria
+    // agora, então é este grid que escolhe o destino (o antigo nem é mais desenhado).
+    if (signpostWizard.active && signpostWizard.step === 1) {
+      if (!k) { showToast('⚠️ Clique em cima de um cenário do grid.'); return; }
+      if (k === signpostWizard.sourceMapKey) { showToast('⚠️ Escolha um cenário diferente do de origem.'); return; }
+      escolherDestinoDaPlaca(k);
+      return;
+    }
+    // Botão do meio, ou clique no vazio, desloca a vista.
+    if (e.button === 1 || !k) {
+      WE.drag = { tipo: 'pan', x: e.clientX, y: e.clientY, px: WE.panX, py: WE.panY };
+      WE.cv.classList.add('dragging');
+    } else {
+      WE.drag = { tipo: 'cena', id: k };
+      WE.hover = cel;
+    }
+  });
+
+  WE.cv.addEventListener('pointermove', e => {
+    const p = pos(e);
+    WE.hover = weCellAtScreen(p.x, p.y);
+    if (WE.drag?.tipo === 'pan') {
+      WE.panX = WE.drag.px + (e.clientX - WE.drag.x);
+      WE.panY = WE.drag.py + (e.clientY - WE.drag.y);
+    }
+  });
+
+  const soltar = () => {
+    if (WE.drag?.tipo === 'cena' && WE.hover) {
+      const { col, row } = WE.hover;
+      const ocupado = weKeyAt(col, row);
+      if (!ocupado || ocupado === WE.drag.id) {
+        gridPos[WE.drag.id] = { col, row };
+        rebuildGrid();
+        weAtualizaGaleria();
+        showToast(`📍 ${SCENE_NAMES[WE.drag.id] || WE.drag.id} → (${col}, ${row})`);
+        saveAllLayers(false);
+      } else {
+        showToast('⚠️ Já existe um cenário nessa célula.');
+      }
+    }
+    WE.drag = null;
+    WE.cv.classList.remove('dragging');
+  };
+  WE.cv.addEventListener('pointerup', soltar);
+  WE.cv.addEventListener('pointercancel', soltar);
+
+  WE.cv.addEventListener('wheel', e => {
+    e.preventDefault();
+    const p = pos(e);
+    weSetZoom(WE.zoom * (e.deltaY < 0 ? 1.12 : 0.89), p.x, p.y);
+  }, { passive: false });
+
+  // Soltar um cartão da galeria dentro do grid
+  WE.cv.addEventListener('dragover', e => {
+    e.preventDefault();
+    const p = pos(e);
+    WE.hover = weCellAtScreen(p.x, p.y);
+  });
+  WE.cv.addEventListener('drop', e => {
+    e.preventDefault();
+    const id = e.dataTransfer?.getData('text/plain');
+    if (!id || !bgSources[id]) return;
+    const p = pos(e);
+    const { col, row } = weCellAtScreen(p.x, p.y);
+    const ocupado = weKeyAt(col, row);
+    if (ocupado && ocupado !== id) { showToast('⚠️ Célula ocupada.'); return; }
+    gridPos[id] = { col, row };
+    rebuildGrid(); weAtualizaGaleria();
+    showToast(`📍 ${SCENE_NAMES[id] || id} colocado em (${col}, ${row})`);
+    saveAllLayers(false);
+  });
+
+  document.getElementById('weZoomIn')?.addEventListener('click', () => weSetZoom(WE.zoom * 1.25));
+  document.getElementById('weZoomOut')?.addEventListener('click', () => weSetZoom(WE.zoom * 0.8));
+  document.getElementById('weCenter')?.addEventListener('click', () => { weCenter(); weSetZoom(WE.zoom); });
+  document.getElementById('weSave')?.addEventListener('click', () => {
+    saveAllLayers(true); showToast('💾 Mundo salvo.');
+  });
+
+  window.addEventListener('resize', () => { if (engineMode === 'worldmap') weResize(); });
+}
+
+// Galeria lateral: todo cenário conhecido, posicionado ou não.
+function weAtualizaGaleria() {
+  const g = document.getElementById('sceneGallery');
+  if (!g) return;
+  g.innerHTML = '';
+  for (const id of Object.keys(bgSources)) {
+    const p = gridPos[id];
+    const card = document.createElement('div');
+    card.className = 'scene-card' + (p ? ' placed' : '');
+    card.draggable = true;
+    card.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', id));
+
+    const img = bgImages[id];
+    if (img?.complete) {
+      const cv = document.createElement('canvas');
+      cv.width = 108; cv.height = 60;
+      cv.getContext('2d').drawImage(img, 0, 0, 108, 60);
+      card.appendChild(cv);
+    } else {
+      const d = document.createElement('div');
+      d.className = 'thumb-empty'; d.textContent = '🖼️';
+      card.appendChild(d);
+    }
+    const info = document.createElement('div');
+    info.className = 'scene-card-info';
+    info.innerHTML =
+      `<span class="scene-card-name">${SCENE_NAMES[id] || id}</span>` +
+      `<span class="scene-card-pos">${p ? `no grid (${p.col}, ${p.row})` : 'fora do grid'}</span>`;
+    card.appendChild(info);
+    card.addEventListener('dblclick', () => {
+      if (!p) return;
+      const r = weCellRect(p.col, p.row);
+      WE.panX = WE.cv.getBoundingClientRect().width / 2 - (r.x + r.w / 2) * WE.zoom;
+      WE.panY = WE.cv.getBoundingClientRect().height / 2 - (r.y + r.h / 2) * WE.zoom;
+    });
+    g.appendChild(card);
+  }
+}
+
+function weMostrar(ativo) {
+  const painel = document.getElementById('world-editor');
+  const palco = document.getElementById('canvas-stage');
+  if (!painel) return;
+  painel.classList.toggle('hidden', !ativo);
+  if (palco) palco.style.display = ativo ? 'none' : '';
+  if (ativo) {
+    weResize(); weCenter(); weSetZoom(WE.zoom); weAtualizaGaleria();
+    if (!WE.raf) weLoop();
+  } else if (WE.raf) {
+    cancelAnimationFrame(WE.raf); WE.raf = null;
+  }
+}
+
+
+// ============================================================
+// CENAS (CUTSCENES)
+// Um roteiro é um JSON com uma lista de passos. Cada passo é um comando simples, e o
+// motor executa um de cada vez, esperando o que precisa ser esperado. A ideia é que
+// escrever cena nova seja escrever texto, não código.
+//
+// Comandos disponíveis:
+//   falar        {quem, texto, auto?}       fala com máquina de escrever; espera o toque
+//                                          auto: ms para seguir sozinho, sem toque
+//   tutorial     {texto}                    caixa de instrução; espera o toque
+//   esperar      {ms}                       pausa
+//   escurecer    {para: 0..1, ms}           fade da tela (1 = preto total)
+//   tingir       {cor, forca: 0..1, ms}     véu de cor sobre a cena (mundo cinza → colorido)
+//   vinheta      {forca: 0..1, ms}          escurece as bordas
+//   tremer       {forca, ms}                treme a tela
+//   controle     {ativo}                    dá ou tira o controle do jogador
+//   hud          {visivel}                  mostra ou esconde a interface
+//   posicionar   {x, y, olhando}            teleporta o jogador dentro do mapa
+//   monstro      {tipo, x, y, id?, persegue?}  invoca um monstro (persegue: anda até
+//                                          o jogador, respeitando o chão pintado)
+//   limparMonstros {ms}                     dissolve os monstros da cena
+//   esperarMortos                           só segue quando não sobrar monstro vivo
+//   esperarAndar {distancia}                só segue quando o jogador andar tanto
+//   dar          {item, quantidade}         entrega item ao jogador
+//   curar        {tudo}                     restaura a vida
+//   notas        {quantidade, ms}           enxame de notas musicais protetoras
+//   sombra       {de, ms, tipo?, y?}        vulto do monstro cruzando a tela
+//   som          {tipo}                     vento | desafinado | brilho
+//   musica       {faixa}                    marca a trilha (ainda sem áudio ligado)
+//   guiar        {para}                     as notas viram trilha apontando o cenário
+//   fim                                     encerra a cena
+// ============================================================
+const CUT = {
+  roteiro: null, passo: 0, ativo: false,
+  aguardando: null,        // {tipo, ...} enquanto um passo não terminou
+  fade: 0, fadeAlvo: 0, fadeVel: 0,
+  tinta: null, tintaForca: 0, tintaAlvo: 0, tintaVel: 0,
+  vinheta: 0, vinhetaAlvo: 0, vinhetaVel: 0,
+  tremor: 0, tremorAte: 0,
+  sombras: [], notas: [], guia: null,
+  caixa: null,             // {quem, texto, mostrado, completo}
+  andouDe: null,
+  jaRodou: {},
+};
+
+async function carregarCena(id) {
+  try {
+    const r = await fetch(`assets/cutscenes/${id}.json?t=${Date.now()}`);
+    return await r.json();
+  } catch (e) { return null; }
+}
+
+// Busca em espiral o ponto andável mais próximo — usado para nascer monstro de cena.
+function pontoAndavelPerto(x, y) {
+  if (canMoveTo(x, y)) return { x, y };
+  for (let r = 12; r <= 260; r += 12) {
+    for (let a = 0; a < 16; a++) {
+      const ang = (a / 16) * Math.PI * 2;
+      const nx = x + Math.cos(ang) * r, ny = y + Math.sin(ang) * r;
+      if (nx < 24 || nx > SCREEN_W - 24 || ny < 24 || ny > SCREEN_H - 24) continue;
+      if (canMoveTo(nx, ny)) return { x: nx, y: ny };
+    }
+  }
+  return { x, y };
+}
+
+function cenaJaRodou(roteiro) {
+  return !!(CUT.jaRodou[roteiro.id] || (roteiro.mapa && CUT.jaRodou['mapa:' + roteiro.mapa]));
+}
+
+function marcarCenaRodada(roteiro) {
+  if (!roteiro) return;
+  CUT.jaRodou[roteiro.id] = true;
+  if (roteiro.mapa) CUT.jaRodou['mapa:' + roteiro.mapa] = true;
+  try { localStorage.setItem('acordelot_cenas', JSON.stringify(CUT.jaRodou)); } catch (e) {}
+}
+
+// Chamada sempre que o jogador põe o pé num mapa: a cena de abertura roda na
+// primeira visita e nunca mais, porque voltaremos aqui em missões futuras.
+function talvezIniciarCenaDoMapa(mapKey) {
+  const r = window.__abertura;
+  if (!r || !r.autoStart || r.mapa !== mapKey) return;
+  if (CUT.ativo || cenaJaRodou(r)) return;
+  iniciarCena(r);
+}
+
+// Para testar de novo no PC: `resetarCenas()` no console e recarregar.
+window.resetarCenas = function () {
+  CUT.jaRodou = {};
+  try { localStorage.removeItem('acordelot_cenas'); } catch (e) {}
+  showToast('🎬 Cenas liberadas para rodar de novo');
+};
+
+function iniciarCena(roteiro) {
+  if (!roteiro || CUT.ativo) return;
+  marcarCenaRodada(roteiro);
+  CUT.roteiro = roteiro; CUT.passo = 0; CUT.ativo = true; CUT.aguardando = null;
+  CUT.sombras = []; CUT.notas = []; CUT.guia = null; CUT.caixa = null;
+  CUT.fade = CUT.fadeAlvo = 0; CUT.tintaForca = CUT.tintaAlvo = 0;
+  CUT.vinheta = CUT.vinhetaAlvo = 0;
+  if (roteiro.mapa && bgSources[roteiro.mapa]) {
+    currentKey = roteiro.mapa;
+    if (activeMapSelect) activeMapSelect.value = roteiro.mapa;
+  }
+  if (!isPlayMode) togglePlay();
+  currentScene = 'world';
+  proximoPasso();
+}
+
+function encerrarCena() {
+  CUT.ativo = false; CUT.aguardando = null; CUT.caixa = null;
+  CUT.fadeAlvo = 0; CUT.tintaAlvo = 0; CUT.vinhetaAlvo = 0;
+  playerLocked = false;
+  playerHud?.classList.remove('hidden');
+  marcarCenaRodada(CUT.roteiro);
+}
+
+function proximoPasso() {
+  if (!CUT.ativo) return;
+  const passos = CUT.roteiro.passos || [];
+  while (CUT.passo < passos.length) {
+    const p = passos[CUT.passo++];
+    if (!p || !p.cmd) continue;                 // linhas "_" são comentários do roteiro
+    const bloqueou = executarPasso(p);
+    if (bloqueou) return;                        // espera; proximoPasso volta depois
+  }
+  encerrarCena();
+}
+
+// Devolve true quando o passo precisa esperar algo antes do próximo.
+function executarPasso(p) {
+  const agora = performance.now();
+  switch (p.cmd) {
+    case 'falar':
+      CUT.caixa = { quem: p.quem || '', texto: p.texto || '', mostrado: 0, completo: false, auto: p.auto || 0 };
+      CUT.aguardando = { tipo: 'toque' };
+      return true;
+
+    case 'tutorial':
+      CUT.caixa = { quem: '📖 Tutorial', texto: p.texto || '', mostrado: 0, completo: false, tutorial: true };
+      CUT.aguardando = { tipo: 'toque' };
+      return true;
+
+    case 'esperar':
+      CUT.aguardando = { tipo: 'tempo', ate: agora + (p.ms || 0) };
+      return true;
+
+    case 'escurecer':
+      CUT.fadeAlvo = p.para ?? 0;
+      CUT.fadeVel = p.ms ? (CUT.fadeAlvo - CUT.fade) / p.ms : Infinity;
+      if (!p.ms) CUT.fade = CUT.fadeAlvo;
+      return false;
+
+    case 'tingir':
+      CUT.tinta = p.cor || '#888888';
+      CUT.tintaAlvo = p.forca ?? 0;
+      CUT.tintaVel = p.ms ? (CUT.tintaAlvo - CUT.tintaForca) / p.ms : Infinity;
+      if (!p.ms) CUT.tintaForca = CUT.tintaAlvo;
+      return false;
+
+    case 'vinheta':
+      CUT.vinhetaAlvo = p.forca ?? 0;
+      CUT.vinhetaVel = p.ms ? (CUT.vinhetaAlvo - CUT.vinheta) / p.ms : Infinity;
+      return false;
+
+    case 'tremer':
+      CUT.tremor = p.forca || 6; CUT.tremorAte = agora + (p.ms || 400);
+      return false;
+
+    case 'controle':
+      playerLocked = !p.ativo;
+      return false;
+
+    case 'hud':
+      playerHud?.classList.toggle('hidden', !p.visivel);
+      return false;
+
+    case 'posicionar': {
+      const pa = pontoAndavelPerto(p.x ?? player.x, p.y ?? player.y);
+      player.x = pa.x; player.y = pa.y;
+      if (p.olhando) player.direction = p.olhando;
+      return false;
+    }
+
+    case 'monstro': {
+      const def = monsterDefs[p.tipo];
+      if (def) {
+        // O roteiro dá a posição desejada, mas quem manda é o chão pintado: se o
+        // ponto cair numa copa de árvore, o monstro nasce no lugar andável mais perto.
+        const alvo = pontoAndavelPerto(p.x ?? 512, p.y ?? 300);
+        monsters.push({
+          id: p.id || `cena_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+          type: p.tipo, mapKey: currentKey,
+          x: alvo.x, y: alvo.y, homeX: alvo.x, homeY: alvo.y,
+          hp: def.hp ?? 20, maxHp: def.hp ?? 20,
+          dead: false, respawnAt: 0, hurtUntil: 0, lastHit: 0, facing: 1,
+          phase: Math.random() * Math.PI * 2, deCena: true,
+          persegue: p.persegue ?? true,
+        });
+      }
+      return false;
+    }
+
+    case 'limparMonstros':
+      monsters.forEach(m => { if (!m.dead && m.mapKey === currentKey) { m.dead = true; m.respawnAt = 0; } });
+      CUT.aguardando = { tipo: 'tempo', ate: agora + (p.ms || 0) };
+      return !!p.ms;
+
+    case 'esperarMortos':
+      CUT.aguardando = { tipo: 'mortos' };
+      return true;
+
+    case 'esperarAndar':
+      CUT.andouDe = { x: player.x, y: player.y };
+      CUT.aguardando = { tipo: 'andar', distancia: p.distancia || 120 };
+      return true;
+
+    case 'dar':
+      if (p.item === 'clave') claveCount += (p.quantidade || 1);
+      else playerInventory[p.item] = (playerInventory[p.item] || 0) + (p.quantidade || 1);
+      savePlayerData();
+      return false;
+
+    case 'curar':
+      playerHp = playerMaxHp();
+      return false;
+
+    case 'notas':
+      for (let i = 0; i < (p.quantidade || 24); i++) {
+        CUT.notas.push({
+          ang: Math.random() * Math.PI * 2,
+          raio: 40 + Math.random() * 90,
+          vel: 0.0008 + Math.random() * 0.0016,
+          sobe: Math.random() * 30,
+          simbolo: ['♪','♫','♬','♩'][i % 4],
+          nasceu: agora + i * 60,
+        });
+      }
+      CUT.aguardando = { tipo: 'tempo', ate: agora + (p.ms || 0) };
+      return !!p.ms;
+
+    case 'sombra':
+      CUT.sombras.push({ de: p.de || 'direita', inicio: agora, ms: p.ms || 700,
+                         tipo: p.tipo || 'shiker', y: p.y });
+      return false;
+
+    case 'som':
+      if (p.tipo === 'desafinado') tocarDesafinado();
+      else if (p.tipo === 'brilho') playForgeDone?.();
+      return false;
+
+    case 'musica':
+      return false;   // trilha entra quando houver áudio
+
+    case 'guiar': {
+      // As notas param de vagar e formam uma trilha viva na direção do cenário
+      // destino, para o jogador ver por onde seguir em vez de ficar perdido.
+      const aqui = gridPos[currentKey], la = gridPos[p.para];
+      let dx = 1, dy = 0;
+      if (aqui && la) {
+        const ddc = la.col - aqui.col, ddr = la.row - aqui.row;
+        if (Math.abs(ddc) >= Math.abs(ddr)) { dx = Math.sign(ddc) || 1; dy = 0; }
+        else { dx = 0; dy = Math.sign(ddr) || 1; }
+      }
+      CUT.guia = { dx, dy, mapa: currentKey, destino: p.para, nome: SCENE_NAMES[p.para] || p.para };
+      showToast(`✨ Siga as notas até ${CUT.guia.nome}`);
+      return false;
+    }
+
+    case 'fim':
+      encerrarCena();
+      return true;
+
+    default:
+      return false;
+  }
+}
+
+function tocarDesafinado() {
+  if (!audioCtx) return;
+  try {
+    [233, 247, 262].forEach(f => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'sawtooth'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.1);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + 1.1);
+    });
+  } catch (e) {}
+}
+
+// Avança a espera atual, se ela já foi satisfeita.
+function atualizarCena(now) {
+  if (!CUT.ativo) return;
+
+  // transições contínuas
+  const passo = (v, alvo, vel, dt) => {
+    if (v === alvo) return v;
+    if (!isFinite(vel)) return alvo;
+    const n = v + vel * dt;
+    return (vel > 0 ? Math.min(n, alvo) : Math.max(n, alvo));
+  };
+  const dt = 16;
+  CUT.fade = passo(CUT.fade, CUT.fadeAlvo, CUT.fadeVel, dt);
+  CUT.tintaForca = passo(CUT.tintaForca, CUT.tintaAlvo, CUT.tintaVel, dt);
+  CUT.vinheta = passo(CUT.vinheta, CUT.vinhetaAlvo, CUT.vinhetaVel, dt);
+
+  // máquina de escrever
+  if (CUT.caixa && !CUT.caixa.completo) {
+    CUT.caixa.mostrado += CUT.caixa.tutorial ? 1.4 : 2.2;
+    if (CUT.caixa.mostrado >= CUT.caixa.texto.length) {
+      CUT.caixa.mostrado = CUT.caixa.texto.length;
+      CUT.caixa.completo = true;
+    }
+  }
+
+  // Fala marcada com `auto` não exige toque: respira e segue, para a cena não travar.
+  if (CUT.caixa?.auto && CUT.caixa.completo) {
+    CUT.caixa.autoAte = CUT.caixa.autoAte || (now + CUT.caixa.auto);
+    if (now >= CUT.caixa.autoAte) { CUT.caixa = null; CUT.aguardando = null; proximoPasso(); return; }
+  }
+
+  const a = CUT.aguardando;
+  if (!a) return;
+  if (a.tipo === 'tempo' && now >= a.ate) { CUT.aguardando = null; proximoPasso(); }
+  else if (a.tipo === 'mortos') {
+    const vivos = monsters.filter(m => !m.dead && m.mapKey === currentKey).length;
+    if (!vivos) { CUT.aguardando = null; proximoPasso(); }
+  }
+  else if (a.tipo === 'andar' && CUT.andouDe) {
+    const d = Math.hypot(player.x - CUT.andouDe.x, player.y - CUT.andouDe.y);
+    if (d >= a.distancia) { CUT.aguardando = null; proximoPasso(); }
+  }
+}
+
+// Toque/clique/tecla avança a fala.
+function avancarCena() {
+  if (!CUT.ativo || CUT.aguardando?.tipo !== 'toque') return false;
+  if (CUT.caixa && !CUT.caixa.completo) { CUT.caixa.completo = true; CUT.caixa.mostrado = CUT.caixa.texto.length; return true; }
+  CUT.caixa = null; CUT.aguardando = null; proximoPasso();
+  return true;
+}
+
+function renderCena(now) {
+  if (!CUT.ativo) return;
+  const c = ctx;
+
+  // véu de cor: é o que faz o mundo cinza voltar a ter cor
+  if (CUT.tintaForca > 0.01) {
+    c.save();
+    c.globalCompositeOperation = 'saturation';
+    c.fillStyle = `rgba(128,128,128,${CUT.tintaForca})`;
+    c.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    c.restore();
+    c.save();
+    c.globalAlpha = CUT.tintaForca * 0.5;
+    c.fillStyle = CUT.tinta || '#888';
+    c.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    c.restore();
+  }
+
+  // vultos passando entre as árvores
+  // Os vultos são a silhueta do próprio monstro da cena — é ele que está espreitando.
+  CUT.sombras = CUT.sombras.filter(s => now - s.inicio < s.ms);
+  CUT.sombras.forEach(s => {
+    const t = (now - s.inicio) / s.ms;
+    const x = s.de === 'direita' ? SCREEN_W * (1 - t) : SCREEN_W * t;
+    const y = s.y ?? SCREEN_H * 0.45;
+    const spr = monsterSprites[s.tipo || 'shiker'];
+    c.save();
+    c.globalAlpha = Math.sin(t * Math.PI) * 0.8;
+    if (spr) {
+      const h = 96, w = h * (spr.sw / spr.sh);
+      c.save();
+      c.translate(x, y);
+      if (s.de === 'esquerda') c.scale(-1, 1);
+      c.drawImage(spr.canvas, spr.sx, spr.sy, spr.sw, spr.sh, -w/2, -h, w, h);
+      // escurece a silhueta, para ler como vulto e não como o monstro à luz
+      c.globalCompositeOperation = 'source-atop';
+      c.fillStyle = 'rgba(4,5,10,0.88)';
+      c.fillRect(-w/2, -h, w, h);
+      c.restore();
+    } else {
+      c.fillStyle = '#05060a';
+      c.beginPath(); c.ellipse(x, y, 26, 54, 0, 0, Math.PI * 2); c.fill();
+    }
+    c.restore();
+  });
+
+  if (CUT.guia && CUT.guia.mapa !== currentKey) { CUT.guia = null; CUT.notas = []; }
+
+  // enxame de notas ao redor do jogador — depois do `guiar` elas se esticam
+  // numa fila em direção à saída e ficam lá, apontando o caminho.
+  CUT.notas.forEach((n, i) => {
+    if (now < n.nasceu) return;
+    const t = (now - n.nasceu);
+    n.ang += n.vel * 16;
+    let x, y;
+    if (CUT.guia) {
+      // Trilha: uma fila curta que sai do jogador e vai até a borda de saída. Notas
+      // além do fim da fila não são desenhadas — senão viram um rastro infinito.
+      const passo = 34;
+      const alcance = CUT.guia.dx
+        ? (CUT.guia.dx > 0 ? SCREEN_W - player.x : player.x)
+        : (CUT.guia.dy > 0 ? SCREEN_H - player.y : player.y);
+      const cabem = Math.max(3, Math.floor((alcance - 20) / passo));
+      if (i >= cabem) return;
+      const avanco = (i + 1) * passo;
+      const bal = Math.sin(now * 0.003 + i * 0.6) * 9;
+      x = player.x + CUT.guia.dx * avanco + (CUT.guia.dx ? 0 : bal);
+      y = player.y - 26 + CUT.guia.dy * avanco + (CUT.guia.dy ? 0 : bal);
+    } else {
+      x = player.x + Math.cos(n.ang) * n.raio;
+      y = player.y - 30 - Math.sin(n.ang) * n.raio * 0.4 - Math.min(60, t * 0.01) - n.sobe;
+    }
+    c.save();
+    c.globalAlpha = 0.85;
+    c.fillStyle = '#7dd3fc';
+    c.shadowColor = '#38bdf8'; c.shadowBlur = 10;
+    c.font = '16px serif'; c.textAlign = 'center';
+    c.fillText(n.simbolo, x, y);
+    c.restore();
+  });
+
+  // vinheta
+  if (CUT.vinheta > 0.01) {
+    const g = c.createRadialGradient(SCREEN_W/2, SCREEN_H/2, SCREEN_H*0.25,
+                                     SCREEN_W/2, SCREEN_H/2, SCREEN_H*0.78);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, `rgba(0,0,0,${CUT.vinheta})`);
+    c.fillStyle = g; c.fillRect(0, 0, SCREEN_W, SCREEN_H);
+  }
+
+  // fade
+  if (CUT.fade > 0.001) {
+    c.fillStyle = `rgba(0,0,0,${CUT.fade})`;
+    c.fillRect(0, 0, SCREEN_W, SCREEN_H);
+  }
+
+  // caixa de fala da cena — sobre o fade, para ler mesmo no escuro total
+  if (CUT.caixa) {
+    const alt = CUT.caixa.tutorial ? 108 : 92;
+    const y = SCREEN_H - alt - 22;
+    c.save();
+    c.fillStyle = 'rgba(6,9,14,0.9)';
+    c.strokeStyle = CUT.caixa.tutorial ? 'rgba(125,211,252,.7)' : 'rgba(255,255,255,.22)';
+    c.lineWidth = 2;
+    c.beginPath(); c.roundRect(70, y, SCREEN_W - 140, alt, 12); c.fill(); c.stroke();
+
+    if (CUT.caixa.quem) {
+      c.fillStyle = CUT.caixa.tutorial ? '#7dd3fc' : '#fbbf24';
+      c.font = '600 13px Outfit, sans-serif'; c.textAlign = 'left'; c.textBaseline = 'top';
+      c.fillText(CUT.caixa.quem, 92, y + 14);
+    }
+    c.fillStyle = '#e8eef6';
+    c.font = '15px Outfit, sans-serif'; c.textAlign = 'left'; c.textBaseline = 'top';
+    const visivel = CUT.caixa.texto.slice(0, Math.floor(CUT.caixa.mostrado));
+    let ly = y + (CUT.caixa.quem ? 38 : 22);
+    visivel.split('\n').forEach(linha => {
+      wrapText(c, linha, 92, ly, SCREEN_W - 190, 20);
+      ly += 20 * Math.max(1, Math.ceil(c.measureText(linha).width / (SCREEN_W - 190)));
+    });
+
+    if (CUT.caixa.completo) {
+      c.globalAlpha = (Math.sin(now * 0.005) + 1) / 2 * 0.6 + 0.4;
+      c.fillStyle = '#94a3b8'; c.font = '11px Outfit, sans-serif'; c.textAlign = 'right';
+      c.fillText('toque para continuar ▸', SCREEN_W - 92, y + alt - 24);
+    }
+    c.restore();
+  }
+}
+
+// Deslocamento de tremor aplicado ao desenho do mundo.
+function tremorCena(now) {
+  if (!CUT.ativo || now > CUT.tremorAte) return { x: 0, y: 0 };
+  const f = CUT.tremor;
+  return { x: (Math.random() - 0.5) * f, y: (Math.random() - 0.5) * f };
+}
+
 function setMode(mode){
   engineMode=mode;
   document.querySelectorAll('.mode-tab').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+  // O Mapa-Múndi tem área própria: troca o palco do jogo pelo editor de mundo em vez
+  // de desenhar por cima dele.
+  weMostrar(mode==='worldmap');
   // Show/hide tool groups
   document.getElementById('sceneToolsGroup')?.style.setProperty('display',mode==='scene'?'':'none');
   document.getElementById('collisionToolsGroup')?.style.setProperty('display',mode==='collision'?'':'none');
   document.getElementById('worldMapToolsGroup')?.style.setProperty('display',mode==='worldmap'?'':'none');
-  // Always ensure Ferramentas tab is visible and active when mode changes
+  // A galeria de cenários vive dentro do painel de Pincéis (worldMapToolsGroup), então
+  // é essa aba que precisa ficar aberta — não existe painel "worldmaptools" separado.
   document.querySelector('[data-btab="scenetools"]')?.click();
 }
 // A spawn hard against a border puts the character half off-screen and reads as
@@ -3337,11 +4335,19 @@ function togglePlay(){
     playBtn?.classList.add('hidden'); stopBtn?.classList.remove('hidden');
     wasdPanel?.classList.remove('hidden');
     playerHud?.classList.remove('hidden');
+    // Começo de jogo acontece no mapa de surgimento — só até a abertura ter rodado;
+    // depois disso o ▶ testa o cenário em que o editor está.
+    if(startMap&&bgSources[startMap]&&!CUT.jaRodou['mapa:'+startMap]){
+      currentKey=startMap;
+      if(activeMapSelect&&bgSources[startMap])activeMapSelect.value=startMap;
+      updateMapStatus();
+    }
     const sp=safeSpawn(currentKey);player.x=sp.x;player.y=sp.y;spawnFlashUntil=performance.now()+1600;
     // Fresh run: full health, monsters back on their posts, loot cleared.
     playerHp=playerMaxHp(); deadUntil=0; dropItems=[]; floaters.length=0;
     monsters.forEach(m=>{m.dead=false;m.hp=m.maxHp;m.x=m.homeX;m.y=m.homeY;m.respawnAt=0;});
     showToast('▶ Jogo iniciado! WASD para mover.');
+    talvezIniciarCenaDoMapa(currentKey);   // a abertura roda aqui também, não só no celular
   } else {
     playBtn?.classList.remove('hidden'); stopBtn?.classList.add('hidden');
     wasdPanel?.classList.add('hidden');
@@ -3407,7 +4413,7 @@ function loop(now){
   frameCount++;
   if(now-lastFPSTime>=1000){currentFPS=frameCount;frameCount=0;lastFPSTime=now;if(fpsDisplay)fpsDisplay.textContent=`${currentFPS} FPS`;if(statusFPS)statusFPS.textContent=`${currentFPS} FPS`;}
 
-  if(engineMode==='worldmap'){renderWorldMap(now);return;}
+  if(engineMode==='worldmap')return;   // desenhado pelo editor de mundo, em canvas próprio
 
   const mapKey=isPlayMode?currentKey:(activeMapSelect?.value||currentKey);
   const isMegaWorld = mapKey === 'mega_world';
@@ -3471,7 +4477,7 @@ function loop(now){
         player.animTimer++;
         if(player.animTimer>=(sprint?3:6)){player.animTimer=0;player.animFrame=(player.animFrame+1)%4;if(player.animFrame%2===1){spawnDust(player.x,player.y);playStep(sprint);}}
       } else {player.animFrame=0;player.animTimer=0;}
-      checkDoors();checkNPCProx();
+      checkTransitions();checkDoors();checkNPCProx();
     }
     updateRespawn(now);updateMonsters(now);updateDrops(now);
     // The dialogue box owns the bottom of the screen, and movement is locked anyway.
@@ -3537,6 +4543,7 @@ function loop(now){
       renderGatherSwing(now);
       ctx.drawImage(L.fgCanvas,0,0);renderDoorMarkers(now);updateLeaves();renderLeaves();
       updatePath();renderPath(now);
+      atualizarCena(now);
       updateAmbient(now);renderSpeech(now);renderFloaters(now);
       // Prompt over whatever the action button is currently pointing at — not just
       // NPCs. A door you can't see is a door that doesn't exist.
@@ -3570,6 +4577,7 @@ function loop(now){
       });
     }
     renderDlg(now);
+    renderCena(now);
     if(statusPos)statusPos.textContent=`X: ${Math.round(player.x)}  Y: ${Math.round(player.y)}`;
   } else {
     npcData.forEach(npc=>{if(npc.mapKey!==mapKey)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
@@ -3730,6 +4738,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   });}
 
   rebuildGrid();refreshMapSelect();updateMapStatus();
+  weBind();
   bindTouchControls();
   bindStoreUI();
   bindCharUI();
@@ -3743,11 +4752,27 @@ document.addEventListener('DOMContentLoaded',()=>{
   initHotbar();
   initScenarioUploader();
   initMegaWorldControls();
+  initTesteDeCena();
   blockIOSGestures();
   if(wantsMobilePlay())enterMobilePlay();
   setTimeout(()=>loadingOverlay?.classList.add('hidden'),600);
   requestAnimationFrame(loop);
 });
+
+// Botão de teste: libera a trava de "já rodou" e dispara a abertura na hora, para
+// conseguir rever a cena quantas vezes precisar durante a autoria.
+function initTesteDeCena() {
+  document.getElementById('testarCenaBtn')?.addEventListener('click', async () => {
+    const r = window.__abertura || await carregarCena('abertura');
+    window.__abertura = r;
+    if (!r) { showToast('⚠️ Não achei assets/cutscenes/abertura.json'); return; }
+    if (!bgSources[r.mapa]) { showToast('⚠️ O cenário da cena não existe mais: ' + r.mapa); return; }
+    CUT.jaRodou = {};
+    try { localStorage.removeItem('acordelot_cenas'); } catch (e) {}
+    if (CUT.ativo) encerrarCena();
+    iniciarCena(r);
+  });
+}
 
 function initMegaWorldControls() {
   const zoomRange = document.getElementById('zoomRange');
@@ -3883,11 +4908,15 @@ function initMegaWorldControls() {
   loadHeroSprites();
 }
 
+// Todas as folhas são 4x4 com fundo branco, no mesmo formato do Arthur: linha 0 de
+// frente, 1 de costas, 2 de lado (espelhada para a esquerda), 4 quadros por linha.
+// As antigas hero_male_2.png / hero_female_*.png eram capturas de tela, não sprites —
+// era por isso que os personagens novos não apareciam.
 const HERO_DEFINITIONS = {
   'arthur': { id: 'arthur', name: 'Arthur', class: 'Guerreiro', gender: 'Masculino', src: 'assets/spritesheet.jpg' },
-  'lucian': { id: 'lucian', name: 'Lucian', class: 'Bardo', gender: 'Masculino', src: 'assets/hero_male_2.png' },
-  'elena': { id: 'elena', name: 'Elena', class: 'Caçadora', gender: 'Feminino', src: 'assets/hero_female_1.png' },
-  'lyra': { id: 'lyra', name: 'Lyra', class: 'Maga', gender: 'Feminino', src: 'assets/hero_female_2.png' }
+  'lucian': { id: 'lucian', name: 'Lucian', class: 'Aldeão',    gender: 'Masculino', src: 'assets/hero_h1.jpg' },
+  'elena':  { id: 'elena',  name: 'Elena',  class: 'Corredora', gender: 'Feminino',  src: 'assets/hero_h2.jpg' },
+  'lyra':   { id: 'lyra',   name: 'Lyra',   class: 'Viajante',  gender: 'Feminino',  src: 'assets/hero_h3.jpg' }
 };
 let selectedHeroId = 'arthur';
 const heroImages = {};
@@ -3926,7 +4955,7 @@ function processHeroSprite(id, imgRaw) {
         const idata = oc.getImageData(0, 0, off.width, off.height);
         const d = idata.data;
         for (let i = 0; i < d.length; i += 4) {
-          if (d[i] > 200 && d[i+1] > 200 && d[i+2] > 200) d[i+3] = 0;
+          if (d[i] > 215 && d[i+1] > 215 && d[i+2] > 215) d[i+3] = 0;
         }
         oc.putImageData(idata, 0, 0);
       } catch(e) { /* canvas security — keep as-is */ }
@@ -4098,6 +5127,12 @@ async function finishInit(){
   renderQuestBuilderList();
   loadingOverlay?.classList.add('hidden');updateMapStatus();
   showToast('🎵 Acordelot Engine carregado!');
+
+  // Cena de abertura: roda uma vez por jogador, e nunca dentro do editor.
+  try { CUT.jaRodou = JSON.parse(localStorage.getItem('acordelot_cenas') || '{}'); } catch (e) {}
+  const abertura = await carregarCena('abertura');
+  window.__abertura = abertura;
+  if (wantsMobilePlay()) talvezIniciarCenaDoMapa(currentKey);
 }
 setTimeout(()=>loadingOverlay?.classList.add('hidden'),1500);
 
@@ -4163,6 +5198,7 @@ async function openDialogueEditor(npc) {
 }
 
 async function saveDialogueFromEditor() {
+  if (IS_PLAY_BUILD) return;
   if (!selectedNPC) { showToast('⚠️ Nenhum NPC selecionado!'); return; }
 
   const dlgId = dlgEditorId.value.trim().replace(/[^a-zA-Z0-9_]/g, '_') || `${selectedNPC.id}_dlg`;
@@ -4637,8 +5673,19 @@ function addCustomScenarioFromFile(file, targetCol = null, targetRow = null) {
       gridPos[customKey] = { col: targetCol, row: targetRow };
     }
 
+    // Sem posição o cenário fica "fora do grid" e some da vista: acha a primeira célula
+    // livre à direita do que já existe.
+    if (!gridPos[customKey]) {
+      let col = 0;
+      const linhas = Object.values(gridPos);
+      if (linhas.length) col = Math.max(...linhas.map(p => p.col)) + 1;
+      while (keyAtCell(col, 0)) col++;
+      gridPos[customKey] = { col, row: 0 };
+    }
+
     rebuildGrid();
     refreshMapSelect();
+    if (typeof weAtualizaGaleria === 'function') weAtualizaGaleria();   // galeria do Mapa-Múndi
     if (activeMapSelect) activeMapSelect.value = customKey;
     currentKey = customKey;
     saveAllLayers(false);

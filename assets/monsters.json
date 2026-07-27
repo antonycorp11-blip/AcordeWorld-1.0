@@ -104,6 +104,29 @@
         "min": 1,
         "max": 3
       }
+    },
+    "shiker": {
+      "name": "Shiker",
+      "sprite": "assets/monsters/shiker.jpg",
+      "cols": 4,
+      "rows": 3,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 74,
+      "hp": 24,
+      "damage": 6,
+      "speed": 1.1,
+      "aggroRange": 320,
+      "touchRange": 38,
+      "drop": {
+        "item": "clave",
+        "min": 1,
+        "max": 1
+      },
+      "walkRow": 1,
+      "walkFrames": 4
     }
   },
   "spawns": [
@@ -176,6 +199,48 @@
       "mapKey": "3_0",
       "x": 800,
       "y": 260
+    },
+    {
+      "id": "inimigo1",
+      "type": "shiker",
+      "mapKey": "custom_1785173102424_996",
+      "x": 645,
+      "y": 299
+    },
+    {
+      "id": "cena_1785175766035_5i0o",
+      "type": "shiker",
+      "mapKey": "custom_1785173102424_996",
+      "x": 399,
+      "y": 294
+    },
+    {
+      "id": "cena_1785175766035_wzhz",
+      "type": "shiker",
+      "mapKey": "custom_1785173102424_996",
+      "x": 394,
+      "y": 426
+    },
+    {
+      "id": "cena_1785175768837_k5a3",
+      "type": "shiker",
+      "mapKey": "custom_1785173102424_996",
+      "x": 172,
+      "y": 502
+    },
+    {
+      "id": "cena_1785175768838_2efi",
+      "type": "shiker",
+      "mapKey": "custom_1785173102424_996",
+      "x": 674,
+      "y": 459
+    },
+    {
+      "id": "cena_1785175768838_zkcd",
+      "type": "shiker",
+      "mapKey": "custom_1785173102424_996",
+      "x": 538,
+      "y": 234
     }
   ]
 }

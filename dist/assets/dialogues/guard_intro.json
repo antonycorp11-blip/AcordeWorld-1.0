@@ -1,0 +1,74 @@
+{
+  "id": "guard_intro",
+  "npc_name": "Guarda Renaldo",
+  "portrait": "guard",
+  "repeatable": false,
+  "steps": [
+    {
+      "id": "start",
+      "type": "lines",
+      "lines": [
+        "Ei! Espera um momento, viajante!",
+        "Você não parece familiar...",
+        "Você acabou de chegar no Reino da Música?"
+      ],
+      "next": "choice_1"
+    },
+    {
+      "id": "choice_1",
+      "type": "choice",
+      "choices": [
+        { "text": "Sim, acabei de chegar.", "next": "path_arrived" },
+        { "text": "Estou procurando alguém.", "next": "path_searching" }
+      ]
+    },
+    {
+      "id": "path_arrived",
+      "type": "lines",
+      "lines": [
+        "Achei que sim!",
+        "Bem-vindo a Acordelot!",
+        "Esta é a primeira cidade do Reino da Música.",
+        "Músicos de todos os cantos do reino começam sua jornada aqui.",
+        "Antes de entrar...",
+        "Preciso registrar sua chegada.",
+        "Qual é o seu nome, viajante?"
+      ],
+      "next": "name_input"
+    },
+    {
+      "id": "path_searching",
+      "type": "lines",
+      "lines": [
+        "Entendo, viajante.",
+        "Mas Acordelot é o lugar certo para começar sua busca.",
+        "Antes de entrar, preciso registrar sua chegada.",
+        "Qual é o seu nome?"
+      ],
+      "next": "name_input"
+    },
+    {
+      "id": "name_input",
+      "type": "name_input",
+      "prompt": "Digite o nome do seu aventureiro:",
+      "next": "after_name"
+    },
+    {
+      "id": "after_name",
+      "type": "lines",
+      "lines": [
+        "Bem-vindo, {PLAYER_NAME}.",
+        "Sua chegada foi registrada com sucesso.",
+        "Seu mentor musical já foi informado da sua chegada.",
+        "Ele está esperando por você na Praça Central.",
+        "Siga pela estrada de pedra — você não vai se perder."
+      ],
+      "next": "end"
+    },
+    {
+      "id": "end",
+      "type": "end",
+      "quest_unlock": "welcome_to_acordelot"
+    }
+  ]
+}

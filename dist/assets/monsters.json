@@ -1,0 +1,246 @@
+{
+  "types": {
+    "tempo_toad": {
+      "name": "Sapo do Tempo",
+      "sprite": "assets/monsters/tempo_toad.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 62,
+      "hp": 30,
+      "damage": 6,
+      "speed": 0.9,
+      "aggroRange": 150,
+      "touchRange": 34,
+      "drop": {
+        "item": "clave",
+        "min": 1,
+        "max": 2
+      }
+    },
+    "octave_owl": {
+      "name": "Coruja da Oitava",
+      "sprite": "assets/monsters/octave_owl.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        1,
+        1
+      ],
+      "height": 66,
+      "hp": 26,
+      "damage": 5,
+      "speed": 1.5,
+      "aggroRange": 200,
+      "touchRange": 34,
+      "drop": {
+        "item": "clave",
+        "min": 1,
+        "max": 2
+      }
+    },
+    "bass_crawler": {
+      "name": "Rastejante da Clave de Fá",
+      "sprite": "assets/monsters/bass_crawler.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 58,
+      "hp": 40,
+      "damage": 8,
+      "speed": 0.7,
+      "aggroRange": 140,
+      "touchRange": 36,
+      "drop": {
+        "item": "clave",
+        "min": 2,
+        "max": 3
+      }
+    },
+    "treble_flyer": {
+      "name": "Voador da Clave de Sol",
+      "sprite": "assets/monsters/treble_flyer.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 60,
+      "hp": 22,
+      "damage": 4,
+      "speed": 1.7,
+      "aggroRange": 210,
+      "touchRange": 32,
+      "drop": {
+        "item": "clave",
+        "min": 1,
+        "max": 1
+      }
+    },
+    "coda_crawler": {
+      "name": "Rastejante da Coda",
+      "sprite": "assets/monsters/coda_crawler.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 60,
+      "hp": 35,
+      "damage": 7,
+      "speed": 0.8,
+      "aggroRange": 150,
+      "touchRange": 34,
+      "drop": {
+        "item": "clave",
+        "min": 1,
+        "max": 3
+      }
+    },
+    "shiker": {
+      "name": "Shiker",
+      "sprite": "assets/monsters/shiker.jpg",
+      "cols": 4,
+      "rows": 3,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 74,
+      "hp": 24,
+      "damage": 6,
+      "speed": 1.1,
+      "aggroRange": 320,
+      "touchRange": 38,
+      "drop": {
+        "item": "clave",
+        "min": 1,
+        "max": 1
+      },
+      "walkRow": 1,
+      "walkFrames": 4
+    }
+  },
+  "spawns": [
+    {
+      "id": "m1",
+      "type": "tempo_toad",
+      "mapKey": "2_1",
+      "x": 300,
+      "y": 380
+    },
+    {
+      "id": "m2",
+      "type": "tempo_toad",
+      "mapKey": "2_1",
+      "x": 720,
+      "y": 330
+    },
+    {
+      "id": "m3",
+      "type": "octave_owl",
+      "mapKey": "2_1",
+      "x": 520,
+      "y": 250
+    },
+    {
+      "id": "m4",
+      "type": "treble_flyer",
+      "mapKey": "2_1",
+      "x": 830,
+      "y": 450
+    },
+    {
+      "id": "m5",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 246,
+      "y": 214
+    },
+    {
+      "id": "m6",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 694,
+      "y": 187
+    },
+    {
+      "id": "m7",
+      "type": "octave_owl",
+      "mapKey": "3_1",
+      "x": 758,
+      "y": 490
+    },
+    {
+      "id": "m8",
+      "type": "bass_crawler",
+      "mapKey": "3_0",
+      "x": 300,
+      "y": 320
+    },
+    {
+      "id": "m9",
+      "type": "coda_crawler",
+      "mapKey": "3_0",
+      "x": 640,
+      "y": 420
+    },
+    {
+      "id": "m10",
+      "type": "treble_flyer",
+      "mapKey": "3_0",
+      "x": 800,
+      "y": 260
+    },
+    {
+      "id": "inimigo1",
+      "type": "shiker",
+      "mapKey": "custom_1785173102424_996",
+      "x": 645,
+      "y": 299
+    },
+    {
+      "id": "cena_1785175766035_5i0o",
+      "type": "shiker",
+      "mapKey": "custom_1785173102424_996",
+      "x": 399,
+      "y": 294
+    },
+    {
+      "id": "cena_1785175766035_wzhz",
+      "type": "shiker",
+      "mapKey": "custom_1785173102424_996",
+      "x": 394,
+      "y": 426
+    },
+    {
+      "id": "cena_1785175768837_k5a3",
+      "type": "shiker",
+      "mapKey": "custom_1785173102424_996",
+      "x": 172,
+      "y": 502
+    },
+    {
+      "id": "cena_1785175768838_2efi",
+      "type": "shiker",
+      "mapKey": "custom_1785173102424_996",
+      "x": 674,
+      "y": 459
+    },
+    {
+      "id": "cena_1785175768838_zkcd",
+      "type": "shiker",
+      "mapKey": "custom_1785173102424_996",
+      "x": 538,
+      "y": 234
+    }
+  ]
+}
