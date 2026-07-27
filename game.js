@@ -3881,27 +3881,70 @@ function initMegaWorldControls() {
 }
 
 const HERO_DEFINITIONS = {
-  'arthur': { id: 'arthur', name: 'Arthur', class: 'Guerreiro', gender: 'Masculino', tint: null },
-  'lucian': { id: 'lucian', name: 'Lucian', class: 'Bardo Mago', gender: 'Masculino', tint: '#38bdf8' },
-  'elena': { id: 'elena', name: 'Elena', class: 'Arqueira', gender: 'Feminino', tint: '#22c55e' },
-  'lyra': { id: 'lyra', name: 'Lyra', class: 'Maga Guardiã', gender: 'Feminino', tint: '#a855f7' }
+  'arthur': { id: 'arthur', name: 'Arthur', class: 'Guerreiro', gender: 'Masculino', src: 'assets/spritesheet.jpg' },
+  'lucian': { id: 'lucian', name: 'Lucian', class: 'Bardo', gender: 'Masculino', src: 'assets/hero_male_2.png' },
+  'elena': { id: 'elena', name: 'Elena', class: 'Caçadora', gender: 'Feminino', src: 'assets/hero_female_1.png' },
+  'lyra': { id: 'lyra', name: 'Lyra', class: 'Maga', gender: 'Feminino', src: 'assets/hero_female_2.png' }
 };
 let selectedHeroId = 'arthur';
+const heroImages = {};
+const processedHeroSprites = {};
+
+function loadHeroSprites() {
+  for (const [id, hero] of Object.entries(HERO_DEFINITIONS)) {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      processHeroSprite(id, img);
+      renderHeroAvatars();
+    };
+    img.src = hero.src;
+    heroImages[id] = img;
+  }
+}
+
+function processHeroSprite(id, imgRaw) {
+  try {
+    const off = document.createElement('canvas');
+    off.width = imgRaw.width || 1;
+    off.height = imgRaw.height || 1;
+    const oc = off.getContext('2d');
+    oc.drawImage(imgRaw, 0, 0);
+    const idata = oc.getImageData(0, 0, off.width, off.height);
+    const d = idata.data;
+
+    // Remove white & near-white backgrounds (>220 on RGB)
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i] > 220 && d[i+1] > 220 && d[i+2] > 220) {
+        d[i+3] = 0;
+      }
+    }
+
+    oc.putImageData(idata, 0, 0);
+    processedHeroSprites[id] = off;
+
+    if (id === selectedHeroId) {
+      processedSprite = off;
+    }
+  } catch(e) {}
+}
 
 function renderHeroAvatars() {
-  if (!processedSprite) return;
   for (const [id, hero] of Object.entries(HERO_DEFINITIONS)) {
-    const spr = hero.tint ? getOutfitSprite(hero.tint) : processedSprite;
+    const spr = processedHeroSprites[id];
     if (!spr) continue;
+
+    const frameW = Math.floor(spr.width / 4);
+    const frameH = Math.floor(spr.height / 4);
 
     const avatarCanvas = document.createElement('canvas');
     avatarCanvas.width = 44;
     avatarCanvas.height = 44;
     const actx = avatarCanvas.getContext('2d');
     actx.imageSmoothingEnabled = false;
-    
-    // Crop front-facing head/chest frame from top-left (sx: 0, sy: 0, sw: 48, sh: 52)
-    actx.drawImage(spr, 0, 0, 48, 52, 0, 0, 44, 44);
+
+    // Crop front-facing head/body frame (0, 0, frameW, frameH)
+    actx.drawImage(spr, 0, 0, frameW, frameH, 0, 0, 44, 44);
 
     const card = document.querySelector(`.hero-select-card[data-heroid="${id}"]`);
     if (card) {
@@ -3912,10 +3955,6 @@ function renderHeroAvatars() {
       }
     }
   }
-}
-
-function loadHeroSprites() {
-  if (processedSprite) renderHeroAvatars();
 }
 
 function initMainMenu() {
@@ -3931,6 +3970,9 @@ function initMainMenu() {
       heroCards.forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       selectedHeroId = card.dataset.heroid;
+      if (processedHeroSprites[selectedHeroId]) {
+        processedSprite = processedHeroSprites[selectedHeroId];
+      }
     });
   });
 
