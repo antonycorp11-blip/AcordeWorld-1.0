@@ -3074,52 +3074,75 @@ function wantsMobilePlay() {
 }
 
 function bindTouchControls() {
-  const zone=document.getElementById('stickZone');
-  const base=document.getElementById('stickBase');
-  const knob=document.getElementById('stickKnob');
-  touchAction=document.getElementById('touchAction');
-  touchControls=document.getElementById('touchControls');
-  if(!zone||!base||!knob)return;
+  const zone = document.getElementById('stickZone');
+  const base = document.getElementById('stickBase') || zone?.querySelector('.stick-base');
+  const knob = document.getElementById('stickKnob') || zone?.querySelector('.stick-knob');
+  touchAction = document.getElementById('touchAction') || document.getElementById('btnTouchTalk') || document.querySelector('.touch-action');
+  touchControls = document.getElementById('touchControls') || document.getElementById('touchZone') || document.querySelector('.touch-controls');
+  if (!zone || !base || !knob) return;
 
-  let pid=null, ox=0, oy=0, R=52;
+  let pid = null, ox = 0, oy = 0, R = 52;
 
-  const place=(cx,cy)=>{
-    // Floating stick: the base jumps to wherever the thumb lands, so the player never
-    // has to look down to find it.
-    const zr=zone.getBoundingClientRect(), br=base.offsetWidth/2;
-    base.style.left=(cx-zr.left-br)+'px';
-    base.style.top=(cy-zr.top-br)+'px';
-    base.style.bottom='auto';
-    R=br;
-    const bc=base.getBoundingClientRect();
-    ox=bc.left+bc.width/2; oy=bc.top+bc.height/2;
+  const place = (cx, cy) => {
+    const zr = zone.getBoundingClientRect();
+    const br = (base.offsetWidth / 2) || 52;
+    base.style.left = (cx - zr.left - br) + 'px';
+    base.style.top = (cy - zr.top - br) + 'px';
+    base.style.bottom = 'auto';
+    R = br;
+    const bc = base.getBoundingClientRect();
+    ox = bc.left + bc.width / 2;
+    oy = bc.top + bc.height / 2;
   };
-  const apply=(cx,cy)=>{
-    let dx=cx-ox, dy=cy-oy;
-    const d=Math.hypot(dx,dy), k=d>R?R/d:1;
-    knob.style.transform=`translate(${dx*k}px, ${dy*k}px)`;
-    stick.x=Math.max(-1,Math.min(1,dx/R));
-    stick.y=Math.max(-1,Math.min(1,dy/R));
-    stick.active=true;
+  const apply = (cx, cy) => {
+    let dx = cx - ox, dy = cy - oy;
+    const d = Math.hypot(dx, dy), k = d > R ? R / d : 1;
+    knob.style.transform = `translate(${dx * k}px, ${dy * k}px)`;
+    stick.x = Math.max(-1, Math.min(1, dx / R));
+    stick.y = Math.max(-1, Math.min(1, dy / R));
+    stick.active = true;
   };
-  const release=()=>{
-    pid=null; stick.active=false; stick.x=stick.y=0;
-    knob.style.transform='';
-    base.style.left=''; base.style.top=''; base.style.bottom='';
+  const release = () => {
+    pid = null; stick.active = false; stick.x = stick.y = 0;
+    knob.style.transform = '';
+    base.style.left = ''; base.style.top = ''; base.style.bottom = '';
     zone.classList.remove('active');
   };
 
-  zone.addEventListener('pointerdown', e=>{
+  // Pointer events
+  zone.addEventListener('pointerdown', e => {
     e.preventDefault(); initAudio();
-    pid=e.pointerId; zone.setPointerCapture(pid);
+    pid = e.pointerId;
+    try { zone.setPointerCapture(pid); } catch(ex) {}
     zone.classList.add('active');
-    place(e.clientX,e.clientY); apply(e.clientX,e.clientY);
+    place(e.clientX, e.clientY); apply(e.clientX, e.clientY);
   });
-  zone.addEventListener('pointermove', e=>{ if(e.pointerId!==pid)return; e.preventDefault(); apply(e.clientX,e.clientY); });
-  zone.addEventListener('pointerup', e=>{ if(e.pointerId===pid)release(); });
-  zone.addEventListener('pointercancel', e=>{ if(e.pointerId===pid)release(); });
+  zone.addEventListener('pointermove', e => {
+    if (pid !== null && e.pointerId !== pid) return;
+    if (stick.active) { e.preventDefault(); apply(e.clientX, e.clientY); }
+  });
+  zone.addEventListener('pointerup', () => { release(); });
+  zone.addEventListener('pointercancel', () => { release(); });
 
-  touchAction?.addEventListener('pointerdown', e=>{ e.preventDefault(); initAudio(); doAction(); });
+  // Touch fallback
+  zone.addEventListener('touchstart', e => {
+    e.preventDefault(); initAudio();
+    const t = e.touches[0];
+    if (t) {
+      zone.classList.add('active');
+      place(t.clientX, t.clientY); apply(t.clientX, t.clientY);
+    }
+  }, { passive: false });
+  zone.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const t = e.touches[0];
+    if (t) apply(t.clientX, t.clientY);
+  }, { passive: false });
+  zone.addEventListener('touchend', () => { release(); }, { passive: false });
+  zone.addEventListener('touchcancel', () => { release(); }, { passive: false });
+
+  touchAction?.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); doAction(); });
+  touchAction?.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); doAction(); }, { passive: false });
 }
 
 // iOS Safari ignores `user-scalable=no`, so pinch-zoom has to be refused in JS. The
@@ -3141,8 +3164,15 @@ function blockIOSGestures() {
 
 function enterMobilePlay() {
   document.body.classList.add('mobile-play');
-  document.getElementById('touchControls')?.classList.remove('hidden');
-  if(!isPlayMode)togglePlay();
+  document.getElementById('left-sidebar')?.classList.add('hidden');
+  document.getElementById('engine-header')?.classList.add('hidden');
+  const menu = document.getElementById('mainMenuOverlay');
+  if (menu) {
+    menu.classList.remove('hidden');
+    renderHeroAvatars();
+  } else if (!isPlayMode) {
+    togglePlay();
+  }
 }
 
 function bindCanvasEvents(){
@@ -5038,6 +5068,9 @@ function initMainMenu() {
     }
     mainMenuOverlay?.classList.add('hidden');
     if (!isPlayMode) togglePlay();
+    if (wantsMobilePlay() || document.body.classList.contains('mobile-play')) {
+      document.getElementById('touchControls')?.classList.remove('hidden');
+    }
     showToast(`⚔️ Bem-vindo a Acordelot, ${playerName}!`);
   });
 }
