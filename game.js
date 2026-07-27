@@ -3655,6 +3655,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const menu = document.getElementById('mainMenuOverlay');
     if (menu && !isPlayMode) {
       menu.classList.remove('hidden');
+      renderHeroAvatars(); // render avatars the moment menu opens
     } else {
       togglePlay();
     }
@@ -3918,8 +3919,8 @@ function processHeroSprite(id, imgRaw) {
     const oc = off.getContext('2d');
     oc.drawImage(imgRaw, 0, 0);
 
-    // PNG heroes (Lucian, Elena, Lyra) already have RGBA transparency.
-    // Only strip white for the original JPG spritesheet (Arthur).
+    // PNG heroes (Lucian, Elena, Lyra) are native RGBA — no getImageData needed.
+    // Only strip white for Arthur's JPG spritesheet (no alpha channel).
     if (!hero_isPNG(id)) {
       try {
         const idata = oc.getImageData(0, 0, off.width, off.height);
@@ -3928,7 +3929,7 @@ function processHeroSprite(id, imgRaw) {
           if (d[i] > 200 && d[i+1] > 200 && d[i+2] > 200) d[i+3] = 0;
         }
         oc.putImageData(idata, 0, 0);
-      } catch(e) { /* canvas security error — use image as-is */ }
+      } catch(e) { /* canvas security — keep as-is */ }
     }
 
     processedHeroSprites[id] = off;
@@ -3938,13 +3939,19 @@ function processHeroSprite(id, imgRaw) {
 
 function renderHeroAvatars() {
   for (const [id] of Object.entries(HERO_DEFINITIONS)) {
-    // Prefer the processed canvas; fall back to the raw HTMLImageElement
+    // Priority: processed canvas → raw HTMLImageElement → processedSprite (Arthur fallback)
     const spr = processedHeroSprites[id];
     const img = heroImages[id];
     const src = (spr && spr.width > 10) ? spr
               : (img && img.complete && img.naturalWidth > 10) ? img
+              : (id === 'arthur' && processedSprite && processedSprite.width > 10) ? processedSprite
               : null;
     if (!src) continue;
+
+    const card = document.querySelector(`.hero-select-card[data-heroid="${id}"]`);
+    if (!card) continue;
+    const box = card.querySelector('.hero-avatar-box');
+    if (!box) continue;
 
     const srcW = src instanceof HTMLImageElement ? src.naturalWidth  : src.width;
     const srcH = src instanceof HTMLImageElement ? src.naturalHeight : src.height;
@@ -3955,19 +3962,15 @@ function renderHeroAvatars() {
     av.width = 52; av.height = 52;
     const ac = av.getContext('2d');
     ac.imageSmoothingEnabled = false;
-
-    // Dark background so any white fringe blends into the card
-    ac.fillStyle = 'rgba(15,23,42,0.9)';
+    ac.fillStyle = '#0f172a';
     ac.fillRect(0, 0, 52, 52);
 
-    // Front-facing head + torso: row 0, column 0, top 70% of frame height
-    ac.drawImage(src, 0, 0, frameW, Math.floor(frameH * 0.70), 2, 2, 48, 48);
-
-    const card = document.querySelector(`.hero-select-card[data-heroid="${id}"]`);
-    if (card) {
-      const box = card.querySelector('.hero-avatar-box');
-      if (box) { box.innerHTML = ''; box.appendChild(av); }
-    }
+    try {
+      // Front-facing frame: row 0, col 0, top 70% of frame height (head + torso)
+      ac.drawImage(src, 0, 0, frameW, Math.floor(frameH * 0.70), 2, 2, 48, 48);
+      box.innerHTML = '';
+      box.appendChild(av);
+    } catch(e) {}
   }
 }
 
@@ -3978,6 +3981,17 @@ function initMainMenu() {
   const heroCards = document.querySelectorAll('.hero-select-card');
 
   renderHeroAvatars();
+
+  // Keep retrying until all 4 hero avatars are rendered (images load async)
+  (function pollAvatars() {
+    const allDone = Object.keys(HERO_DEFINITIONS).every(id => {
+      const spr = processedHeroSprites[id];
+      return (spr && spr.width > 10) ||
+             (heroImages[id] && heroImages[id].complete && heroImages[id].naturalWidth > 10);
+    });
+    renderHeroAvatars();
+    if (!allDone) setTimeout(pollAvatars, 120);
+  })();
 
   heroCards.forEach(card => {
     card.addEventListener('click', () => {
