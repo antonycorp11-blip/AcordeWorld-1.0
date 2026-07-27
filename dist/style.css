@@ -438,40 +438,71 @@ input:focus, select:focus { outline: none; }
    `body.mobile-play` strips the editor entirely: the canvas takes the whole screen
    and the only chrome is the thumb stick and the action button.
 ══════════════════════ */
+body.mobile-play,
+body.mobile-play #engine-shell {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  background: #000;
+}
 body.mobile-play #engine-header,
 body.mobile-play #left-sidebar,
 body.mobile-play #bottom-panel,
 body.mobile-play #wasdPanel { display: none !important; }
 
 body.mobile-play #main-editor-layout {
+  width: 100vw;
   height: 100vh;
+  height: 100dvh;
   flex-direction: column;
+  margin: 0;
+  padding: 0;
 }
 body.mobile-play #viewport-area {
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   flex: 1;
   padding: 0;
+  margin: 0;
+  background: #000;
 }
 body.mobile-play #viewport-container {
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   padding: 0;
+  margin: 0;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 body.mobile-play #canvas-stage {
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   max-width: none;
   max-height: none;
   aspect-ratio: auto;
   border-radius: 0;
   box-shadow: none;
+  margin: 0;
+  padding: 0;
+  background: #000;
+  position: relative;
 }
 body.mobile-play #gameCanvas {
-  width: 100%; height: 100%;
-  max-width: none; max-height: none;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: fill;
   box-shadow: none;
+  display: block;
 }
 
 .touch-controls {

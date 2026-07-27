@@ -3940,6 +3940,8 @@ function iniciarCena(roteiro) {
     currentKey = roteiro.mapa;
     if (activeMapSelect) activeMapSelect.value = roteiro.mapa;
   }
+  // Clear any pre-placed monsters on the cutscene map so they spawn progressively
+  monsters = monsters.filter(m => m.mapKey !== currentKey);
   if (!isPlayMode) togglePlay();
   currentScene = 'world';
   proximoPasso();
