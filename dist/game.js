@@ -5064,16 +5064,35 @@ function initMainMenu() {
     });
   });
 
-  startAdventureBtn?.addEventListener('click', () => {
+  startAdventureBtn?.addEventListener('click', async () => {
     if (menuPlayerName && menuPlayerName.value.trim()) {
       playerName = menuPlayerName.value.trim();
     }
     mainMenuOverlay?.classList.add('hidden');
+
+    // Reset cutscene flags for fresh new game play from scratch
+    CUT.jaRodou = {};
+    try { localStorage.removeItem('acordelot_cenas'); } catch (e) {}
+
+    // Ensure map is startMap ("custom_1785173102424_996" / 🌑 Floresta Sombria)
+    const startMapKey = worldConfig?.startMap || 'custom_1785173102424_996';
+    currentKey = startMapKey;
+    if (activeMapSelect) activeMapSelect.value = startMapKey;
+
     if (!isPlayMode) togglePlay();
+
     if (wantsMobilePlay() || document.body.classList.contains('mobile-play')) {
       document.getElementById('touchControls')?.classList.remove('hidden');
     }
-    showToast(`⚔️ Bem-vindo a Acordelot, ${playerName}!`);
+
+    // Trigger the opening cutscene immediately!
+    const r = window.__abertura || await carregarCena('abertura');
+    window.__abertura = r;
+    if (r) {
+      iniciarCena(r);
+    } else {
+      showToast(`⚔️ Bem-vindo a Acordelot, ${playerName}!`);
+    }
   });
 }
 
