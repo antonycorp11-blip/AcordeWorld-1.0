@@ -2,18 +2,19 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Acordelot Engine — Reino da Música</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Acordelot Engine — Reino da Harmonia</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Pixelify+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+
 <div id="engine-shell">
 
-  <!-- ═══ TOP HEADER BAR ═══ -->
+  <!-- ═══ ENGINE HEADER ═══ -->
   <header id="engine-header">
     <div class="header-left">
       <span class="engine-logo">🎵</span>
@@ -43,664 +44,469 @@
     </div>
   </header>
 
-  <!-- ═══ MAIN AREA: CANVAS ONLY ═══ -->
-  <div id="viewport-area">
-    <div id="viewport-container">
-      <div id="canvas-stage">
-        <video id="skinShopVideo" src="assets/loja_de_skins.mp4" loop autoplay playsinline class="video-bg hidden"></video>
-        <video id="forgeVideo" src="assets/ferraria_interno.mp4" loop autoplay playsinline class="video-bg hidden"></video>
-        <canvas id="gameCanvas" width="1024" height="571"></canvas>
+  <!-- ═══ MAIN WORKSPACE (LEFT SIDEBAR EDITOR + RIGHT GAME CANVAS) ═══ -->
+  <div id="main-editor-layout">
 
-        <!-- Name input overlay -->
-        <div id="nameInputOverlay" class="game-overlay hidden">
-          <div class="name-window">
-            <div class="name-window-deco tl">✦</div>
-            <div class="name-window-deco tr">✦</div>
-            <div class="name-window-deco bl">✦</div>
-            <div class="name-window-deco br">✦</div>
-            <div class="name-win-icon">⚔️</div>
-            <div class="name-win-title">Nome do Aventureiro</div>
-            <div class="name-win-sub">Como deseja ser chamado neste reino?</div>
-            <input type="text" id="playerNameInput" class="name-field" placeholder="Digite seu nome..." maxlength="20" autocomplete="off" spellcheck="false">
-            <button id="confirmNameBtn" class="confirm-btn">Confirmar ✦</button>
-          </div>
-        </div>
-
-        <!-- Quest notification -->
-        <div id="questNotification" class="quest-notif hidden">
-          <div class="quest-notif-badge">✨ Missão Desbloqueada</div>
-          <div id="questNotifTitle" class="quest-notif-title">—</div>
-          <div id="questNotifObj" class="quest-notif-obj">—</div>
-        </div>
-
-        <!-- Loading -->
-        <div id="loadingOverlay" class="loading-overlay">
-          <div class="loading-logo">🎵</div>
-          <div class="spinner"></div>
-          <p>Carregando Acordelot Engine...</p>
-        </div>
-
-        <!-- Toast -->
-        <div id="toastEl" class="toast hidden"></div>
-
-        <!-- Mega Cenário Floating Controls Overlay -->
-        <div id="megaControlBar" class="mega-control-bar hidden">
-          <div class="mega-bar-header">
-            <span class="mega-bar-title">⚙️ Ajustes de Zoom & Player</span>
-            <div class="mega-btn-actions">
-              <button id="megaMinBtn" class="mega-icon-btn" title="Minimizar"> — </button>
-              <button id="megaCloseBtn" class="mega-icon-btn" title="Fechar">✖</button>
-            </div>
-          </div>
-          <div id="megaBarBody" class="mega-bar-controls">
-            <div class="mega-control-item">
-              <button id="uploadMega2KBtn" class="mega-upload-btn">📁 Carregar Imagem 2K do Mac</button>
-              <input type="file" id="megaFileInput" accept="image/*" class="hidden">
-            </div>
-            <div class="mega-control-item">
-              <label for="zoomRange">🔍 Zoom (Scroll do Mouse): <b id="zoomVal">2.0x</b></label>
-              <input type="range" id="zoomRange" min="1.0" max="4.0" step="0.1" value="2.0">
-            </div>
-            <div class="mega-control-item">
-              <label for="playerSizeRange">👤 Tamanho Player: <b id="playerSizeVal">48px</b></label>
-              <input type="range" id="playerSizeRange" min="20" max="120" step="2" value="48">
-            </div>
-            <div class="mega-control-item">
-              <label for="playerSpeedRange">🏃 Velocidade: <b id="playerSpeedVal">4.0</b></label>
-              <input type="range" id="playerSpeedRange" min="2" max="12" step="0.5" value="4">
-            </div>
-          </div>
-        </div>
-        <button id="megaPillBtn" class="mega-pill-btn hidden">⚙️ Ajustes 2K</button>
-
-        <!-- WASD (play mode) -->
-        <div id="wasdPanel" class="wasd-panel hidden">
-          <div class="key-row"><div class="key-cap" id="keyW">W</div></div>
-          <div class="key-row">
-            <div class="key-cap" id="keyA">A</div>
-            <div class="key-cap" id="keyS">S</div>
-            <div class="key-cap" id="keyD">D</div>
-          </div>
-          <div class="key-row"><div class="key-cap action-cap disabled" id="keyE">E · Falar</div></div>
-        </div>
-
-        <!-- Touch controls (mobile play mode) -->
-        <div id="touchControls" class="touch-controls hidden">
-          <div id="stickZone" class="stick-zone">
-            <div id="stickBase" class="stick-base"><div id="stickKnob" class="stick-knob"></div></div>
-          </div>
-          <button id="touchAction" class="touch-action disabled">Falar</button>
-        </div>
-
-        <!-- Player HUD: coins + inventory (play mode) -->
-        <div id="playerHud" class="player-hud hidden">
-          <div class="hud-vitals">
-            <div class="lvl-badge">
-              <span class="lvl-crown">👑</span>
-              <span id="lvlNum">1</span>
-            </div>
-            <div class="hud-bars">
-              <div class="bar hp" title="Pontos de Vida">
-                <i id="hpFill"></i>
-                <span id="hpText" class="bar-val-text">100 / 100</span>
-              </div>
-              <div class="bar xp" title="Experiência">
-                <i id="xpFill"></i>
-                <span id="xpLabel">XP 0 / 100</span>
-              </div>
-            </div>
-          </div>
-          <div class="hud-right">
-            <div class="chip coin-chip" title="Moedas de Ouro">
-              <span id="coinEmoji" class="hud-emoji">🪙</span>
-              <span id="coinCount">0</span>
-            </div>
-            <div class="chip clave-chip" title="Claves Musicais">
-              <span class="hud-emoji">🎼</span>
-              <span id="claveCount">0</span>
-            </div>
-            <button id="charBtn" class="icon-btn attr-btn" title="Atributos & Habilidades">
-              <span class="hud-emoji">⚔️</span>
-              <span id="pointDot" class="dot hidden"></span>
-            </button>
-            <button id="invBtn" class="icon-btn inv-btn" title="Mochila / Inventário">
-              <span id="invEmoji" class="hud-emoji">🎒</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Character sheet: attributes + skill tree -->
-        <div id="charOverlay" class="sheet-overlay hidden">
-          <div class="sheet">
-            <header class="sheet-head">
-              <div class="sheet-id">
-                <div class="lvl-badge big"><span id="csLevel">1</span></div>
-                <div>
-                  <h2 id="csName">Aventureiro</h2>
-                  <div class="sheet-xp"><i id="csXpFill"></i></div>
-                  <small id="csXpText">0 / 100 XP</small>
-                </div>
-              </div>
-              <button id="charClose" class="sheet-close" aria-label="Fechar">✕</button>
-            </header>
-            <nav class="sheet-tabs">
-              <button class="sheet-tab active" data-cstab="attrs">Atributos</button>
-              <button class="sheet-tab" data-cstab="skills">Habilidades</button>
-            </nav>
-            <section id="csAttrs" class="sheet-body"></section>
-            <section id="csSkills" class="sheet-body hidden"></section>
-          </div>
-        </div>
-
-        <!-- Shop / Inventory sheet -->
-        <div id="storeOverlay" class="store-overlay hidden">
-          <div class="store-sheet">
-            <div class="store-head">
-              <h2 id="storeTitle">Loja de Skins</h2>
-              <div class="store-coins">
-                <img id="storeCoinIcon" class="hud-icon hidden" alt="">
-                <span id="storeCoinEmoji" class="hud-emoji">🪙</span>
-                <span id="storeCoins">0</span>
-              </div>
-              <button id="storeClose" class="store-close" aria-label="Fechar">✕</button>
-            </div>
-            <div id="storeTabs" class="store-tabs"></div>
-            <div id="storeGrid" class="store-grid"></div>
-            <p id="storeEmpty" class="store-empty hidden">Nada aqui ainda.</p>
-          </div>
-        </div>
-
-        <!-- Forging ceremony -->
-        <div id="forgeAnvilOverlay" class="anvil-overlay hidden">
-          <div class="anvil-box">
-            <div class="anvil-title">Forjando…</div>
-            <div class="anvil-stage">
-              <div class="anvil-art"></div>
-              <div class="anvil-sparks"></div>
-            </div>
-            <div class="anvil-name">—</div>
-            <div class="anvil-track"><i class="anvil-fill"></i></div>
-          </div>
-        </div>
-
-        <!-- Map Transition Fade Overlay -->
-        <div id="mapFadeOverlay" class="map-fade-overlay hidden"></div>
-
-        <!-- ═══ RETRO 16-BIT MULTI-WINDOW INVENTORY & PROFILE OVERLAY ═══ -->
-        <div id="inventoryOverlay" class="inv-musical-overlay hidden">
-          <div class="inv-musical-frame">
-            <!-- Header Window Tabs -->
-            <div class="inv-head-banner">
-              <div class="inv-window-tabs">
-                <button class="win-tab active" data-wintab="bag">🎒 BOLSA DE COLETA</button>
-                <button class="win-tab" data-wintab="profile">👤 PERFIL & EQUIPAMENTOS</button>
-              </div>
-              <button id="invCloseBtn" class="inv-close-x" title="Fechar (ESC)">✕ FECHAR</button>
-            </div>
-
-            <!-- WINDOW 1: BOLSA DE COLETA (BAG) -->
-            <div id="winTabBag" class="win-tab-content">
-              <div class="inv-bag-parchment">
-                <div class="inv-bag-title">ITENS & MATERIAIS COLETADOS</div>
-                <div id="invGridSlots" class="inv-grid-5x5">
-                  <!-- 25 Item slots generated via JS -->
-                </div>
-                <div id="invItemDetailBox" class="inv-item-detail">
-                  <span id="detailItemIcon" class="detail-icon">🎒</span>
-                  <div class="detail-info">
-                    <strong id="detailItemName">Selecione um item</strong>
-                    <span id="detailItemDesc">Mochila limpa. Colete madeira e pedras pelo mundo!</span>
-                  </div>
-                </div>
-              </div>
-              <div class="inv-bag-actions">
-                <button id="invSortBtn" class="inv-btn-gold">⇅ ORGANIZAR</button>
-                <button id="invTrashBtn" class="inv-btn-red">🗑️ DESCARTAR</button>
-                <button id="invCloseFooterBtn" class="inv-btn-blue">SAIR ✕</button>
-              </div>
-            </div>
-
-            <!-- WINDOW 2: PERFIL DO HERÓI & EQUIPAMENTOS -->
-            <div id="winTabProfile" class="win-tab-content hidden">
-              <div class="profile-split-box">
-                <!-- Left: Live Hero Viewport Canvas & Attributes -->
-                <div class="profile-left-col">
-                  <div class="profile-title-bar">⚔️ VISUAL DO HERÓI & ATRIBUTOS</div>
-                  <div class="hero-canvas-frame">
-                    <canvas id="charPreviewCanvas" width="180" height="220"></canvas>
-                  </div>
-                  <div class="attr-upgrade-list">
-                    <div class="attr-line">
-                      <span>⚡ Ataque (Dmg): <strong id="valAtkStat">15</strong></span>
-                      <button class="btn-up-stat" data-stat="atk">＋ Up</button>
-                    </div>
-                    <div class="attr-line">
-                      <span>🛡️ Defesa (Arm): <strong id="valDefStat">8</strong></span>
-                      <button class="btn-up-stat" data-stat="def">＋ Up</button>
-                    </div>
-                    <div class="attr-line">
-                      <span>❤️ Vida (Max HP): <strong id="valHpStat">100</strong></span>
-                      <button class="btn-up-stat" data-stat="hp">＋ Up</button>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Right: Equipment Paperdoll Slots -->
-                <div class="profile-right-col">
-                  <div class="profile-title-bar">🛡️ COSMÉTICOS & EQUIPAMENTOS</div>
-                  <div class="gear-paperdoll-grid">
-                    <div class="gear-slot-box" title="Chapéu / Capacete"><span class="gear-slot-label">YELMO</span></div>
-                    <div class="gear-slot-box" title="Túnica / Armadura"><span class="gear-slot-label">TÚNICA</span></div>
-                    <div class="gear-slot-box" title="Luvas de Combate"><span class="gear-slot-label">LUVAS</span></div>
-                    <div class="gear-slot-box" title="Botas de Couro"><span class="gear-slot-label">BOTAS</span></div>
-                    <div class="gear-slot-box" title="Arma / Picareta"><span class="gear-slot-label">ARMA</span></div>
-                    <div class="gear-slot-box" title="Amuleto Musical"><span class="gear-slot-label">AMULETO</span></div>
-                    <div class="gear-slot-box" title="Anel de Encantamento"><span class="gear-slot-label">ANEL</span></div>
-                    <div class="gear-slot-box" title="Instrumento Musical"><span class="gear-slot-label">LIRA</span></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div><!-- end inv-musical-frame -->
-        </div><!-- end inventoryOverlay -->
-
-        <!-- ═══ GAME HOTBAR INFERIOR (ACTION / TOOL QUICK SLOTS) ═══ -->
-        <div id="gameHotbar" class="game-hotbar hidden">
-          <div class="hotbar-slot active" data-hotslot="1" title="Slot 1: Machado (1)">
-            <span class="hot-key">1</span>
-            <span id="hotAxeIcon" class="hot-icon">🪓</span>
-            <span id="hotAxeLabel" class="hot-label">Bronze</span>
-          </div>
-          <div class="hotbar-slot" data-hotslot="2" title="Slot 2: Diapasão / Picareta (2)">
-            <span class="hot-key">2</span>
-            <span id="hotPickIcon" class="hot-icon">⛏️</span>
-            <span id="hotPickLabel" class="hot-label">Bronze</span>
-          </div>
-          <div class="hotbar-slot" data-hotslot="3" title="Slot 3: Poção de Cura (3)">
-            <span class="hot-key">3</span>
-            <span class="hot-icon">🧪</span>
-            <span id="hotPotionCount" class="hot-label">0</span>
-          </div>
-          <div class="hotbar-slot mode-toggle-slot" id="hotModeToggle" title="Alternar Modo (Batalha / Coleta)">
-            <span id="hotModeIcon" class="hot-icon">⛏️</span>
-            <span id="hotModeText" class="hot-label">Coleta</span>
-          </div>
-        </div>
-
-        <!-- ═══ FORGE / BLACKSMITH CRAFTING OVERLAY (🔨 MENU DE FORJA) ═══ -->
-        <div id="forgeOverlay" class="sheet-overlay hidden">
-          <div class="forge-window">
-            <div class="forge-header">
-              <h2>🔨 FORJA DE ARMAS & DIAPASÕES DE ACORDELOT</h2>
-              <button id="forgeCloseBtn" class="inv-close-x">✕ FECHAR</button>
-            </div>
-            <div class="forge-body">
-              <div class="forge-tabs">
-                <button class="forge-tab active" data-forgetab="axes">🪓 MACHADOS (5 Tiers)</button>
-                <button class="forge-tab" data-forgetab="pickaxes">⛏️ DIAPASÕES (5 Tiers)</button>
-              </div>
-              <div id="forgeItemsList" class="forge-items-grid">
-                <!-- Craftable tools list generated via JS -->
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div><!-- end canvas-stage -->
-    </div>
-  </div>
-
-  <!-- ═══ BOTTOM PANEL ═══ -->
-  <div id="bottom-panel" class="collapsed">
-    <!-- Panel toggle handle -->
-    <div id="panel-handle" title="Mostrar/Ocultar painel">
-      <span id="panelToggleIcon">▼</span>
-      <span id="panelToggleLabel">Ferramentas de Edição</span>
-      <div class="handle-right">
-        <span id="statusMap" class="status-chip map-chip">🗺️ —</span>
-        <span id="statusPos" class="status-pos">X: — Y: —</span>
-        <span id="statusFPS" class="fps-pill">60 FPS</span>
-      </div>
-    </div>
-
-    <!-- Panel content -->
-    <div id="panel-body">
-
-      <!-- Tab bar -->
-      <div class="bottom-tabs">
-        <button class="bottom-tab active" data-btab="npcgallery" id="npcGalleryTab">🎭 Galeria de NPCs</button>
-        <button class="bottom-tab" data-btab="elements" id="elementsGalleryTab">🗺️ Elementos</button>
-        <button class="bottom-tab" data-btab="hierarchy">👾 Hierarquia</button>
-        <button class="bottom-tab" data-btab="inspector">⚙️ Inspetor</button>
-        <button class="bottom-tab" data-btab="scenetools" id="sceneToolsTab">🎭 Ferramentas</button>
-        <button class="bottom-tab" data-btab="worldmaptools" id="worldMapTab" style="display:none">🗺️ Grid do Mapa</button>
-      </div>
-
-      <!-- TAB: NPC Gallery / Palette -->
-      <div id="btab-npcgallery" class="btab-content">
-        <div class="npc-gallery-header">
-          <span>💡 <b>Clique</b> ou <b>Arraste</b> qualquer elemento da galeria para o mapa para posicioná-lo:</span>
-        </div>
-        <div class="npc-gallery-grid">
-          <div class="npc-gallery-card" draggable="true" data-npctype="sr_antony" data-npcname="Sr. Antony (Líder)">
-            <img src="assets/npc_sr_antony.jpg" alt="Sr. Antony" class="gallery-thumb">
-            <div class="npc-card-info">
-              <span class="npc-card-name">👑 Sr. Antony</span>
-              <span class="npc-card-type">Líder de Acordelot</span>
-            </div>
-            <button class="btn-card-add">＋ Adicionar</button>
-          </div>
-
-          <div class="npc-gallery-card" draggable="true" data-npctype="guard" data-npcname="Guarda Renaldo">
-            <img src="assets/guard_sprite.jpg" alt="Guarda" class="gallery-thumb">
-            <div class="npc-card-info">
-              <span class="npc-card-name">⚔️ Guarda</span>
-              <span class="npc-card-type">Protetor da Cidade</span>
-            </div>
-            <button class="btn-card-add">＋ Adicionar</button>
-          </div>
-
-
-
-          <div class="npc-gallery-card" draggable="true" data-npctype="merchant" data-npcname="Mercador Tibério">
-            <img src="assets/npc_merchant.jpg" alt="Mercador" class="gallery-thumb">
-            <div class="npc-card-info">
-              <span class="npc-card-name">🛒 Mercador</span>
-              <span class="npc-card-type">Vendedor de Itens</span>
-            </div>
-            <button class="btn-card-add">＋ Adicionar</button>
-          </div>
-
-          <div class="npc-gallery-card" draggable="true" data-npctype="bard" data-npcname="Bardo Lucian">
-            <img src="assets/npc_bard.jpg" alt="Bardo" class="gallery-thumb">
-            <div class="npc-card-info">
-              <span class="npc-card-name">🎵 Bardo</span>
-              <span class="npc-card-type">Músico de Acordelot</span>
-            </div>
-            <button class="btn-card-add">＋ Adicionar</button>
-          </div>
-
-          <div class="npc-gallery-card" draggable="true" data-npctype="blacksmith" data-npcname="Ferreiro Dorn">
-            <img src="assets/npc_blacksmith.jpg" alt="Ferreiro" class="gallery-thumb">
-            <div class="npc-card-info">
-              <span class="npc-card-name">🔨 Ferreiro</span>
-              <span class="npc-card-type">Armeiro da Cidade</span>
-            </div>
-            <button class="btn-card-add">＋ Adicionar</button>
-          </div>
-
-          <div class="npc-gallery-card" draggable="true" data-npctype="villager" data-npcname="Aldeã Mirela">
-            <img src="assets/npc_villager.jpg" alt="Aldeã" class="gallery-thumb">
-            <div class="npc-card-info">
-              <span class="npc-card-name">👩 Aldeã</span>
-              <span class="npc-card-type">Habitante Local</span>
-            </div>
-            <button class="btn-card-add">＋ Adicionar</button>
-          </div>
-
-          <div class="npc-gallery-card" draggable="true" data-npctype="child" data-npcname="Menino Pipo">
-            <img src="assets/npc_child.jpg" alt="Criança" class="gallery-thumb">
-            <div class="npc-card-info">
-              <span class="npc-card-name">🧒 Criança</span>
-              <span class="npc-card-type">Aprendiz de Música</span>
-            </div>
-            <button class="btn-card-add">＋ Adicionar</button>
-          </div>
+    <!-- ═══ LEFT SIDEBAR (EDITOR PANEL) ═══ -->
+    <aside id="left-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title-row">
+          <span class="sidebar-title">🛠️ Editor de Cenários</span>
+          <span id="statusMap" class="status-chip map-chip">🗺️ —</span>
         </div>
       </div>
 
-      <!-- TAB: Elements Gallery -->
-      <div id="btab-elements" class="btab-content hidden">
-        <div class="npc-gallery-header">
-          <span>🗺️ <b>Elementos de Mundo</b> — Placas de Viagem e Spots de Coleta. Clique para adicionar ao mapa ativo:</span>
-        </div>
-        <div class="npc-gallery-grid">
-          <div class="npc-gallery-card elem-card" draggable="true" data-npctype="signpost" data-npcname="Placa de Viagem">
-            <div class="gallery-thumb-icon elem-icon">🪧</div>
-            <div class="npc-card-info">
-              <span class="npc-card-name">🪧 Placa de Viagem</span>
-              <span class="npc-card-type">Portal entre mapas</span>
-            </div>
-            <button class="btn-card-add btn-elem-add" id="addSignpostBtn">＋ Adicionar</button>
-          </div>
-
-          <div class="npc-gallery-card elem-card" draggable="true" data-npctype="spot_wood" data-npcname="Spot de Madeira">
-            <div class="gallery-thumb-icon elem-icon">🪵</div>
-            <div class="npc-card-info">
-              <span class="npc-card-name">🪵 Tronco de Madeira</span>
-              <span class="npc-card-type">Spot de Coleta</span>
-            </div>
-            <button class="btn-card-add">＋ Adicionar</button>
-          </div>
-
-          <div class="npc-gallery-card elem-card" draggable="true" data-npctype="spot_stone" data-npcname="Spot de Pedra">
-            <div class="gallery-thumb-icon elem-icon">🪨</div>
-            <div class="npc-card-info">
-              <span class="npc-card-name">🪨 Minério de Pedra</span>
-              <span class="npc-card-type">Spot de Coleta</span>
-            </div>
-            <button class="btn-card-add">＋ Adicionar</button>
-          </div>
-
-          <div class="npc-gallery-card elem-card" draggable="true" data-npctype="forge_entrance" data-npcname="Entrada da Ferraria">
-            <div class="gallery-thumb-icon elem-icon">🔨</div>
-            <div class="npc-card-info">
-              <span class="npc-card-name">🔨 Entrada da Ferraria</span>
-              <span class="npc-card-type">Porta para Interior</span>
-            </div>
-            <button class="btn-card-add">＋ Adicionar</button>
-          </div>
-        </div>
+      <!-- Sidebar Tab Navigation Bar -->
+      <div class="sidebar-tabs">
+        <button class="bottom-tab sidebar-tab active" data-btab="scenetools" id="sceneToolsTab">🛣️ Pincéis</button>
+        <button class="bottom-tab sidebar-tab" data-btab="npcgallery" id="npcGalleryTab">🎭 NPCs</button>
+        <button class="bottom-tab sidebar-tab" data-btab="elements" id="elementsGalleryTab">🗺️ Objetos</button>
+        <button class="bottom-tab sidebar-tab" data-btab="hierarchy">👾 Lista</button>
+        <button class="bottom-tab sidebar-tab" data-btab="inspector">⚙️ Inspetor</button>
+        <button class="bottom-tab sidebar-tab" data-btab="worldmaptools" id="worldMapTab" style="display:none">🗺️ Grid</button>
       </div>
 
-      <!-- TAB: Hierarchy -->
-      <div id="btab-hierarchy" class="btab-content">
-        <div class="btab-row">
-          <div class="btab-col">
-            <div class="btab-section-title">🌍 Mapa Ativo</div>
-            <select id="activeMapSelect" class="select-compact">
-              <option value="photo_recriado">📸 Cenário Recriado de Foto</option>
-              <option value="mega_world">🗺️ Mega Cenário 2K (Zoom & Câmera)</option>
-              <option value="0_0">🏰 Vila Medieval (0,0)</option>
-              <option value="1_0">🌲 Floresta Mágica (1,0)</option>
-              <option value="2_0">🎹 Conservatório (2,0)</option>
-              <option value="0_1" selected>🏰 Portões Reais (0,1)</option>
-              <option value="1_1">🌿 Entrada Floresta (1,1)</option>
-            </select>
-          </div>
+      <!-- Sidebar Content Body -->
+      <div class="sidebar-content-area">
 
-          <div class="btab-col grow">
-            <div class="btab-section-title">
-              👾 NPCs no Mapa
-              <button class="add-npc-btn" id="addNPCHierBtn">＋ Adicionar NPC</button>
-            </div>
-            <div id="npcHierarchyList" class="npc-list-row">
-              <div class="empty-msg">Carregando...</div>
-            </div>
-          </div>
-
-          <div class="btab-col">
-            <div class="btab-section-title">📜 Missões Ativas</div>
-            <div id="activeQuestsList" class="small-list">
-              <div class="empty-msg">Nenhuma missão</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB: Inspector -->
-      <div id="btab-inspector" class="btab-content hidden">
-        <div id="inspEmpty" class="insp-empty">⬚ Selecione um NPC na cena para editar suas propriedades</div>
-        <div id="inspNPCPanel" class="insp-form hidden">
-          <div class="insp-grid">
-            <div class="insp-field">
-              <label>Nome</label>
-              <input type="text" id="insp_name" class="insp-input">
-            </div>
-            <div class="insp-field">
-              <label>Tipo</label>
-              <select id="insp_type" class="insp-input">
-                <option value="sr_antony">👑 Sr. Antony (Líder)</option>
-                <option value="guard">⚔️ Guarda</option>
-                <option value="merchant">🛒 Mercador</option>
-                <option value="bard">🎵 Bardo</option>
-                <option value="blacksmith">🔨 Ferreiro</option>
-                <option value="villager">👩 Aldeã</option>
-                <option value="child">🧒 Criança</option>
-                <option value="elder">🧙 Ancião</option>
-              </select>
-            </div>
-            <div class="insp-field">
-              <label>Posição X</label>
-              <input type="number" id="insp_x" class="insp-input" min="0" max="1024">
-            </div>
-            <div class="insp-field">
-              <label>Posição Y</label>
-              <input type="number" id="insp_y" class="insp-input" min="0" max="571">
-            </div>
-            <div class="insp-field">
-              <label>Mapa</label>
-              <select id="insp_map" class="insp-input">
-                <option value="0_0">🏰 Vila Medieval</option>
-                <option value="1_0">🌲 Floresta Mágica</option>
-                <option value="2_0">🎹 Conservatório</option>
-                <option value="0_1">🏰 Portões Reais</option>
-                <option value="1_1">🌿 Entrada Floresta</option>
-              </select>
-            </div>
-            <div class="insp-field">
-              <label>Diálogo</label>
-              <select id="insp_dialogue" class="insp-input">
-                <option value="guard_intro">guard_intro</option>
-                <option value="none">— Nenhum —</option>
-              </select>
-            </div>
-            <div class="insp-field">
-              <label>Raio Gatilho (px)</label>
-              <input type="number" id="insp_radius" class="insp-input" min="20" max="300">
-            </div>
-            <div class="insp-field scale-field-full" style="grid-column: 1 / -1; width: 100%;">
-              <label>Tamanho / Escala em Tempo Real (<span id="insp_scale_val" style="color:#fbbf24; font-weight:bold;">1.0x</span>)</label>
-              <div class="scale-ctrl-row">
-                <button type="button" class="btn-scale-step" id="btnScaleDown" title="Diminuir">—</button>
-                <input type="range" id="insp_scale_range" min="0.3" max="3.0" step="0.05" value="1.0" class="scale-slider">
-                <button type="button" class="btn-scale-step" id="btnScaleUp" title="Aumentar">＋</button>
-                <button type="button" class="btn-scale-preset" data-scale="0.8">0.8x</button>
-                <button type="button" class="btn-scale-preset" data-scale="1.0">1.0x</button>
-                <button type="button" class="btn-scale-preset" data-scale="1.3">1.3x</button>
-                <button type="button" class="btn-scale-preset" data-scale="1.8">1.8x</button>
-                <button type="button" class="btn-scale-preset" data-scale="2.5">2.5x</button>
-              </div>
-              <input type="number" id="insp_scale" class="insp-input hidden" min="0.3" max="3" step="0.1" value="1">
-            </div>
-            <div class="insp-field">
-              <label><input type="checkbox" id="insp_flip"> Espelhar</label>
-            </div>
-            <div class="insp-field">
-              <label><input type="checkbox" id="insp_triggered"> Já acionado</label>
-            </div>
-
-            <!-- Signpost-only fields -->
-            <div class="insp-field signpost-fields hidden" style="grid-column:1/-1; background:#1a2e1a; border:1px solid #2d5a2d; border-radius:6px; padding:8px;">
-              <label style="color:#4ade80; font-weight:bold;">🪧 Configuração da Placa</label>
-              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-top:6px;">
-                <div>
-                  <label style="font-size:10px;">Mapa Destino</label>
-                  <select id="insp_target_map" class="insp-input">
-                    <option value="0_0">🏰 Vila Medieval (0,0)</option>
-                    <option value="1_0">🌲 Floresta Mágica (1,0)</option>
-                    <option value="2_0">🎹 Conservatório (2,0)</option>
-                    <option value="0_1">🏰 Portões Reais (0,1)</option>
-                    <option value="1_1">🌿 Entrada Floresta (1,1)</option>
+        <!-- TAB: Scene Tools & Collision Brushes -->
+        <div id="btab-scenetools" class="btab-content">
+          <div class="tools-vertical-panel">
+            
+            <!-- Collision mode -->
+            <div class="tools-group" id="collisionToolsGroup">
+              <div class="tools-group-title">🛣️ Pintura de Colisão & Terreno</div>
+              <div class="tools-vertical-buttons">
+                <div class="tools-row">
+                  <button class="tool-pill active half-width" data-ctool="road">🟢 Caminho</button>
+                  <button class="tool-pill half-width" data-ctool="roof">🔵 Telhado</button>
+                </div>
+                <div class="tools-row">
+                  <button class="tool-pill half-width" data-ctool="door">🟣 Porta</button>
+                  <button class="tool-pill half-width" data-ctool="eraser">🔴 Borracha</button>
+                </div>
+                <div class="tools-row align-center margin-top-sm">
+                  <label for="brushSizeSelect" class="tool-label-sm">Pincel:</label>
+                  <select id="brushSizeSelect" class="select-sm-tool full-flex">
+                    <option value="20">20px</option>
+                    <option value="40" selected>40px</option>
+                    <option value="70">70px</option>
+                    <option value="120">120px</option>
                   </select>
                 </div>
-                <div>
-                  <label style="font-size:10px;">Chegar em X</label>
-                  <input type="number" id="insp_target_x" class="insp-input" min="0" max="1024" value="512">
-                </div>
-                <div>
-                  <label style="font-size:10px;">Chegar em Y</label>
-                  <input type="number" id="insp_target_y" class="insp-input" min="0" max="571" value="300">
+                <button class="tool-pill dim full-width" id="autoRoofBtn" title="Preenche o teto com tudo que não é caminhável">🏠 Teto Automático</button>
+                <button class="tool-pill dim full-width" id="fillDefaultBtn">🪄 Preencher Padrão</button>
+                <div class="tools-row margin-top-sm">
+                  <button class="tool-pill danger half-width" id="clearLayerBtn">🗑️ Limpar</button>
+                  <button class="tool-pill save half-width" id="saveLayersBtn">💾 Salvar</button>
                 </div>
               </div>
-              <button id="relink_signpost_btn" class="btn-apply" style="margin-top:6px; width:100%; background:#1a3a1a;">🔗 Reconfigurar Vinculação</button>
             </div>
+
+            <!-- Scene mode -->
+            <div class="tools-group" id="sceneToolsGroup">
+              <div class="tools-group-title">🎭 Ferramenta de Cena</div>
+              <div class="tools-vertical-buttons">
+                <button class="tool-pill active full-width" data-stool="select">⬚ Selecionar e Mover</button>
+                <button class="tool-pill accent full-width" id="addNPCToolBtn">＋ Novo NPC na Posição</button>
+              </div>
+            </div>
+
+            <!-- World map mode -->
+            <div class="tools-group" id="worldMapToolsGroup" style="display:none">
+              <div class="tools-group-title">🗺️ Grid de Transições & Cenários</div>
+              <div class="tools-vertical-buttons">
+                <button class="tool-pill accent full-width" id="uploadScenarioBtn">🖼️ ＋ Novo Cenário</button>
+                <button class="tool-pill active full-width" data-wvtool="drag">🖐️ Mover Cenários</button>
+                <button class="tool-pill full-width" data-wvtool="spawn">📍 Definir Spawn</button>
+                <button class="tool-pill danger full-width" data-wvtool="delete">🗑️ Excluir Cenário</button>
+              </div>
+            </div>
+
           </div>
-          <div class="insp-actions" style="flex-direction:column; gap:6px;">
-            <button type="button" id="openDlgEditorBtn" class="btn-dlg-edit">💬 Criar / Editar Diálogo</button>
-            <div style="display:flex; gap:6px; width:100%;">
-              <button id="applyNPCBtn" class="btn-apply">✓ Aplicar Mudanças</button>
-              <button id="deleteNPCBtn" class="btn-delete">🗑️ Remover NPC</button>
+        </div>
+
+        <!-- TAB: NPC Gallery -->
+        <div id="btab-npcgallery" class="btab-content hidden">
+          <div class="npc-gallery-header">
+            <span>💡 Clique ou Arraste para o mapa:</span>
+          </div>
+          <div class="npc-gallery-grid">
+            <div class="npc-gallery-card" draggable="true" data-npctype="sr_antony" data-npcname="Sr. Antony (Líder)">
+              <img src="assets/npc_sr_antony.jpg" alt="Sr. Antony" class="gallery-thumb">
+              <div class="npc-card-info">
+                <span class="npc-card-name">👑 Sr. Antony</span>
+                <span class="npc-card-type">Líder</span>
+              </div>
+              <button class="btn-card-add">＋ Add</button>
+            </div>
+
+            <div class="npc-gallery-card" draggable="true" data-npctype="guard" data-npcname="Guarda Renaldo">
+              <img src="assets/guard_sprite.jpg" alt="Guarda" class="gallery-thumb">
+              <div class="npc-card-info">
+                <span class="npc-card-name">⚔️ Guarda</span>
+                <span class="npc-card-type">Protetor</span>
+              </div>
+              <button class="btn-card-add">＋ Add</button>
+            </div>
+
+            <div class="npc-gallery-card" draggable="true" data-npctype="merchant" data-npcname="Mercador Tibério">
+              <img src="assets/npc_merchant.jpg" alt="Mercador" class="gallery-thumb">
+              <div class="npc-card-info">
+                <span class="npc-card-name">🛒 Mercador</span>
+                <span class="npc-card-type">Vendedor</span>
+              </div>
+              <button class="btn-card-add">＋ Add</button>
+            </div>
+
+            <div class="npc-gallery-card" draggable="true" data-npctype="bard" data-npcname="Bardo Lucian">
+              <img src="assets/npc_bard.jpg" alt="Bardo" class="gallery-thumb">
+              <div class="npc-card-info">
+                <span class="npc-card-name">🎵 Bardo</span>
+                <span class="npc-card-type">Músico</span>
+              </div>
+              <button class="btn-card-add">＋ Add</button>
+            </div>
+
+            <div class="npc-gallery-card" draggable="true" data-npctype="blacksmith" data-npcname="Ferreiro Dorn">
+              <img src="assets/npc_blacksmith.jpg" alt="Ferreiro" class="gallery-thumb">
+              <div class="npc-card-info">
+                <span class="npc-card-name">🔨 Ferreiro</span>
+                <span class="npc-card-type">Armeiro</span>
+              </div>
+              <button class="btn-card-add">＋ Add</button>
+            </div>
+
+            <div class="npc-gallery-card" draggable="true" data-npctype="villager" data-npcname="Aldeã Mirela">
+              <img src="assets/npc_villager.jpg" alt="Aldeã" class="gallery-thumb">
+              <div class="npc-card-info">
+                <span class="npc-card-name">👩 Aldeã</span>
+                <span class="npc-card-type">Habitante</span>
+              </div>
+              <button class="btn-card-add">＋ Add</button>
+            </div>
+
+            <div class="npc-gallery-card" draggable="true" data-npctype="child" data-npcname="Menino Pipo">
+              <img src="assets/npc_child.jpg" alt="Criança" class="gallery-thumb">
+              <div class="npc-card-info">
+                <span class="npc-card-name">🧒 Criança</span>
+                <span class="npc-card-type">Aprendiz</span>
+              </div>
+              <button class="btn-card-add">＋ Add</button>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- TAB: Scene Tools -->
-      <div id="btab-scenetools" class="btab-content hidden">
-        <div class="tools-row">
+        <!-- TAB: Elements Gallery -->
+        <div id="btab-elements" class="btab-content hidden">
+          <div class="npc-gallery-header">
+            <span>🗺️ Elementos de Mundo:</span>
+          </div>
+          <div class="npc-gallery-grid">
+            <div class="npc-gallery-card elem-card" draggable="true" data-npctype="signpost" data-npcname="Placa de Viagem">
+              <div class="gallery-thumb-icon elem-icon">🪧</div>
+              <div class="npc-card-info">
+                <span class="npc-card-name">🪧 Placa</span>
+                <span class="npc-card-type">Viagem</span>
+              </div>
+              <button class="btn-card-add btn-elem-add" id="addSignpostBtn">＋ Add</button>
+            </div>
 
-          <!-- Scene mode -->
-          <div class="tools-group" id="sceneToolsGroup">
-            <div class="tools-group-title">🎭 Ferramenta de Cena</div>
-            <div class="tools-buttons">
-              <button class="tool-pill active" data-stool="select">⬚ Selecionar e Mover</button>
-              <button class="tool-pill accent" id="addNPCToolBtn">＋ Novo NPC</button>
+            <div class="npc-gallery-card elem-card" draggable="true" data-npctype="spot_wood" data-npcname="Spot de Madeira">
+              <div class="gallery-thumb-icon elem-icon">🪵</div>
+              <div class="npc-card-info">
+                <span class="npc-card-name">🪵 Madeira</span>
+                <span class="npc-card-type">Coleta</span>
+              </div>
+              <button class="btn-card-add">＋ Add</button>
+            </div>
+
+            <div class="npc-gallery-card elem-card" draggable="true" data-npctype="spot_stone" data-npcname="Spot de Pedra">
+              <div class="gallery-thumb-icon elem-icon">🪨</div>
+              <div class="npc-card-info">
+                <span class="npc-card-name">🪨 Pedra</span>
+                <span class="npc-card-type">Coleta</span>
+              </div>
+              <button class="btn-card-add">＋ Add</button>
+            </div>
+
+            <div class="npc-gallery-card elem-card" draggable="true" data-npctype="forge_entrance" data-npcname="Entrada da Ferraria">
+              <div class="gallery-thumb-icon elem-icon">🔨</div>
+              <div class="npc-card-info">
+                <span class="npc-card-name">🔨 Ferraria</span>
+                <span class="npc-card-type">Entrada</span>
+              </div>
+              <button class="btn-card-add">＋ Add</button>
             </div>
           </div>
+        </div>
 
-          <!-- Collision mode -->
-          <div class="tools-group" id="collisionToolsGroup" style="display:none">
-            <div class="tools-group-title">🛣️ Pintura de Colisão</div>
-            <div class="tools-buttons">
-              <button class="tool-pill active" data-ctool="road">🟢 Caminho</button>
-              <button class="tool-pill" data-ctool="roof">🔵 Telhado</button>
-              <button class="tool-pill" data-ctool="door">🟣 Porta</button>
-              <button class="tool-pill" data-ctool="eraser">🔴 Borracha</button>
-              <select id="brushSizeSelect" class="select-sm-tool">
-                <option value="20">20px</option>
-                <option value="40" selected>40px</option>
-                <option value="70">70px</option>
-                <option value="120">120px</option>
+        <!-- TAB: Hierarchy -->
+        <div id="btab-hierarchy" class="btab-content hidden">
+          <div class="btab-column-panel">
+            <div class="btab-col">
+              <div class="btab-section-title">🌍 Mapa Ativo</div>
+              <select id="activeMapSelect" class="select-compact full-width">
+                <option value="photo_recriado">📸 Cenário Recriado de Foto</option>
+                <option value="mega_world">🗺️ Mega Cenário 2K (Zoom & Câmera)</option>
+                <option value="0_0">🏰 Vila Medieval (0,0)</option>
+                <option value="1_0">🌲 Floresta Mágica (1,0)</option>
+                <option value="2_0">🎹 Conservatório (2,0)</option>
+                <option value="0_1" selected>🏰 Portões Reais (0,1)</option>
+                <option value="1_1">🌿 Entrada Floresta (1,1)</option>
               </select>
-              <button class="tool-pill dim" id="autoRoofBtn" title="Preenche o teto com tudo que não é caminhável">🏠 Teto Automático</button>
-              <button class="tool-pill dim" id="fillDefaultBtn">🪄 Padrão</button>
-              <button class="tool-pill danger" id="clearLayerBtn">🗑️ Limpar</button>
-              <button class="tool-pill save" id="saveLayersBtn">💾 Salvar</button>
+            </div>
+
+            <div class="btab-col grow margin-top-sm">
+              <div class="btab-section-title">
+                👾 NPCs no Mapa
+                <button class="add-npc-btn" id="addNPCHierBtn">＋ NPC</button>
+              </div>
+              <div id="npcHierarchyList" class="npc-list-column">
+                <div class="empty-msg">Carregando...</div>
+              </div>
+            </div>
+
+            <div class="btab-col margin-top-sm">
+              <div class="btab-section-title">📜 Missões Ativas</div>
+              <div id="activeQuestsList" class="small-list">
+                <div class="empty-msg">Nenhuma missão</div>
+              </div>
             </div>
           </div>
+        </div>
 
-          <!-- World map mode -->
-          <div class="tools-group" id="worldMapToolsGroup" style="display:none">
-            <div class="tools-group-title">🗺️ Grid de Transições & Cenários</div>
-            <div class="tools-buttons">
-              <button class="tool-pill accent" id="uploadScenarioBtn">🖼️ ＋ Novo Cenário</button>
-              <button class="tool-pill active" data-wvtool="drag">🖐️ Mover Cenários</button>
-              <button class="tool-pill" data-wvtool="spawn">📍 Definir Spawn</button>
-              <button class="tool-pill" data-wvtool="delete">🗑️ Excluir Cenário</button>
-              <button class="tool-pill dim" id="resetGridBtn">🔄 Organizar</button>
-              <button class="tool-pill save" id="saveWorldBtn">💾 Salvar Mapa</button>
+        <!-- TAB: Inspector -->
+        <div id="btab-inspector" class="btab-content hidden">
+          <div id="inspEmpty" class="insp-empty">⬚ Selecione um NPC na cena para editar suas propriedades</div>
+          <div id="inspNPCPanel" class="insp-form hidden">
+            <div class="insp-grid-sidebar">
+              <div class="insp-field">
+                <label>Nome</label>
+                <input type="text" id="insp_name" class="insp-input">
+              </div>
+              <div class="insp-field">
+                <label>Tipo</label>
+                <select id="insp_type" class="insp-input">
+                  <option value="sr_antony">👑 Sr. Antony (Líder)</option>
+                  <option value="guard">⚔️ Guarda</option>
+                  <option value="merchant">🛒 Mercador</option>
+                  <option value="bard">🎵 Bardo</option>
+                  <option value="blacksmith">🔨 Ferreiro</option>
+                  <option value="villager">👩 Aldeã</option>
+                  <option value="child">🧒 Criança</option>
+                  <option value="elder">🧙 Ancião</option>
+                </select>
+              </div>
+              <div class="tools-row">
+                <div class="insp-field half-width">
+                  <label>Pos X</label>
+                  <input type="number" id="insp_x" class="insp-input" min="0" max="1024">
+                </div>
+                <div class="insp-field half-width">
+                  <label>Pos Y</label>
+                  <input type="number" id="insp_y" class="insp-input" min="0" max="571">
+                </div>
+              </div>
+              <div class="insp-field">
+                <label>Mapa</label>
+                <select id="insp_map" class="insp-input">
+                  <option value="0_0">🏰 Vila Medieval</option>
+                  <option value="1_0">🌲 Floresta Mágica</option>
+                  <option value="2_0">🎹 Conservatório</option>
+                  <option value="0_1">🏰 Portões Reais</option>
+                  <option value="1_1">🌿 Entrada Floresta</option>
+                </select>
+              </div>
+              <div class="insp-field">
+                <label>Diálogo</label>
+                <select id="insp_dialogue" class="insp-input">
+                  <option value="guard_intro">guard_intro</option>
+                  <option value="none">— Nenhum —</option>
+                </select>
+              </div>
+              <div class="insp-field">
+                <label>Raio Gatilho (px)</label>
+                <input type="number" id="insp_radius" class="insp-input" min="20" max="300">
+              </div>
+              <div class="insp-field scale-field-full">
+                <label>Tamanho / Escala (<span id="insp_scale_val" style="color:#fbbf24; font-weight:bold;">1.0x</span>)</label>
+                <div class="scale-ctrl-row">
+                  <button type="button" class="btn-scale-step" id="btnScaleDown" title="Diminuir">—</button>
+                  <input type="range" id="insp_scale_range" min="0.3" max="3.0" step="0.05" value="1.0" class="scale-slider">
+                  <button type="button" class="btn-scale-step" id="btnScaleUp" title="Aumentar">＋</button>
+                </div>
+                <input type="number" id="insp_scale" class="insp-input hidden" min="0.3" max="3" step="0.1" value="1">
+              </div>
+              <div class="tools-row">
+                <label><input type="checkbox" id="insp_flip"> Espelhar</label>
+                <label><input type="checkbox" id="insp_triggered"> Acionado</label>
+              </div>
+
+              <!-- Signpost-only fields -->
+              <div class="insp-field signpost-fields hidden" style="background:#1a2e1a; border:1px solid #2d5a2d; border-radius:6px; padding:8px; margin-top:6px;">
+                <label style="color:#4ade80; font-weight:bold;">🪧 Configuração da Placa</label>
+                <div style="display:flex; flex-direction:column; gap:4px; margin-top:6px;">
+                  <div>
+                    <label style="font-size:10px;">Mapa Destino</label>
+                    <select id="insp_target_map" class="insp-input full-width">
+                      <option value="0_0">🏰 Vila Medieval (0,0)</option>
+                      <option value="1_0">🌲 Floresta Mágica (1,0)</option>
+                      <option value="2_0">🎹 Conservatório (2,0)</option>
+                      <option value="0_1">🏰 Portões Reais (0,1)</option>
+                      <option value="1_1">🌿 Entrada Floresta (1,1)</option>
+                    </select>
+                  </div>
+                  <div style="display:flex; gap:4px;">
+                    <div style="flex:1;">
+                      <label style="font-size:10px;">X</label>
+                      <input type="number" id="insp_target_x" class="insp-input" min="0" max="1024" value="512">
+                    </div>
+                    <div style="flex:1;">
+                      <label style="font-size:10px;">Y</label>
+                      <input type="number" id="insp_target_y" class="insp-input" min="0" max="571" value="300">
+                    </div>
+                  </div>
+                </div>
+                <button id="relink_signpost_btn" class="btn-apply" style="margin-top:6px; width:100%; background:#1a3a1a;">🔗 Reconfigurar Vinculação</button>
+              </div>
+            </div>
+            <div class="insp-actions" style="flex-direction:column; gap:6px; margin-top:8px;">
+              <button type="button" id="openDlgEditorBtn" class="btn-dlg-edit">💬 Criar / Editar Diálogo</button>
+              <div style="display:flex; gap:6px; width:100%;">
+                <button id="applyNPCBtn" class="btn-apply" style="flex:1;">✓ Aplicar</button>
+                <button id="deleteNPCBtn" class="btn-delete" style="flex:1;">🗑️ Remover</button>
+              </div>
             </div>
           </div>
-
         </div>
-      </div>
 
-      <!-- TAB: World Map tools (inline with the grid view) -->
-      <div id="btab-worldmaptools" class="btab-content hidden">
-        <div class="tools-row">
-          <button class="tool-pill accent" id="uploadScenarioBtn2">🖼️ ＋ Novo Cenário</button>
-          <button class="tool-pill active" data-wvtool="drag">🖐️ Mover Cenários</button>
-          <button class="tool-pill" data-wvtool="spawn">📍 Definir Spawn</button>
-          <button class="tool-pill dim" id="resetGridBtn2">🔄 Organizar Grid</button>
-          <button class="tool-pill save" id="saveWorldBtn2">💾 Salvar Mapa</button>
-        </div>
-      </div>
+      </div><!-- end sidebar-content-area -->
 
       <input type="file" id="scenarioImageUpload" accept="image/*" style="display:none">
+    </aside>
 
-    </div><!-- end panel-body -->
-  </div><!-- end bottom-panel -->
+    <!-- ═══ RIGHT VIEWPORT (REAL-TIME GAME CANVAS) ═══ -->
+    <main id="viewport-area">
+      <div id="viewport-container">
+        <div id="canvas-stage">
+          <video id="skinShopVideo" src="assets/loja_de_skins.mp4" loop autoplay playsinline class="video-bg hidden"></video>
+          <video id="forgeVideo" src="assets/ferraria_interno.mp4" loop autoplay playsinline class="video-bg hidden"></video>
+          <canvas id="gameCanvas" width="1024" height="571"></canvas>
+
+          <!-- Name input overlay -->
+          <div id="nameInputOverlay" class="game-overlay hidden">
+            <div class="name-window">
+              <div class="name-window-deco tl">✦</div>
+              <div class="name-window-deco tr">✦</div>
+              <div class="name-window-deco bl">✦</div>
+              <div class="name-window-deco br">✦</div>
+              <div class="name-win-icon">⚔️</div>
+              <div class="name-win-title">Nome do Aventureiro</div>
+              <div class="name-win-sub">Como deseja ser chamado neste reino?</div>
+              <input type="text" id="playerNameInput" class="name-field" placeholder="Digite seu nome..." maxlength="20" autocomplete="off" spellcheck="false">
+              <button id="confirmNameBtn" class="confirm-btn">Confirmar ✦</button>
+            </div>
+          </div>
+
+          <!-- Quest notification -->
+          <div id="questNotification" class="quest-notif hidden">
+            <div class="quest-notif-badge">✨ Missão Desbloqueada</div>
+            <div id="questNotifTitle" class="quest-notif-title">—</div>
+            <div id="questNotifObj" class="quest-notif-obj">—</div>
+          </div>
+
+          <!-- Loading -->
+          <div id="loadingOverlay" class="loading-overlay">
+            <div class="loading-logo">🎵</div>
+            <div class="spinner"></div>
+            <p>Carregando Acordelot Engine...</p>
+          </div>
+
+          <!-- Toast -->
+          <div id="toastEl" class="toast hidden"></div>
+
+          <!-- Mega Cenário Floating Controls Overlay -->
+          <div id="megaControlBar" class="mega-control-bar hidden">
+            <div class="mega-bar-header">
+              <span class="mega-bar-title">⚙️ Ajustes de Zoom & Player</span>
+              <div class="mega-btn-actions">
+                <button id="megaMinBtn" class="mega-icon-btn" title="Minimizar"> — </button>
+                <button id="megaCloseBtn" class="mega-icon-btn" title="Fechar">✖</button>
+              </div>
+            </div>
+            <div id="megaBarBody" class="mega-bar-controls">
+              <div class="mega-control-item">
+                <button id="uploadMega2KBtn" class="mega-upload-btn">📁 Carregar Imagem 2K do Mac</button>
+                <input type="file" id="megaFileInput" accept="image/*" class="hidden">
+              </div>
+              <div class="mega-control-item">
+                <label for="zoomRange">🔍 Zoom (Scroll do Mouse): <b id="zoomVal">2.0x</b></label>
+                <input type="range" id="zoomRange" min="1.0" max="4.0" step="0.1" value="2.0">
+              </div>
+              <div class="mega-control-item">
+                <label for="playerSizeRange">👤 Tamanho Player: <b id="playerSizeVal">48px</b></label>
+                <input type="range" id="playerSizeRange" min="20" max="120" step="2" value="48">
+              </div>
+              <div class="mega-control-item">
+                <label for="playerSpeedRange">🏃 Velocidade: <b id="playerSpeedVal">4.0</b></label>
+                <input type="range" id="playerSpeedRange" min="2" max="12" step="0.5" value="4">
+              </div>
+            </div>
+          </div>
+          <button id="megaPillBtn" class="mega-pill-btn hidden">⚙️ Ajustes 2K</button>
+
+          <!-- WASD (play mode) -->
+          <div id="wasdPanel" class="wasd-panel hidden">
+            <div class="key-row"><div class="key-cap" id="keyW">W</div></div>
+            <div class="key-row">
+              <div class="key-cap" id="keyA">A</div>
+              <div class="key-cap" id="keyS">S</div>
+              <div class="key-cap" id="keyD">D</div>
+            </div>
+          </div>
+
+          <!-- Hotbar UI -->
+          <div id="gameHotbar" class="game-hotbar hidden">
+            <div class="hotbar-slot active" data-hotslot="1">
+              <span class="hotbar-num">1</span>
+              <span class="hotbar-icon">🪓</span>
+              <span class="hotbar-label" id="hotAxeLabel">BRONZE</span>
+            </div>
+            <div class="hotbar-slot" data-hotslot="2">
+              <span class="hotbar-num">2</span>
+              <span class="hotbar-icon">⛏️</span>
+              <span class="hotbar-label" id="hotPickLabel">BRONZE</span>
+            </div>
+            <div class="hotbar-slot" data-hotslot="3">
+              <span class="hotbar-num">3</span>
+              <span class="hotbar-icon">🧪</span>
+              <span class="hotbar-label" id="hotPotionCount">0</span>
+            </div>
+            <div class="hotbar-divider"></div>
+            <div class="hotbar-mode" id="hotModeToggle" title="Alternar entre Coleta e Batalha">
+              <span class="hotbar-mode-icon" id="hotModeIcon">⛏️</span>
+              <span class="hotbar-mode-text" id="hotModeText">Coleta</span>
+            </div>
+          </div>
+
+          <!-- Mobile Joystick Zone -->
+          <div id="touchZone" class="touch-controls hidden">
+            <div class="stick-zone" id="stickZone">
+              <div class="stick-base">
+                <div class="stick-knob" id="stickKnob"></div>
+              </div>
+            </div>
+            <div class="touch-actions">
+              <button class="touch-action btn-talk" id="btnTouchTalk">E · Falar</button>
+            </div>
+          </div>
+
+        </div><!-- end canvas-stage -->
+      </div><!-- end viewport-container -->
+    </main><!-- end viewport-area -->
+
+  </div><!-- end main-editor-layout -->
 
 </div><!-- end engine-shell -->
 
@@ -746,6 +552,7 @@
     </div>
   </div>
 </div>
+
 <!-- ═══ SIGNPOST LINKING WIZARD OVERLAY ═══ -->
 <div id="signpostWizardOverlay" class="hidden">
   <div class="wizard-box">
