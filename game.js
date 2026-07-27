@@ -97,6 +97,7 @@ function getNeighbor(key, dir) {
 // ============================================================
 const bgImages = {};
 const bgSources = {
+  'photo_recriado': 'assets/photo_recriado_bg.jpg',
   'mega_world': 'assets/mega_map_1.jpg',
   '0_0':'assets/background.jpg', '1_0':'assets/background2.jpg',
   '2_0':'assets/conservatory.jpg', '0_1':'assets/gate.jpg', '1_1':'assets/forest_entry.jpg',
@@ -267,6 +268,8 @@ async function loadWorldConfig() {
       }catch(ee){}
     }
   }
+  bgSources['photo_recriado'] = 'assets/photo_recriado_bg.jpg';
+  SCENE_NAMES['photo_recriado'] = '📸 Cenário Recriado de Foto';
   bgSources['mega_world'] = 'assets/mega_map_1.jpg';
   SCENE_NAMES['mega_world'] = '🗺️ Mega Cenário 2K';
 
@@ -3845,6 +3848,20 @@ function initMegaWorldControls() {
       player.y = dims.h / 2;
       if (!isPlayMode) togglePlay();
       showToast('🗺️ Mega Cenário 2K (Modo Zoom & Câmera) Ativado!');
+    });
+  }
+
+  const photoRecriadoBtn = document.getElementById('photoRecriadoBtn');
+  if (photoRecriadoBtn) {
+    photoRecriadoBtn.addEventListener('click', () => {
+      currentKey = 'photo_recriado';
+      if (activeMapSelect) activeMapSelect.value = 'photo_recriado';
+      megaBar?.classList.add('hidden');
+      megaPillBtn?.classList.add('hidden');
+      player.x = 688;
+      player.y = 384;
+      if (!isPlayMode) togglePlay();
+      showToast('📸 Cenário Recriado de Foto Ativado!');
     });
   }
 }

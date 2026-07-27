@@ -65,9 +65,14 @@
     "3_0": {
       "x": 512,
       "y": 400
+    },
+    "photo_recriado": {
+      "x": 688,
+      "y": 384
     }
   },
   "bgSources": {
+    "photo_recriado": "assets/photo_recriado_bg.jpg",
     "mega_world": "assets/mega_map_1.jpg",
     "0_0": "assets/background.jpg",
     "1_0": "assets/background2.jpg",
@@ -79,6 +84,7 @@
     "3_0": "assets/forest_deep.jpg"
   },
   "sceneNames": {
+    "photo_recriado": "📸 Cen\u00e1rio Recriado de Foto",
     "0_0": "\ud83c\udff0 Vila Medieval",
     "1_0": "\ud83c\udf32 Floresta M\u00e1gica",
     "2_0": "\ud83c\udfb9 Conservat\u00f3rio",

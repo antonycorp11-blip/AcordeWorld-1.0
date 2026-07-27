@@ -2233,3 +2233,14 @@ body.mobile-play #gameCanvas {
   background: linear-gradient(135deg, #0369a1, #0284c7);
   transform: translateY(-1px);
 }
+.photo-btn {
+  background: linear-gradient(135deg, #7c3aed, #a855f7) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border: 1px solid #c084fc !important;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+}
+.photo-btn:hover {
+  background: linear-gradient(135deg, #6d28d9, #7c3aed) !important;
+  transform: translateY(-1px);
+}
