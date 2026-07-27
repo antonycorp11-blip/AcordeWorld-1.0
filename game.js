@@ -3067,10 +3067,10 @@ const IS_PLAY_BUILD = (typeof window !== 'undefined' && window.ACORDELOT_BUILD =
 
 function wantsMobilePlay() {
   if (IS_PLAY_BUILD) return true;
-  const q=new URLSearchParams(location.search);
-  if(q.has('edit'))return false;
-  if(q.has('play'))return true;
-  return matchMedia('(pointer: coarse)').matches && Math.min(screen.width,screen.height) < 820;
+  const q = new URLSearchParams(location.search);
+  if (q.has('edit')) return false;
+  if (q.has('play')) return true;
+  return matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window) || matchMedia('(max-width: 1024px)').matches;
 }
 
 function bindTouchControls() {
