@@ -13,6 +13,7 @@ Netlify ou qualquer hospedagem estática.
 """
 import json
 import re
+import time
 import shutil
 import sys
 from pathlib import Path
@@ -30,7 +31,7 @@ IDS_EDITOR = [
 ]
 
 # Pastas e arquivos de assets que o jogo realmente carrega.
-ASSETS_INCLUIR = ['dialogues', 'icons', 'monsters', 'quests', 'skins']
+ASSETS_INCLUIR = ['cutscenes', 'dialogues', 'icons', 'monsters', 'quests', 'skins']
 EXT_ASSET = {'.jpg', '.jpeg', '.png', '.mp4', '.json', '.webp', '.ogg', '.mp3'}
 
 # Referências que existem no código mas cujo arquivo pode não estar na pasta.
@@ -66,11 +67,17 @@ def construir_html() -> str:
     for elem_id in IDS_EDITOR:
         html = remove_bloco_por_id(html, elem_id)
 
+    # Marca de versão em cada deploy. Sem isto o celular de um aluno que já abriu o
+    # jogo continua rodando o game.js e o style.css antigos por dias, e a impressão
+    # é de que a atualização não foi publicada.
+    versao = time.strftime('%Y%m%d%H%M%S')
+
     # config.js precisa vir antes de game.js para a flag existir na avaliação do módulo.
     html = html.replace(
         '<script src="game.js"></script>',
-        '<script src="config.js"></script>\n<script src="game.js"></script>'
+        f'<script src="config.js?v={versao}"></script>\n<script src="game.js?v={versao}"></script>'
     )
+    html = html.replace('href="style.css"', f'href="style.css?v={versao}"')
     html = html.replace('<title>Acordelot Engine — Reino da Música</title>',
                         '<title>Acordelot — Reino da Música</title>')
     return html
@@ -92,11 +99,19 @@ def copiar_assets() -> tuple[int, list[str]]:
 
     # Confere se todo cenário declarado no config tem o arquivo correspondente.
     faltando = []
+    faltando_cenas = []
+    # Cenas: o índice manda, e cada id precisa ter o JSON copiado.
+    idx = origem / 'cutscenes' / 'index.json'
+    if idx.exists():
+        for cid in (json.loads(idx.read_text(encoding='utf-8')).get('cenas') or []):
+            if not (destino / 'cutscenes' / f'{cid}.json').exists():
+                faltando_cenas.append(f'cena "{cid}" → assets/cutscenes/{cid}.json')
+
     cfg = json.loads((origem / 'acordelot_world_config.json').read_text(encoding='utf-8'))
     for chave, caminho in (cfg.get('bgSources') or {}).items():
         if not (DIST / caminho).exists():
             faltando.append(f'cenário "{chave}" → {caminho}')
-    return n, faltando
+    return n, faltando + faltando_cenas
 
 
 def main() -> int:

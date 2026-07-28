@@ -1,0 +1,13 @@
+{
+  "_": "Índice das cenas do jogo. Para criar uma cena nova: escreva assets/cutscenes/<id>.json e some o id aqui.",
+  "cenas": [
+    "abertura",
+    "vilarejo",
+    "portoes",
+    "apresentacao",
+    "ponte",
+    "ferraria",
+    "ponte_obra",
+    "ponte_pronta"
+  ]
+}

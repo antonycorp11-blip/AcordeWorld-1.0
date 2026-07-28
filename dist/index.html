@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20260728105857">
 </head>
 <body>
 
@@ -83,7 +83,10 @@
             </div>
           </div>
 
-          <!-- Character sheet: attributes + skill tree -->
+          <!-- Rastreador de missão: o que fazer agora, logo abaixo da barra de vida -->
+          <div id="questTracker" class="quest-tracker hidden"></div>
+
+<!-- Character sheet: attributes + skill tree -->
           <div id="charOverlay" class="sheet-overlay hidden">
             <div class="sheet">
               <header class="sheet-head">
@@ -125,14 +128,58 @@
           </div>
 
           <!-- Forging ceremony -->
+          <!-- Menu da forja: catálogo de ferramentas por categoria -->
+          <div id="forgeOverlay" class="forge-overlay hidden">
+            <div class="forge-box">
+              <div class="forge-header">
+                <div class="forge-heading">
+                  <span class="forge-anvil-emoji">🔨</span>
+                  <div>
+                    <div class="forge-title">Forja de Acordelot</div>
+                    <div class="forge-sub">Bata no compasso. O metal responde ao ritmo.</div>
+                  </div>
+                </div>
+                <div class="forge-purse">
+                  <span class="fp-chip">🪵 <b id="forgeWood">0</b></span>
+                  <span class="fp-chip">🪨 <b id="forgeStone">0</b></span>
+                  <span class="fp-chip">🪙 <b id="forgeCoins">0</b></span>
+                  <span class="fp-chip">🎼 <b id="forgeClaves">0</b></span>
+                </div>
+                <button id="forgeCloseBtn" class="forge-close">✕</button>
+              </div>
+
+              <div class="forge-tabs">
+                <button class="forge-tab active" data-forgetab="hammers">🔨 Martelos</button>
+                <button class="forge-tab" data-forgetab="axes">🪓 Machados</button>
+                <button class="forge-tab" data-forgetab="pickaxes">⛏️ Diapasões</button>
+              </div>
+
+              <div id="forgeItemsList" class="forge-list"></div>
+            </div>
+          </div>
+
+          <!-- Bigorna: o minigame de ritmo -->
           <div id="forgeAnvilOverlay" class="anvil-overlay hidden">
             <div class="anvil-box">
               <div class="anvil-title">Forjando…</div>
+              <div class="anvil-heat">
+                <span class="heat-label">🔥 CALOR</span>
+                <div class="heat-track"><i class="heat-fill"></i></div>
+              </div>
               <div class="anvil-stage">
                 <div class="anvil-art"></div>
                 <div class="anvil-sparks"></div>
               </div>
               <div class="anvil-name">—</div>
+
+              <div class="rhythm-bar">
+                <i class="rz rz-bom"></i>
+                <i class="rz rz-perfeito"></i>
+                <i class="rhythm-cursor"></i>
+              </div>
+              <div class="anvil-hits"></div>
+              <div class="anvil-hint">Toque na tela (ou ESPAÇO) quando o martelo cruzar a zona dourada</div>
+              <button id="anvilStrikeBtn" class="anvil-strike">🔨 MARTELAR</button>
               <div class="anvil-track"><i class="anvil-fill"></i></div>
             </div>
           </div>
@@ -197,6 +244,12 @@
                 </div>
               </div>
 
+              <div class="menu-name-row">
+                <label class="menu-label">🎬 Começar em:</label>
+                <select id="menuStartPoint" class="menu-name-input"></select>
+              </div>
+
+              <button id="continueBtn" class="btn-start-adventure hidden" style="background:linear-gradient(180deg,#0f766e,#134e4a);border-color:#2dd4bf;">▶ CONTINUAR DE ONDE PAREI</button>
               <button id="startAdventureBtn" class="btn-start-adventure">⚔️ INICIAR AVENTURA ✦</button>
             </div>
           </div>
@@ -251,27 +304,12 @@
             </div>
           </div>
 
-          <!-- Hotbar UI -->
+          <!-- Hotbar: slots montados por JS a partir do que o jogador realmente tem -->
           <div id="gameHotbar" class="game-hotbar hidden">
-            <div class="hotbar-slot active" data-hotslot="1">
-              <span class="hotbar-num">1</span>
-              <span class="hotbar-icon">🪓</span>
-              <span class="hotbar-label" id="hotAxeLabel">BRONZE</span>
-            </div>
-            <div class="hotbar-slot" data-hotslot="2">
-              <span class="hotbar-num">2</span>
-              <span class="hotbar-icon">⛏️</span>
-              <span class="hotbar-label" id="hotPickLabel">BRONZE</span>
-            </div>
-            <div class="hotbar-slot" data-hotslot="3">
-              <span class="hotbar-num">3</span>
-              <span class="hotbar-icon">🧪</span>
-              <span class="hotbar-label" id="hotPotionCount">0</span>
-            </div>
-            <div class="hotbar-divider"></div>
-            <div class="hotbar-mode" id="hotModeToggle" title="Alternar entre Coleta e Batalha">
-              <span class="hotbar-mode-icon" id="hotModeIcon">⛏️</span>
-              <span class="hotbar-mode-text" id="hotModeText">Coleta</span>
+            <div class="hb-slots" id="hotbarSlots"></div>
+            <div class="hb-mode" id="hotModeToggle" title="Alternar entre Coleta e Batalha">
+              <span class="hb-mode-icon" id="hotModeIcon">⛏️</span>
+              <span class="hb-mode-text" id="hotModeText">Coleta</span>
             </div>
           </div>
 
@@ -395,7 +433,7 @@
 <!-- ═══ SIGNPOST LINKING WIZARD OVERLAY ═══ -->
 
 
-<script src="config.js"></script>
-<script src="game.js"></script>
+<script src="config.js?v=20260728105857"></script>
+<script src="game.js?v=20260728105857"></script>
 </body>
 </html>

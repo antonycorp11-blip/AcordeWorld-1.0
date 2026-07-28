@@ -1,0 +1,56 @@
+{
+  "id": "portoes",
+  "nome": "Cena 3 — Os Portões Reais",
+  "mapa": "0_1",
+  "autoStart": true,
+  "passos": [
+
+    { "_": "── Chegada aos portões, de manhã ──" },
+    { "cmd": "controle", "ativo": false },
+    { "cmd": "hud", "visivel": false },
+    { "cmd": "escurecer", "para": 1, "ms": 0 },
+    { "cmd": "legenda", "texto": "A estrada subiu por entre as pedras a manhã inteira.", "ms": 3600 },
+    { "cmd": "legenda", "texto": "Então, no alto da colina, os portões de Acordelot.", "ms": 3800 },
+    { "cmd": "escurecer", "para": 0, "ms": 2000 },
+    { "cmd": "hud", "visivel": true },
+    { "cmd": "esperar", "ms": 500 },
+
+    { "cmd": "falar", "quem": "Personagem", "texto": "É maior do que ela descreveu...", "auto": 1500 },
+
+    { "cmd": "tutorial", "texto": "Aproxime-se do guarda nos portões." },
+    { "cmd": "controle", "ativo": true },
+    { "cmd": "esperarPerto", "npc": "Renaldo", "distancia": 120 },
+
+    { "_": "── O guarda: cheio de protocolo, pouca prática ──" },
+    { "cmd": "controle", "ativo": false },
+    { "cmd": "acenar", "npc": "Renaldo", "ms": 1400 },
+    { "cmd": "falar", "quem": "Guarda Renaldo", "texto": "ALTO LÁ!" },
+    { "cmd": "falar", "quem": "Guarda Renaldo", "texto": "...ah. Desculpa. Eu ensaiei isso a manhã inteira e você é a primeira pessoa a passar." },
+    { "cmd": "falar", "quem": "Guarda Renaldo", "texto": "Guarda Renaldo, dos Portões Reais de Acordelot. Vamos ao protocolo." },
+    { "cmd": "esperar", "ms": 400 },
+    { "cmd": "falar", "quem": "Guarda Renaldo", "texto": "Nome do viajante..." },
+    { "cmd": "falar", "quem": "Guarda Renaldo", "texto": "{PLAYER_NAME}. Certo. Já está no registro." },
+    { "cmd": "falar", "quem": "Personagem", "texto": "Como você...?", "auto": 1300 },
+    { "cmd": "falar", "quem": "Guarda Renaldo", "texto": "Mirela mandou um mensageiro antes do sol nascer. Aquela mulher acorda cedo demais." },
+
+    { "cmd": "esperar", "ms": 400 },
+    { "cmd": "falar", "quem": "Guarda Renaldo", "texto": "Item declarado: uma clave musical." },
+    { "cmd": "falar", "quem": "Guarda Renaldo", "texto": "Nossa. Você a tirou de um Shiker? Sozinho?" },
+    { "cmd": "falar", "quem": "Personagem", "texto": "Ele começou.", "auto": 1400 },
+    { "cmd": "falar", "quem": "Guarda Renaldo", "texto": "Eu vou anotar exatamente isso." },
+
+    { "_": "── Boas-vindas e destino ──" },
+    { "cmd": "esperar", "ms": 500 },
+    { "cmd": "falar", "quem": "Guarda Renaldo", "texto": "Bem-vindo a Acordelot, {PLAYER_NAME}. Primeira cidade do Reino da Música." },
+    { "cmd": "falar", "quem": "Guarda Renaldo", "texto": "Todo músico do reino começa a jornada aqui. Alguns terminam também, mas isso é outra conversa." },
+    { "cmd": "falar", "quem": "Guarda Renaldo", "texto": "Procure o Sr. Antony, na Praça Central. Ele é o líder daqui." },
+    { "cmd": "falar", "quem": "Guarda Renaldo", "texto": "Homem sábio. Fala bonito. Fala muito. Leve paciência." },
+    { "cmd": "falar", "quem": "Personagem", "texto": "Anotado.", "auto": 1200 },
+    { "cmd": "falar", "quem": "Guarda Renaldo", "texto": "Siga a estrada de pedra. Não tem como errar — é a única." },
+
+    { "cmd": "tutorial", "texto": "Siga a estrada de pedra até a Praça Central e fale com o Sr. Antony." },
+    { "cmd": "hud", "visivel": true },
+    { "cmd": "controle", "ativo": true },
+    { "cmd": "fim" }
+  ]
+}

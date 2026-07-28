@@ -1,0 +1,40 @@
+{
+  "id": "ponte_obra",
+  "nome": "Cena 7 — Braço a Braço",
+  "mapa": "0_1",
+  "autoStart": true,
+  "gatilho": { "tipo": "falar", "npc": "Dorn" },
+  "requer": { "objetivos": { "missao": "martelo_do_ferreiro", "ids": ["forjar"] } },
+  "passos": [
+    { "cmd": "controle", "ativo": false },
+
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Deixa eu ver isso." },
+    { "cmd": "esperar", "ms": 800 },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Cabo firme. Cabeça bem assentada." },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Você bateu no compasso, não bateu? Dá para ouvir." },
+    { "cmd": "falar", "quem": "Personagem", "texto": "Tentei não pensar muito.", "auto": 1500 },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Ha! É exatamente esse o segredo. Levei quinze anos para aprender." },
+
+    { "cmd": "objetivo", "missao": "martelo_do_ferreiro", "id": "mostrar" },
+    { "cmd": "esperar", "ms": 700 },
+
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Muito bem, aprendiz. Agora vem a parte que dói." },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "A ponte. Você e eu. Agora." },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Eu seguro a viga e mostro onde bater. Você bate até aquilo virar ponte de novo." },
+    { "cmd": "falar", "quem": "Personagem", "texto": "E a sua coluna?", "auto": 1500 },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Minha coluna supervisiona." },
+
+    { "cmd": "esperar", "ms": 400 },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Vamos. Fica do meu lado e acompanha o ritmo." },
+    { "cmd": "andar", "npc": "Dorn", "para": "martelada", "velocidade": 1.4, "sumir": false },
+    { "cmd": "andarJogador", "para": "martelada", "velocidade": 2.0, "sumir": false },
+    { "cmd": "esperar", "ms": 500 },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Aqui. Bate firme e não para até eu mandar." },
+
+    { "cmd": "missao", "id": "consertar_ponte" },
+    { "cmd": "tutorial", "texto": "Fique sobre o ponto de trabalho e toque no botão de ação para martelar." },
+    { "cmd": "hud", "visivel": true },
+    { "cmd": "controle", "ativo": true },
+    { "cmd": "fim" }
+  ]
+}

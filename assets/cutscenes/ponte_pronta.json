@@ -1,0 +1,33 @@
+{
+  "id": "ponte_pronta",
+  "nome": "Cena 8 — A Ponte de Pé",
+  "mapa": "0_1",
+  "autoStart": false,
+  "passos": [
+    { "cmd": "controle", "ativo": false },
+    { "cmd": "esperar", "ms": 600 },
+
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "PARA! Para, para." },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Acabou. Está de pé." },
+    { "cmd": "esperar", "ms": 800 },
+    { "cmd": "falar", "quem": "Personagem", "texto": "Meus braços não acabaram.", "auto": 1600 },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Amanhã acabam. Depois de amanhã você agradece." },
+
+    { "cmd": "esperar", "ms": 500 },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Olha só isso. Quarenta anos essa ponte serviu Acordelot." },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Vai servir mais quarenta. E parte dela agora é sua." },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Chegou aqui ontem sem lembrar do próprio nome, e já deixou marca na cidade." },
+    { "cmd": "falar", "quem": "Personagem", "texto": "Não foi só eu.", "auto": 1500 },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Não. Nunca é." },
+
+    { "cmd": "esperar", "ms": 600 },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Agora suma daqui e vá falar com o Sr. Antony." },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Ele vai querer saber de tudo. E vai fingir que já sabia." },
+    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "E {PLAYER_NAME}... guarda bem esse martelo. Ele ainda vai abrir portas." },
+
+    { "cmd": "tutorial", "texto": "Volte à Praça Central e fale com o Sr. Antony." },
+    { "cmd": "hud", "visivel": true },
+    { "cmd": "controle", "ativo": true },
+    { "cmd": "fim" }
+  ]
+}

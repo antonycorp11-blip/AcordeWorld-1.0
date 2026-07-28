@@ -172,7 +172,27 @@ async function loadNPCs() {
   } catch(e) {
     npcData = [{ id:'city_guard', name:'Guarda Renaldo', type:'guard', mapKey:'0_1', x:440, y:320, triggerRadius:90, dialogue:'guard_intro', triggered:false, flipX:false, scale:1.0 }];
   }
+  aplicarDialogosDaHistoria();
   refreshNPCHierarchy();
+}
+
+// Quem fala o quê é dado de história, não de posicionamento. O editor regrava o
+// npcs.json a cada alteração, e uma aba antiga aberta já apagou esses vínculos uma vez.
+// Aqui eles são reamarrados por nome no carregamento, então não se perdem mais.
+const DIALOGOS_DA_HISTORIA = {
+  'Bardo Lucian':     'bardo_lucian',
+  'Mercador Tibério': 'mercador_tiberio',
+  'Ferreiro Dorn':    'ferreiro_dorn',
+  'Guarda Renaldo':   'guard_intro',
+  'Sr. Antony':       'sr_antony_tutorial',
+};
+function aplicarDialogosDaHistoria() {
+  npcData.forEach(n => {
+    const dlgId = DIALOGOS_DA_HISTORIA[n.name];
+    if (!dlgId) return;
+    if (!n.dialogue || n.dialogue === 'none') n.dialogue = dlgId;
+    if (!n.triggerRadius) n.triggerRadius = 90;   // raio 0 deixa o NPC mudo
+  });
 }
 
 async function loadQuests() {
@@ -185,7 +205,7 @@ async function loadQuests() {
 // Runtime-only fields must never reach the JSON. They hold performance.now() timestamps,
 // which restart at 0 on reload — a saved `depletedUntil` of 99886 left a gathering spot
 // dead for the first 100 seconds of every session.
-const NPC_RUNTIME_FIELDS = ['hits','shakeUntil','depletedUntil','_npcRef'];
+const NPC_RUNTIME_FIELDS = ['hits','shakeUntil','depletedUntil','_npcRef','oculto','acenaAte','andandoAte'];
 function serialisableNPC(n) {
   const out = {};
   for (const k in n) if (!NPC_RUNTIME_FIELDS.includes(k)) out[k] = n[k];
@@ -239,7 +259,7 @@ function loadLayerKey(k) {
 async function saveAllLayers(notify=false) {
   if (IS_PLAY_BUILD) return;
   rebuildGrid();
-  const wc={gridPos,spawns,bgSources,sceneNames:SCENE_NAMES,startMap}, payload={worldConfig:wc};
+  const wc={gridPos,spawns,bgSources,sceneNames:SCENE_NAMES,startMap,ambience}, payload={worldConfig:wc};
   for (const k of Object.keys(bgSources)) {
     const L=getLayers(k);
     const rd=L.roadCanvas.toDataURL('image/png'), fg=L.fgCanvas.toDataURL('image/png'), dr=L.doorCanvas.toDataURL('image/png');
@@ -258,6 +278,7 @@ async function loadWorldConfig() {
     if(c.bgSources)Object.assign(bgSources,c.bgSources);
     if(c.sceneNames)Object.assign(SCENE_NAMES,c.sceneNames);
     if(c.startMap)startMap=c.startMap;
+    if(c.ambience)Object.assign(ambience,c.ambience);
   } catch(e) {
     const ls=localStorage.getItem('wasd_world_config_v17');
     if(ls){
@@ -268,6 +289,7 @@ async function loadWorldConfig() {
         if(c.bgSources)Object.assign(bgSources,c.bgSources);
         if(c.sceneNames)Object.assign(SCENE_NAMES,c.sceneNames);
         if(c.startMap)startMap=c.startMap;
+        if(c.ambience)Object.assign(ambience,c.ambience);
       }catch(ee){}
     }
   }
@@ -289,8 +311,11 @@ let currentKey = '0_1', currentScene = 'world', playerName = '';
 // Cenário onde o jogo começa. Vem do acordelot_world_config.json (campo `startMap`),
 // para trocar o ponto de surgimento sem mexer em código.
 let startMap = '0_1';
+// Clima permanente de cada cenário (noite, névoa). Vive no world config, então é
+// ajuste de dados, não de código: { "1_1": { "escuro": 0.5, "cor": "#0b1220" } }
+let ambience = {};
 const player = { x:512, y:400, width:48, height:64, speed:3.9, sprintSpeed:6.65, direction:'down', isMoving:false, animFrame:0, animTimer:0 };
-let playerLocked = false, savedDoorPos = {x:512,y:380}, savedDoorMap = null, lastTransTime=0, lastDoorTime=0, lastDeadEndToast=0 /* unused */;
+let playerLocked = false, savedDoorPos = {x:512,y:380}, savedDoorMap = null, lastTransTime=0, bordaTravada=false, lastDoorTime=0, lastDeadEndToast=0 /* unused */;
 const keys = {w:false,a:false,s:false,d:false,shift:false};
 // Analog thumb stick — overrides the keys while held. Magnitude drives speed, so a
 // small push walks and a full push sprints.
@@ -837,7 +862,49 @@ function drawForgeEntrance(ctx2, npc, t) {
   ctx2.restore();
 }
 
+// Porta: marcador de destino de cena. Não é cenário — a arte da casa é a do mapa. Ela
+// só diz "é aqui que alguém entra", e some no jogo, aparecendo apenas no editor.
+function drawPorta(ctx2, npc) {
+  if (isPlayMode) return;
+  const sc = npc.scale || 1, w = 40 * sc, h = 62 * sc;
+  const x = npc.x - w / 2, y = npc.y - h;
+  ctx2.save();
+  ctx2.globalAlpha = 0.9;
+  ctx2.fillStyle = '#3b2412';
+  ctx2.fillRect(x, y, w, h);
+  ctx2.strokeStyle = '#f59e0b'; ctx2.lineWidth = 2;
+  ctx2.strokeRect(x, y, w, h);
+  ctx2.fillStyle = '#fde68a';
+  ctx2.beginPath(); ctx2.arc(x + w * 0.78, y + h * 0.55, 2.6, 0, Math.PI * 2); ctx2.fill();
+  ctx2.font = 'bold 10px Outfit, sans-serif'; ctx2.textAlign = 'center';
+  ctx2.fillText(npc.interior && INTERIORS[npc.interior] ? INTERIORS[npc.interior].name : 'PORTA',
+                npc.x, y - 6);
+  ctx2.restore();
+}
+
+// Ponto de martelada: alvo de trabalho. Só o editor enxerga — no jogo ele é o lugar
+// para onde o jogador e o NPC caminham e onde as marteladas acontecem.
+function drawPontoMartelada(ctx2, npc, now) {
+  if (isPlayMode) return;
+  const sc = npc.scale || 1, r = 26 * sc;
+  const p = (Math.sin((now || 0) * 0.004) + 1) / 2;
+  ctx2.save();
+  ctx2.globalAlpha = 0.85;
+  ctx2.strokeStyle = '#fb923c'; ctx2.lineWidth = 2.5;
+  ctx2.setLineDash([6, 5]);
+  ctx2.beginPath(); ctx2.arc(npc.x, npc.y, r + p * 3, 0, Math.PI * 2); ctx2.stroke();
+  ctx2.setLineDash([]);
+  ctx2.font = '20px serif'; ctx2.textAlign = 'center'; ctx2.textBaseline = 'middle';
+  ctx2.fillText('🔨', npc.x, npc.y);
+  ctx2.fillStyle = '#fdba74';
+  ctx2.font = 'bold 10px Outfit, sans-serif';
+  ctx2.fillText('MARTELADA', npc.x, npc.y - r - 8);
+  ctx2.restore();
+}
+
 const NPC_DRAW = {
+  porta: drawPorta,
+  ponto_martelada: drawPontoMartelada,
   guard: drawGuard,
   sr_antony: drawVillagerType,
   signpost: drawSignpostNPC,
@@ -857,6 +924,8 @@ const DEFAULT_NPC_DRAW = drawVillagerType;
 const ELEMENT_BOUNDS = {
   forge_entrance: { w: 96, h: 128 },
   signpost:       { w: 52, h: 46 },
+  porta:          { w: 40, h: 62 },
+  ponto_martelada:{ w: 56, h: 56 },
   spot_wood:      { w: 64, h: 56 },
   spot_stone:     { w: 66, h: 60 },
 };
@@ -926,6 +995,10 @@ function choiceAt(mx, my) {
 
 async function startDialogue(npc) {
   if (dlg.state !== DLG_STATE.CLOSED) return;
+  // Se há uma cena presa a este NPC e as condições batem, ela toma o lugar da conversa
+  // comum. É o que faz a Cena 4 acontecer ao falar com o Sr. Antony.
+  const cena = cenaDoNPC(npc);
+  if (cena) { iniciarCena(cena); return; }
   playerLocked = true;
   dlg.npc = npc; dlg._npc_ref = npc;
   dlg.script = await loadDialogue(npc.dialogue);
@@ -943,7 +1016,10 @@ function processStep() {
   } else if (step.type==='choice') {
     dlg.state=DLG_STATE.CHOOSING; dlg.choices=step.choices; dlg.hoveredChoice=-1; dlg.displayText=''; dlg.fullText='';
   } else if (step.type==='name_input') {
-    dlg.state=DLG_STATE.NAME_INPUT; dlg._nextStep=step.next; showNameInput();
+    // O nome agora é escolhido no menu inicial. Diálogos antigos que pediam nome
+    // simplesmente seguem em frente, em vez de abrir um campo redundante.
+    if (step.next) { dlg.stepId = step.next; processStep(); }
+    else endDialogue();
   } else if (step.type==='end') {
     if (step.quest_unlock) unlockQuest(step.quest_unlock);
     endDialogue();
@@ -956,6 +1032,9 @@ function advanceDlg() {
 }
 function selectChoice(i) { if(dlg.state!==DLG_STATE.CHOOSING)return; const c=dlg.choices[i]; if(!c)return; dlg.stepId=c.next; processStep(); }
 function endDialogue() {
+  // Conversar é um evento de missão: é assim que "fale com o bardo" se resolve.
+  const quem = dlg._npc_ref?.name || dlg.npc?.name;
+  if (quem) progressoDeMissao('talk', quem);
   if (dlg._npc_ref) { dlg._npc_ref.triggered=true; saveNPCs(); dlg._npc_ref=null; }
   dlg.state=DLG_STATE.CLOSED; dlg.npc=null; playerLocked=false;
 }
@@ -976,7 +1055,16 @@ window.addEventListener('keydown', e => {
 
 function showNameInput() { nameInputOverlay?.classList.remove('hidden'); playerNameInput&&(playerNameInput.value=''); setTimeout(()=>playerNameInput?.focus(),60); }
 function hideNameInput() { nameInputOverlay?.classList.add('hidden'); }
-function subVars(txt) { return txt.replace('{PLAYER_NAME}', playerName||'Viajante'); }
+// O nome é digitado no menu, então ele tem que valer em toda fala, legenda e balão.
+// `Personagem` como locutor vira o nome do jogador — o roteiro não precisa saber qual é.
+function nomeDoJogador() { return playerName || 'Viajante'; }
+function subVars(txt) {
+  return String(txt ?? '').replace(/\{(PLAYER_NAME|NOME|nome)\}/g, nomeDoJogador());
+}
+function nomeDoLocutor(quem) {
+  const q = String(quem ?? '');
+  return /^(personagem|jogador|player)$/i.test(q.trim()) ? nomeDoJogador() : subVars(q);
+}
 
 function renderDlg(now) {
   if (dlg.state===DLG_STATE.CLOSED) return;
@@ -1036,7 +1124,7 @@ function renderDlg(now) {
   // NPC name
   ctx.fillStyle='#f59e0b'; ctx.font='bold 13px Outfit, sans-serif';
   ctx.textAlign='left'; ctx.textBaseline='middle';
-  const npcName = dlg.script?.npc_name || dlg.npc?.name || 'NPC';
+  const npcName = nomeDoLocutor(dlg.script?.npc_name || dlg.npc?.name || 'NPC');
   ctx.fillText(npcName, DB.x+DB.tx, by+30);
   ctx.fillStyle='rgba(245,158,11,0.25)';
   ctx.fillRect(DB.x+DB.tx, by+40, 200, 1);
@@ -1056,7 +1144,7 @@ function renderDlg(now) {
       ctx.fillStyle=hov?'#fbbf24':'#d4a27a';
       ctx.font=hov?'bold 13px Outfit, sans-serif':'13px Outfit, sans-serif';
       ctx.textAlign='left'; ctx.textBaseline='middle';
-      ctx.fillText(ch.text, r.x+16, r.y+r.h/2);
+      ctx.fillText(subVars(ch.text), r.x+16, r.y+r.h/2);
       // Tap affordance on the right edge
       ctx.textAlign='right'; ctx.fillStyle=hov?'#fbbf24':'#7c5030';
       ctx.font='11px Outfit, sans-serif';
@@ -1094,8 +1182,96 @@ function unlockQuest(id) {
   pathGuide.questId=id; pathGuide.active=true;
   pathGuide.waypoints=(q.path_waypoints?.[currentKey])||[];
   pathGuide.particles=[];
-  showQuestNotif(q); refreshQuestPanel();
+  q.objectives.forEach(o => { o.completed = false; o.progresso = 0; });
+  showQuestNotif(q); refreshQuestPanel(); atualizarRastreador();
 }
+// ── Progresso de missão ──────────────────────────────────────────────────────────
+// Objetivos são declarados no quests.json e avançam por eventos do jogo: falar com um
+// NPC, coletar um recurso. `requer` segura um objetivo até os outros ficarem prontos,
+// que é como "volte ao Sr. Antony" só conta depois das duas conversas.
+function objetivoLiberado(q, o) {
+  return !o.requer || o.requer.every(id => q.objectives.find(x => x.id === id)?.completed);
+}
+
+function progressoDeMissao(tipo, chave, quantidade = 1) {
+  let mudou = false;
+  activeQuests.forEach(q => {
+    q.objectives.forEach(o => {
+      if (o.completed || o.type !== tipo || !objetivoLiberado(q, o)) return;
+      const alvo = String(o.npc || o.item || '').toLowerCase();
+      if (!alvo || !String(chave).toLowerCase().includes(alvo)) return;
+      if (o.quantidade) {
+        o.progresso = Math.min(o.quantidade, (o.progresso || 0) + quantidade);
+        if (o.progresso >= o.quantidade) o.completed = true;
+      } else {
+        o.completed = true;
+      }
+      mudou = true;
+      if (o.completed) {
+        showToast(`✅ ${o.text}`);
+        addFloater(player.x, player.y - 60, '✅ Objetivo concluído', '#4ade80');
+      }
+    });
+  });
+  if (mudou) { atualizarRastreador(); verificarMissoesConcluidas(); }
+}
+
+function verificarMissoesConcluidas() {
+  for (let i = activeQuests.length - 1; i >= 0; i--) {
+    const q = activeQuests[i];
+    if (!q.objectives.every(o => o.completed)) continue;
+    activeQuests.splice(i, 1);
+    completedQuests.push(q.id);
+    // Entregar material gasta material: senão a madeira da ponte continua na mochila.
+    if (q.custo) {
+      Object.entries(q.custo).forEach(([item, qtd]) => {
+        playerInventory[item] = Math.max(0, (playerInventory[item] || 0) - qtd);
+      });
+      updateInventorySlotsUI?.();
+    }
+    grantXp(q.xp ?? 60);
+    if (q.recompensa?.moedas) {
+      playerInventory.coins = (playerInventory.coins || 0) + q.recompensa.moedas;
+      updateInventorySlotsUI?.();
+    }
+    showToast(`🏆 Missão concluída: ${q.title}`);
+    refreshQuestPanel();
+    savePlayerData();
+    // Missão pode emendar direto numa cena — é o que fecha o conserto da ponte.
+    if (q.aoConcluir?.cena) {
+      const c = CUT.roteiros.find(r => r.id === q.aoConcluir.cena);
+      if (c) setTimeout(() => { if (!CUT.ativo) iniciarCena(c); }, 700);
+    }
+  }
+  atualizarRastreador();
+}
+
+function missaoAtiva(id) { return activeQuests.find(q => q.id === id) || null; }
+function missaoConcluida(id) { return completedQuests.includes(id); }
+function objetivoFeito(questId, objId) {
+  const q = missaoAtiva(questId);
+  if (q) return !!q.objectives.find(o => o.id === objId)?.completed;
+  return missaoConcluida(questId);
+}
+
+// Rastreador na tela: o quadrinho de "o que fazer agora", logo abaixo da barra de vida.
+function atualizarRastreador() {
+  const el = document.getElementById('questTracker');
+  if (!el) return;
+  if (!isPlayMode || !activeQuests.length) { el.classList.add('hidden'); return; }
+  el.innerHTML = activeQuests.map(q => {
+    const linhas = q.objectives.map(o => {
+      const bloqueado = !o.completed && !objetivoLiberado(q, o);
+      const marca = o.completed ? '☑' : bloqueado ? '🔒' : '☐';
+      const cont = o.quantidade ? ` (${o.progresso || 0}/${o.quantidade})` : '';
+      const cls = o.completed ? 'feito' : bloqueado ? 'bloq' : '';
+      return `<li class="${cls}">${marca} ${o.text}${cont}</li>`;
+    }).join('');
+    return `<div class="qt-title">📜 ${q.title}</div><ul class="qt-objs">${linhas}</ul>`;
+  }).join('');
+  el.classList.remove('hidden');
+}
+
 function showQuestNotif(q) {
   if(!questNotif)return;
   questNotif.classList.remove('hidden');
@@ -1196,18 +1372,27 @@ const INTERIORS = {
     name: '🏪 Loja de Skins',
     videoId: 'skinShopVideo',
     still: () => shopInterior,        // a still image wins over the looping video
-    enterAt: { x: 512, y: 440 },
-    exitY: 530,
+    enterAt: { x: 512, y: 430 },
+    exitY: 510,
     // Where the shopkeeper's counter is, for the action button.
     counter: { x: 512, y: 330, r: 150 },
     counterAction: 'shop',
+  },
+  forjador: {
+    name: '🎼 Forjador de Escalas',
+    videoId: null,
+    still: () => forjadorInterior,
+    enterAt: { x: 512, y: 470 },
+    exitY: 520,
+    counter: { x: 512, y: 300, r: 170 },   // o altar das escalas
+    counterAction: 'forjarEscala',
   },
   ferraria: {
     name: '🔨 Ferraria',
     videoId: 'forgeVideo',
     still: () => null,
-    enterAt: { x: 512, y: 470 },
-    exitY: 545,
+    enterAt: { x: 512, y: 455 },
+    exitY: 520,
     counter: { x: 512, y: 320, r: 165 },   // the anvil
     counterAction: 'forge',
   },
@@ -1223,7 +1408,7 @@ function enterInterior(key) {
   lastDoorTime = performance.now();
   currentScene = key;
   player.x = def.enterAt.x; player.y = def.enterAt.y;
-  if (!def.still?.()) {
+  if (!def.still?.() && def.videoId) {
     const v = document.getElementById(def.videoId);
     if (v) { v.muted = false; v.volume = 0.7; v.classList.remove('hidden'); v.play().catch(()=>{}); }
   }
@@ -1232,7 +1417,7 @@ function enterInterior(key) {
 
 function leaveInterior() {
   const def = interiorDef();
-  if (def) {
+  if (def && def.videoId) {
     const v = document.getElementById(def.videoId);
     v?.pause(); v?.classList.add('hidden');
   }
@@ -1270,7 +1455,12 @@ function arrivalSignpost(destKey, fromDir) {
 
 function arrivalPoint(destKey, fromDir, along) {
   const placa = arrivalSignpost(destKey, fromDir);
-  if (placa) return { x: placa.x, y: placa.y };
+  // Mesmo vindo pela borda, nunca nascer dentro da faixa de travessia do destino.
+  const folga = EDGE_BAND + ARRIVAL_INSET;
+  if (placa) return {
+    x: Math.max(folga, Math.min(SCREEN_W - folga, placa.x)),
+    y: Math.max(folga, Math.min(SCREEN_H - folga, placa.y)),
+  };
   // Sem placa: borda oposta, mantendo a coordenada perpendicular.
   if (fromDir==='east')  return { x: ARRIVAL_INSET,              y: along };
   if (fromDir==='west')  return { x: SCREEN_W - ARRIVAL_INSET,   y: along };
@@ -1306,7 +1496,8 @@ function checkTransitions() {
   else if (player.x <= EDGE_BAND)       dir = 'west';
   else if (player.y <= EDGE_BAND)       dir = 'north';
   else if (player.y >= SCREEN_H - EDGE_BAND) dir = 'south';
-  if (!dir) return;
+  if (!dir) { bordaTravada = false; return; }   // saiu da beirada: a travessia rearma
+  if (bordaTravada) return;                     // acabou de chegar aqui — não devolve
 
   const destino = getNeighbor(currentKey, dir);
   if (!destino) {
@@ -1322,6 +1513,7 @@ function checkTransitions() {
   const p = settleArrival(destino, arrivalPoint(destino, dir, along), eixo);
 
   lastTransTime = agora;
+  bordaTravada = true;
   currentKey = destino;
   player.x = p.x; player.y = p.y;
   if (activeMapSelect && bgSources[destino]) activeMapSelect.value = destino;
@@ -1347,6 +1539,54 @@ function checkDoors() {
     const def=interiorDef();
     if(def && player.y>=def.exitY) leaveInterior();
   }
+}
+
+// Dentro de um interior o jogador não tem referência de onde é a porta. Estas duas
+// funções desenham a saída e o balcão, e alimentam o botão de ação.
+function naSaidaDoInterior() {
+  const def = interiorDef();
+  return !!def && isPlayMode && !playerLocked && player.y >= def.exitY - 60;
+}
+
+function renderMarcadoresDoInterior(now) {
+  const def = interiorDef();
+  if (!def || !isPlayMode) return;
+  const pulso = (Math.sin(now * 0.004) + 1) / 2;
+
+  // Balcão / bigorna
+  const c = def.counter;
+  const perto = Math.hypot(player.x - c.x, player.y - c.y) < c.r;
+  ctx.save();
+  ctx.globalAlpha = (perto ? 0.55 : 0.3) + pulso * 0.2;
+  ctx.strokeStyle = perto ? '#fde047' : '#fbbf24';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(c.x, c.y + 34, 62 + pulso * 5, 24 + pulso * 3, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+  const ROTULO_BALCAO = { forge: '🔨 Bigorna', shop: '🏪 Balcão', forjarEscala: '🎼 Altar das Escalas' };
+  const ACAO_BALCAO   = { forge: 'Forjar', shop: 'Comprar', forjarEscala: 'Montar Escala' };
+  const rotulo = ROTULO_BALCAO[def.counterAction] || '✦ Interagir';
+  drawBubble(ctx, c.x, c.y - 6, perto ? `E  ·  ${ACAO_BALCAO[def.counterAction] || 'Usar'}` : rotulo,
+    { bg: perto ? 'rgba(251,191,36,0.94)' : 'rgba(12,16,24,0.82)',
+      border: perto ? '#78350f' : '#fbbf24',
+      fg: perto ? '#1c1917' : '#fde68a',
+      font: 'bold 11px Outfit, sans-serif' });
+
+  // Saída
+  const y = def.exitY;
+  ctx.save();
+  ctx.globalAlpha = 0.25 + pulso * 0.25;
+  const g = ctx.createLinearGradient(0, y - 40, 0, SCREEN_H);
+  g.addColorStop(0, 'rgba(253,230,138,0)');
+  g.addColorStop(1, 'rgba(253,230,138,.55)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, y - 40, SCREEN_W, SCREEN_H - y + 40);
+  ctx.restore();
+  drawBubble(ctx, SCREEN_W / 2, y + 4, naSaidaDoInterior() ? 'E  ·  Sair' : '↓ Saída',
+    { bg: naSaidaDoInterior() ? 'rgba(251,191,36,0.94)' : 'rgba(12,16,24,0.82)',
+      border: '#78350f', fg: naSaidaDoInterior() ? '#1c1917' : '#fde68a',
+      font: 'bold 11px Outfit, sans-serif' });
 }
 
 // ============================================================
@@ -1427,7 +1667,8 @@ function talkTarget() {
     if(npc.mapKey!==currentKey)continue;
     if(!npc.dialogue||npc.dialogue==='none')continue;
     const d=Math.hypot(player.x-npc.x,player.y-npc.y);
-    if(d<npc.triggerRadius&&d<bestD){best=npc;bestD=d;}
+    // Um raio 0 salvo por engano no editor deixava o NPC mudo para sempre.
+    if(d<(npc.triggerRadius||90)&&d<bestD){best=npc;bestD=d;}
   }
   return best;
 }
@@ -1460,6 +1701,11 @@ async function loadMonsters() {
           monsterWalk[type] = [];
           for (let i = 0; i < (def.walkFrames || def.cols || 4); i++)
             monsterWalk[type].push(prepareSpriteCell(img, { ...def, cell: [i, def.walkRow] }));
+        }
+        if (def.attackRow != null) {
+          monsterAtaque[type] = [];
+          for (let i = 0; i < (def.attackFrames || def.cols || 4); i++)
+            monsterAtaque[type].push(prepareSpriteCell(img, { ...def, cell: [i, def.attackRow] }));
         }
       } catch (e) {}
     };
@@ -1524,7 +1770,7 @@ async function saveMonsters() {
   try { await fetch('/save_monsters', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }); } catch(e) {}
 }
 
-const monsterWalk = {};
+const monsterWalk = {}, monsterAtaque = {};
 
 function updateMonsters(now) {
   if (!isPlayMode || currentScene !== 'world') return;
@@ -1546,7 +1792,9 @@ function updateMonsters(now) {
     // eles), mas os de cena avançam. Só andam onde o jogador poderia andar — nada de
     // atravessar árvore ou parede.
     const persegue = m.persegue ?? def.persegue ?? false;
-    if (persegue && !playerLocked && playerHp > 0 &&
+    // Avança mesmo com o jogador travado numa fala — parar de andar durante o diálogo
+    // é o que fazia a criatura parecer estátua. Só o dano é que respeita a trava.
+    if (persegue && playerHp > 0 && now >= (m.atacandoAte || 0) &&
         dist < (def.aggroRange ?? 160) && dist > (def.touchRange ?? 34) * 0.75) {
       const sp = def.speed ?? 1;
       const px = m.x + (dx / dist) * sp, py = m.y + (dy / dist) * sp;
@@ -1557,10 +1805,21 @@ function updateMonsters(now) {
       if (m.x !== ax || m.y !== ay) m.andandoAte = now + 120;
     }
 
-    // Contact damage, rate-limited so brushing past isn't instant death.
-    if (!playerLocked && playerHp > 0 && dist < (def.touchRange ?? 34) && now - m.lastHit > 900) {
+    // O golpe tem três tempos: bote (o jogador vê vindo), impacto e recuperação.
+    // Bater sem aviso é o que fazia parecer que o monstro só encostava e tirava vida.
+    if (playerHp > 0 && dist < (def.touchRange ?? 34) && now - m.lastHit > 900 && !m.golpeEm) {
       m.lastHit = now;
-      damagePlayer(def.damage ?? 5);
+      m.atacandoAte = now + (def.attackMs ?? 460);
+      m.golpeEm = now + (def.attackWindup ?? 190);
+    }
+    // O impacto só sai se o jogador ainda estiver ao alcance quando o golpe cai —
+    // dá para escapar do bote andando para trás.
+    if (m.golpeEm && now >= m.golpeEm) {
+      m.golpeEm = 0;
+      if (!playerLocked && playerHp > 0 && dist < (def.touchRange ?? 34) * 1.25) {
+        damagePlayer(def.damage ?? 5);
+        m.impactoAte = now + 140;
+      }
     }
   });
 }
@@ -1580,18 +1839,29 @@ function drawHealthBar(x, topY, w, ratio, colour) {
 function renderMonsters(now) {
   monsters.forEach(m => {
     if (m.dead || m.mapKey !== currentKey) return;
-    const quadros = monsterWalk[m.type];
-    const andando = quadros && now < (m.andandoAte || 0);
-    const spr = andando ? quadros[Math.floor(now / 130) % quadros.length]
-                        : monsterSprites[m.type];
+    const golpes = monsterAtaque[m.type], quadros = monsterWalk[m.type];
+    const def0 = monsterDef(m);
+    const atacando = golpes && now < (m.atacandoAte || 0);
+    const andando = !atacando && quadros && now < (m.andandoAte || 0);
+    let spr = monsterSprites[m.type];
+    if (atacando) {
+      // O quadro acompanha o tempo do golpe, então o bote e o impacto batem com o dano.
+      const t = 1 - (m.atacandoAte - now) / (def0.attackMs ?? 460);
+      spr = golpes[Math.min(golpes.length - 1, Math.floor(t * golpes.length))];
+    } else if (andando) {
+      spr = quadros[Math.floor(now / 130) % quadros.length];
+    }
     const b = monsterBounds(m);
     const hop = Math.abs(Math.sin(now * 0.004 + m.phase)) * (andando ? 5 : 3);
+    // Avanço curto no impacto: o golpe ganha peso sem precisar de sprite novo.
+    const invest = atacando ? Math.sin(Math.min(1, 1 - (m.atacandoAte - now) / (def0.attackMs ?? 460)) * Math.PI) * 7 : 0;
 
     ctx.save();
     if (now < m.hurtUntil) ctx.globalAlpha = (Math.floor(now / 60) % 2) ? 0.35 : 1; // hit flash
     if (spr) {
-      ctx.translate(m.x, m.y - hop);
+      ctx.translate(m.x + m.facing * invest, m.y - hop);
       if (m.facing < 0) ctx.scale(-1, 1);
+      if (now < (m.impactoAte || 0)) { ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 16; }
       ctx.drawImage(spr.canvas, spr.sx, spr.sy, spr.sw, spr.sh, -b.w/2, -b.h, b.w, b.h);
     } else {
       ctx.fillStyle = '#7c3aed';
@@ -1771,6 +2041,27 @@ function renderGatherSwing(now) {
   ctx.restore();
 }
 
+// Uma martelada no conserto: faz barulho, solta fagulha e conta para a missão. O
+// ferreiro martela junto, para o trabalho parecer de dois.
+let ultimaMartelada = 0;
+function darMartelada() {
+  const alvo = marteladaTarget();
+  const now = performance.now();
+  if (!alvo || now - ultimaMartelada < 380) return;
+  ultimaMartelada = now;
+  playerGatherUntil = now + 420;
+  player.direction = alvo.x < player.x ? 'left' : 'right';
+  playForgeHit();
+  addFloater(alvo.x, alvo.y - 40, '🔨', '#fde68a');
+  for (let i = 0; i < 5; i++) {
+    addFloater(alvo.x + (Math.random() - 0.5) * 34, alvo.y - 6 - Math.random() * 14, '✦', '#fbbf24');
+  }
+  // O ferreiro acompanha o ritmo, se estiver por perto.
+  const dorn = npcData.find(n => n.mapKey === currentKey && /dorn/i.test(n.name || ''));
+  if (dorn) { dorn.andandoAte = now + 200; say(dorn, ['Isso!', 'Mais uma!', 'No compasso!', 'Firme!'][Math.floor(Math.random()*4)], 900); }
+  progressoDeMissao('martelar', 'ponte');
+}
+
 // Nearest monster within swing range — also drives the action button label.
 function attackTarget() {
   if (!isPlayMode || playerLocked || currentScene !== 'world' || playerHp <= 0) return null;
@@ -1942,19 +2233,81 @@ let shopInterior = null;
   img.onerror = () => {};
   img.src = 'assets/shop_interior.png';
 })();
+
+// Salão do Forjador de Escalas: interior próprio, sem vídeo, só arte.
+let forjadorInterior = null;
+(() => {
+  const img = new Image();
+  img.onload = () => { forjadorInterior = img; };
+  img.onerror = () => {};
+  img.src = 'assets/interior_forjador.jpg';
+})();
 const SAVE_KEY = 'acordelot_player_v1';
 
 let shopCatalog = { coins_start: 300, slots: {}, items: [] };
 let playerCoins = 300;
 let ownedItems = [];
-let equipped = { hat: null, outfit: null, wings: null, aura: null };
+let equipped = { hat: null, outfit: null, wings: null, aura: null,
+                 axe: null, pickaxe: null, hammer: null, activeTool: null };
 const skinImages = {}; // item id -> HTMLImageElement (only for items with a sprite)
+
+// Zera o que é progresso de partida (ferramentas, materiais, missões, nível), mas
+// preserva o que é cosmético comprado, que o jogador escolheu de propósito.
+function reiniciarProgressoDeJogo() {
+  equipped.axe = equipped.pickaxe = equipped.hammer = null;
+  equipped.activeTool = null;
+  toolQuality = {};
+  CRAFTABLE_TOOLS.forEach(t => { delete playerInventory[t.id]; });
+  playerInventory.wood = 0; playerInventory.stone = 0; playerInventory.potions = 0;
+  claveCount = 0;
+  activeQuests = []; completedQuests = [];
+  level = 1; xp = 0; attrPoints = 0; skillPoints = 1;
+  attrs = { forca: 0, agilidade: 0, capacidade: 0 };
+  learnedSkills = [];
+  playerHp = playerMaxHp();
+  atualizarRastreador(); updateHotbarUI(); updateInventorySlotsUI?.();
+  savePlayerData();
+}
+
+function temProgressoSalvo() {
+  try {
+    const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+    return !!(d && d.mapa && (d.missoesFeitas?.length || d.missoesAtivas?.length || d.level > 1));
+  } catch (e) { return false; }
+}
+
+// Retoma exatamente onde parou: mapa, posição, vida.
+function continuarJogo() {
+  document.getElementById('mainMenuOverlay')?.classList.add('hidden');
+  const mapa = window.__mapaSalvo;
+  if (mapa && bgSources[mapa]) {
+    currentKey = mapa;
+    if (activeMapSelect && bgSources[mapa]) activeMapSelect.value = mapa;
+    updateMapStatus();
+  }
+  if (!isPlayMode) togglePlay();
+  if (window.__posSalva && canMoveTo(window.__posSalva.x, window.__posSalva.y)) {
+    player.x = window.__posSalva.x; player.y = window.__posSalva.y;
+  }
+  if (typeof window.__vidaSalva === 'number' && window.__vidaSalva > 0) playerHp = window.__vidaSalva;
+  atualizarRastreador(); updateHotbarUI();
+  showToast(`▶ Bem-vindo de volta, ${nomeDoJogador()}!`);
+}
 
 function savePlayerData() {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       coins: playerCoins, owned: ownedItems, equipped, claves: claveCount,
       level, xp, attrPoints, skillPoints, attrs, skills: learnedSkills,
+      toolQuality,
+      // Progresso de jogo: no celular não há servidor, então tudo vive aqui.
+      nome: playerName, heroi: selectedHeroId,
+      inventario: playerInventory,
+      missoesAtivas: activeQuests, missoesFeitas: completedQuests,
+      mapa: currentKey, pos: { x: Math.round(player.x), y: Math.round(player.y) },
+      cenas: CUT.jaRodou,
+      vida: playerHp,
+      quando: Date.now(),
     }));
   } catch (e) {}
 }
@@ -1963,6 +2316,16 @@ function loadPlayerData() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return;
     const d = JSON.parse(raw);
+    if (d.toolQuality) toolQuality = d.toolQuality;
+    if (d.nome) playerName = d.nome;
+    if (d.heroi) selectedHeroId = d.heroi;
+    if (d.inventario) playerInventory = { ...playerInventory, ...d.inventario };
+    if (Array.isArray(d.missoesAtivas)) activeQuests = d.missoesAtivas;
+    if (Array.isArray(d.missoesFeitas)) completedQuests = d.missoesFeitas;
+    if (d.cenas) CUT.jaRodou = { ...CUT.jaRodou, ...d.cenas };
+    if (d.mapa) window.__mapaSalvo = d.mapa;
+    if (d.pos) window.__posSalva = d.pos;
+    if (typeof d.vida === 'number') window.__vidaSalva = d.vida;
     if (typeof d.coins === 'number') playerCoins = d.coins;
     if (typeof d.claves === 'number') claveCount = d.claves;
     if (Array.isArray(d.owned)) ownedItems = d.owned;
@@ -2022,6 +2385,13 @@ function equipItem(id) {
 
 // Is the player standing at the shop counter?
 // Standing at the interior's counter/anvil. Returns the action it offers, or null.
+// O painel de montagem de escalas entra quando os sprites de nota estiverem recortados.
+// Por enquanto o altar responde, para a sala já ter função e poder ser testada.
+function abrirForjadorDeEscalas() {
+  showToast('🔒 O Altar ainda dorme. Ele desperta quando você trouxer as notas.');
+  addFloater(player.x, player.y - 60, '♪ ♫ ♪', '#7dd3fc');
+}
+
 function atCounter() {
   const def = interiorDef();
   if (!isPlayMode || !def || playerLocked) return null;
@@ -2108,6 +2478,17 @@ function elementTarget(types) {
   return best;
 }
 function signpostTarget() { return elementTarget(['signpost']); }
+// Porta com destino é entrada de interior; sem destino, segue sendo só marcador de cena.
+function portaTarget() {
+  if (currentScene !== 'world') return null;
+  const p = elementTarget(['porta']);
+  return p && p.interior && INTERIORS[p.interior] ? p : null;
+}
+// Só vale martelar onde há trabalho: o ponto precisa de uma missão ativa pedindo isso.
+function marteladaTarget() {
+  if (!activeQuests.some(q => q.objectives.some(o => o.type === 'martelar' && !o.completed))) return null;
+  return elementTarget(['ponto_martelada']);
+}
 function spotTarget()     { return elementTarget(['spot_wood','spot_stone']); }
 function forgeDoorTarget(){ return currentScene==='world' ? elementTarget(['forge_entrance']) : null; }
 
@@ -2116,6 +2497,11 @@ function actionAvailable() {
   if(attackTarget())return 'attack'; // a monster in reach beats everything else
   const counter = atCounter();          // 'shop' inside the skin store, 'forge' in the smithy
   if(counter)return counter;
+  if(naSaidaDoInterior())return 'sair';
+  // Martelar vem antes de falar: durante a obra o ferreiro está em cima do ponto de
+  // trabalho, e o botão ficava preso no diálogo dele em vez de bater na ponte.
+  if(portaTarget())return 'entrarPorta';
+  if(marteladaTarget())return 'martelar';
   if(talkTarget())return 'talk';
   // Signposts and gathering spots have no dialogue, so they'd never light the button
   // through talkTarget() — they need their own entry.
@@ -2135,14 +2521,33 @@ let playerInventory = {
   pickaxe: 0
 };
 
+// Uma placa colada na borda punha o jogador dentro da faixa de travessia do mapa de
+// destino, que o mandava de volta no mesmo instante — parecia que a placa não
+// funcionava. A chegada agora é sempre empurrada para fora da faixa, posta em chão
+// andável, e a travessia por borda fica em carência até ele sair da beirada.
+function pousoSeguro(destKey, x, y) {
+  const folga = EDGE_BAND + ARRIVAL_INSET;
+  const px = Math.max(folga, Math.min(SCREEN_W - folga, x));
+  const py = Math.max(folga, Math.min(SCREEN_H - folga, y));
+  const anterior = currentKey;
+  currentKey = destKey;
+  try { return pontoAndavelPerto(px, py); }
+  finally { currentKey = anterior; }
+}
+
 function changeMapWithFade(targetMapKey, targetX = 512, targetY = 300) {
   const overlay = document.getElementById('mapFadeOverlay');
+  const pouso = pousoSeguro(targetMapKey, targetX, targetY);
+  targetX = pouso.x; targetY = pouso.y;
+  lastTransTime = performance.now();
+  bordaTravada = true;
   if (!overlay) {
     currentKey = targetMapKey;
     if (activeMapSelect) activeMapSelect.value = targetMapKey;
     player.x = targetX; player.y = targetY;
     updateMapStatus();
     refreshNPCHierarchy();
+    talvezIniciarCenaDoMapa(targetMapKey);
     return;
   }
 
@@ -2153,8 +2558,11 @@ function changeMapWithFade(targetMapKey, targetX = 512, targetY = 300) {
     if (activeMapSelect) activeMapSelect.value = targetMapKey;
     player.x = Math.round(targetX);
     player.y = Math.round(targetY);
+    lastTransTime = performance.now();
+    bordaTravada = true;
     updateMapStatus();
     refreshNPCHierarchy();
+    talvezIniciarCenaDoMapa(targetMapKey);
 
     setTimeout(() => {
       overlay.classList.remove('fading-out');
@@ -2172,6 +2580,10 @@ function tryTalk() {
   if(act==='attack'){ doAttack(); return; }
   else if(act==='shop'){ openShop(); return; }
   else if(act==='forge'){ openForgeMenu(); return; }
+  else if(act==='sair'){ leaveInterior(); return; }
+  else if(act==='martelar'){ darMartelada(); return; }
+  else if(act==='entrarPorta'){ enterInterior(portaTarget().interior); return; }
+  else if(act==='forjarEscala'){ abrirForjadorDeEscalas(); return; }
   
   // In play mode the map that matters is currentKey. Reading the editor's dropdown here
   // meant that after travelling — when the two drift apart — interactions were looked up
@@ -2217,7 +2629,8 @@ function tryTalk() {
           addFloater(player.x, player.y - 40, `⏳ ${remain}s`, '#94a3b8');
           return;
         }
-        const maxHits = Math.max(1, 4 - Math.floor((level - 1) / 2));
+        // Ferramenta bem forjada arranca o recurso em menos golpes.
+        const maxHits = Math.max(1, Math.round((4 - Math.floor((level - 1) / 2)) * (1 - bonusDeColeta())));
         npc.hits = (npc.hits || 0) + 1;
         playerGatherUntil = now + 450;
         npc.shakeUntil = now + 350;
@@ -2229,6 +2642,7 @@ function tryTalk() {
           npc.hits = 0;
           npc.depletedUntil = now + 7000;
           playerInventory.wood = (playerInventory.wood || 0) + 1;
+          progressoDeMissao('coletar', 'wood');
           addFloater(player.x, player.y - 45, '🎉 +1 Madeira Rústica 🪵', '#fbbf24');
           showToast('🪵 +1 Madeira Rústica coletada!');
           updateInventorySlotsUI();
@@ -2244,7 +2658,8 @@ function tryTalk() {
           addFloater(player.x, player.y - 40, `⏳ ${remain}s`, '#94a3b8');
           return;
         }
-        const maxHits = Math.max(1, 4 - Math.floor((level - 1) / 2));
+        // Ferramenta bem forjada arranca o recurso em menos golpes.
+        const maxHits = Math.max(1, Math.round((4 - Math.floor((level - 1) / 2)) * (1 - bonusDeColeta())));
         npc.hits = (npc.hits || 0) + 1;
         playerGatherUntil = now + 450;
         npc.shakeUntil = now + 350;
@@ -2256,6 +2671,7 @@ function tryTalk() {
           npc.hits = 0;
           npc.depletedUntil = now + 7000;
           playerInventory.stone = (playerInventory.stone || 0) + 1;
+          progressoDeMissao('coletar', 'stone');
           addFloater(player.x, player.y - 45, '🎉 +1 Minério de Pedra 🪨', '#38bdf8');
           showToast('🪨 +1 Minério de Pedra coletado!');
           updateInventorySlotsUI();
@@ -2275,24 +2691,10 @@ function tryTalk() {
 }
 
 let npcTriggerDebounce=0;
-function checkNPCProx() {
-  if(!isPlayMode||playerLocked)return;
-  const now=performance.now();if(now-npcTriggerDebounce<500)return;
-  for(const npc of npcData){
-    if(npc.mapKey!==currentKey)continue;
-    if(npc.triggered)continue;
-    const dx=player.x-npc.x, dy=player.y-npc.y;
-    if(Math.sqrt(dx*dx+dy*dy)<(npc.triggerRadius||70)){
-      // Signposts never travel on proximity. You arrive standing on the paired signpost,
-      // so an automatic trigger would immediately fling you back — ping-ponging until you
-      // land somewhere arbitrary. Travel is deliberate: the action button only.
-      if(npc.type==='signpost')continue;
-      if(npc.dialogue && npc.dialogue !== 'none'){
-        npcTriggerDebounce=now;startDialogue(npc);break;
-      }
-    }
-  }
-}
+// Conversar é sempre uma decisão do jogador: chegar perto acende o botão, e só o
+// botão abre o diálogo. Disparo por proximidade fazia o NPC monopolizar a cena assim
+// que o mapa carregava — o Sr. Antony despejava a quest inteira na entrada da praça.
+function checkNPCProx() { /* sem diálogo automático; ver actionAvailable()/tryTalk() */ }
 
 // ============================================================
 // WIND LEAVES
@@ -2404,6 +2806,52 @@ function renderHat(pW, pH) {
   drawSkin(spr, w, player.y - pH * 0.64 - h + (it.offsetY ?? 0));
 }
 
+// Ferramenta equipada na mão. Fica atrás do corpo quando o personagem anda para
+// cima (a mão está do outro lado), e acompanha o balanço da caminhada e dos golpes.
+const CATEGORIA_POR_SLOT = { hammer: 'hammers', axe: 'axes', pickaxe: 'pickaxes' };
+function ferramentaEmMaos() {
+  for (const slot of ['hammer', 'axe', 'pickaxe']) {
+    const id = equipped[slot];
+    if (!id) continue;
+    const def = CRAFTABLE_TOOLS.find(t => t.id === id);
+    if (def && toolSprites[`${def.category}_${def.tier}`]) return def;
+  }
+  return null;
+}
+
+function renderFerramenta(now, pW, pH, atras) {
+  const def = ferramentaEmMaos();
+  if (!def || currentScene !== 'world' || player.oculto) return;
+  const paraCima = player.direction === 'up';
+  if (paraCima !== atras) return;          // de costas, a ferramenta fica atrás do corpo
+
+  const spr = toolSprites[`${def.category}_${def.tier}`];
+  // A arte já vem inclinada na folha, com o cabo embaixo e a cabeça em cima. Então o
+  // trabalho aqui é só posicionar o punho — girar por cima disso jogava a cabeça no
+  // rosto do personagem.
+  const h = pH * 0.42, w = h * (spr.sw / spr.sh);
+  const lado = player.direction === 'left' ? -1 : 1;
+
+  const fimDoGolpe = Math.max(playerGatherUntil, attackAnimUntil);
+  const batendo = now < fimDoGolpe;
+  const dur = now < attackAnimUntil ? 180 : 450;
+  const t = batendo
+    ? Math.sin(Math.min(1, 1 - (fimDoGolpe - now) / dur) * Math.PI)
+    : (player.isMoving ? Math.sin(now * 0.012) * 0.18 : 0);
+  const giro = batendo ? -1.35 * t : t * 0.5;
+
+  ctx.save();
+  // Punho na altura da cintura, à frente do corpo. A origem é o fim do cabo.
+  ctx.translate(player.x + lado * pW * 0.32, player.y - pH * 0.18);
+  ctx.scale(lado, 1);
+  ctx.rotate(giro);
+  const q = qualidadeDe(def.id);
+  if (q.bonusColeta) { ctx.shadowColor = q.cor; ctx.shadowBlur = q.bonusColeta > 0.2 ? 10 : 5; }
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(spr.canvas, spr.sx, spr.sy, spr.sw, spr.sh, -w * 0.18, -h * 0.86, w, h);
+  ctx.restore();
+}
+
 // Musical aura: a few notes orbiting the player.
 function renderAura(now, pH) {
   if (equipped.aura !== 'aura_notes') return;
@@ -2420,6 +2868,7 @@ function renderAura(now, pH) {
 }
 
 function renderPlayer() {
+  if (player.oculto) return;      // entrou pela porta na cena: sai de cena de verdade
   const pW=currentScene!=='world'?68:player.width;
   const pH=currentScene!=='world'?92:player.height;
   renderWings(pW,pH); // behind the body
@@ -3162,6 +3611,37 @@ function blockIOSGestures() {
   }, { passive:false });
 }
 
+// No build publicado o cabeçalho não existe, então o menu inicial é a única porta de
+// entrada. Também garante o botão "Continuar" quando há progresso salvo, e esconde o
+// seletor de cenas, que é ferramenta de autoria e não coisa de aluno.
+function abrirMenuInicialSePreciso() {
+  if (!IS_PLAY_BUILD && !wantsMobilePlay()) return;
+  const menu = document.getElementById('mainMenuOverlay');
+  if (!menu || isPlayMode) return;
+  menu.classList.remove('hidden');
+  try { renderHeroAvatars(); } catch (e) {}
+  const cont = document.getElementById('continueBtn');
+  if (cont) cont.classList.toggle('hidden', !temProgressoSalvo());
+  if (IS_PLAY_BUILD) {
+    const sel = document.getElementById('menuStartPoint');
+    if (sel) {
+      sel.closest('.menu-name-row')?.classList.add('hidden');
+      if (CUT.roteiros.some(r => r.id === 'abertura')) sel.value = 'cena:abertura';
+    }
+  }
+}
+
+// Salvamento automático: o celular fecha a aba a qualquer momento e ninguém aperta
+// "salvar" num jogo. Grava a cada 8s e sempre que a aba perde o foco.
+function iniciarAutosave() {
+  setInterval(() => { if (isPlayMode) savePlayerData(); }, 8000);
+  ['pagehide', 'blur'].forEach(ev =>
+    window.addEventListener(ev, () => { if (isPlayMode) savePlayerData(); }));
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && isPlayMode) savePlayerData();
+  });
+}
+
 function enterMobilePlay() {
   document.body.classList.add('mobile-play');
   document.getElementById('left-sidebar')?.classList.add('hidden');
@@ -3392,6 +3872,26 @@ function syncInspector(npc){
     if (inspTargetY) inspTargetY.value = npc.targetY || 300;
   } else {
     signpostBox?.classList.add('hidden');
+  }
+
+  // Porta: escolher o interior que ela abre. A lista sai da tabela INTERIORS, então
+  // criar um ambiente novo já o disponibiliza aqui sem tocar no HTML.
+  const portaBox = document.querySelector('.porta-fields');
+  const selInterior = document.getElementById('insp_porta_interior');
+  if (npc.type === 'porta') {
+    portaBox?.classList.remove('hidden');
+    if (selInterior) {
+      selInterior.innerHTML = '<option value="">— Só marcador de cena —</option>' +
+        Object.entries(INTERIORS).map(([k, d]) => `<option value="${k}">${d.name}</option>`).join('');
+      selInterior.value = npc.interior || '';
+      selInterior.onchange = () => {
+        npc.interior = selInterior.value || null;
+        saveNPCs();
+        showToast(npc.interior ? `🚪 Porta abre: ${INTERIORS[npc.interior].name}` : '🚪 Porta sem destino');
+      };
+    }
+  } else {
+    portaBox?.classList.add('hidden');
   }
 }
 
@@ -3846,6 +4346,18 @@ function weMostrar(ativo) {
 //   falar        {quem, texto, auto?}       fala com máquina de escrever; espera o toque
 //                                          auto: ms para seguir sozinho, sem toque
 //   tutorial     {texto}                    caixa de instrução; espera o toque
+//   legenda      {texto, ms}                narração em tela cheia escura (passagem de tempo)
+//   esperarPerto {npc, distancia?}          só segue quando o jogador chegar perto do NPC
+//   acenar       {npc, ms?}                 o NPC acena para o jogador
+//   andar        {npc, para, sumir?}        o NPC caminha até um ponto (ou até uma porta)
+//   andarJogador {para, sumir?}             o jogador caminha sozinho até um ponto
+//   mostrar      {npc, visivel}             esconde/mostra um NPC (npc:"jogador" vale também)
+//   destacar     {npc, zoom?, ms?, rotulo?} aproxima a câmera para apresentar alguém
+//   missao       {id}                       inicia a missão do assets/quests/quests.json
+//   objetivo     {missao, id}               fecha um objetivo pelo roteiro
+//   ambiente     {escuro, cor?, ms?}        muda a luz do mapa (amanhecer/anoitecer)
+//   posicionar aceita {para:"porta", dx, dy} além de {x, y}
+//   `para` aceita: {x,y}, o nome de uma porta, ou "porta" para a mais próxima
 //   esperar      {ms}                       pausa
 //   escurecer    {para: 0..1, ms}           fade da tela (1 = preto total)
 //   tingir       {cor, forca: 0..1, ms}     véu de cor sobre a cena (mundo cinza → colorido)
@@ -3875,11 +4387,80 @@ const CUT = {
   tinta: null, tintaForca: 0, tintaAlvo: 0, tintaVel: 0,
   vinheta: 0, vinhetaAlvo: 0, vinhetaVel: 0,
   tremor: 0, tremorAte: 0,
-  sombras: [], notas: [], guia: null,
+  sombras: [], notas: [], guia: null, legenda: null, caminhadas: [],
   caixa: null,             // {quem, texto, mostrado, completo}
   andouDe: null,
-  jaRodou: {},
+  jaRodou: {}, roteiros: [],
 };
+
+// Todas as cenas do jogo, carregadas de assets/cutscenes/index.json. Escrever uma
+// cena nova é criar o JSON e citar o id nesse índice — nada de mexer em código.
+async function carregarCatalogoDeCenas() {
+  let ids = ['abertura'];
+  try {
+    const r = await fetch(`assets/cutscenes/index.json?t=${Date.now()}`);
+    const j = await r.json();
+    if (Array.isArray(j.cenas) && j.cenas.length) ids = j.cenas;
+  } catch (e) {}
+  const cenas = await Promise.all(ids.map(carregarCena));
+  CUT.roteiros = cenas.filter(Boolean);
+  window.__abertura = CUT.roteiros.find(c => c.id === 'abertura') || null;
+  return CUT.roteiros;
+}
+
+// Menu: escolher por onde a sessão começa. Testar a Cena 2 não pode obrigar a
+// assistir a Cena 1 de novo.
+function preencherMenuDeCenas() {
+  const sel = document.getElementById('menuStartPoint');
+  if (!sel) return;
+  const salvo = sel.value || localStorage.getItem('acordelot_inicio') || '';
+  sel.innerHTML = '';
+  CUT.roteiros.forEach(r => {
+    const o = document.createElement('option');
+    o.value = 'cena:' + r.id;
+    o.textContent = `🎬 ${r.nome || r.id}`;
+    sel.appendChild(o);
+  });
+  const livre = document.createElement('option');
+  livre.value = 'livre';
+  livre.textContent = '▶ Sem cena — direto no mapa inicial';
+  sel.appendChild(livre);
+  if ([...sel.options].some(o => o.value === salvo)) sel.value = salvo;
+  sel.onchange = () => { try { localStorage.setItem('acordelot_inicio', sel.value); } catch (e) {} };
+}
+
+function cenaDoMapa(mapKey) {
+  return CUT.roteiros.find(c => c.mapa === mapKey && c.autoStart !== false
+                             && (c.gatilho?.tipo || 'mapa') === 'mapa') || null;
+}
+
+// Uma cena pode exigir estado do jogo para valer — é assim que a segunda conversa com
+// o Sr. Antony só acontece depois de falar com o bardo e com o mercador.
+function condicoesDaCena(c) {
+  const r = c.requer;
+  if (!r) return true;
+  if (r.missaoConcluida && !missaoConcluida(r.missaoConcluida)) return false;
+  if (r.missaoAtiva && !missaoAtiva(r.missaoAtiva)) return false;
+  if (r.objetivos) {
+    const q = missaoAtiva(r.objetivos.missao);
+    // Missão já concluída também satisfaz: o que importa é o jogador ter feito aquilo,
+    // não a missão ainda estar aberta no rastreador.
+    if (!q) { if (!missaoConcluida(r.objetivos.missao)) return false; }
+    else if (!r.objetivos.ids.every(id => q.objectives.find(o => o.id === id)?.completed)) return false;
+  }
+  return true;
+}
+
+// Cena presa a um NPC: falar com ele roda a cena em vez do diálogo comum.
+function cenaDoNPC(npc) {
+  if (!npc) return null;
+  const nome = String(npc.name || '').toLowerCase();
+  return CUT.roteiros.find(c =>
+    c.gatilho?.tipo === 'falar' &&
+    nome.includes(String(c.gatilho.npc || '').toLowerCase()) &&
+    (!c.mapa || c.mapa === currentKey) &&
+    !cenaJaRodou(c) && condicoesDaCena(c)) || null;
+}
 
 async function carregarCena(id) {
   try {
@@ -3902,23 +4483,110 @@ function pontoAndavelPerto(x, y) {
   return { x, y };
 }
 
+// Cenas se referem a NPCs por nome (é o que o autor vê no editor), com o id como
+// alternativa. Só procura no mapa em que a cena está rodando.
+function npcPorNome(quem) {
+  if (!quem) return null;
+  const alvo = String(quem).toLowerCase();
+  return npcData.find(n => n.mapKey === currentKey &&
+    (String(n.id).toLowerCase() === alvo || String(n.name || '').toLowerCase().includes(alvo))) || null;
+}
+
+// Um destino de cena pode ser coordenada crua ou uma porta que o autor posicionou no
+// editor. Assim o roteiro fala "vai até a porta" e a posição é ajustável sem editar JSON.
+function alvoDaCena(para, refX, refY) {
+  if (!para) return null;
+  if (typeof para === 'object' && Number.isFinite(para.x)) return { x: para.x, y: para.y };
+  const nome = String(para).toLowerCase();
+  const portas = npcData.filter(n => n.type === 'porta' && n.mapKey === currentKey);
+  if (nome === 'porta') {
+    if (!portas.length) return null;
+    return portas.sort((a, b) =>
+      Math.hypot(a.x - refX, a.y - refY) - Math.hypot(b.x - refX, b.y - refY))[0];
+  }
+  const achou = portas.find(p => String(p.name || '').toLowerCase().includes(nome));
+  return achou || npcPorNome(para);
+}
+
+// A trava "já rodou" é por id. A trava por mapa só vale para cenas que disparam ao
+// chegar no cenário — cenas presas a um NPC dividem o mesmo mapa entre si, e marcar
+// o mapa inteiro fazia a Cena 5 nascer já vista quando a Cena 4 rodava.
+function cenaPorMapa(roteiro) {
+  // Cena que não dispara sozinha ao chegar no cenário (autoStart: false) não pode ser
+  // travada pela marca do mapa — senão uma cena chamada por missão nasce já "vista".
+  return !!roteiro.mapa && roteiro.autoStart !== false
+      && (roteiro.gatilho?.tipo || 'mapa') === 'mapa';
+}
+
 function cenaJaRodou(roteiro) {
-  return !!(CUT.jaRodou[roteiro.id] || (roteiro.mapa && CUT.jaRodou['mapa:' + roteiro.mapa]));
+  return !!(CUT.jaRodou[roteiro.id] ||
+            (cenaPorMapa(roteiro) && CUT.jaRodou['mapa:' + roteiro.mapa]));
 }
 
 function marcarCenaRodada(roteiro) {
   if (!roteiro) return;
   CUT.jaRodou[roteiro.id] = true;
-  if (roteiro.mapa) CUT.jaRodou['mapa:' + roteiro.mapa] = true;
+  if (cenaPorMapa(roteiro)) CUT.jaRodou['mapa:' + roteiro.mapa] = true;
   try { localStorage.setItem('acordelot_cenas', JSON.stringify(CUT.jaRodou)); } catch (e) {}
 }
 
 // Chamada sempre que o jogador põe o pé num mapa: a cena de abertura roda na
 // primeira visita e nunca mais, porque voltaremos aqui em missões futuras.
+// Marcador sobre a cabeça: "!" quando este NPC tem cena/missão nova esperando por
+// você, "?" quando ele é o alvo de um objetivo em andamento. É o que faz a Cena 5
+// deixar de ser invisível depois que a Cena 4 termina.
+function marcadorDoNPC(npc) {
+  if (!isPlayMode || !npc?.name) return null;
+  if (CUT.roteiros.some(c => c.gatilho?.tipo === 'falar' && c.mapa === currentKey &&
+        String(npc.name).toLowerCase().includes(String(c.gatilho.npc).toLowerCase()) &&
+        !cenaJaRodou(c) && condicoesDaCena(c))) return '!';
+  const nome = String(npc.name).toLowerCase();
+  for (const q of activeQuests) {
+    for (const o of q.objectives) {
+      if (o.completed || o.type !== 'talk' || !objetivoLiberado(q, o)) continue;
+      if (nome.includes(String(o.npc || '').toLowerCase())) return '?';
+    }
+  }
+  return null;
+}
+
+function renderMarcadoresDeNPC(now) {
+  npcData.forEach(npc => {
+    if (npc.mapKey !== currentKey || npc.oculto) return;
+    const m = marcadorDoNPC(npc);
+    if (!m) return;
+    const b = npcBounds(npc);
+    const y = b.y - 20 + Math.sin(now * 0.004) * 4;
+    ctx.save();
+    ctx.font = 'bold 30px Outfit, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(6,9,14,0.9)';
+    ctx.shadowColor = m === '!' ? '#f59e0b' : '#38bdf8';
+    ctx.shadowBlur = 14;
+    ctx.strokeText(m, npc.x, y);
+    ctx.fillStyle = m === '!' ? '#fbbf24' : '#7dd3fc';
+    ctx.fillText(m, npc.x, y);
+    ctx.restore();
+  });
+}
+
+// Chegar num mapa onde alguém tem cena esperando: a câmera aproxima nele por um
+// instante. Resolve "quem eu procuro agora?" sem tirar o controle do jogador.
+function apresentarQuemEsperaNoMapa(mapKey) {
+  if (!isPlayMode || CUT.ativo) return;
+  const cena = CUT.roteiros.find(c => c.gatilho?.tipo === 'falar' && c.mapa === mapKey
+                                   && !cenaJaRodou(c) && condicoesDaCena(c));
+  if (!cena) return;
+  const alvo = npcData.find(n => n.mapKey === mapKey &&
+    String(n.name || '').toLowerCase().includes(String(cena.gatilho.npc).toLowerCase()));
+  if (!alvo) return;
+  setTimeout(() => destacar(alvo.x, alvo.y - 30, { zoom: 1.8, ms: 3400, rotulo: alvo.name }), 500);
+}
+
 function talvezIniciarCenaDoMapa(mapKey) {
-  const r = window.__abertura;
-  if (!r || !r.autoStart || r.mapa !== mapKey) return;
-  if (CUT.ativo || cenaJaRodou(r)) return;
+  const r = cenaDoMapa(mapKey);
+  if (!r || CUT.ativo || cenaJaRodou(r)) { apresentarQuemEsperaNoMapa(mapKey); return; }
   iniciarCena(r);
 }
 
@@ -3933,7 +4601,9 @@ function iniciarCena(roteiro) {
   if (!roteiro || CUT.ativo) return;
   marcarCenaRodada(roteiro);
   CUT.roteiro = roteiro; CUT.passo = 0; CUT.ativo = true; CUT.aguardando = null;
-  CUT.sombras = []; CUT.notas = []; CUT.guia = null; CUT.caixa = null;
+  CUT.sombras = []; CUT.notas = []; CUT.guia = null; CUT.caixa = null; CUT.legenda = null; CUT.caminhadas = [];
+  player.oculto = false;
+  npcData.forEach(n => { n.oculto = false; });
   CUT.fade = CUT.fadeAlvo = 0; CUT.tintaForca = CUT.tintaAlvo = 0;
   CUT.vinheta = CUT.vinhetaAlvo = 0;
   if (roteiro.mapa && bgSources[roteiro.mapa]) {
@@ -3948,11 +4618,19 @@ function iniciarCena(roteiro) {
 }
 
 function encerrarCena() {
-  CUT.ativo = false; CUT.aguardando = null; CUT.caixa = null;
+  // Uma cena disparada por NPC vale como conversa: senão "volte ao Sr. Antony" nunca
+  // se completaria, já que a cena substitui o diálogo.
+  if (CUT.roteiro?.gatilho?.tipo === 'falar' && CUT.roteiro.gatilho.npc) {
+    progressoDeMissao('talk', CUT.roteiro.gatilho.npc);
+  }
+  CUT.ativo = false;
+  CUT.caminhadas = [];
+  player.oculto = false;      // nunca devolver o controle com o jogador invisível CUT.aguardando = null; CUT.caixa = null;
   CUT.fadeAlvo = 0; CUT.tintaAlvo = 0; CUT.vinhetaAlvo = 0;
   playerLocked = false;
   playerHud?.classList.remove('hidden');
   marcarCenaRodada(CUT.roteiro);
+  savePlayerData();
 }
 
 function proximoPasso() {
@@ -3972,12 +4650,12 @@ function executarPasso(p) {
   const agora = performance.now();
   switch (p.cmd) {
     case 'falar':
-      CUT.caixa = { quem: p.quem || '', texto: p.texto || '', mostrado: 0, completo: false, auto: p.auto || 0 };
+      CUT.caixa = { quem: nomeDoLocutor(p.quem), texto: subVars(p.texto), mostrado: 0, completo: false, auto: p.auto || 0 };
       CUT.aguardando = { tipo: 'toque' };
       return true;
 
     case 'tutorial':
-      CUT.caixa = { quem: '📖 Tutorial', texto: p.texto || '', mostrado: 0, completo: false, tutorial: true };
+      CUT.caixa = { quem: '📖 Tutorial', texto: subVars(p.texto), mostrado: 0, completo: false, tutorial: true };
       CUT.aguardando = { tipo: 'toque' };
       return true;
 
@@ -4016,7 +4694,12 @@ function executarPasso(p) {
       return false;
 
     case 'posicionar': {
-      const pa = pontoAndavelPerto(p.x ?? player.x, p.y ?? player.y);
+      // Aceita coordenada crua ou "sai na porta X", com deslocamento — assim o roteiro
+      // não precisa saber onde o autor colocou a porta.
+      const ref = p.para ? alvoDaCena(p.para, player.x, player.y) : null;
+      const bx = ref ? ref.x + (p.dx || 0) : (p.x ?? player.x);
+      const by = ref ? ref.y + (p.dy || 0) : (p.y ?? player.y);
+      const pa = pontoAndavelPerto(bx, by);
       player.x = pa.x; player.y = pa.y;
       if (p.olhando) player.direction = p.olhando;
       return false;
@@ -4058,6 +4741,7 @@ function executarPasso(p) {
     case 'dar':
       if (p.item === 'clave') claveCount += (p.quantidade || 1);
       else playerInventory[p.item] = (playerInventory[p.item] || 0) + (p.quantidade || 1);
+      updateInventorySlotsUI?.();
       savePlayerData();
       return false;
 
@@ -4082,6 +4766,88 @@ function executarPasso(p) {
     case 'sombra':
       CUT.sombras.push({ de: p.de || 'direita', inicio: agora, ms: p.ms || 700,
                          tipo: p.tipo || 'shiker', y: p.y });
+      return false;
+
+    case 'legenda':
+      // Narração de passagem de tempo: tela escura, texto centralizado, sem HUD.
+      CUT.legenda = { texto: subVars(p.texto), inicio: agora, ms: p.ms || 4200 };
+      CUT.aguardando = { tipo: 'tempo', ate: agora + (p.ms || 4200) };
+      return true;
+
+    case 'esperarPerto':
+      CUT.aguardando = { tipo: 'perto', npc: p.npc, dist: p.distancia || 120 };
+      return true;
+
+    case 'acenar': {
+      const alvo = npcPorNome(p.npc);
+      if (alvo) {
+        alvo.acenaAte = agora + (p.ms || 1800);
+        say(alvo, '👋', p.ms || 1800);
+      }
+      return false;
+    }
+
+    case 'andar': {
+      const quem = npcPorNome(p.npc);
+      const destino = quem ? alvoDaCena(p.para, quem.x, quem.y) : null;
+      if (!quem || !destino) return false;         // sem alvo a cena segue, não trava
+      CUT.caminhadas.push({ tipo: 'npc', alvo: quem, x: destino.x, y: destino.y,
+                            vel: p.velocidade || 1.6, sumir: p.sumir !== false });
+      CUT.aguardando = { tipo: 'caminhada' };
+      return true;
+    }
+
+    case 'andarJogador': {
+      const destino = alvoDaCena(p.para, player.x, player.y);
+      if (!destino) return false;
+      playerLocked = true;
+      CUT.caminhadas.push({ tipo: 'jogador', x: destino.x, y: destino.y,
+                            vel: p.velocidade || 2.1, sumir: p.sumir !== false });
+      CUT.aguardando = { tipo: 'caminhada' };
+      return true;
+    }
+
+    case 'mostrar': {
+      if (!p.npc || String(p.npc).toLowerCase() === 'jogador') { player.oculto = !p.visivel; return false; }
+      const quem = npcPorNome(p.npc);
+      if (quem) quem.oculto = !p.visivel;
+      return false;
+    }
+
+    case 'ambiente': {
+      const base = ambienteAtual() || { escuro: 0 };
+      const alvo = Math.max(0, Math.min(1, p.escuro ?? 0));
+      const ms = Math.max(1, p.ms ?? 2000);
+      ambienteRuntime[currentKey] = {
+        escuro: base.escuro || 0, alvo,
+        vel: (alvo - (base.escuro || 0)) / (ms / 16),
+        cor: p.cor || base.cor, haloRaio: p.haloRaio || base.haloRaio,
+      };
+      CUT.aguardando = { tipo: 'tempo', ate: agora + (p.esperar === false ? 0 : ms) };
+      return p.esperar !== false;
+    }
+
+    case 'destacar': {
+      const alvo = npcPorNome(p.npc);
+      if (alvo) destacar(alvo.x, alvo.y - 30, { zoom: p.zoom || 1.7, ms: p.ms || 3200, rotulo: p.rotulo || alvo.name });
+      CUT.aguardando = { tipo: 'tempo', ate: agora + (p.esperar === false ? 0 : (p.ms || 3200)) };
+      return p.esperar !== false;
+    }
+
+    case 'objetivo': {
+      const q = missaoAtiva(p.missao);
+      const o = q?.objectives.find(x => x.id === p.id);
+      if (o && !o.completed) {
+        o.completed = true;
+        if (o.quantidade) o.progresso = o.quantidade;
+        showToast(`✅ ${o.text}`);
+        atualizarRastreador(); verificarMissoesConcluidas();
+      }
+      return false;
+    }
+
+    case 'missao':
+      unlockQuest(p.id);
       return false;
 
     case 'som':
@@ -4161,9 +4927,18 @@ function atualizarCena(now) {
     if (now >= CUT.caixa.autoAte) { CUT.caixa = null; CUT.aguardando = null; proximoPasso(); return; }
   }
 
+  atualizarCaminhadas();
+
   const a = CUT.aguardando;
   if (!a) return;
   if (a.tipo === 'tempo' && now >= a.ate) { CUT.aguardando = null; proximoPasso(); }
+  else if (a.tipo === 'perto') {
+    const alvo = npcPorNome(a.npc);
+    if (!alvo) { CUT.aguardando = null; proximoPasso(); return; }   // NPC sumiu: não trava a cena
+    if (Math.hypot(player.x - alvo.x, player.y - alvo.y) <= a.dist) {
+      CUT.aguardando = null; proximoPasso();
+    }
+  }
   else if (a.tipo === 'mortos') {
     const vivos = monsters.filter(m => !m.dead && m.mapKey === currentKey).length;
     if (!vivos) { CUT.aguardando = null; proximoPasso(); }
@@ -4180,6 +4955,167 @@ function avancarCena() {
   if (CUT.caixa && !CUT.caixa.completo) { CUT.caixa.completo = true; CUT.caixa.mostrado = CUT.caixa.texto.length; return true; }
   CUT.caixa = null; CUT.aguardando = null; proximoPasso();
   return true;
+}
+
+
+// As notas-guia vivem FORA da cena: `renderCena` para de desenhar quando a cena
+// acaba, e era por isso que elas sumiam justo na hora de indicar o caminho. Esta
+// função é chamada todo quadro, com cena ou sem cena.
+// Noite do cenário: multiplica a cena por um azul escuro e ainda deixa um halo de luz
+// em volta do jogador, para escuro não virar "não dá para jogar".
+// Amanhecer e anoitecer dentro da cena: o comando `ambiente` sobrepõe o clima fixo do
+// mapa e caminha até o novo valor, para o sol nascer em vez de piscar.
+const ambienteRuntime = {};
+function ambienteAtual() {
+  const base = ambience[currentKey];
+  const ov = ambienteRuntime[currentKey];
+  if (!ov) return base;
+  return { ...(base || {}), ...ov, escuro: ov.escuro };
+}
+function atualizarAmbiente() {
+  const ov = ambienteRuntime[currentKey];
+  if (!ov || ov.escuro === ov.alvo) return;
+  const passo = ov.vel;
+  ov.escuro = passo > 0 ? Math.min(ov.escuro + passo, ov.alvo) : Math.max(ov.escuro + passo, ov.alvo);
+}
+
+function renderAmbiente() {
+  atualizarAmbiente();
+  const a = ambienteAtual();
+  if (!a || !(a.escuro > 0)) return;
+  const c = ctx;
+  c.save();
+  c.globalCompositeOperation = 'multiply';
+  c.fillStyle = a.cor || '#0b1220';
+  c.globalAlpha = Math.min(0.95, a.escuro);
+  c.fillRect(0, 0, SCREEN_W, SCREEN_H);
+  c.restore();
+  if (isPlayMode && a.halo !== false) {
+    const r = a.haloRaio || 210;
+    const g = c.createRadialGradient(player.x, player.y - 24, 10, player.x, player.y - 24, r);
+    g.addColorStop(0, `rgba(253,230,138,${0.16 * a.escuro})`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.save();
+    c.globalCompositeOperation = 'screen';
+    c.fillStyle = g;
+    c.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    c.restore();
+  }
+}
+
+function renderNotasGuia(now) {
+  if (!CUT.notas.length) return;
+  const c = ctx;
+  if (CUT.guia && CUT.guia.mapa !== currentKey) { CUT.guia = null; CUT.notas = []; }
+
+  // enxame de notas ao redor do jogador — depois do `guiar` elas se esticam
+  // numa fila em direção à saída e ficam lá, apontando o caminho.
+  CUT.notas.forEach((n, i) => {
+    if (now < n.nasceu) return;
+    const t = (now - n.nasceu);
+    n.ang += n.vel * 16;
+    let x, y;
+    if (CUT.guia) {
+      // Trilha: uma fila curta que sai do jogador e vai até a borda de saída. Notas
+      // além do fim da fila não são desenhadas — senão viram um rastro infinito.
+      const passo = 34;
+      const alcance = CUT.guia.dx
+        ? (CUT.guia.dx > 0 ? SCREEN_W - player.x : player.x)
+        : (CUT.guia.dy > 0 ? SCREEN_H - player.y : player.y);
+      const cabem = Math.max(3, Math.floor((alcance - 20) / passo));
+      if (i >= cabem) return;
+      const avanco = (i + 1) * passo;
+      const bal = Math.sin(now * 0.003 + i * 0.6) * 9;
+      x = player.x + CUT.guia.dx * avanco + (CUT.guia.dx ? 0 : bal);
+      y = player.y - 26 + CUT.guia.dy * avanco + (CUT.guia.dy ? 0 : bal);
+    } else {
+      x = player.x + Math.cos(n.ang) * n.raio;
+      y = player.y - 30 - Math.sin(n.ang) * n.raio * 0.4 - Math.min(60, t * 0.01) - n.sobe;
+    }
+    c.save();
+    // Na trilha as notas são maiores e pulsam em onda, do jogador para a saída, para
+    // ler como direção e não como enfeite.
+    const guiando = !!CUT.guia;
+    const pulso = guiando ? 0.55 + 0.45 * Math.sin(now * 0.006 - i * 0.5) : 0;
+    c.globalAlpha = guiando ? 0.55 + pulso * 0.45 : 0.85;
+    c.fillStyle = guiando ? '#fde68a' : '#7dd3fc';
+    c.shadowColor = guiando ? '#f59e0b' : '#38bdf8';
+    c.shadowBlur = guiando ? 14 : 10;
+    c.font = `${guiando ? 22 + pulso * 4 : 16}px serif`;
+    c.textAlign = 'center';
+    c.fillText(n.simbolo, x, y);
+    c.restore();
+  });
+
+  // Farol na borda de saída: o ponto exato de atravessar, sempre visível.
+  if (CUT.guia) {
+    const g = CUT.guia;
+    const bx = g.dx ? (g.dx > 0 ? SCREEN_W - 16 : 16) : player.x;
+    const by = g.dy ? (g.dy > 0 ? SCREEN_H - 16 : 16) : player.y;
+    const p = 0.5 + 0.5 * Math.sin(now * 0.005);
+    c.save();
+    c.globalAlpha = 0.35 + p * 0.4;
+    c.strokeStyle = '#fde68a'; c.lineWidth = 3;
+    c.shadowColor = '#f59e0b'; c.shadowBlur = 18;
+    c.beginPath();
+    if (g.dx) { c.moveTo(bx, SCREEN_H * 0.2); c.lineTo(bx, SCREEN_H * 0.8); }
+    else      { c.moveTo(SCREEN_W * 0.2, by); c.lineTo(SCREEN_W * 0.8, by); }
+    c.stroke();
+    c.fillStyle = '#fde68a';
+    c.font = 'bold 13px Outfit, sans-serif'; c.textAlign = 'center';
+    c.fillText(`↑ ${g.nome}`, g.dx ? bx - g.dx * 60 : SCREEN_W / 2,
+                              g.dy ? by - g.dy * 22 : SCREEN_H / 2);
+    c.restore();
+  }
+}
+
+// Caminhadas roteirizadas: NPC ou jogador andando sozinho até um ponto. Quem chega
+// some (é o que fecha a cena da casa) a menos que o roteiro diga o contrário.
+function atualizarCaminhadas() {
+  if (!CUT.caminhadas.length) return;
+  CUT.caminhadas = CUT.caminhadas.filter(c => {
+    const ent = c.tipo === 'jogador' ? player : c.alvo;
+    if (!ent) return false;
+    const dx = c.x - ent.x, dy = c.y - ent.y;
+    const d = Math.hypot(dx, dy);
+    if (d <= c.vel * 1.5) {
+      ent.x = c.x; ent.y = c.y;
+      if (c.tipo === 'jogador') player.isMoving = false;
+      if (c.sumir) {
+        if (c.tipo === 'jogador') player.oculto = true; else c.alvo.oculto = true;
+      }
+      return false;
+    }
+    ent.x += (dx / d) * c.vel;
+    ent.y += (dy / d) * c.vel;
+    if (c.tipo === 'jogador') {
+      player.direction = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right')
+                                                     : (dy < 0 ? 'up' : 'down');
+      player.isMoving = true;
+      player.animFrame = Math.floor(performance.now() / 130) % 4;   // anima os pés
+    } else {
+      c.alvo.flipX = dx < 0;
+      c.alvo.andandoAte = performance.now() + 120;
+    }
+    return true;
+  });
+  if (!CUT.caminhadas.length && CUT.aguardando?.tipo === 'caminhada') {
+    CUT.aguardando = null; proximoPasso();
+  }
+}
+
+function quebrarTexto(c, texto, largura) {
+  const saida = [];
+  String(texto).split('\n').forEach(paragrafo => {
+    let linha = '';
+    paragrafo.split(' ').forEach(pal => {
+      const teste = linha ? linha + ' ' + pal : pal;
+      if (c.measureText(teste).width > largura && linha) { saida.push(linha); linha = pal; }
+      else linha = teste;
+    });
+    saida.push(linha);
+  });
+  return saida;
 }
 
 function renderCena(now) {
@@ -4228,41 +5164,6 @@ function renderCena(now) {
     c.restore();
   });
 
-  if (CUT.guia && CUT.guia.mapa !== currentKey) { CUT.guia = null; CUT.notas = []; }
-
-  // enxame de notas ao redor do jogador — depois do `guiar` elas se esticam
-  // numa fila em direção à saída e ficam lá, apontando o caminho.
-  CUT.notas.forEach((n, i) => {
-    if (now < n.nasceu) return;
-    const t = (now - n.nasceu);
-    n.ang += n.vel * 16;
-    let x, y;
-    if (CUT.guia) {
-      // Trilha: uma fila curta que sai do jogador e vai até a borda de saída. Notas
-      // além do fim da fila não são desenhadas — senão viram um rastro infinito.
-      const passo = 34;
-      const alcance = CUT.guia.dx
-        ? (CUT.guia.dx > 0 ? SCREEN_W - player.x : player.x)
-        : (CUT.guia.dy > 0 ? SCREEN_H - player.y : player.y);
-      const cabem = Math.max(3, Math.floor((alcance - 20) / passo));
-      if (i >= cabem) return;
-      const avanco = (i + 1) * passo;
-      const bal = Math.sin(now * 0.003 + i * 0.6) * 9;
-      x = player.x + CUT.guia.dx * avanco + (CUT.guia.dx ? 0 : bal);
-      y = player.y - 26 + CUT.guia.dy * avanco + (CUT.guia.dy ? 0 : bal);
-    } else {
-      x = player.x + Math.cos(n.ang) * n.raio;
-      y = player.y - 30 - Math.sin(n.ang) * n.raio * 0.4 - Math.min(60, t * 0.01) - n.sobe;
-    }
-    c.save();
-    c.globalAlpha = 0.85;
-    c.fillStyle = '#7dd3fc';
-    c.shadowColor = '#38bdf8'; c.shadowBlur = 10;
-    c.font = '16px serif'; c.textAlign = 'center';
-    c.fillText(n.simbolo, x, y);
-    c.restore();
-  });
-
   // vinheta
   if (CUT.vinheta > 0.01) {
     const g = c.createRadialGradient(SCREEN_W/2, SCREEN_H/2, SCREEN_H*0.25,
@@ -4276,6 +5177,27 @@ function renderCena(now) {
   if (CUT.fade > 0.001) {
     c.fillStyle = `rgba(0,0,0,${CUT.fade})`;
     c.fillRect(0, 0, SCREEN_W, SCREEN_H);
+  }
+
+  // legenda de passagem de tempo: tela escura e narração centralizada
+  if (CUT.legenda) {
+    const l = CUT.legenda, t = (now - l.inicio) / l.ms;
+    if (t >= 1) CUT.legenda = null;
+    else {
+      const ent = Math.min(1, t * 5), sai = Math.min(1, (1 - t) * 5);
+      const a = Math.min(ent, sai);
+      c.save();
+      c.globalAlpha = a;
+      c.fillStyle = 'rgba(3,5,9,0.94)';
+      c.fillRect(0, 0, SCREEN_W, SCREEN_H);
+      c.fillStyle = '#e2e8f0';
+      c.font = 'italic 20px Outfit, sans-serif';
+      c.textAlign = 'center';
+      const linhas = quebrarTexto(c, l.texto, SCREEN_W - 200);
+      linhas.forEach((ln, i) =>
+        c.fillText(ln, SCREEN_W / 2, SCREEN_H / 2 - (linhas.length - 1) * 16 + i * 32));
+      c.restore();
+    }
   }
 
   // caixa de fala da cena — sobre o fade, para ler mesmo no escuro total
@@ -4378,6 +5300,7 @@ function togglePlay(){
     // Fresh run: full health, monsters back on their posts, loot cleared.
     playerHp=playerMaxHp(); deadUntil=0; dropItems=[]; floaters.length=0;
     monsters.forEach(m=>{m.dead=false;m.hp=m.maxHp;m.x=m.homeX;m.y=m.homeY;m.respawnAt=0;});
+    atualizarRastreador();
     showToast('▶ Jogo iniciado! WASD para mover.');
     talvezIniciarCenaDoMapa(currentKey);   // a abertura roda aqui também, não só no celular
   } else {
@@ -4386,6 +5309,7 @@ function togglePlay(){
     playerHud?.classList.add('hidden'); closeStore();
     playerLocked=false; dlg.state=DLG_STATE.CLOSED; hideNameInput();
     keys.w=keys.a=keys.s=keys.d=false;
+    atualizarRastreador();
     showToast('⏹ Parado. Voltou ao editor.');
   }
 }
@@ -4440,6 +5364,58 @@ function showToast(msg){if(!toastEl)return;toastEl.textContent=msg;toastEl.class
 // ============================================================
 // MAIN LOOP
 // ============================================================
+// ── Câmera de destaque ───────────────────────────────────────────────────────────
+// Aproxima a cena num ponto por alguns segundos, para apresentar alguém sem tirar o
+// jogo das mãos do jogador. Entra e sai suavemente; sem destaque ativo não custa nada.
+const camDestaque = { ativo: false, x: 0, y: 0, zoom: 1.7, inicio: 0, ms: 3200, rotulo: '' };
+
+function destacar(x, y, opts = {}) {
+  camDestaque.ativo = true;
+  camDestaque.x = x; camDestaque.y = y;
+  camDestaque.zoom = opts.zoom || 1.7;
+  camDestaque.ms = opts.ms || 3200;
+  camDestaque.rotulo = opts.rotulo || '';
+  camDestaque.inicio = performance.now();
+}
+
+function forcaDoDestaque(now) {
+  if (!camDestaque.ativo) return 0;
+  const t = (now - camDestaque.inicio) / camDestaque.ms;
+  if (t >= 1) { camDestaque.ativo = false; return 0; }
+  const sobe = Math.min(1, t / 0.22);            // aproxima
+  const desce = Math.min(1, (1 - t) / 0.25);     // e volta
+  const f = Math.min(sobe, desce);
+  return f * f * (3 - 2 * f);                    // suaviza as pontas
+}
+
+function aplicarCameraDeDestaque(now) {
+  const f = forcaDoDestaque(now);
+  if (f <= 0.001) return;
+  const z = 1 + (camDestaque.zoom - 1) * f;
+  // Mantém o alvo no centro da tela enquanto aproxima.
+  ctx.translate(SCREEN_W / 2, SCREEN_H / 2);
+  ctx.scale(z, z);
+  ctx.translate(-camDestaque.x, -camDestaque.y);
+}
+
+function renderRotuloDoDestaque(now) {
+  const f = forcaDoDestaque(now);
+  if (f <= 0.02 || !camDestaque.rotulo) return;
+  ctx.save();
+  ctx.globalAlpha = f;
+  ctx.font = 'bold 22px Outfit, sans-serif';
+  ctx.textAlign = 'center';
+  const w = ctx.measureText(camDestaque.rotulo).width + 34;
+  const y = SCREEN_H - 74;
+  ctx.fillStyle = 'rgba(6,9,14,0.88)';
+  ctx.fillRect(SCREEN_W/2 - w/2, y - 24, w, 36);
+  ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2;
+  ctx.strokeRect(SCREEN_W/2 - w/2, y - 24, w, 36);
+  ctx.fillStyle = '#fde68a';
+  ctx.fillText(camDestaque.rotulo, SCREEN_W/2, y);
+  ctx.restore();
+}
+
 function loop(now){
   requestAnimationFrame(loop);
   frameCount++;
@@ -4454,6 +5430,9 @@ function loop(now){
   ctx.save();
   ctx.scale(dpr, dpr);
   ctx.clearRect(0,0,SCREEN_W,SCREEN_H);ctx.imageSmoothingEnabled=false;
+  document.getElementById('gameHotbar')?.classList.toggle('hidden', !hotbarVisivel());
+  const camOn = isPlayMode && forcaDoDestaque(now) > 0.001;
+  if (camOn) { ctx.save(); aplicarCameraDeDestaque(now); }
 
   if (isMegaWorld) {
     if (!bgImages['mega_world']) {
@@ -4550,7 +5529,7 @@ function loop(now){
     // not bleed through onto the shop floor.
     const outdoors=currentScene==='world';
     if(outdoors){
-      npcData.forEach(npc=>{if(npc.mapKey!==currentKey)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
+      npcData.forEach(npc=>{if(npc.mapKey!==currentKey||npc.oculto)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
       renderDrops(now);   // on the ground, under everyone
       renderMonsters(now);
     }
@@ -4567,8 +5546,11 @@ function loop(now){
       ctx.beginPath(); ctx.ellipse(player.x,player.y,46+pulse*10,20+pulse*5,0,0,Math.PI*2); ctx.stroke();
       ctx.restore();
     }
-    renderPlayer();
     {const pW=outdoors?player.width:68,pH=outdoors?player.height:92;
+     renderFerramenta(now,pW,pH,true);}      // atrás do corpo (andando para cima)
+    renderPlayer();
+    if(!player.oculto){const pW=outdoors?player.width:68,pH=outdoors?player.height:92;
+     renderFerramenta(now,pW,pH,false);      // na frente, nas outras direções
      renderHat(pW,pH);renderAura(now,pH);}
     if(outdoors){
       renderAttackSwing(now);
@@ -4579,10 +5561,12 @@ function loop(now){
       updateAmbient(now);renderSpeech(now);renderFloaters(now);
       // Prompt over whatever the action button is currently pointing at — not just
       // NPCs. A door you can't see is a door that doesn't exist.
-      const ACT_PROMPT={talk:'E  ·  Falar',travel:'E  ·  Viajar',gather:'E  ·  Coletar',enterForge:'E  ·  Entrar'};
+      const ACT_PROMPT={talk:'E  ·  Falar',travel:'E  ·  Viajar',gather:'E  ·  Coletar',enterForge:'E  ·  Entrar',martelar:'E  ·  Martelar',entrarPorta:'E  ·  Entrar'};
       const act=actionAvailable();
       const tgt = act==='talk' ? talkTarget()
                 : act==='travel' ? signpostTarget()
+                : act==='entrarPorta' ? portaTarget()
+                : act==='martelar' ? marteladaTarget()
                 : act==='gather' ? spotTarget()
                 : act==='enterForge' ? forgeDoorTarget() : null;
       if(tgt&&!speech.some(s=>s.npc===tgt)){
@@ -4593,7 +5577,9 @@ function loop(now){
       // Interactable world elements get a soft beacon so they're findable from a distance.
       npcData.forEach(n=>{
         if(n.mapKey!==currentKey)return;
-        if(!['forge_entrance','signpost','spot_wood','spot_stone'].includes(n.type))return;
+        if(n.type==='ponto_martelada'&&!marteladaTarget())return;
+        if(n.type==='porta'&&!n.interior)return;      // porta sem destino é só marcador
+        if(!['forge_entrance','signpost','spot_wood','spot_stone','ponto_martelada','porta'].includes(n.type))return;
         const d=Math.hypot(player.x-n.x,player.y-n.y);
         if(d>340)return;
         const b=npcBounds(n);
@@ -4608,7 +5594,12 @@ function loop(now){
         ctx.restore();
       });
     }
+    if (outdoors) renderMarcadoresDeNPC(now);
+    else renderMarcadoresDoInterior(now);
+    if (camOn) { ctx.restore(); renderRotuloDoDestaque(now); }
+    renderAmbiente();
     renderDlg(now);
+    renderNotasGuia(now);
     renderCena(now);
     if(statusPos)statusPos.textContent=`X: ${Math.round(player.x)}  Y: ${Math.round(player.y)}`;
   } else {
@@ -4787,6 +5778,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   initTesteDeCena();
   blockIOSGestures();
   if(wantsMobilePlay())enterMobilePlay();
+  abrirMenuInicialSePreciso();
+  iniciarAutosave();
   setTimeout(()=>loadingOverlay?.classList.add('hidden'),600);
   requestAnimationFrame(loop);
 });
@@ -4795,14 +5788,17 @@ document.addEventListener('DOMContentLoaded',()=>{
 // conseguir rever a cena quantas vezes precisar durante a autoria.
 function initTesteDeCena() {
   document.getElementById('testarCenaBtn')?.addEventListener('click', async () => {
-    const r = window.__abertura || await carregarCena('abertura');
-    window.__abertura = r;
-    if (!r) { showToast('⚠️ Não achei assets/cutscenes/abertura.json'); return; }
+    if (!CUT.roteiros.length) await carregarCatalogoDeCenas();
+    // Roda a cena do mapa aberto no editor; sem cena aqui, cai na abertura.
+    const mapa = activeMapSelect?.value || currentKey;
+    const r = cenaDoMapa(mapa) || window.__abertura;
+    if (!r) { showToast('⚠️ Nenhuma cena cadastrada em assets/cutscenes/index.json'); return; }
     if (!bgSources[r.mapa]) { showToast('⚠️ O cenário da cena não existe mais: ' + r.mapa); return; }
     CUT.jaRodou = {};
     try { localStorage.removeItem('acordelot_cenas'); } catch (e) {}
     if (CUT.ativo) encerrarCena();
     iniciarCena(r);
+    showToast(`🎬 ${r.nome || r.id}`);
   });
 }
 
@@ -5064,20 +6060,55 @@ function initMainMenu() {
     });
   });
 
+  document.getElementById('continueBtn')?.addEventListener('click', () => {
+    initAudio(); continuarJogo();
+  });
+
   startAdventureBtn?.addEventListener('click', async () => {
+   try {
     if (menuPlayerName && menuPlayerName.value.trim()) {
       playerName = menuPlayerName.value.trim();
     }
     mainMenuOverlay?.classList.add('hidden');
 
-    // Reset cutscene flags for fresh new game play from scratch
-    CUT.jaRodou = {};
     try { localStorage.removeItem('acordelot_cenas'); } catch (e) {}
 
-    // Ensure map is startMap ("custom_1785173102424_996" / 🌑 Floresta Sombria)
-    const startMapKey = worldConfig?.startMap || 'custom_1785173102424_996';
-    currentKey = startMapKey;
-    if (activeMapSelect) activeMapSelect.value = startMapKey;
+    // Aventura nova começa sem ferramentas: o martelo precisa ser conquistado na forja,
+    // senão a missão do Dorn nasce cumprida e o jogador já entra em cena armado.
+    reiniciarProgressoDeJogo();
+
+    // O ponto de partida vem do menu: uma cena específica, ou direto no mapa inicial.
+    const escolha = document.getElementById('menuStartPoint')?.value || '';
+    const cenaEscolhida = escolha.startsWith('cena:')
+      ? CUT.roteiros.find(r => r.id === escolha.slice(5)) : null;
+
+    const startMapKey = cenaEscolhida?.mapa
+      || ((startMap && bgSources[startMap]) ? startMap : 'custom_1785173102424_996');
+    if (bgSources[startMapKey]) {
+      currentKey = startMapKey;
+      if (activeMapSelect) activeMapSelect.value = startMapKey;
+      updateMapStatus();
+    }
+
+    // Marcar TODAS as outras cenas como vistas matava a continuação: as cenas seguintes
+    // nasciam bloqueadas e o arco parava de andar. Só as anteriores à escolhida são
+    // puladas — e o estado que elas dariam (missões concluídas) é aplicado junto, para
+    // que quem começa no meio da história não fique com pré-requisito faltando.
+    CUT.jaRodou = {};
+    const ordem = CUT.roteiros.indexOf(cenaEscolhida);
+    if (ordem > 0) {
+      CUT.roteiros.slice(0, ordem).forEach(r => {
+        marcarCenaRodada(r);
+        (r.passos || []).forEach(p => {
+          if (p.cmd === 'missao' && p.id && !completedQuests.includes(p.id)) completedQuests.push(p.id);
+          if (p.cmd === 'dar') {
+            if (p.item === 'clave') claveCount += (p.quantidade || 1);
+            else playerInventory[p.item] = (playerInventory[p.item] || 0) + (p.quantidade || 1);
+          }
+        });
+      });
+      updateInventorySlotsUI?.();
+    }
 
     if (!isPlayMode) togglePlay();
 
@@ -5085,14 +6116,14 @@ function initMainMenu() {
       document.getElementById('touchControls')?.classList.remove('hidden');
     }
 
-    // Trigger the opening cutscene immediately!
-    const r = window.__abertura || await carregarCena('abertura');
-    window.__abertura = r;
-    if (r) {
-      iniciarCena(r);
-    } else {
-      showToast(`⚔️ Bem-vindo a Acordelot, ${playerName}!`);
-    }
+    if (cenaEscolhida) iniciarCena(cenaEscolhida);
+    else showToast(`⚔️ Bem-vindo a Acordelot, ${playerName}!`);
+   } catch (err) {
+    // Sair do menu sem entrar no jogo é o pior desfecho possível: garante o play mode.
+    console.error('Falha ao iniciar a aventura:', err);
+    if (!isPlayMode) togglePlay();
+    showToast('⚠️ A aventura começou, mas a abertura falhou — veja o console.');
+   }
   });
 }
 
@@ -5184,8 +6215,9 @@ async function finishInit(){
 
   // Cena de abertura: roda uma vez por jogador, e nunca dentro do editor.
   try { CUT.jaRodou = JSON.parse(localStorage.getItem('acordelot_cenas') || '{}'); } catch (e) {}
-  const abertura = await carregarCena('abertura');
-  window.__abertura = abertura;
+  await carregarCatalogoDeCenas();
+  preencherMenuDeCenas();
+  abrirMenuInicialSePreciso();   // de novo: agora o catálogo existe e o menu fica coerente
   if (wantsMobilePlay()) talvezIniciarCenaDoMapa(currentKey);
 }
 setTimeout(()=>loadingOverlay?.classList.add('hidden'),1500);
@@ -5813,6 +6845,9 @@ const TOOL_SHEETS = {
   axes: { src: 'assets/ref_axes.jpg', boxes: [
     [51,46,252,446], [388,51,247,441], [727,46,246,451], [166,531,295,452], [576,527,270,462],
   ]},
+  hammers: { src: 'assets/ref_hammers.jpg', boxes: [
+    [40,55,300,420], [372,58,308,408], [698,58,272,404], [108,516,326,438], [556,492,404,470],
+  ]},
   pickaxes: { src: 'assets/ref_pickaxes.jpg', boxes: [
     [30,35,175,970], [230,35,170,970], [430,35,164,970], [600,35,200,970], [800,35,215,970],
   ]},
@@ -5853,6 +6888,11 @@ function toolIconCanvas(cat, tier, max = 64) {
 }
 
 const CRAFTABLE_TOOLS = [
+  // Martelos — a ferramenta que abre o ofício. O primeiro é a missão do Ferreiro Dorn.
+  { id: 'hammer_ferro', category: 'hammers', name: 'Martelo do Ferreiro', tier: 1, rarity: 'bronze', icon: '🔨', wood: 3, stone: 4, coins: 0, claves: 0, minLvl: 1, color: '#78350f', desc: 'Cabo de carvalho e cabeça de ferro batido. O primeiro martelo de todo aprendiz.' },
+  { id: 'hammer_aco', category: 'hammers', name: 'Martelo de Aço Temperado', tier: 2, rarity: 'prata', icon: '🔨', wood: 8, stone: 12, coins: 140, claves: 0, minLvl: 3, color: '#475569', desc: 'Aço temperado três vezes. Soa como um sino ao bater.' },
+  { id: 'hammer_clave', category: 'hammers', name: 'Martelo da Clave', tier: 3, rarity: 'ouro', icon: '🔨', wood: 16, stone: 22, coins: 340, claves: 2, minLvl: 5, color: '#b45309', desc: 'Cada golpe ressoa na nota exata do metal.' },
+
   // Machados (Axes - Image 1)
   { id: 'axe_bronze', category: 'axes', name: 'Machadinha Rústica', tier: 1, rarity: 'bronze', icon: '🪓', wood: 5, stone: 0, coins: 50, claves: 0, minLvl: 1, color: '#78350f', desc: 'Machado inicial de bronze rústico.' },
   { id: 'axe_prata', category: 'axes', name: 'Machado de Aço Prata', tier: 2, rarity: 'prata', icon: '🪓', wood: 10, stone: 5, coins: 120, claves: 0, minLvl: 3, color: '#475569', desc: 'Lâmina de prata refinada, extrai recursos mais rápido.' },
@@ -5868,9 +6908,17 @@ const CRAFTABLE_TOOLS = [
   { id: 'pick_lendario', category: 'pickaxes', name: 'Diapasão Lendário das Esferas', tier: 5, rarity: 'lendario', icon: '⛏️', wood: 50, stone: 50, coins: 1200, claves: 10, minLvl: 10, color: '#9333ea', desc: 'Diapasão supremo dos mestres forjadores de Acordelot.' }
 ];
 
-let activeForgeTab = 'axes';
+let activeForgeTab = 'hammers';
 
 function initForgeUI() {
+  // Os dois painéis nascem dentro de #canvas-stage, que tem altura resolvida 0 e um
+  // ancestral com transform — o que ancora até `position: fixed`. Movidos para o body,
+  // eles voltam a ocupar a viewport inteira, como todo modal deve fazer.
+  ['forgeOverlay', 'forgeAnvilOverlay', 'mainMenuOverlay'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.parentElement !== document.body) document.body.appendChild(el);
+  });
+
   const overlay = document.getElementById('forgeOverlay');
   const closeBtn = document.getElementById('forgeCloseBtn');
   const tabs = document.querySelectorAll('.forge-tab');
@@ -5887,6 +6935,18 @@ function initForgeUI() {
   closeBtn?.addEventListener('click', () => {
     overlay?.classList.add('hidden');
   });
+
+  // Martelar: botão, tecla e toque em qualquer lugar do painel — em paisagem de
+  // celular o polegar não vai caçar um alvo pequeno.
+  const anvil = document.getElementById('forgeAnvilOverlay');
+  document.getElementById('anvilStrikeBtn')?.addEventListener('pointerdown', e => {
+    e.preventDefault(); e.stopPropagation(); martelar();
+  });
+  anvil?.addEventListener('pointerdown', e => { e.preventDefault(); martelar(); });
+  window.addEventListener('keydown', e => {
+    if (!forging) return;
+    if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyE') { e.preventDefault(); martelar(); }
+  });
 }
 
 function openForgeMenu() {
@@ -5896,73 +6956,175 @@ function openForgeMenu() {
   renderForgeItemsList();
 }
 
+function atualizarBolsaDaForja() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('forgeWood', playerInventory.wood || 0);
+  set('forgeStone', playerInventory.stone || 0);
+  set('forgeCoins', playerCoins || 0);
+  set('forgeClaves', claveCount || 0);
+}
+
 // ── Forging ceremony ──────────────────────────────────────
 // Instant crafting felt like nothing happened. The bar takes a few seconds, the hammer
 // lands on a beat, and only when it finishes are the resources spent and the tool given.
 let forging = null;
 
+// Qualidade nasce do minigame de ritmo e fica gravada junto do item. Ela é o que
+// diferencia duas ferramentas iguais e dá sentido a forjar bem.
+let toolQuality = {};
+window.__toolQuality = () => toolQuality;
+const QUALIDADES = {
+  comum:      { nome: 'Comum',      selo: '',    cor: '#94a3b8', bonusColeta: 0    },
+  boa:        { nome: 'Boa',        selo: '✦',   cor: '#7dd3fc', bonusColeta: 0.15 },
+  ressonante: { nome: 'Ressonante', selo: '✦✦', cor: '#fde68a', bonusColeta: 0.30 },
+};
+function qualidadeDe(id) { return QUALIDADES[toolQuality[id] || 'comum']; }
+
+// Bônus da ferramenta equipada: quanto mais ressonante, menos golpes por recurso.
+function bonusDeColeta() {
+  const ids = [equipped.axe, equipped.pickaxe, equipped.hammer].filter(Boolean);
+  return ids.reduce((m, id) => Math.max(m, qualidadeDe(id).bonusColeta), 0);
+}
+
 function startForging(tool) {
   if (forging) return;
   const overlay = document.getElementById('forgeAnvilOverlay');
-  if (!overlay) { completeForging(tool); return; }
+  if (!overlay) { completeForging(tool, 'comum'); return; }
 
-  const dur = 2600;
-  forging = { tool, start: performance.now(), dur };
+  // Quanto melhor a ferramenta, mais golpes e mais rápido o cursor: o ofício cobra ritmo.
+  const golpes = 3 + Math.min(2, tool.tier - 1);
+  forging = {
+    tool, golpes, feitos: 0, pontos: 0,
+    calor: 1, cursor: 0, dir: 1, vel: 0.9 + tool.tier * 0.12,
+    // Zona perfeita no meio, com uma faixa "boa" em volta. Encolhe conforme o tier.
+    largura: Math.max(0.09, 0.20 - tool.tier * 0.02),
+    encerrando: false,
+  };
 
   overlay.classList.remove('hidden', 'done');
-  overlay.querySelector('.anvil-title').textContent = 'Forjando…';
+  overlay.querySelector('.anvil-title').textContent = 'Bata no compasso';
   overlay.querySelector('.anvil-name').textContent = tool.name;
   const art = overlay.querySelector('.anvil-art');
   art.innerHTML = '';
-  const cv = toolIconCanvas(tool.category, tool.tier, 120);
+  const cv = toolIconCanvas(tool.category, tool.tier, 110);
   if (cv) art.appendChild(cv); else art.textContent = tool.icon;
+  overlay.querySelector('.anvil-sparks').innerHTML = '';
+  overlay.querySelector('.anvil-fill').style.width = '0%';
+  // A dica é reescrita no fim da forja; sem reset, a sessão seguinte começa com o
+  // veredito da anterior na tela.
+  overlay.querySelector('.anvil-hint').textContent =
+    'Toque na tela (ou ESPAÇO) quando o martelo cruzar a zona dourada';
 
-  const fill = overlay.querySelector('.anvil-fill');
-  const sparks = overlay.querySelector('.anvil-sparks');
-  fill.style.width = '0%';
-  sparks.innerHTML = '';
+  const barra = overlay.querySelector('.rhythm-bar');
+  const zp = barra.querySelector('.rz-perfeito'), zb = barra.querySelector('.rz-bom');
+  const lp = forging.largura, lb = lp * 2.4;
+  zp.style.left = ((0.5 - lp / 2) * 100) + '%'; zp.style.width = (lp * 100) + '%';
+  zb.style.left = ((0.5 - lb / 2) * 100) + '%'; zb.style.width = (lb * 100) + '%';
+  atualizarPainelDaForja();
 
-  // Driven by a timer, not requestAnimationFrame: rAF stops in a background tab, which
-  // froze the bar at 0% and left the player stuck with the panel open forever.
-  let lastBeat = -1;
-  forging.timer = setInterval(() => {
-    if (!forging) return;
-    const t = Math.min(1, (performance.now() - forging.start) / dur);
-    fill.style.width = (t * 100) + '%';
-    art.style.transform = `scale(${1 + Math.sin(t * Math.PI * 8) * 0.05})`;
+  // setInterval e não requestAnimationFrame: em aba de fundo o rAF congela e o jogador
+  // ficava preso com o painel aberto.
+  forging.timer = setInterval(passoDaForja, 16);
+}
 
-    const beat = Math.floor(t * 6);
-    if (beat !== lastBeat && t < 1) {
-      lastBeat = beat;
-      playForgeHit();
-      for (let i = 0; i < 7; i++) {
-        const s = document.createElement('i');
-        s.className = 'spark';
-        s.style.setProperty('--dx', (Math.random() * 160 - 80) + 'px');
-        s.style.setProperty('--dy', (-Math.random() * 90 - 20) + 'px');
-        s.style.left = '50%'; s.style.top = '58%';
-        sparks.appendChild(s);
-        setTimeout(() => s.remove(), 700);
-      }
-    }
-    if (t >= 1) finishForging();
-  }, 40);
+function passoDaForja() {
+  if (!forging || forging.encerrando) return;
+  const overlay = document.getElementById('forgeAnvilOverlay');
+
+  // vai e volta
+  forging.cursor += forging.dir * forging.vel * 0.016;
+  if (forging.cursor >= 1) { forging.cursor = 1; forging.dir = -1; }
+  if (forging.cursor <= 0) { forging.cursor = 0; forging.dir = 1; }
+
+  // o metal esfria: é o relógio do minigame
+  forging.calor = Math.max(0, forging.calor - 0.0022);
+
+  overlay.querySelector('.rhythm-cursor').style.left = (forging.cursor * 100) + '%';
+  overlay.querySelector('.heat-fill').style.width = (forging.calor * 100) + '%';
+  overlay.querySelector('.anvil-fill').style.width = ((forging.feitos / forging.golpes) * 100) + '%';
+
+  if (forging.calor <= 0) finishForging();   // esfriou: sai o que der
+}
+
+// Uma martelada. Perto do centro vale 2, na faixa larga vale 1, fora esfria o metal.
+function martelar() {
+  if (!forging || forging.encerrando) return;
+  const d = Math.abs(forging.cursor - 0.5);
+  const lp = forging.largura / 2, lb = forging.largura * 1.2;
+  let ganho = 0, texto = '';
+  if (d <= lp)      { ganho = 2; texto = '✦ PERFEITO!'; forging.calor = Math.min(1, forging.calor + 0.08); }
+  else if (d <= lb) { ganho = 1; texto = '✦ Bom';       }
+  else              { ganho = 0; texto = '✧ Errou';     forging.calor = Math.max(0, forging.calor - 0.16); }
+
+  forging.pontos += ganho;
+  forging.feitos++;
+  forging.vel += 0.16;                       // acelera a cada golpe
+  playForgeHit();
+  faiscasDaForja(ganho ? 8 : 2);
+  atualizarPainelDaForja(texto);
+
+  const overlay = document.getElementById('forgeAnvilOverlay');
+  const art = overlay.querySelector('.anvil-art');
+  art.style.transform = `scale(${ganho === 2 ? 1.16 : ganho ? 1.08 : 0.96})`;
+  setTimeout(() => { if (forging) art.style.transform = 'scale(1)'; }, 90);
+
+  if (forging.feitos >= forging.golpes) finishForging();
+}
+
+function atualizarPainelDaForja(texto) {
+  const overlay = document.getElementById('forgeAnvilOverlay');
+  if (!overlay || !forging) return;
+  const marcas = Array.from({ length: forging.golpes }, (_, i) =>
+    i < forging.feitos ? '✦' : '✧').join(' ');
+  overlay.querySelector('.anvil-hits').innerHTML =
+    `<span style="color:#fde68a">${marcas}</span>` +
+    (texto ? ` &nbsp; <span style="color:#fbbf24">${texto}</span>` : '');
+}
+
+function faiscasDaForja(n) {
+  const sparks = document.getElementById('forgeAnvilOverlay')?.querySelector('.anvil-sparks');
+  if (!sparks) return;
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('i');
+    s.className = 'spark';
+    s.style.setProperty('--dx', (Math.random() * 160 - 80) + 'px');
+    s.style.setProperty('--dy', (-Math.random() * 90 - 20) + 'px');
+    s.style.left = '50%'; s.style.top = '58%';
+    sparks.appendChild(s);
+    setTimeout(() => s.remove(), 700);
+  }
+}
+
+// A soma das marteladas vira qualidade. Errar tudo ainda entrega a ferramenta: o
+// jogador nunca perde material, só perde o brilho.
+function qualidadeDoResultado() {
+  const max = forging.golpes * 2;
+  const r = max ? forging.pontos / max : 0;
+  return r >= 0.85 ? 'ressonante' : r >= 0.5 ? 'boa' : 'comum';
 }
 
 function finishForging() {
-  if (!forging) return;              // guard: the timer can fire once more mid-teardown
+  if (!forging || forging.encerrando) return;   // o timer pode disparar de novo no meio
+  forging.encerrando = true;
   clearInterval(forging.timer);
   const { tool } = forging;
+  const q = qualidadeDoResultado();
+  const info = QUALIDADES[q];
   const overlay = document.getElementById('forgeAnvilOverlay');
   overlay?.classList.add('done');
-  overlay.querySelector('.anvil-title').textContent = '✨ Pronto!';
+  overlay.querySelector('.anvil-title').textContent = `✨ ${info.nome} ${info.selo}`;
+  overlay.querySelector('.anvil-hint').textContent = info.bonusColeta
+    ? `+${Math.round(info.bonusColeta * 100)}% de eficiência na coleta`
+    : 'Serve. Da próxima vez, siga o compasso.';
+  faiscasDaForja(14);
   playForgeDone();
-  completeForging(tool);
+  completeForging(tool, q);
   forging = null;
-  setTimeout(() => { overlay?.classList.add('hidden'); overlay?.classList.remove('done'); renderForgeItemsList(); }, 1100);
+  setTimeout(() => { overlay?.classList.add('hidden'); overlay?.classList.remove('done'); renderForgeItemsList(); }, 1600);
 }
 
-function completeForging(tool) {
+function completeForging(tool, qualidade = 'comum') {
+  toolQuality[tool.id] = qualidade;
   playerInventory.wood -= tool.wood;
   playerInventory.stone -= tool.stone;
   playerCoins -= tool.coins;
@@ -5970,8 +7132,11 @@ function completeForging(tool) {
   playerInventory[tool.id] = 1;
   if (tool.category === 'axes') equipped.axe = tool.id;
   if (tool.category === 'pickaxes') equipped.pickaxe = tool.id;
-  addFloater(player.x, player.y - 50, `✨ ${tool.name}`, '#fbbf24');
-  showToast(`🔨 ${tool.name} forjado!`);
+  if (tool.category === 'hammers') equipped.hammer = tool.id;
+  progressoDeMissao('forjar', tool.id);
+  const q = QUALIDADES[qualidade];
+  addFloater(player.x, player.y - 50, `✨ ${tool.name} ${q.selo}`, q.cor);
+  showToast(`🔨 ${tool.name} — qualidade ${q.nome}!`);
   updateInventorySlotsUI();
   updateHotbarUI();
   savePlayerData();
@@ -6007,6 +7172,7 @@ function playForgeDone() {
 }
 
 function renderForgeItemsList() {
+  atualizarBolsaDaForja();
   const container = document.getElementById('forgeItemsList');
   if (!container) return;
   container.innerHTML = '';
@@ -6065,86 +7231,114 @@ function renderForgeItemsList() {
   });
 }
 
+// ── Hotbar ───────────────────────────────────────────────────────────────────────
+// Os slots são montados a partir do que o jogador realmente tem: arte da ferramenta,
+// selo de qualidade da forja e slot apagado quando ele ainda não possui o item.
+// Emoji genérico e rótulo "BRONZE" não diziam nada e destoavam do resto do jogo.
+const HOTBAR_SLOTS = [
+  { tecla: '1', slot: 'axe',     padrao: 'axe_bronze',  nome: 'Machado',   emoji: '🪓' },
+  { tecla: '2', slot: 'pickaxe', padrao: 'pick_bronze', nome: 'Diapasão',  emoji: '⛏️' },
+  { tecla: '3', slot: 'hammer',  padrao: 'hammer_ferro',nome: 'Martelo',   emoji: '🔨' },
+  { tecla: '4', slot: 'potion',  nome: 'Poção', emoji: '🧪' },
+];
+
+function usarSlotDaHotbar(def) {
+  if (def.slot === 'potion') {
+    if ((playerInventory.potions || 0) > 0) {
+      playerInventory.potions--;
+      playerHp = Math.min(playerMaxHp(), playerHp + 40);
+      showToast('🧪 Poção consumida! +40 HP');
+      savePlayerData();
+    } else showToast('⚠️ Sem poções no inventário.');
+  } else {
+    if (!equipped[def.slot]) { showToast(`⚠️ Você ainda não tem um ${def.nome.toLowerCase()}.`); return; }
+    equipped.activeTool = def.slot;
+    const t = CRAFTABLE_TOOLS.find(x => x.id === equipped[def.slot]);
+    showToast(`${def.emoji} ${t ? t.name : def.nome} equipado`);
+    savePlayerData();
+  }
+  updateHotbarUI();
+}
+
 function initHotbar() {
-  const hotbar = document.getElementById('gameHotbar');
-  if (!hotbar) return;
+  if (!document.getElementById('gameHotbar')) return;
 
-  document.querySelectorAll('.hotbar-slot').forEach(slot => {
-    slot.addEventListener('click', () => {
-      const slotNum = slot.dataset.hotslot;
-      if (slotNum === '1') {
-        equipped.activeTool = 'axe';
-        showToast('🪓 Machado equipado!');
-      } else if (slotNum === '2') {
-        equipped.activeTool = 'pickaxe';
-        showToast('⛏️ Diapasão equipado!');
-      } else if (slotNum === '3') {
-        if ((playerInventory.potions || 0) > 0) {
-          playerInventory.potions--;
-          playerHp = Math.min(playerMaxHp(), playerHp + 40);
-          showToast('🧪 Poção consumida! +40 HP');
-        } else {
-          showToast('⚠️ Sem poções no inventário!');
-        }
-      }
-      updateHotbarUI();
-    });
-  });
-
-  const modeToggle = document.getElementById('hotModeToggle');
-  modeToggle?.addEventListener('click', () => {
-    const isGathering = equipped.activeTool === 'pickaxe' || equipped.activeTool === 'axe';
-    equipped.activeTool = isGathering ? 'weapon' : 'axe';
-    showToast(`Modo alterado para ${equipped.activeTool === 'weapon' ? '⚔️ Batalha' : '⛏️ Coleta'}`);
+  document.getElementById('hotModeToggle')?.addEventListener('click', () => {
+    const coletando = equipped.activeTool !== 'weapon';
+    equipped.activeTool = coletando ? 'weapon' : (equipped.axe ? 'axe' : 'hammer');
+    showToast(coletando ? '⚔️ Modo Batalha' : '⛏️ Modo Coleta');
     updateHotbarUI();
   });
 
-  // Hotkey listener (1, 2, 3)
-  window.addEventListener('keydown', (e) => {
-    if (!isPlayMode || dlg.state !== DLG_STATE.CLOSED || shopOpen || inventoryOpen) return;
-    if (e.key === '1') { equipped.activeTool = 'axe'; updateHotbarUI(); }
-    if (e.key === '2') { equipped.activeTool = 'pickaxe'; updateHotbarUI(); }
-    if (e.key === '3') {
-      if ((playerInventory.potions || 0) > 0) {
-        playerInventory.potions--;
-        playerHp = Math.min(playerMaxHp(), playerHp + 40);
-        showToast('🧪 Poção consumida! +40 HP');
-        updateHotbarUI();
-      }
-    }
+  window.addEventListener('keydown', e => {
+    if (!isPlayMode || dlg.state !== DLG_STATE.CLOSED || shopOpen || inventoryOpen || forging) return;
+    const def = HOTBAR_SLOTS.find(s => s.tecla === e.key);
+    if (def) usarSlotDaHotbar(def);
   });
+
+  updateHotbarUI();
+}
+
+// A barra de itens é HUD: durante fala, cena ou menu aberto ela atrapalha a leitura.
+function hotbarVisivel() {
+  return isPlayMode
+      && dlg.state === DLG_STATE.CLOSED
+      && !CUT.ativo && !playerLocked && !forging
+      && !shopOpen && !inventoryOpen && !charOpen
+      && !playerHud?.classList.contains('hidden');
 }
 
 function updateHotbarUI() {
   const hotbar = document.getElementById('gameHotbar');
-  if (!hotbar) return;
-  hotbar.classList.toggle('hidden', !isPlayMode);
+  const caixa = document.getElementById('hotbarSlots');
+  if (!hotbar || !caixa) return;
+  hotbar.classList.toggle('hidden', !hotbarVisivel());
+  if (!isPlayMode) return;
 
-  const axeObj = CRAFTABLE_TOOLS.find(t => t.id === (equipped.axe || 'axe_bronze'));
-  const pickObj = CRAFTABLE_TOOLS.find(t => t.id === (equipped.pickaxe || 'pick_bronze'));
+  caixa.innerHTML = '';
+  HOTBAR_SLOTS.forEach(def => {
+    const el = document.createElement('div');
+    el.className = 'hb-slot';
+    el.title = def.nome;
 
-  const hAxeLabel = document.getElementById('hotAxeLabel');
-  const hPickLabel = document.getElementById('hotPickLabel');
-  const hPotionCount = document.getElementById('hotPotionCount');
-  const hModeText = document.getElementById('hotModeText');
-  const hModeIcon = document.getElementById('hotModeIcon');
-
-  if (hAxeLabel && axeObj) hAxeLabel.textContent = axeObj.rarity.toUpperCase();
-  if (hPickLabel && pickObj) hPickLabel.textContent = pickObj.rarity.toUpperCase();
-  if (hPotionCount) hPotionCount.textContent = playerInventory.potions || 0;
-
-  const slot1 = document.querySelector('[data-hotslot="1"]');
-  const slot2 = document.querySelector('[data-hotslot="2"]');
-  if (slot1) slot1.classList.toggle('active', equipped.activeTool === 'axe');
-  if (slot2) slot2.classList.toggle('active', equipped.activeTool === 'pickaxe');
-
-  if (hModeText && hModeIcon) {
-    if (equipped.activeTool === 'weapon') {
-      hModeText.textContent = 'Batalha';
-      hModeIcon.textContent = '⚔️';
+    if (def.slot === 'potion') {
+      const n = playerInventory.potions || 0;
+      el.classList.toggle('vazio', n === 0);
+      el.innerHTML = `<span class="hb-key">${def.tecla}</span>
+                      <span class="hb-emoji">${def.emoji}</span>
+                      <span class="hb-qtd">${n}</span>`;
     } else {
-      hModeText.textContent = 'Coleta';
-      hModeIcon.textContent = '⛏️';
+      const id = equipped[def.slot];
+      const tool = id && CRAFTABLE_TOOLS.find(t => t.id === id);
+      el.classList.toggle('vazio', !tool);
+      el.classList.toggle('ativo', equipped.activeTool === def.slot && !!tool);
+      el.innerHTML = `<span class="hb-key">${def.tecla}</span>`;
+      const arte = tool && toolIconCanvas(tool.category, tool.tier, 34);
+      if (arte) el.appendChild(arte);
+      else {
+        const s = document.createElement('span');
+        s.className = 'hb-emoji'; s.textContent = def.emoji;
+        el.appendChild(s);
+      }
+      if (tool) {
+        const q = qualidadeDe(tool.id);
+        if (q.selo) {
+          const selo = document.createElement('span');
+          selo.className = 'hb-selo'; selo.textContent = q.selo;
+          selo.style.color = q.cor;
+          el.appendChild(selo);
+        }
+        el.title = `${tool.name}${q.selo ? ' · ' + q.nome : ''}`;
+      }
     }
-  }
+
+    el.addEventListener('click', () => usarSlotDaHotbar(def));
+    caixa.appendChild(el);
+  });
+
+  const txt = document.getElementById('hotModeText');
+  const ico = document.getElementById('hotModeIcon');
+  const batalha = equipped.activeTool === 'weapon';
+  if (txt) txt.textContent = batalha ? 'Batalha' : 'Coleta';
+  if (ico) ico.textContent = batalha ? '⚔️' : '⛏️';
 }

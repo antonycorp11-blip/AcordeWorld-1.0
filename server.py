@@ -75,12 +75,17 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
             assets_dir = os.path.join(DIRECTORY, 'assets')
             os.makedirs(assets_dir, exist_ok=True)
 
-            # Save world config
-            if 'worldConfig' in data:
-                cfg_path = os.path.join(assets_dir, 'acordelot_world_config.json')
-                with open(cfg_path, 'w') as f:
-                    json.dump(data['worldConfig'], f, indent=2)
-                print(f"[Server] World config saved.")
+            # Save world config. Um POST sem cenários é sempre erro (aba velha, teste,
+            # requisição truncada) e apagaria o mundo inteiro — recusa em vez de gravar.
+            cfg = data.get('worldConfig')
+            if cfg is not None:
+                if isinstance(cfg, dict) and cfg.get('gridPos'):
+                    cfg_path = os.path.join(assets_dir, 'acordelot_world_config.json')
+                    with open(cfg_path, 'w') as f:
+                        json.dump(cfg, f, indent=2, ensure_ascii=False)
+                    print("[Server] World config saved.")
+                else:
+                    print("[Server] RECUSADO: worldConfig vazio ou sem gridPos.")
 
             # Save canvas layer images
             pattern = re.compile(r'^(road|fg|door)_([0-9]+_[0-9]+)$')
@@ -110,9 +115,14 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
             assets_dir = os.path.join(DIRECTORY, 'assets')
             os.makedirs(assets_dir, exist_ok=True)
             npc_path = os.path.join(assets_dir, 'npcs.json')
+            count = len(data.get('npcs', []))
+            # Lista vazia nunca é intencional: seria apagar todos os NPCs do jogo.
+            if count == 0:
+                print("[Server] RECUSADO: npcs.json vazio.")
+                self._ok({'status': 'ignorado', 'count': 0})
+                return
             with open(npc_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-            count = len(data.get('npcs', []))
             print(f"[Server] NPCs saved: {count} NPC(s).")
             self._ok({'status': 'ok', 'count': count})
         except Exception as e:

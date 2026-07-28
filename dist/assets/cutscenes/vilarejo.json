@@ -1,0 +1,269 @@
+{
+  "id": "vilarejo",
+  "nome": "Cena 2 — O Vilarejo à Noite",
+  "mapa": "1_1",
+  "autoStart": true,
+  "passos": [
+    {
+      "_": "── Chegada: a caminhada que ficou entre um mapa e outro ──"
+    },
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "hud",
+      "visivel": false
+    },
+    {
+      "cmd": "escurecer",
+      "para": 1,
+      "ms": 0
+    },
+    {
+      "cmd": "legenda",
+      "texto": "Seguindo as notas musicais, ele caminhou por horas na escuridão.",
+      "ms": 4200
+    },
+    {
+      "cmd": "legenda",
+      "texto": "Quando as pernas já pesavam, luzes fracas surgiram entre as árvores.\nUm vilarejo.",
+      "ms": 4600
+    },
+    {
+      "cmd": "escurecer",
+      "para": 0,
+      "ms": 2400
+    },
+    {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Casas... gente...",
+      "auto": 1200
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Eu consegui."
+    },
+    {
+      "_": "── O tutorial manda procurar a aldeã ──"
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "Aproxime-se da aldeã."
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "esperarPerto",
+      "npc": "Mirela",
+      "distancia": 110
+    },
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "acenar",
+      "npc": "Mirela",
+      "ms": 1800
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "_": "── Diálogo ──"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Aldeã Mirela",
+      "texto": "Ei! Você aí!"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Aldeã Mirela",
+      "texto": "Veio andando da floresta... a esta hora?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Eu... acho que sim. Não me lembro de muita coisa.",
+      "auto": 1600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Aldeã Mirela",
+      "texto": "Ninguém caminha perto da floresta depois que escurece. Ninguém."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Aldeã Mirela",
+      "texto": "As criaturas descem quando o silêncio toma conta. Você teve sorte."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Aldeã Mirela",
+      "texto": "Venha. Minha casa é ali. Você dorme, espera o sol nascer."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Aldeã Mirela",
+      "texto": "De manhã, siga a estrada até Acordelot. À noite, essa estrada não é sua amiga."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Acordelot...",
+      "auto": 1400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Obrigado. De verdade."
+    },
+    {
+      "_": "── Ela vai na frente, ele segue, os dois entram ──"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Aldeã Mirela",
+      "texto": "Venha, é logo ali. Fecho a porta atrás de nós.",
+      "auto": 1500
+    },
+    {
+      "cmd": "andar",
+      "npc": "Mirela",
+      "para": "porta",
+      "velocidade": 1.5,
+      "sumir": true
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "andarJogador",
+      "para": "porta",
+      "velocidade": 2.0,
+      "sumir": true
+    },
+    {
+      "cmd": "esperar",
+      "ms": 400
+    },
+    {
+      "cmd": "escurecer",
+      "para": 1,
+      "ms": 1600
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1200
+    },
+    {
+      "_": "── A conversa lá dentro, sobre o que fazer de manhã ──"
+    },
+    {
+      "cmd": "legenda",
+      "texto": "A noite passou em silêncio, longe da floresta.",
+      "ms": 3800
+    },
+    {
+      "cmd": "falar",
+      "quem": "Aldeã Mirela",
+      "texto": "Dormiu bem? O sol já está subindo."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Aldeã Mirela",
+      "texto": "Agora é hora de você ir até a cidade."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Aldeã Mirela",
+      "texto": "Acordelot. É lá que vão poder te ajudar de verdade."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Aldeã Mirela",
+      "texto": "Alguém lá vai saber o que essas notas querem de você."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Acordelot, então.",
+      "auto": 1300
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Eu vou."
+    },
+    {
+      "_": "── Manhã: os dois saem da casa ──"
+    },
+    {
+      "cmd": "posicionar",
+      "para": "porta",
+      "dy": 74,
+      "olhando": "down"
+    },
+    {
+      "cmd": "mostrar",
+      "npc": "jogador",
+      "visivel": true
+    },
+    {
+      "cmd": "mostrar",
+      "npc": "Mirela",
+      "visivel": true
+    },
+    {
+      "cmd": "ambiente",
+      "escuro": 0.12,
+      "cor": "#1a2436",
+      "ms": 2600,
+      "esperar": false
+    },
+    {
+      "cmd": "escurecer",
+      "para": 0,
+      "ms": 1600
+    },
+    {
+      "cmd": "esperar",
+      "ms": 700
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "Siga a estrada até Acordelot."
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "fim"
+    }
+  ]
+}

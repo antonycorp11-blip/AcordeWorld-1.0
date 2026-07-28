@@ -115,9 +115,9 @@
         0
       ],
       "height": 74,
-      "hp": 24,
+      "hp": 60,
       "damage": 6,
-      "speed": 1.1,
+      "speed": 1.7,
       "aggroRange": 320,
       "touchRange": 38,
       "drop": {
@@ -126,7 +126,11 @@
         "max": 1
       },
       "walkRow": 1,
-      "walkFrames": 4
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 4,
+      "attackWindup": 190,
+      "attackMs": 460
     }
   },
   "spawns": [

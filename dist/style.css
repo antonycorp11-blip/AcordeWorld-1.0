@@ -1843,72 +1843,65 @@ body.mobile-play #gameCanvas {
 
 /* ── GAME HOTBAR INFERIOR ── */
 .game-hotbar {
-  position: absolute;
-  bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 8px;
-  background: rgba(14, 9, 4, 0.92);
-  border: 3px solid #78350f;
-  border-radius: 8px;
-  padding: 6px 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.8), inset 0 0 8px rgba(0,0,0,0.9);
-  z-index: 1000;
-  image-rendering: pixelated;
+  /* Barra de itens: madeira e ferro, como o resto do jogo. Mostra a arte real da
+     ferramenta e o selo de qualidade da forja, não emoji genérico. */
+  position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: stretch; gap: 8px;
+  padding: 6px 8px; z-index: 1000;
+  background: linear-gradient(180deg, rgba(37,23,10,.96), rgba(15,9,4,.96));
+  border: 2px solid #7c4a12; border-radius: 12px;
+  box-shadow: 0 8px 26px rgba(0,0,0,.7), inset 0 1px 0 rgba(253,230,138,.14);
+  font-family: 'Outfit', sans-serif;
 }
-.hotbar-slot {
-  width: 48px;
-  height: 48px;
-  background: #1e1108;
-  border: 2px solid #573612;
-  border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  cursor: pointer;
-  transition: all 0.1s;
-}
-.hotbar-slot.active {
-  border-color: #fbbf24;
-  background: #3d230d;
-  box-shadow: inset 0 0 8px rgba(251,191,36,0.4);
-}
-.hot-key {
-  position: absolute;
-  top: 2px;
-  left: 4px;
-  font-size: 9px;
-  font-weight: 900;
-  color: #a88a60;
-}
-.hot-icon { font-size: 20px; }
-.hot-label {
-  font-size: 9px;
-  font-weight: 800;
-  color: #fef08a;
-  margin-top: 1px;
-}
+.game-hotbar.hidden { display: none; }
+.hb-slots { display: flex; gap: 6px; }
 
-/* ── FORGE / CRAFTING OVERLAY ── */
-#forgeOverlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(4, 8, 14, 0.88);
-  backdrop-filter: blur(6px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1250;
-  padding: 12px;
+.hb-slot {
+  position: relative; width: 52px; height: 52px;
+  display: grid; place-items: center; cursor: pointer;
+  background: radial-gradient(circle at 50% 35%, #2e1c0b, #150c05);
+  border: 2px solid #5a3410; border-radius: 9px;
+  transition: transform .08s, border-color .12s, box-shadow .12s;
 }
-/* ══════════════════════
-   FORJA
-   Painel escuro com calor de brasa. Grade uniforme, hierarquia clara: arte grande à
-   esquerda, nome e raridade, requisitos como fichas legíveis, ação ocupando a base.
-══════════════════════ */
+.hb-slot:hover { transform: translateY(-2px); border-color: #a16207; }
+.hb-slot.ativo {
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 1px rgba(251,191,36,.5), inset 0 0 14px rgba(251,191,36,.28);
+}
+.hb-slot.vazio { opacity: .38; filter: grayscale(1); cursor: default; }
+.hb-slot canvas, .hb-slot .hb-emoji {
+  width: 34px; height: 34px; object-fit: contain;
+  image-rendering: pixelated; font-size: 26px; line-height: 34px; text-align: center;
+}
+.hb-key {
+  position: absolute; top: 2px; left: 4px;
+  font-size: 9px; font-weight: 800; color: #b0865b; letter-spacing: .5px;
+}
+.hb-selo {
+  position: absolute; bottom: 1px; right: 4px;
+  font-size: 9px; font-weight: 800; letter-spacing: -1px;
+}
+.hb-qtd {
+  position: absolute; bottom: 1px; right: 5px;
+  font-size: 11px; font-weight: 800; color: #fde68a;
+  text-shadow: 0 1px 2px #000;
+}
+.hb-mode {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 62px; padding: 0 10px; cursor: pointer;
+  border-left: 2px solid #5a3410; border-radius: 0 8px 8px 0;
+  color: #fde68a;
+}
+.hb-mode:hover { background: rgba(251,191,36,.08); }
+.hb-mode-icon { font-size: 19px; }
+.hb-mode-text { font-size: 10px; font-weight: 700; letter-spacing: .4px; color: #b0865b; }
+
+@media (max-width: 900px), (pointer: coarse) {
+  .game-hotbar { bottom: 6px; gap: 6px; padding: 4px 6px; }
+  .hb-slot { width: 44px; height: 44px; }
+  .hb-slot canvas, .hb-slot .hb-emoji { width: 28px; height: 28px; font-size: 21px; line-height: 28px; }
+  .hb-mode { min-width: 52px; padding: 0 7px; }
+}
 .forge-window {
   width: min(1000px, 94%);
   max-height: min(640px, 92%);
@@ -2572,7 +2565,9 @@ body.mobile-play #gameCanvas {
    MAIN MENU OVERLAY & CHARACTER SELECTION (4 HEROES)
    ════════════════════════════════════════════════════════════ */
 .main-menu-overlay {
-  position: absolute;
+  /* fixed: ancorado ao palco do canvas o overlay herdava altura zero e o cartão
+     estourava a página, deixando o botão de começar fora da tela no celular. */
+  position: fixed;
   inset: 0;
   background: rgba(6, 9, 14, 0.95);
   backdrop-filter: blur(12px);
@@ -2862,3 +2857,175 @@ body.mobile-play #gameCanvas {
 }
 .scene-card-pos { font-size: 10px; color: #64748b; font-variant-numeric: tabular-nums; }
 .scene-card.placed .scene-card-pos { color: #4ade80; }
+
+/* ── Rastreador de missão ─────────────────────────────────────────────────────
+   Fica logo abaixo do HUD de vida, no mesmo canto, e só aparece com missão ativa.
+   Não recebe cliques: é leitura, não controle. */
+.quest-tracker {
+  position: absolute;
+  top: 78px; left: 12px;
+  z-index: 40;
+  pointer-events: none;
+  min-width: 208px; max-width: 300px;
+  padding: 8px 11px;
+  background: linear-gradient(180deg, rgba(12,16,24,.92), rgba(6,9,14,.92));
+  border: 1px solid rgba(251,191,36,.45);
+  border-left: 3px solid #fbbf24;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.45);
+  font-family: 'Outfit', sans-serif;
+  color: #e2e8f0;
+}
+.quest-tracker.hidden { display: none; }
+.quest-tracker .qt-title {
+  font-size: 12px; font-weight: 700; letter-spacing: .3px;
+  color: #fbbf24; margin-bottom: 5px;
+}
+.quest-tracker .qt-objs { list-style: none; margin: 0; padding: 0; }
+.quest-tracker .qt-objs li {
+  font-size: 11.5px; line-height: 1.5; color: #cbd5e1;
+}
+.quest-tracker .qt-objs li.feito { color: #4ade80; text-decoration: line-through; opacity: .75; }
+.quest-tracker .qt-objs li.bloq  { color: #64748b; }
+
+@media (max-width: 900px), (pointer: coarse) {
+  .quest-tracker { top: 64px; left: 8px; min-width: 168px; max-width: 230px; padding: 6px 9px; }
+  .quest-tracker .qt-title { font-size: 11px; }
+  .quest-tracker .qt-objs li { font-size: 10.5px; }
+}
+
+/* ── Forja ────────────────────────────────────────────────────────────────────
+   Catálogo à esquerda do fluxo, bigorna como overlay separado. Tudo dimensionado
+   para caber em paisagem de celular sem rolagem lateral. */
+.forge-overlay {
+  /* fixed e não absolute: ancorado no #canvas-stage a altura resolvia 0 e o painel
+     nascia achatado — o minigame rodava invisível. */
+  position: fixed; inset: 0; z-index: 1200;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(4,6,10,.78);
+  font-family: 'Outfit', sans-serif;
+}
+.forge-overlay.hidden, .anvil-overlay.hidden { display: none; }
+.forge-box {
+  width: min(880px, 94%); max-height: 92%;
+  display: flex; flex-direction: column;
+  background: linear-gradient(180deg, #1b1109, #0d0805);
+  border: 2px solid #7c4a12; border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(0,0,0,.6), inset 0 0 60px rgba(245,158,11,.06);
+  overflow: hidden;
+}
+.forge-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, #2a1708, #1a0f06);
+  border-bottom: 1px solid #7c4a12;
+}
+.forge-heading { display: flex; align-items: center; gap: 10px; flex: 1; }
+.forge-anvil-emoji { font-size: 26px; }
+.forge-title { font-size: 16px; font-weight: 800; color: #fbbf24; letter-spacing: .3px; }
+.forge-sub { font-size: 11px; color: #b0865b; }
+.forge-purse { display: flex; gap: 6px; flex-wrap: wrap; }
+.fp-chip {
+  font-size: 11.5px; color: #e7cfae;
+  background: rgba(0,0,0,.45); border: 1px solid #5a3410;
+  border-radius: 999px; padding: 3px 9px;
+}
+.fp-chip b { color: #fde68a; }
+.forge-close {
+  background: #3b1d08; color: #fca5a5; border: 1px solid #7c2d12;
+  border-radius: 8px; width: 30px; height: 30px; cursor: pointer; font-size: 14px;
+}
+#forgeOverlay .forge-tabs { padding: 8px 12px 0; }
+.forge-list {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px; padding: 12px; overflow-y: auto;
+}
+.forge-card.owned { opacity: .62; }
+
+/* ── Bigorna: minigame de ritmo ── */
+.anvil-overlay {
+  position: fixed; inset: 0; z-index: 1400;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(3,4,8,.86);
+}
+.anvil-box {
+  width: min(520px, 92%); padding: 16px 18px 18px;
+  background: linear-gradient(180deg, #1b1109, #0b0705);
+  border: 2px solid #b45309; border-radius: 14px; text-align: center;
+  font-family: 'Outfit', sans-serif; color: #e7cfae;
+  box-shadow: 0 0 60px rgba(245,158,11,.18);
+}
+.anvil-title { font-size: 17px; font-weight: 800; color: #fbbf24; margin-bottom: 8px; }
+.anvil-heat { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.heat-label { font-size: 10.5px; color: #fca5a5; letter-spacing: .6px; }
+.heat-track { flex: 1; height: 8px; background: #2a1206; border-radius: 999px; overflow: hidden; border: 1px solid #7c2d12; }
+.heat-fill { display: block; height: 100%; width: 100%;
+  background: linear-gradient(90deg, #7c2d12, #f59e0b, #fde68a); transition: width .1s linear; }
+.anvil-stage { position: relative; height: 108px; display: grid; place-items: center; }
+.anvil-art { font-size: 58px; transition: transform .08s; }
+.anvil-name { font-size: 13px; color: #fde68a; margin-bottom: 10px; font-weight: 700; }
+
+.rhythm-bar {
+  position: relative; height: 30px; margin: 0 0 8px;
+  background: #150c05; border: 1px solid #5a3410; border-radius: 8px; overflow: hidden;
+}
+.rz { position: absolute; top: 0; bottom: 0; display: block; }
+.rz-bom { background: rgba(217,119,6,.34); }
+.rz-perfeito { background: rgba(253,230,138,.5); box-shadow: 0 0 18px rgba(253,230,138,.5) inset; }
+.rhythm-cursor {
+  position: absolute; top: -3px; bottom: -3px; width: 4px; margin-left: -2px;
+  background: #fff7ed; box-shadow: 0 0 12px #fde68a; border-radius: 2px;
+}
+.anvil-hits { font-size: 15px; letter-spacing: 3px; min-height: 20px; margin-bottom: 4px; }
+.anvil-hint { font-size: 10.5px; color: #9c7a58; margin-bottom: 10px; }
+.anvil-strike {
+  width: 100%; padding: 11px; border-radius: 10px; cursor: pointer;
+  font-family: inherit; font-size: 15px; font-weight: 800; letter-spacing: .5px;
+  background: linear-gradient(180deg, #f59e0b, #b45309); color: #1c1006;
+  border: 2px solid #fde68a; box-shadow: 0 4px 0 #7c2d12;
+}
+.anvil-strike:active { transform: translateY(3px); box-shadow: none; }
+.anvil-track { height: 6px; background: #2a1a0c; border-radius: 999px; margin-top: 10px; overflow: hidden; }
+.anvil-fill { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #b45309, #fde68a); }
+.anvil-overlay.done .anvil-art { transform: scale(1.18); filter: drop-shadow(0 0 22px #fbbf24); }
+
+@media (max-width: 900px), (pointer: coarse) {
+  .forge-list { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 8px; padding: 9px; }
+  .forge-title { font-size: 14px; } .forge-sub { display: none; }
+  .anvil-box { padding: 12px 13px 14px; }
+  .anvil-stage { height: 84px; } .anvil-art { font-size: 46px; }
+}
+
+/* ── Menu inicial em paisagem de celular ─────────────────────────────────────
+   Em 390px de altura o cartão não cabe: rola dentro de si mesmo e encolhe os
+   espaçamentos, para o botão de começar nunca ficar fora da tela. */
+.main-menu-overlay { align-items: center; overflow-y: auto; padding: 8px 0; z-index: 1100; }
+.main-menu-card { max-height: 96vh; overflow-y: auto; }
+@media (max-height: 560px), (pointer: coarse) {
+  .main-menu-card { padding: 10px 14px; gap: 8px; }
+  .menu-title-section { margin-bottom: 4px; }
+  .menu-game-title { font-size: 17px; }
+  .menu-subtitle { display: none; }
+  .menu-name-row { margin: 4px 0; }
+  .menu-label { font-size: 11px; }
+  .menu-name-input { padding: 6px 9px; font-size: 13px; }
+  .hero-select-grid { gap: 6px; }
+  .hero-select-card { padding: 5px; }
+  .hero-avatar-box { width: 46px; height: 46px; }
+  .hero-card-name { font-size: 11px; }
+  .hero-card-class, .hero-gender-badge { font-size: 9px; }
+  .btn-start-adventure { padding: 9px; font-size: 14px; margin-top: 6px; }
+}
+
+/* O cartão do menu precisa caber inteiro em paisagem de celular, com o botão de
+   começar visível sem rolagem — é o primeiro contato do aluno com o jogo. */
+@media (max-height: 620px) {
+  .main-menu-overlay { padding: 4px 0; }
+  .main-menu-card { padding: 8px 12px !important; gap: 6px !important; }
+  .menu-game-title { font-size: 15px !important; }
+  .menu-title-section { margin-bottom: 2px !important; }
+  .menu-name-row { margin: 3px 0 !important; }
+  .hero-avatar-box { width: 40px !important; height: 40px !important; }
+  .hero-select-card { padding: 4px !important; }
+  .btn-start-adventure { padding: 8px !important; font-size: 13px !important; margin-top: 4px !important; }
+}

@@ -9,8 +9,8 @@
       "row": 0
     },
     "2_0": {
-      "col": 0,
-      "row": -2
+      "col": 1,
+      "row": 1
     },
     "0_1": {
       "col": 0,
@@ -87,15 +87,27 @@
     "custom_1785173102424_996": "assets/bg_custom_1785173102424_996.jpg"
   },
   "sceneNames": {
-    "0_0": "\ud83c\udff0 Vila Medieval",
-    "1_0": "\ud83c\udf32 Floresta M\u00e1gica",
-    "2_0": "\ud83c\udfb9 Conservat\u00f3rio",
-    "0_1": "\ud83c\udff0 Port\u00f5es Reais",
-    "1_1": "\ud83c\udf3f Entrada Floresta",
-    "2_1": "\ud83c\udf33 Bosque de Treino",
-    "3_1": "\ud83c\udf43 Clareira",
-    "3_0": "\ud83c\udf32 Floresta Profunda",
-    "custom_1785173102424_996": "\ud83c\udf11 Floresta Sombria"
+    "0_0": "🏰 Vila Medieval",
+    "1_0": "🌲 Floresta Mágica",
+    "2_0": "🎹 Conservatório",
+    "0_1": "🏰 Portões Reais",
+    "1_1": "🌿 Entrada Floresta",
+    "2_1": "🌳 Bosque de Treino",
+    "3_1": "🍃 Clareira",
+    "3_0": "🌲 Floresta Profunda",
+    "custom_1785173102424_996": "🌑 Floresta Sombria"
   },
-  "startMap": "custom_1785173102424_996"
+  "startMap": "custom_1785173102424_996",
+  "ambience": {
+    "custom_1785173102424_996": {
+      "escuro": 0.86,
+      "cor": "#070b12",
+      "haloRaio": 190
+    },
+    "1_1": {
+      "escuro": 0.82,
+      "cor": "#070c16",
+      "haloRaio": 215
+    }
+  }
 }

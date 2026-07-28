@@ -1,0 +1,36 @@
+{
+  "id": "mercador_tiberio",
+  "npc_name": "Mercador Tibério",
+  "portrait": "merchant",
+  "repeatable": true,
+  "steps": [
+    { "id": "start", "type": "lines", "lines": [
+      "Bem-vindo, bem-vindo! Tibério, mercador honesto — pergunte a qualquer um.",
+      "Não pergunte ao Lucian.",
+      "Ah, você é o da floresta! Então já sei o que te oferecer.",
+      "Amuleto anti-Shiker. Cem por cento eficaz. Trezentas moedas."
+    ], "next": "escolha" },
+
+    { "id": "escolha", "type": "choice", "choices": [
+      { "text": "Cem por cento eficaz mesmo?", "next": "prova" },
+      { "text": "Eu não tenho trezentas moedas.", "next": "sem_moedas" }
+    ]},
+
+    { "id": "prova", "type": "lines", "lines": [
+      "Absolutamente. Eu uso um há doze anos e nunca fui atacado por um Shiker.",
+      "...eu também nunca saí da praça. Mas isso é irrelevante.",
+      "Está bem, está bem. Guarde suas moedas.",
+      "Vou te dar algo melhor de graça: informação.",
+      "Madeira e pedra boa ficam na floresta a leste. E ande com a bolsa fechada por lá."
+    ], "next": "fim" },
+
+    { "id": "sem_moedas", "type": "lines", "lines": [
+      "Ninguém tem, {PLAYER_NAME}. É por isso que ainda tenho quatorze deles.",
+      "Tudo bem. Você me pareceu gente boa, e gente boa vira freguês.",
+      "Um conselho de graça: a floresta a leste dá madeira e pedra à vontade.",
+      "Traga o excedente para mim. Pago bem. Pago razoável. Pago."
+    ], "next": "fim" },
+
+    { "id": "fim", "type": "end" }
+  ]
+}

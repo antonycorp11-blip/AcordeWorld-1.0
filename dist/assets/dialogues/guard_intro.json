@@ -18,8 +18,14 @@
       "id": "choice_1",
       "type": "choice",
       "choices": [
-        { "text": "Sim, acabei de chegar.", "next": "path_arrived" },
-        { "text": "Estou procurando alguém.", "next": "path_searching" }
+        {
+          "text": "Sim, acabei de chegar.",
+          "next": "path_arrived"
+        },
+        {
+          "text": "Estou procurando alguém.",
+          "next": "path_searching"
+        }
       ]
     },
     {
@@ -30,11 +36,9 @@
         "Bem-vindo a Acordelot!",
         "Esta é a primeira cidade do Reino da Música.",
         "Músicos de todos os cantos do reino começam sua jornada aqui.",
-        "Antes de entrar...",
-        "Preciso registrar sua chegada.",
-        "Qual é o seu nome, viajante?"
+        "Já anotei sua chegada aqui no registro, {PLAYER_NAME}."
       ],
-      "next": "name_input"
+      "next": "after_name"
     },
     {
       "id": "path_searching",
@@ -42,15 +46,8 @@
       "lines": [
         "Entendo, viajante.",
         "Mas Acordelot é o lugar certo para começar sua busca.",
-        "Antes de entrar, preciso registrar sua chegada.",
-        "Qual é o seu nome?"
+        "Chegada registrada, {PLAYER_NAME}. Sem burocracia hoje."
       ],
-      "next": "name_input"
-    },
-    {
-      "id": "name_input",
-      "type": "name_input",
-      "prompt": "Digite o nome do seu aventureiro:",
       "next": "after_name"
     },
     {

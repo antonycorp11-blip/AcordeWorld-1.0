@@ -1,0 +1,13 @@
+{
+  "id": "ferreiro_dorn",
+  "npc_name": "Ferreiro Dorn",
+  "portrait": "blacksmith",
+  "repeatable": true,
+  "steps": [
+    { "id": "start", "type": "lines", "lines": [
+      "Trabalho é o que não falta, {PLAYER_NAME}.",
+      "Se estiver perdido, olha o pergaminho no canto da tela. Eu também esqueço as coisas."
+    ], "next": "fim" },
+    { "id": "fim", "type": "end" }
+  ]
+}
