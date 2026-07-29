@@ -43,6 +43,8 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
             self._save_npcs(data)
         elif self.path == '/save_monsters':
             self._save_monsters(data)
+        elif self.path == '/save_objects':
+            self._save_objects(data)
         elif self.path == '/save_dialogue':
             self._save_dialogue(data)
         elif self.path == '/upload_image':
@@ -166,6 +168,21 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
             self._ok({'status': 'ok', 'count': count})
         except Exception as e:
             print(f"[Server] Error saving monsters: {e}")
+            self.send_error(500, str(e))
+
+    def _save_objects(self, data):
+        try:
+            assets_dir = os.path.join(DIRECTORY, 'assets')
+            os.makedirs(assets_dir, exist_ok=True)
+            path = os.path.join(assets_dir, 'objects.json')
+            self._backup(path)
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            count = len(data.get('objetos', []))
+            print(f"[Server] Objects saved: {count} objeto(s).")
+            self._ok({'status': 'ok', 'count': count})
+        except Exception as e:
+            print(f"[Server] Error saving objects: {e}")
             self.send_error(500, str(e))
 
     def _save_dialogue(self, data):

@@ -1426,7 +1426,12 @@ function isWalkable(x,y) {
   const L = getLayers(currentKey);
   try { const p = L.roadCtx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data; return p[1] > 100 && p[3] > 50; } catch(e) { return true; }
 }
-function canMoveTo(x,y){return isWalkable(x,y)&&isWalkable(x-4,y)&&isWalkable(x+4,y)&&isWalkable(x,y-4)&&isWalkable(x,y+4);}
+function canMoveTo(x,y){
+  // Objetos de cenário bloqueiam pelo próprio pé, sem depender de pintura: mover a
+  // árvore no editor move a colisão com ela.
+  if (currentScene === 'world' && objetoBloqueia(x, y)) return false;
+  return isWalkable(x,y)&&isWalkable(x-4,y)&&isWalkable(x+4,y)&&isWalkable(x,y-4)&&isWalkable(x,y+4);
+}
 
 // ============================================================
 // INTERIOR SCENES
@@ -1777,6 +1782,168 @@ function talkTarget() {
 }
 
 // ============================================================
+// OBJETOS DE CENÁRIO
+// Árvore, pedra, ruína, cerca: coisas que não fazem nada além de estar lá — e que por
+// isso mesmo transformam um fundo pintado em lugar.
+//
+// A ideia toda depende de UM número: a linha do pé. Cada objeto declara em que fração
+// da sua altura ele toca o chão (`pe`). Dessa linha saem as duas coisas que importam:
+// quem aparece na frente de quem, e onde a passagem é bloqueada. É por isso que a
+// camada de "teto" pintada à mão deixa de ser necessária — a copa cobre o jogador
+// porque o pé da árvore está atrás dele, não porque alguém pintou.
+//
+// O catálogo (`propDefs`) descreve os tipos; a lista (`objetos`) são as instâncias
+// posicionadas no mundo. Mesma divisão dos monstros, de propósito: o editor, o save e
+// o futuro importador do Tiled já sabem lidar com esse formato.
+let propDefs = {};        // id -> { nome, sprite, pe, raio, colide, categoria }
+let objetos = [];         // instâncias no mundo
+const propSprites = {};   // id -> sprite preparado
+
+async function loadObjetos() {
+  let cfg = null;
+  try {
+    const r = await fetch(`assets/objects.json?t=${Date.now()}`);
+    if (r.ok) cfg = await r.json();
+  } catch (e) {}
+  if (!cfg) return;
+
+  propDefs = cfg.props || {};
+  objetos = (cfg.objetos || []).map(o => ({ ...o, escala: o.escala || 1 }));
+
+  Object.entries(propDefs).forEach(([id, def]) => {
+    if (!def.sprite) return;
+    const img = new Image();
+    img.onload = () => {
+      // PNG com alpha entra como está; JPG passa pelo chroma-key, igual aos monstros.
+      try { propSprites[id] = prepareSprite(img); } catch (e) {}
+    };
+    img.onerror = () => {};
+    img.src = def.sprite;
+  });
+}
+
+async function saveObjetos() {
+  if (IS_PLAY_BUILD) return;
+  const corpo = JSON.stringify({
+    props: propDefs,
+    objetos: objetos.map(o => ({
+      id: o.id, prop: o.prop, mapKey: o.mapKey,
+      x: Math.round(o.x), y: Math.round(o.y),
+      escala: +(o.escala || 1).toFixed(2), flipX: !!o.flipX,
+    })),
+  });
+  try {
+    const r = await fetch('/save_objects', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: corpo });
+    if (!r.ok) showToast(`⚠️ Servidor recusou os objetos (HTTP ${r.status}) — NÃO salvo`);
+  } catch (e) {
+    showToast('⚠️ Objetos NÃO salvos: sem resposta do servidor');
+  }
+  try { localStorage.setItem('acordelot_objetos_v1', corpo); } catch (e) {}
+}
+
+function propDef(o) { return propDefs[o.prop] || {}; }
+
+// Retângulo que o sprite ocupa na tela. `x,y` é o PÉ do objeto (o ponto no chão), não
+// o canto: assim mover e escalar nunca faz o objeto flutuar nem afundar.
+function objetoBounds(o) {
+  const spr = propSprites[o.prop];
+  const def = propDef(o);
+  // Sem `altura` declarada, o tamanho natural do PNG manda: prop gerado já vem na
+  // proporção certa, e obrigar a declarar altura só criaria mais um campo para errar.
+  const h = (def.altura || (spr ? spr.sh : 96)) * (o.escala || 1);
+  const w = spr ? h * (spr.sw / spr.sh) : h * 0.8;
+  const pe = def.pe ?? 0.9;
+  // O pé fica a `pe` da altura: o que está abaixo dessa linha é a base do objeto.
+  return { x: o.x - w / 2, y: o.y - h * pe, w, h, pe };
+}
+
+function objetosDoMapa(mapKey) {
+  return objetos.filter(o => o.mapKey === mapKey);
+}
+
+// Colisão: uma elipse achatada em volta do pé. Achatada porque a perspectiva é de cima
+// com leve inclinação — um círculo perfeito bloqueia mais do que o olho aceita.
+function objetoBloqueia(x, y) {
+  for (const o of objetos) {
+    if (o.mapKey !== currentKey) continue;
+    const def = propDef(o);
+    if (!def.colide || !def.raio) continue;
+    const r = def.raio * (o.escala || 1);
+    const dx = (x - o.x) / r, dy = (y - o.y) / (r * 0.55);
+    if (dx * dx + dy * dy < 1) return true;
+  }
+  return false;
+}
+
+// Desenha os objetos de um lado só da linha do jogador. Chamado duas vezes por quadro:
+// antes do personagem (os que estão atrás) e depois (os que estão na frente).
+function renderObjetos(now, lado) {
+  const lista = objetosDoMapa(currentKey);
+  if (!lista.length) return;
+  const linhaDoJogador = player.y;
+  lista
+    .filter(o => (lado === 'atras' ? o.y <= linhaDoJogador : o.y > linhaDoJogador))
+    .sort((a, b) => a.y - b.y)
+    .forEach(o => {
+      const spr = propSprites[o.prop];
+      const b = objetoBounds(o);
+      if (!spr) {
+        // Sem arte ainda: no editor mostra a marca do lugar, no jogo não mostra nada.
+        if (!isPlayMode) {
+          ctx.save();
+          ctx.strokeStyle = '#f472b6'; ctx.setLineDash([4, 3]);
+          ctx.strokeRect(b.x, b.y, b.w, b.h);
+          ctx.restore();
+        }
+        return;
+      }
+      ctx.save();
+      if (o.flipX) {
+        ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1);
+        ctx.drawImage(spr.canvas, 0, 0, b.w, b.h);
+      } else {
+        ctx.drawImage(spr.canvas, b.x, b.y, b.w, b.h);
+      }
+      ctx.restore();
+
+      if (!isPlayMode) renderMarcaDoObjeto(o, b);
+    });
+}
+
+// Só no editor: mostra o pé e a área de colisão, que são invisíveis por natureza e
+// impossíveis de ajustar às cegas.
+function renderMarcaDoObjeto(o, b) {
+  const def = propDef(o);
+  ctx.save();
+  if (def.colide && def.raio) {
+    const r = def.raio * (o.escala || 1);
+    ctx.strokeStyle = 'rgba(248,113,113,0.75)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(o.x, o.y, r, r * 0.55, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+  if (objetoSelecionado === o) {
+    ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+    ctx.strokeRect(b.x, b.y, b.w, b.h);
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#fde68a';
+    ctx.beginPath(); ctx.arc(o.x, o.y, 3.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// O objeto sob o ponteiro. Testa de frente para trás (o que está por cima ganha) e
+// aceita o clique em qualquer pixel do retângulo — mira em contorno é frustrante.
+function objetoEm(mx, my) {
+  const lista = objetosDoMapa(activeMapSelect?.value || currentKey)
+    .slice().sort((a, b) => b.y - a.y);
+  for (const o of lista) {
+    const b = objetoBounds(o);
+    if (mx >= b.x - 3 && mx <= b.x + b.w + 3 && my >= b.y - 3 && my <= b.y + b.h + 3) return o;
+  }
+  return null;
+}
+
+// ============================================================
 // MONSTERS
 // Sheets are 4x4 grids of poses rather than a walk cycle, so one cell is picked as the
 // standing pose (configurable per type) and movement gets its life from a hop bob.
@@ -1864,6 +2031,8 @@ function liveMonsters() {
 
 // Editor: pick and drag monsters like NPCs.
 let selectedMonster = null, dragMonster = null;
+// Objetos de cenário: mesma mecânica de seleção e arrasto.
+let objetoSelecionado = null, arrastandoObjeto = null, propParaColocar = null;
 function monsterAt(mx, my) {
   const mapKey = activeMapSelect?.value || currentKey;
   for (let i = monsters.length - 1; i >= 0; i--) {
@@ -4626,6 +4795,21 @@ function onPointerDown(m){
   if(engineMode==='scene'){
     if(isPlayMode){tryTalk();return;} // tapping near an NPC starts the conversation
     if(npcPlacingMode){placeNPC(m.x,m.y);return;}
+    // Modo de colocar objeto: cada toque planta um. Fica ativo até você desligar,
+    // porque plantar uma floresta um clique por vez é o uso real disto.
+    if(propParaColocar){colocarObjeto(propParaColocar,m.x,m.y);return;}
+    // Objetos vêm antes dos monstros na disputa pelo clique só quando não há monstro
+    // ali: árvore é grande e cobriria bicho pequeno.
+    if(!monsterAt(m.x,m.y)){
+      const obj=objetoEm(m.x,m.y);
+      if(obj){
+        objetoSelecionado=obj; selectedMonster=null; deselectNPC();
+        mostrarInspetorDeObjeto(obj);
+        arrastandoObjeto=obj; dragOffX=m.x-obj.x; dragOffY=m.y-obj.y;
+        return;
+      }
+      objetoSelecionado=null; mostrarInspetorDeObjeto(null);
+    }
     // Monsters are draggable too — they sit on top, so they get first claim on a click.
     const mob=monsterAt(m.x,m.y);
     if(mob){
@@ -4647,7 +4831,12 @@ function onPointerDown(m){
 function onPointerMove(m){
   if(capturaAtiva&&capturaAtiva.arrastando){arrastarVoz(m.x,m.y);return;}
   if(engineMode==='worldmap'&&wvDragKey){wvDragMouse={...m};}
-  if(engineMode==='scene'&&!isPlayMode&&dragMonster){
+  if(engineMode==='scene'&&!isPlayMode&&arrastandoObjeto){
+    arrastandoObjeto.x=Math.round(Math.max(0,Math.min(SCREEN_W,m.x-dragOffX)));
+    arrastandoObjeto.y=Math.round(Math.max(0,Math.min(SCREEN_H,m.y-dragOffY)));
+    sincronizarInspetorDeObjeto();
+  }
+  else if(engineMode==='scene'&&!isPlayMode&&dragMonster){
     dragMonster.x=Math.round(Math.max(0,Math.min(SCREEN_W,m.x-dragOffX)));
     dragMonster.y=Math.round(Math.max(0,Math.min(SCREEN_H,m.y-dragOffY)));
     dragMonster.homeX=dragMonster.x; dragMonster.homeY=dragMonster.y;
@@ -4681,6 +4870,7 @@ function onPointerUp(){
   }
   if(engineMode==='scene'){
     if(draggingNPC){saveNPCs();showToast(`📍 ${draggingNPC.name} → (${draggingNPC.x}, ${draggingNPC.y})`);draggingNPC=null;}
+    if(arrastandoObjeto){saveObjetos();showToast(`🌲 ${propDef(arrastandoObjeto).nome||arrastandoObjeto.prop} → (${arrastandoObjeto.x}, ${arrastandoObjeto.y})`);arrastandoObjeto=null;}
     if(dragMonster){saveMonsters();showToast(`👾 ${monsterDef(dragMonster).name||dragMonster.type} → (${dragMonster.x}, ${dragMonster.y})`);dragMonster=null;}
     dragCandidate=null;
   }
@@ -5152,6 +5342,94 @@ function bindCanvasEvents(){
 // ============================================================
 // NPC EDITOR HELPERS
 // ============================================================
+// ── Objetos de cenário: catálogo e inspetor ──────────────────────────────────────
+function colocarObjeto(propId, x, y) {
+  const o = {
+    id: `${propId}_${Date.now()}`, prop: propId,
+    mapKey: activeMapSelect?.value || currentKey,
+    x: Math.round(x), y: Math.round(y), escala: 1, flipX: false,
+  };
+  objetos.push(o);
+  objetoSelecionado = o;
+  mostrarInspetorDeObjeto(o);
+  saveObjetos();
+}
+
+function aplicarEscalaDoObjeto(v) {
+  if (!objetoSelecionado) return;
+  objetoSelecionado.escala = Math.max(0.3, Math.min(4, parseFloat(v) || 1));
+  sincronizarInspetorDeObjeto();
+  saveObjetos();
+}
+
+function sincronizarInspetorDeObjeto() {
+  const o = objetoSelecionado;
+  if (!o) return;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  set('obj_x', Math.round(o.x)); set('obj_y', Math.round(o.y));
+  set('obj_escala', o.escala || 1);
+  const val = document.getElementById('obj_escala_val');
+  if (val) val.textContent = (o.escala || 1).toFixed(2) + 'x';
+  const flip = document.getElementById('obj_espelhar');
+  if (flip) flip.checked = !!o.flipX;
+}
+
+function mostrarInspetorDeObjeto(o) {
+  const painel = document.getElementById('inspObjPanel');
+  if (!painel) return;
+  if (!o) { painel.classList.add('hidden'); return; }
+  document.getElementById('inspMobPanel')?.classList.add('hidden');
+  document.getElementById('inspNPCPanel')?.classList.add('hidden');
+  document.getElementById('inspEmpty')?.classList.add('hidden');
+  painel.classList.remove('hidden');
+  document.querySelector('[data-btab="inspector"]')?.click();
+
+  const def = propDef(o);
+  const nome = document.getElementById('obj_nome');
+  if (nome) nome.textContent = def.nome || o.prop;
+  const info = document.getElementById('obj_info');
+  if (info) info.textContent =
+    `pé ${(def.pe ?? 0.9).toFixed(2)} · raio ${def.raio || 0}px · ${def.colide ? 'bloqueia' : 'atravessa'}`;
+  sincronizarInspetorDeObjeto();
+}
+
+// A paleta: um botão por prop do catálogo. Tocar arma o modo de plantar; tocar de novo
+// desarma, para não sair plantando árvore sem querer ao tentar mover a câmera.
+function renderPaletaDeProps() {
+  const grade = document.getElementById('propPaleta');
+  if (!grade) return;
+  const ids = Object.keys(propDefs);
+  grade.innerHTML = '';
+  if (!ids.length) {
+    grade.innerHTML = '<p class="hint">Nenhum prop no catálogo. Coloque os PNGs em ' +
+      '<code>assets/props/</code> e declare-os em <code>assets/objects.json</code>.</p>';
+    return;
+  }
+  ids.forEach(id => {
+    const def = propDefs[id];
+    const b = document.createElement('button');
+    b.className = 'prop-btn' + (propParaColocar === id ? ' ativo' : '');
+    const spr = propSprites[id];
+    const cv = spr ? miniCanvas(spr, 34) : null;
+    if (cv) b.appendChild(cv);
+    else { const e = document.createElement('span'); e.textContent = '🌲'; b.appendChild(e); }
+    const t = document.createElement('i');
+    t.textContent = def.nome || id;
+    b.appendChild(t);
+    b.addEventListener('click', () => {
+      propParaColocar = (propParaColocar === id) ? null : id;
+      renderPaletaDeProps();
+      showToast(propParaColocar
+        ? `🌲 ${def.nome || id}: toque no mapa para plantar`
+        : '✋ Modo de plantar desligado');
+    });
+    grade.appendChild(b);
+  });
+  const cont = document.getElementById('propContagem');
+  if (cont) cont.textContent =
+    `${objetosDoMapa(activeMapSelect?.value || currentKey).length} neste mapa · ${objetos.length} no mundo`;
+}
+
 // ── Inspetor de monstro ──────────────────────────────────────────────────────────
 function mostrarInspetorDeMonstro(m) {
   const painel = document.getElementById('inspMobPanel');
@@ -7142,6 +7420,7 @@ function loop(now){
       npcData.forEach(npc=>{if(npc.mapKey!==currentKey||npc.oculto)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
       renderDrops(now);   // on the ground, under everyone
       renderMonsters(now);
+      renderObjetos(now, 'atras');   // pé acima do jogador: ele passa na frente
     }
     const L=getLayers(currentKey);
     updateDust();renderDust();
@@ -7168,6 +7447,7 @@ function loop(now){
      renderFerramenta(now,pW,pH,false);      // na frente, nas outras direções
      renderHat(pW,pH);renderAura(now,pH);}
     if(outdoors){
+      renderObjetos(now, 'frente');  // pé abaixo do jogador: cobre o personagem
       renderAttackSwing(now);
       renderGatherSwing(now);
       ctx.drawImage(L.fgCanvas,0,0);renderDoorMarkers(now);updateLeaves();renderLeaves();
@@ -7356,7 +7636,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   stopBtn?.addEventListener('click',()=>togglePlay());
   // Monstros entram aqui também: o botão diz "Salvar", e quem clica nele espera que
   // TUDO seja gravado. Faltar os monstros aqui já custou uma sessão de edição.
-  saveProjectBtn?.addEventListener('click',()=>{saveAllLayers(false);saveNPCs();saveMonsters();showToast('💾 Projeto salvo!');});
+  saveProjectBtn?.addEventListener('click',()=>{saveAllLayers(false);saveNPCs();saveMonsters();saveObjetos();showToast('💾 Projeto salvo!');});
   saveLayersBtn?.addEventListener('click',()=>saveAllLayers(true));
   saveWorldBtn?.addEventListener('click',()=>saveAllLayers(true));
   brushSizeSelect?.addEventListener('change',e=>brushSize=parseInt(e.target.value));
@@ -7899,7 +8179,7 @@ window.testQuest = function(idx) {
 };
 
 async function finishInit(){
-  await loadWorldConfig();await loadLayers();await loadNPCs();await loadQuests();await loadShopCatalog();await loadMonsters();await loadSkillTree();
+  await loadWorldConfig();await loadLayers();await loadNPCs();await loadQuests();await loadShopCatalog();await loadMonsters();await loadObjetos();await loadSkillTree();
   refreshMapSelect();
   renderQuestBuilderList();
   loadingOverlay?.classList.add('hidden');updateMapStatus();
@@ -9013,6 +9293,38 @@ function initForgeUI() {
   });
   document.getElementById('pecaTom')?.addEventListener('click', () => colocarIntervalo('T'));
   document.getElementById('pecaSemitom')?.addEventListener('click', () => colocarIntervalo('S'));
+
+  // Inspetor de objeto de cenário
+  document.getElementById('obj_escala')?.addEventListener('input', e => aplicarEscalaDoObjeto(e.target.value));
+  document.getElementById('objEscalaMenos')?.addEventListener('click',
+    () => aplicarEscalaDoObjeto((objetoSelecionado?.escala || 1) - 0.1));
+  document.getElementById('objEscalaMais')?.addEventListener('click',
+    () => aplicarEscalaDoObjeto((objetoSelecionado?.escala || 1) + 0.1));
+  ['obj_x','obj_y'].forEach(id => document.getElementById(id)?.addEventListener('change', e => {
+    if (!objetoSelecionado) return;
+    const v = parseInt(e.target.value, 10) || 0;
+    if (id === 'obj_x') objetoSelecionado.x = v; else objetoSelecionado.y = v;
+    saveObjetos();
+  }));
+  document.getElementById('obj_espelhar')?.addEventListener('change', e => {
+    if (!objetoSelecionado) return;
+    objetoSelecionado.flipX = e.target.checked; saveObjetos();
+  });
+  document.getElementById('objDuplicar')?.addEventListener('click', () => {
+    if (!objetoSelecionado) return;
+    const o = objetoSelecionado;
+    const novo = { ...o, id: `${o.prop}_${Date.now()}`, x: o.x + 40, y: o.y + 12 };
+    objetos.push(novo); objetoSelecionado = novo;
+    mostrarInspetorDeObjeto(novo); renderPaletaDeProps(); saveObjetos();
+    showToast('⧉ Objeto duplicado');
+  });
+  document.getElementById('objApagar')?.addEventListener('click', () => {
+    if (!objetoSelecionado) return;
+    objetos = objetos.filter(x => x !== objetoSelecionado);
+    objetoSelecionado = null; mostrarInspetorDeObjeto(null);
+    renderPaletaDeProps(); saveObjetos();
+    showToast('🗑️ Objeto removido');
+  });
 
   // Inspetor de monstro
   document.getElementById('mob_escala')?.addEventListener('input', e => aplicarEscalaDoMonstro(e.target.value));

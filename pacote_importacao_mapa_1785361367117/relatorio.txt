@@ -1,0 +1,143 @@
+====================================================================
+RELATÓRIO DE EXTRAÇÃO DE OBJETOS E SEGMENTAÇÃO POR CONTORNO REAL
+====================================================================
+Imagem Original: fantasy_medieval_kingdom_hunting__202607281204.jpeg
+Dimensões Totais: 1376 x 768 px
+Data de Geração: 2026-07-29T21:42:45.527Z
+
+--------------------------------------------------------------------
+LISTA DE OBJETOS RECONHECIDOS E EXTRAÍDOS (ORDEM Y CRESCENTE):
+--------------------------------------------------------------------
+[01] ID: arvore_01 | Nome: "Árvore Retorcida 01" | Categoria: arvore
+     Posição (X, Y): 851, 1 px | Tamanho (W x H): 41 x 49 px
+     Fator de Pé (pe): 0.94 | Raio de Colisão: 12 px | Colide: SIM
+     Alpha Opaco %: 85% (Contorno transparente validado)
+
+[02] ID: arbusto_01 | Nome: "Moita de Arbusto 01" | Categoria: arbusto
+     Posição (X, Y): 929, 1 px | Tamanho (W x H): 75 x 51 px
+     Fator de Pé (pe): 0.88 | Raio de Colisão: 15 px | Colide: SIM
+     Alpha Opaco %: 87% (Contorno transparente validado)
+
+[03] ID: arvore_02 | Nome: "Árvore Retorcida 02" | Categoria: arvore
+     Posição (X, Y): 1113, 23 px | Tamanho (W x H): 27 x 35 px
+     Fator de Pé (pe): 0.94 | Raio de Colisão: 12 px | Colide: SIM
+     Alpha Opaco %: 76% (Contorno transparente validado)
+
+[04] ID: arvore_03 | Nome: "Conífera Alta 03" | Categoria: arvore
+     Posição (X, Y): 1, 25 px | Tamanho (W x H): 45 x 81 px
+     Fator de Pé (pe): 0.94 | Raio de Colisão: 12 px | Colide: SIM
+     Alpha Opaco %: 86% (Contorno transparente validado)
+
+[05] ID: arvore_04 | Nome: "Árvore Retorcida 04" | Categoria: arvore
+     Posição (X, Y): 157, 39 px | Tamanho (W x H): 31 x 43 px
+     Fator de Pé (pe): 0.94 | Raio de Colisão: 12 px | Colide: SIM
+     Alpha Opaco %: 79% (Contorno transparente validado)
+
+[06] ID: arbusto_02 | Nome: "Moita de Arbusto 02" | Categoria: arbusto
+     Posição (X, Y): 245, 133 px | Tamanho (W x H): 85 x 59 px
+     Fator de Pé (pe): 0.88 | Raio de Colisão: 18 px | Colide: SIM
+     Alpha Opaco %: 92% (Contorno transparente validado)
+
+[07] ID: arbusto_03 | Nome: "Moita de Arbusto 03" | Categoria: arbusto
+     Posição (X, Y): 723, 185 px | Tamanho (W x H): 43 x 29 px
+     Fator de Pé (pe): 0.88 | Raio de Colisão: 9 px | Colide: SIM
+     Alpha Opaco %: 75% (Contorno transparente validado)
+
+[08] ID: arbusto_04 | Nome: "Moita de Arbusto 04" | Categoria: arbusto
+     Posição (X, Y): 173, 209 px | Tamanho (W x H): 33 x 29 px
+     Fator de Pé (pe): 0.88 | Raio de Colisão: 9 px | Colide: SIM
+     Alpha Opaco %: 75% (Contorno transparente validado)
+
+[09] ID: arbusto_05 | Nome: "Moita de Arbusto 05" | Categoria: arbusto
+     Posição (X, Y): 611, 213 px | Tamanho (W x H): 49 x 51 px
+     Fator de Pé (pe): 0.88 | Raio de Colisão: 15 px | Colide: SIM
+     Alpha Opaco %: 81% (Contorno transparente validado)
+
+[10] ID: arbusto_06 | Nome: "Moita de Arbusto 06" | Categoria: arbusto
+     Posição (X, Y): 199, 249 px | Tamanho (W x H): 35 x 33 px
+     Fator de Pé (pe): 0.88 | Raio de Colisão: 10 px | Colide: SIM
+     Alpha Opaco %: 79% (Contorno transparente validado)
+
+[11] ID: arbusto_07 | Nome: "Moita de Arbusto 07" | Categoria: arbusto
+     Posição (X, Y): 409, 323 px | Tamanho (W x H): 33 x 29 px
+     Fator de Pé (pe): 0.88 | Raio de Colisão: 9 px | Colide: SIM
+     Alpha Opaco %: 68% (Contorno transparente validado)
+
+[12] ID: objeto_01 | Nome: "Objeto 01" | Categoria: objeto
+     Posição (X, Y): 1221, 341 px | Tamanho (W x H): 45 x 43 px
+     Fator de Pé (pe): 0.9 | Raio de Colisão: 11 px | Colide: SIM
+     Alpha Opaco %: 77% (Contorno transparente validado)
+
+[13] ID: arbusto_08 | Nome: "Moita de Arbusto 08" | Categoria: arbusto
+     Posição (X, Y): 535, 365 px | Tamanho (W x H): 31 x 29 px
+     Fator de Pé (pe): 0.88 | Raio de Colisão: 9 px | Colide: SIM
+     Alpha Opaco %: 67% (Contorno transparente validado)
+
+[14] ID: arvore_05 | Nome: "Árvore Retorcida 05" | Categoria: arvore
+     Posição (X, Y): 1165, 365 px | Tamanho (W x H): 29 x 43 px
+     Fator de Pé (pe): 0.94 | Raio de Colisão: 12 px | Colide: SIM
+     Alpha Opaco %: 86% (Contorno transparente validado)
+
+[15] ID: objeto_02 | Nome: "Objeto 02" | Categoria: objeto
+     Posição (X, Y): 1203, 409 px | Tamanho (W x H): 33 x 39 px
+     Fator de Pé (pe): 0.9 | Raio de Colisão: 10 px | Colide: SIM
+     Alpha Opaco %: 74% (Contorno transparente validado)
+
+[16] ID: arvore_06 | Nome: "Árvore Retorcida 06" | Categoria: arvore
+     Posição (X, Y): 457, 431 px | Tamanho (W x H): 187 x 113 px
+     Fator de Pé (pe): 0.94 | Raio de Colisão: 41 px | Colide: SIM
+     Alpha Opaco %: 93% (Contorno transparente validado)
+
+[17] ID: arbusto_09 | Nome: "Moita de Arbusto 09" | Categoria: arbusto
+     Posição (X, Y): 205, 455 px | Tamanho (W x H): 33 x 27 px
+     Fator de Pé (pe): 0.88 | Raio de Colisão: 8 px | Colide: SIM
+     Alpha Opaco %: 67% (Contorno transparente validado)
+
+[18] ID: objeto_03 | Nome: "Objeto 03" | Categoria: objeto
+     Posição (X, Y): 1169, 477 px | Tamanho (W x H): 59 x 47 px
+     Fator de Pé (pe): 0.9 | Raio de Colisão: 12 px | Colide: SIM
+     Alpha Opaco %: 84% (Contorno transparente validado)
+
+[19] ID: arvore_07 | Nome: "Árvore Retorcida 07" | Categoria: arvore
+     Posição (X, Y): 861, 489 px | Tamanho (W x H): 107 x 105 px
+     Fator de Pé (pe): 0.94 | Raio de Colisão: 24 px | Colide: SIM
+     Alpha Opaco %: 94% (Contorno transparente validado)
+
+[20] ID: arbusto_10 | Nome: "Moita de Arbusto 10" | Categoria: arbusto
+     Posição (X, Y): 791, 497 px | Tamanho (W x H): 57 x 47 px
+     Fator de Pé (pe): 0.88 | Raio de Colisão: 14 px | Colide: SIM
+     Alpha Opaco %: 79% (Contorno transparente validado)
+
+[21] ID: arbusto_11 | Nome: "Moita de Arbusto 11" | Categoria: arbusto
+     Posição (X, Y): 683, 541 px | Tamanho (W x H): 35 x 37 px
+     Fator de Pé (pe): 0.88 | Raio de Colisão: 11 px | Colide: SIM
+     Alpha Opaco %: 77% (Contorno transparente validado)
+
+[22] ID: arbusto_12 | Nome: "Moita de Arbusto 12" | Categoria: arbusto
+     Posição (X, Y): 397, 589 px | Tamanho (W x H): 71 x 55 px
+     Fator de Pé (pe): 0.88 | Raio de Colisão: 17 px | Colide: SIM
+     Alpha Opaco %: 90% (Contorno transparente validado)
+
+[23] ID: arbusto_13 | Nome: "Moita de Arbusto 13" | Categoria: arbusto
+     Posição (X, Y): 1189, 639 px | Tamanho (W x H): 51 x 31 px
+     Fator de Pé (pe): 0.88 | Raio de Colisão: 9 px | Colide: SIM
+     Alpha Opaco %: 71% (Contorno transparente validado)
+
+[24] ID: arvore_08 | Nome: "Conífera Alta 08" | Categoria: arvore
+     Posição (X, Y): 1145, 695 px | Tamanho (W x H): 47 x 71 px
+     Fator de Pé (pe): 0.94 | Raio de Colisão: 12 px | Colide: SIM
+     Alpha Opaco %: 87% (Contorno transparente validado)
+
+[25] ID: arbusto_14 | Nome: "Moita de Arbusto 14" | Categoria: arbusto
+     Posição (X, Y): 221, 737 px | Tamanho (W x H): 41 x 29 px
+     Fator de Pé (pe): 0.88 | Raio de Colisão: 9 px | Colide: SIM
+     Alpha Opaco %: 77% (Contorno transparente validado)
+
+--------------------------------------------------------------------
+RESUMO E ESTATÍSTICAS DE SEGMENTAÇÃO:
+--------------------------------------------------------------------
+- Total de objetos recortados e aprovados: 25
+- Descartados por opacidade > 95% (retângulos de fundo): 4
+- Descartados por dimensão excessiva (> 30% da imagem): 1
+- Descartados por tamanho pequeno (< 24px - gramas/flores): 206
+====================================================================

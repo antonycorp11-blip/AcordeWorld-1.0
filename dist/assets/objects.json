@@ -1,0 +1,30 @@
+{
+  "_": "Catálogo de props e suas instâncias no mundo. `props` descreve os tipos; `objetos` são as cópias posicionadas. pe = fração da altura onde o objeto toca o chão; raio = pixels de bloqueio em volta do pé.",
+  "props": {
+    "arvore_placeholder": {
+      "nome": "Árvore (teste)",
+      "sprite": "assets/props/arvore_placeholder.png",
+      "categoria": "arvore",
+      "pe": 0.97,
+      "raio": 14,
+      "colide": true
+    },
+    "pedra_placeholder": {
+      "nome": "Pedra (teste)",
+      "sprite": "assets/props/pedra_placeholder.png",
+      "categoria": "pedra",
+      "pe": 0.94,
+      "raio": 22,
+      "colide": true
+    },
+    "arbusto_placeholder": {
+      "nome": "Arbusto (teste)",
+      "sprite": "assets/props/arbusto_placeholder.png",
+      "categoria": "arbusto",
+      "pe": 0.92,
+      "raio": 0,
+      "colide": false
+    }
+  },
+  "objetos": []
+}

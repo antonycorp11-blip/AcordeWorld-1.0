@@ -4202,3 +4202,28 @@ body.mobile-play #gameCanvas {
   .cap-nome { font-size: 9px; }
   .cap-ok { padding: 9px 22px; font-size: 10px; }
 }
+
+/* ── Paleta de props de cenário ─────────────────────────────────────────────────
+   Grade densa: a lista vai crescer para dezenas de árvores e pedras, e o que importa
+   é reconhecer o desenho, não ler o nome. */
+.prop-paleta {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
+  margin-bottom: 8px;
+}
+.prop-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 3px 4px; cursor: pointer;
+  background: #1a1410; border: 1px solid #3b2d1c; border-radius: 6px;
+}
+.prop-btn:hover { border-color: #7c5a2a; background: #221a12; }
+.prop-btn.ativo {
+  border-color: #fbbf24; background: #2c2110;
+  box-shadow: 0 0 0 1px #fbbf24 inset, 0 0 10px rgba(251,191,36,.25);
+}
+.prop-btn canvas { image-rendering: pixelated; }
+.prop-btn i {
+  font-style: normal; font-size: 8.5px; color: #b9a888;
+  text-align: center; line-height: 1.2;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+}
+.prop-btn.ativo i { color: #fde68a; }

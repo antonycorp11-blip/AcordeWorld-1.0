@@ -253,6 +253,18 @@
 
         <!-- TAB: Elements Gallery -->
         <div id="btab-elements" class="btab-content hidden">
+          <!-- Props de cenário: a decoração do mapa. Vive na mesma aba dos elementos
+               funcionais porque o gesto é o mesmo — escolher e tocar no mapa. -->
+          <div class="npc-gallery-header">
+            <span>🌲 Cenário:</span>
+            <small id="propContagem" style="color:#9ca3af;font-size:10px"></small>
+          </div>
+          <div id="propPaleta" class="prop-paleta"></div>
+          <p class="hint" style="margin:2px 0 10px">
+            Toque num prop e depois no mapa para plantar. O pé do objeto define
+            profundidade e colisão — não precisa pintar teto.
+          </p>
+
           <div class="npc-gallery-header">
             <span>🗺️ Elementos de Mundo:</span>
           </div>
@@ -388,6 +400,32 @@
             </div>
             <button id="mobDuplicar" class="btn-apply" style="width:100%;margin-top:6px">⧉ Duplicar aqui</button>
             <button id="mobApagar" class="btn-apply" style="width:100%;margin-top:5px;background:#3b1d08">🗑️ Remover monstro</button>
+          </div>
+          <!-- Objeto de cenário: árvore, pedra, ruína. Poucos campos de propósito —
+               pé e raio vivem no catálogo, não em cada instância. -->
+          <div id="inspObjPanel" class="insp-form hidden">
+            <div class="insp-field">
+              <label>Objeto</label>
+              <div id="obj_nome" class="insp-input" style="line-height:1.9"></div>
+              <div id="obj_info" style="font-size:10px;color:#9ca3af;margin-top:4px"></div>
+            </div>
+            <div class="insp-grid-sidebar">
+              <div class="insp-field"><label>X</label><input type="number" id="obj_x" class="insp-input"></div>
+              <div class="insp-field"><label>Y (pé)</label><input type="number" id="obj_y" class="insp-input"></div>
+            </div>
+            <div class="insp-field scale-field-full">
+              <label>Tamanho (<span id="obj_escala_val" style="color:#fbbf24;font-weight:bold">1.00x</span>)</label>
+              <div class="scale-ctrl-row">
+                <button type="button" class="btn-scale-step" id="objEscalaMenos">—</button>
+                <input type="range" id="obj_escala" min="0.3" max="4" step="0.05" value="1" class="scale-slider">
+                <button type="button" class="btn-scale-step" id="objEscalaMais">＋</button>
+              </div>
+            </div>
+            <div class="tools-row">
+              <label><input type="checkbox" id="obj_espelhar"> Espelhar</label>
+            </div>
+            <button id="objDuplicar" class="btn-apply" style="width:100%;margin-top:6px">⧉ Duplicar aqui</button>
+            <button id="objApagar" class="btn-apply" style="width:100%;margin-top:5px;background:#3b1d08">🗑️ Remover objeto</button>
           </div>
           <div id="inspNPCPanel" class="insp-form hidden">
             <div class="insp-grid-sidebar">
