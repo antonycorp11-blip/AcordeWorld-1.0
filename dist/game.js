@@ -1816,6 +1816,9 @@ async function loadObjetos() {
     img.onload = () => {
       // PNG com alpha entra como está; JPG passa pelo chroma-key, igual aos monstros.
       try { propSprites[id] = prepareSprite(img); } catch (e) {}
+      // Redesenha a paleta a cada sprite que chega. Esperar por um `setTimeout` fixo
+      // dava paleta com ícone genérico: a decodificação da imagem não tem prazo.
+      if (typeof renderPaletaDeProps === 'function') renderPaletaDeProps();
     };
     img.onerror = () => {};
     img.src = def.sprite;
@@ -1879,11 +1882,15 @@ function objetoBloqueia(x, y) {
 // Desenha os objetos de um lado só da linha do jogador. Chamado duas vezes por quadro:
 // antes do personagem (os que estão atrás) e depois (os que estão na frente).
 function renderObjetos(now, lado) {
-  const lista = objetosDoMapa(currentKey);
+  // No editor o mapa que manda é o do seletor: currentKey só acompanha o jogo.
+  const mapa = isPlayMode ? currentKey : (activeMapSelect?.value || currentKey);
+  const lista = objetosDoMapa(mapa);
   if (!lista.length) return;
   const linhaDoJogador = player.y;
   lista
-    .filter(o => (lado === 'atras' ? o.y <= linhaDoJogador : o.y > linhaDoJogador))
+    // 'todos' é o modo do editor: sem personagem em cena, a divisão atrás/na frente não
+    // significa nada e o que importa é ver tudo que está plantado.
+    .filter(o => lado === 'todos' || (lado === 'atras' ? o.y <= linhaDoJogador : o.y > linhaDoJogador))
     .sort((a, b) => a.y - b.y)
     .forEach(o => {
       const spr = propSprites[o.prop];
@@ -7202,6 +7209,7 @@ function initBottomPanel(){
 // STATUS
 // ============================================================
 function updateMapStatus(){
+  if (typeof renderPaletaDeProps === 'function') renderPaletaDeProps();
   const name=SCENE_NAMES[currentKey]||currentKey;
   if(statusMap)statusMap.textContent=`🗺️ ${name}`;
 }
@@ -7530,6 +7538,7 @@ function loop(now){
     if(statusPos)statusPos.textContent=`X: ${Math.round(player.x)}  Y: ${Math.round(player.y)}`;
   } else {
     npcData.forEach(npc=>{if(npc.mapKey!==mapKey)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
+    renderObjetos(now, 'todos');   // sem isto o editor não mostrava o que você plantou
     const L=getLayers(mapKey);ctx.drawImage(L.fgCanvas,0,0);
     if(engineMode==='collision')renderCollisionOverlay(mapKey);
     else if(engineMode==='scene')renderSceneOverlay(now);
@@ -8182,6 +8191,10 @@ async function finishInit(){
   await loadWorldConfig();await loadLayers();await loadNPCs();await loadQuests();await loadShopCatalog();await loadMonsters();await loadObjetos();await loadSkillTree();
   refreshMapSelect();
   renderQuestBuilderList();
+  // A paleta de props precisa de duas passadas: uma agora, com o catálogo já lido, e
+  // outra quando os PNGs terminarem de decodificar — só então há miniatura para mostrar.
+  renderPaletaDeProps();
+  setTimeout(renderPaletaDeProps, 700);
   loadingOverlay?.classList.add('hidden');updateMapStatus();
   showToast('🎵 Acordelot Engine carregado!');
 
@@ -9293,6 +9306,10 @@ function initForgeUI() {
   });
   document.getElementById('pecaTom')?.addEventListener('click', () => colocarIntervalo('T'));
   document.getElementById('pecaSemitom')?.addEventListener('click', () => colocarIntervalo('S'));
+
+  // A aba Objetos redesenha a paleta ao abrir: garante a lista certa mesmo que os
+  // sprites tenham chegado depois do carregamento, e atualiza a contagem do mapa atual.
+  document.getElementById('elementsGalleryTab')?.addEventListener('click', renderPaletaDeProps);
 
   // Inspetor de objeto de cenário
   document.getElementById('obj_escala')?.addEventListener('input', e => aplicarEscalaDoObjeto(e.target.value));
