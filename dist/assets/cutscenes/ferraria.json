@@ -3,42 +3,168 @@
   "nome": "Cena 6 — O Martelo do Aprendiz",
   "mapa": "0_1",
   "autoStart": true,
-  "gatilho": { "tipo": "falar", "npc": "Dorn" },
-  "requer": { "objetivos": { "missao": "ponte_de_acordelot", "ids": ["madeira", "pedra"] } },
+  "gatilho": {
+    "tipo": "falar",
+    "npc": "Dorn"
+  },
+  "requer": {
+    "objetivos": {
+      "missao": "ponte_de_acordelot",
+      "ids": [
+        "madeira",
+        "pedra"
+      ]
+    }
+  },
   "passos": [
-    { "cmd": "controle", "ativo": false },
-    { "cmd": "destacar", "npc": "Dorn", "zoom": 1.8, "ms": 2600, "rotulo": "Ferreiro Dorn" },
-
-    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Opa. Você trouxe material." },
-    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Madeira boa. Pedra melhor ainda. O Antony te avisou direitinho." },
-    { "cmd": "falar", "quem": "Personagem", "texto": "É tudo seu. Pode consertar a ponte.", "auto": 1600 },
-
-    { "cmd": "esperar", "ms": 500 },
-    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Consertar? Eu?" },
-    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Rapaz, eu tenho sessenta anos e uma coluna de quarenta." },
-    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Eu ensino. Você bate." },
-    { "cmd": "falar", "quem": "Personagem", "texto": "...", "auto": 1200 },
-    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Não faça essa cara. Todo ferreiro desta cidade começou exatamente aí." },
-
-    { "cmd": "esperar", "ms": 400 },
-    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Primeira lição: ninguém conserta ponte com a mão." },
-    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Você vai forjar o seu próprio martelo. Na minha forja, ali atrás." },
-    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Guardei madeira e pedra suficientes para o primeiro. Considere um presente de boas-vindas." },
-
-    { "cmd": "esperar", "ms": 400 },
-    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Segunda lição, e preste atenção nessa:" },
-    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Metal tem compasso. Bata fora do tempo e você tem um pedaço de ferro torto." },
-    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Bata no compasso e você tem uma ferramenta que canta." },
-    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "E o metal esfria enquanto você pensa. Então não pense muito." },
-    { "cmd": "falar", "quem": "Personagem", "texto": "Bater no compasso. Antes de esfriar.", "auto": 1500 },
-    { "cmd": "falar", "quem": "Ferreiro Dorn", "texto": "Isso. Vai lá. Entre na ferraria e use a bigorna." },
-
-    { "cmd": "dar", "item": "wood", "quantidade": 4 },
-    { "cmd": "dar", "item": "stone", "quantidade": 5 },
-    { "cmd": "missao", "id": "martelo_do_ferreiro" },
-    { "cmd": "tutorial", "texto": "Entre na ferraria, use a bigorna e forje o Martelo do Ferreiro.\nAcerte a zona dourada antes do metal esfriar." },
-    { "cmd": "hud", "visivel": true },
-    { "cmd": "controle", "ativo": true },
-    { "cmd": "fim" }
-  ]
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "destacar",
+      "npc": "Dorn",
+      "zoom": 1.8,
+      "ms": 2600,
+      "rotulo": "Ferreiro Dorn"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Opa. Você trouxe material."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Madeira boa. Pedra melhor ainda. O Antony te avisou direitinho."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "É tudo seu. Pode consertar a ponte.",
+      "auto": 1600
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Consertar? Eu?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Rapaz, eu tenho sessenta anos e uma coluna de quarenta."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Eu ensino. Você bate."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "...",
+      "auto": 1200
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Não faça essa cara. Todo ferreiro desta cidade começou exatamente aí."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Primeira lição: ninguém conserta ponte com a mão."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Você vai forjar o seu próprio martelo. Na minha forja, ali atrás."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Guardei madeira e pedra suficientes para o primeiro. Considere um presente de boas-vindas."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Segunda lição, e preste atenção nessa:"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Metal tem compasso. Bata fora do tempo e você tem um pedaço de ferro torto."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Bata no compasso e você tem uma ferramenta que canta."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "E o metal esfria enquanto você pensa. Então não pense muito."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Bater no compasso. Antes de esfriar.",
+      "auto": 1500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Isso. Vai lá. Entre na ferraria e use a bigorna."
+    },
+    {
+      "cmd": "dar",
+      "item": "wood",
+      "quantidade": 4
+    },
+    {
+      "cmd": "dar",
+      "item": "stone",
+      "quantidade": 5
+    },
+    {
+      "cmd": "missao",
+      "id": "martelo_do_ferreiro"
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "Entre na ferraria, use a bigorna e forje o Martelo do Ferreiro.\nAcerte a zona dourada antes do metal esfriar."
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "fim"
+    }
+  ],
+  "estadoInicial": {
+    "nivel": 3,
+    "claves": 4,
+    "moedas": 120,
+    "itens": {
+      "wood": 6,
+      "stone": 4
+    }
+  }
 }

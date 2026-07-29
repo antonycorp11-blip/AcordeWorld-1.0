@@ -3029,3 +3029,1104 @@ body.mobile-play #gameCanvas {
   .hero-select-card { padding: 4px !important; }
   .btn-start-adventure { padding: 8px !important; font-size: 13px !important; margin-top: 4px !important; }
 }
+
+/* ── Altar das Escalas ─────────────────────────────────────────────────────────
+   Pedra antiga e ouro, no mesmo idioma visual da forja — não um modal de site.
+   As doze notas seguem a geometria de um teclado: naturais embaixo, sustenidas
+   acima nos vãos certos. É a mesma imagem que o aluno vê num piano de verdade. */
+.altar-overlay {
+  position: fixed; inset: 0; z-index: 1300;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 45%, rgba(20,14,32,.82), rgba(3,4,8,.94));
+  font-family: 'Outfit', sans-serif;
+}
+.altar-overlay.hidden { display: none; }
+
+.altar-box {
+  /* A moldura pintada É o painel. A altura manda: assim ela nunca estoura a tela
+     em paisagem de celular, e a largura sai da proporção da arte. */
+  position: relative;
+  height: min(92vh, 660px);
+  aspect-ratio: 1010 / 763;
+  background: url('assets/ui_altar_moldura.png') center/100% 100% no-repeat;
+  filter: drop-shadow(0 24px 50px rgba(0,0,0,.8));
+}
+@media (max-aspect-ratio: 5/4) {
+  .altar-box { width: 96vw; height: auto; }
+}
+
+/* o nicho escuro dentro da moldura — medido em cima da própria arte */
+.altar-nicho {
+  position: absolute;
+  left: 12.2%; right: 12.2%; top: 33.5%; bottom: 16.5%;
+  display: flex; flex-direction: column;
+}
+
+.altar-topo {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 4px; margin-bottom: 2px;
+  border-bottom: 1px solid rgba(253,230,138,.16);
+}
+.altar-topo .altar-title { flex: 1; }
+
+.altar-title {
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 15px;
+  color: #fde68a; letter-spacing: 1.4px;
+  text-shadow: 0 2px 0 #17100a, 0 0 16px rgba(251,191,36,.4);
+}
+.altar-purse { display: flex; gap: 6px; }
+.ap-chip {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 12px; font-weight: 700; color: #e7cfae;
+  background: rgba(10,7,4,.72);
+  border: 1px solid #6b5228; border-radius: 3px; padding: 2px 8px;
+  box-shadow: inset 0 1px 0 rgba(253,230,138,.12);
+}
+.ap-chip.frag b { color: #fbbf24; }
+.ap-chip.clave b { color: #fde68a; }
+
+/* fechar fica sobre a coluna direita da moldura */
+.altar-close {
+  position: absolute; top: 34%; right: 2.5%; z-index: 5;
+  background: linear-gradient(180deg, #4a1e10, #2a0f08); color: #fca5a5;
+  border: 1px solid #7c2d12; border-radius: 3px;
+  width: 26px; height: 26px; cursor: pointer; font-size: 12px;
+}
+.altar-close:hover { color: #fecaca; border-color: #b91c1c; }
+
+/* ── a pauta ──────────────────────────────────────────────────────────────────
+   As doze notas ocupam a ALTURA REAL que teriam numa partitura, subindo da
+   esquerda para a direita. O menu ensina leitura musical sem dizer uma palavra —
+   e deixa a metáfora do teclado livre para virar arma mais adiante. */
+.altar-pauta-area {
+  position: relative; flex: 1; min-height: 0;
+  margin: 6px 0 2px;
+  display: flex; align-items: center;
+}
+/* as cinco linhas — desenhadas explicitamente, não por gradiente repetido:
+   o gradiente cortava a quinta linha e deixava a pauta com cara de erro. */
+.pauta-linhas {
+  position: absolute; left: 46px; right: 6px; top: 50%; height: 96px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.pauta-linhas::before, .pauta-linhas::after,
+.pauta-linhas i {
+  content: ''; position: absolute; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg,
+    rgba(253,230,138,.1), rgba(253,230,138,.6) 12%, rgba(253,230,138,.6) 88%, rgba(253,230,138,.1));
+  box-shadow: 0 0 8px rgba(251,191,36,.25);
+}
+.pauta-linhas::before { top: 0; }
+.pauta-linhas::after  { top: 94px; }
+.pauta-linhas i:nth-child(1) { top: 23.5px; }
+.pauta-linhas i:nth-child(2) { top: 47px; }
+.pauta-linhas i:nth-child(3) { top: 70.5px; }
+.pauta-clave {
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  font-size: 86px; line-height: .8; color: #fde68a;
+  text-shadow: 0 0 22px rgba(251,191,36,.55);
+  pointer-events: none;
+}
+.pauta-notas { position: absolute; inset: 0; }
+
+/* uma nota na pauta */
+.nota {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center;
+  cursor: pointer; transition: transform .1s, filter .12s;
+}
+.nota:hover { transform: translate(-50%, -50%) scale(1.12); }
+.nota:active { transform: translate(-50%, -50%) scale(.94); }
+
+.nota-cabeca {
+  position: relative; width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, rgba(255,255,255,.28), rgba(0,0,0,.55));
+  box-shadow: 0 0 0 2px rgba(253,230,138,.4), 0 4px 10px rgba(0,0,0,.6);
+}
+.nota-cabeca canvas { max-width: 30px; max-height: 34px; image-rendering: pixelated; }
+
+.nota.sustenida .nota-cabeca { box-shadow: 0 0 0 2px rgba(125,211,252,.55), 0 4px 10px rgba(0,0,0,.6); }
+.nota.pode .nota-cabeca {
+  animation: notaRespira 2.4s ease-in-out infinite;
+  box-shadow: 0 0 0 2px rgba(253,230,138,.75), 0 0 24px rgba(251,191,36,.6), 0 4px 10px rgba(0,0,0,.6);
+}
+.nota.sustenida.pode .nota-cabeca {
+  box-shadow: 0 0 0 2px rgba(125,211,252,.8), 0 0 24px rgba(56,189,248,.6), 0 4px 10px rgba(0,0,0,.6);
+}
+@keyframes notaRespira { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
+.nota.travada { filter: grayscale(.7) brightness(.5); cursor: not-allowed; }
+.nota.tem .nota-cabeca { box-shadow: 0 0 0 2px #4ade80, 0 0 20px rgba(74,222,128,.5), 0 4px 10px rgba(0,0,0,.6); }
+
+/* sustenido antes da cabeça, como na partitura */
+.nota-acidente {
+  position: absolute; left: -15px; top: 50%; transform: translateY(-50%);
+  font-size: 21px; font-weight: 700; color: #7dd3fc;
+  text-shadow: 0 0 10px rgba(56,189,248,.7);
+}
+/* linha suplementar do Dó, abaixo da pauta */
+.nota-suplementar {
+  position: absolute; left: 50%; top: 50%;
+  width: 52px; height: 2px; margin-left: -26px;
+  background: rgba(253,230,138,.55);
+}
+.nota-nome {
+  margin-top: 2px; font-family: 'Cinzel', serif; font-weight: 700; font-size: 11px;
+  color: #fde68a; text-shadow: 0 1px 3px #000; letter-spacing: .5px;
+}
+.nota.sustenida .nota-nome { color: #7dd3fc; }
+.nota-custo { font-size: 8.5px; color: #8d7a5c; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.nota.pode .nota-custo { color: #fbbf24; }
+.nota.tem .nota-custo { visibility: hidden; }
+.nota.tem .nota-nome { color: #4ade80; }
+
+.altar-hint {
+  position: absolute; left: 16%; right: 16%; bottom: 6.5%;
+  font-size: 11px; color: #b9a27c; text-align: center; font-style: italic;
+  text-shadow: 0 1px 0 rgba(0,0,0,.9);
+  letter-spacing: .3px;
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+  .altar-title { font-size: 11px; letter-spacing: .8px; }
+  .ap-chip { font-size: 10px; padding: 1px 6px; }
+  .pauta-linhas { left: 32px; right: 4px; height: 68px; }
+  .pauta-linhas::after { top: 66px; }
+  .pauta-linhas i:nth-child(1) { top: 16.5px; }
+  .pauta-linhas i:nth-child(2) { top: 33px; }
+  .pauta-linhas i:nth-child(3) { top: 49.5px; }
+  .pauta-clave { font-size: 54px; }
+  .nota-cabeca { width: 30px; height: 30px; }
+  .nota-cabeca canvas { max-width: 22px; max-height: 26px; }
+  .nota-nome { font-size: 10px; } .nota-custo { font-size: 8px; }
+  .nota-acidente { font-size: 16px; left: -12px; }
+  .altar-hint { font-size: 9px; bottom: 5.5%; }
+  .tecla-art { height: 32px; } .tecla-art canvas { max-height: 32px; max-width: 28px; }
+  .tecla.sustenida .tecla-art { height: 22px; } .tecla.sustenida .tecla-art canvas { max-height: 22px; }
+  .tecla-nome { font-size: 12px; } .tecla.sustenida .tecla-nome { font-size: 10px; }
+  .tecla-custo { font-size: 8.5px; }
+}
+
+/* ── Ritual de condensação ─────────────────────────────────────────────────────
+   Três segundos de cerimônia: os fragmentos convergem, colapsam num clarão e a
+   nota nasce. Sem isto o jogador sente que "comprou um item" em vez de ter feito
+   alguma coisa acontecer. */
+.ritual {
+  position: absolute; inset: -4% -3%; z-index: 20;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 50%, rgba(20,14,8,.9), rgba(4,3,2,.98));
+  overflow: hidden;
+}
+.ritual.hidden { display: none; }
+
+/* anéis de runa girando em sentidos opostos */
+.ritual-anel {
+  position: absolute; width: 250px; height: 250px; border-radius: 50%;
+  border: 2px dashed rgba(253,230,138,.55);
+  animation: ritualGira 3.4s linear infinite;
+}
+.ritual-anel.r2 {
+  width: 170px; height: 170px;
+  border: 2px dotted rgba(125,211,252,.6);
+  animation: ritualGira 2.2s linear infinite reverse;
+}
+@keyframes ritualGira { to { transform: rotate(360deg); } }
+
+/* fragmentos que voam para o centro */
+.ritual-faisca {
+  position: absolute; width: 7px; height: 7px; border-radius: 50%;
+  background: #fbbf24; box-shadow: 0 0 12px #fde68a;
+  animation: ritualPuxa var(--dur, 1.1s) cubic-bezier(.5,0,.85,.3) forwards;
+}
+@keyframes ritualPuxa {
+  from { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 0; }
+  15%  { opacity: 1; }
+  to   { transform: translate(0, 0) scale(.2); opacity: 0; }
+}
+
+/* o núcleo pulsa, estoura e vira a nota */
+.ritual-nucleo {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: radial-gradient(circle, #fff7ed, #fbbf24 60%, rgba(180,83,9,0));
+  box-shadow: 0 0 40px #fbbf24;
+  animation: ritualPulsa 1.4s ease-in-out infinite;
+  display: grid; place-items: center;
+}
+.ritual-nucleo canvas { image-rendering: pixelated; max-height: 90px; }
+@keyframes ritualPulsa { 0%,100% { transform: scale(1); } 50% { transform: scale(1.35); } }
+
+.ritual.estourou .ritual-nucleo {
+  animation: ritualEstoura .55s cubic-bezier(.2,1.5,.4,1) forwards;
+  width: auto; height: auto; background: none; box-shadow: none;
+}
+@keyframes ritualEstoura {
+  0%   { transform: scale(.2); filter: brightness(4); }
+  55%  { transform: scale(1.5); filter: brightness(2.2) drop-shadow(0 0 40px #fde68a); }
+  100% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 22px #fbbf24); }
+}
+.ritual.estourou .ritual-anel { animation: ritualSai .5s ease-out forwards; }
+@keyframes ritualSai { to { transform: scale(2.4); opacity: 0; } }
+
+.ritual-nome {
+  position: absolute; bottom: 26%; opacity: 0;
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 34px;
+  color: #fde68a; letter-spacing: 4px;
+  text-shadow: 0 0 26px rgba(251,191,36,.8), 0 3px 0 #2b1d08;
+}
+.ritual.estourou .ritual-nome { animation: ritualNome .7s ease-out .25s forwards; }
+@keyframes ritualNome { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+.ritual-legenda {
+  position: absolute; bottom: 16%;
+  font-size: 12px; font-style: italic; color: #9a7f5a; letter-spacing: 2px;
+}
+.ritual.estourou .ritual-legenda { color: #4ade80; font-style: normal; font-weight: 700; }
+
+@media (max-width: 900px), (pointer: coarse) {
+  .ritual-anel { width: 175px; height: 175px; }
+  .ritual-anel.r2 { width: 120px; height: 120px; }
+  .ritual-nome { font-size: 24px; bottom: 22%; }
+  .ritual-nucleo canvas { max-height: 64px; }
+}
+
+/* ── Altar: abas e montagem de escala ────────────────────────────────────────── */
+.altar-abas { display: flex; gap: 6px; margin: 2px 0 0; }
+.altar-aba {
+  font-family: 'Cinzel', serif; font-size: 10.5px; font-weight: 700; letter-spacing: .6px;
+  color: #8d7a5c; background: rgba(10,7,4,.6);
+  border: 1px solid #4a3718; border-radius: 3px; padding: 3px 10px; cursor: pointer;
+}
+.altar-aba.ativa { color: #fde68a; border-color: #8a6a2f; background: rgba(90,68,32,.4); }
+.altar-aba:disabled { opacity: .35; cursor: not-allowed; }
+
+.altar-montar { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
+.altar-montar.hidden { display: none; }
+.mont-titulo {
+  font-family: 'Cinzel', serif; font-size: 13px; color: #fde68a; text-align: center;
+  letter-spacing: 1px; text-shadow: 0 1px 3px #000;
+}
+
+/* a escada cromática: 13 casas, do Dó ao Dó da oitava */
+/* rótulo de seção, gravado na pedra */
+.mont-secao {
+  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 2px;
+  color: #8d7a5c; text-transform: uppercase; text-align: center;
+  margin: 6px 0 2px;
+}
+.mont-escada {
+  position: relative; display: flex; justify-content: space-between;
+  padding: 8px 4px 4px;
+}
+
+/* ── os graus da escala: é aqui que a escala aparece nascendo ── */
+.mont-graus {
+  display: flex; align-items: stretch; justify-content: center;
+  gap: 0; padding: 2px 0 4px;
+}
+.grau {
+  flex: 1 1 0; min-width: 0; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 5px 1px 4px; border-radius: 6px;
+  background: linear-gradient(180deg, rgba(20,14,8,.75), rgba(8,6,4,.75));
+  border: 1px solid #3a2c14;
+}
+.grau.feito {
+  background: linear-gradient(180deg, rgba(120,86,30,.85), rgba(60,40,12,.9));
+  border-color: #fde68a; box-shadow: 0 0 16px rgba(251,191,36,.45);
+}
+.grau.atual { border-color: #7dd3fc; box-shadow: 0 0 16px rgba(56,189,248,.5); }
+.grau.falta { border-style: dashed; border-color: #7c2d12; }
+.grau-num {
+  font-family: 'Cinzel', serif; font-size: 9px; font-weight: 700;
+  color: #9a7f5a; letter-spacing: .5px;
+}
+.grau.feito .grau-num { color: #fde68a; }
+.grau-nota { font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700; color: #6b5228; }
+.grau.feito .grau-nota { color: #fff7ed; text-shadow: 0 0 10px rgba(251,191,36,.7); }
+.grau.falta .grau-nota { color: #fca5a5; }
+
+/* o intervalo vive ENTRE dois graus, que é exatamente o que ele é */
+.intervalo {
+  flex: 0 0 26px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px;
+}
+.intervalo i {
+  display: block; width: 100%; height: 2px; border-radius: 1px;
+  background: #3a2c14;
+}
+.intervalo.feito i { background: linear-gradient(90deg, #b45309, #fde68a); box-shadow: 0 0 8px rgba(251,191,36,.7); }
+.intervalo.agora i { background: #38bdf8; box-shadow: 0 0 10px rgba(56,189,248,.8); }
+.intervalo span {
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  color: #4a3718; letter-spacing: 1px;
+}
+.intervalo.feito span { color: #fde68a; }
+.intervalo.agora span { color: #7dd3fc; }
+
+@media (max-width: 900px), (pointer: coarse) {
+  .mont-secao { font-size: 7.5px; margin: 3px 0 1px; }
+  .grau { padding: 3px 0; } .grau-num { font-size: 7px; } .grau-nota { font-size: 10px; }
+  .intervalo { flex-basis: 18px; } .intervalo span { font-size: 8px; }
+}
+.casa {
+  position: relative; width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 8.5px; font-weight: 700; color: #6b5228;
+  background: rgba(8,6,4,.7); border: 1px solid #3a2c14;
+  transition: all .18s;
+}
+.casa.preta { background: rgba(4,6,12,.85); border-color: #1e3a5f; color: #3f5a7a; }
+.casa.pisada {
+  color: #1c1206; background: radial-gradient(circle at 40% 35%, #fff7ed, #fbbf24 70%);
+  border-color: #fde68a; box-shadow: 0 0 18px rgba(251,191,36,.75);
+  transform: scale(1.18);
+}
+.casa.atual {
+  border-color: #7dd3fc; box-shadow: 0 0 0 2px rgba(125,211,252,.5), 0 0 22px rgba(56,189,248,.6);
+  animation: casaPulsa 1.4s ease-in-out infinite;
+}
+@keyframes casaPulsa { 0%,100% { transform: scale(1.1);} 50% { transform: scale(1.28);} }
+.casa.faltando { border-color: #7c2d12; color: #7c2d12; }
+/* trilha percorrida */
+.mont-trilha {
+  position: absolute; left: 0; top: 26px; height: 3px; border-radius: 2px;
+  background: linear-gradient(90deg, rgba(251,191,36,.25), #fde68a);
+  box-shadow: 0 0 12px rgba(251,191,36,.7); transition: width .35s ease;
+}
+
+/* a fórmula sendo escrita */
+
+.mont-controles { display: flex; align-items: center; gap: 10px; margin-top: auto; padding-bottom: 2px; }
+.mont-peca {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  min-width: 86px; padding: 6px 10px; cursor: pointer;
+  font-family: 'Cinzel', serif; font-weight: 700; letter-spacing: .8px;
+  border-radius: 4px; transition: transform .1s, box-shadow .15s, filter .15s;
+}
+.mont-peca.tom {
+  color: #dbeafe; background: linear-gradient(180deg, #1e3a5f, #0f2038);
+  border: 2px solid #3b82f6; box-shadow: 0 3px 0 #0b1729;
+}
+.mont-peca.semitom {
+  color: #f3e8ff; background: linear-gradient(180deg, #4c1d6b, #2a0f3d);
+  border: 2px solid #a855f7; box-shadow: 0 3px 0 #1a0827;
+}
+.mont-peca:active { transform: translateY(3px); box-shadow: none; }
+.mont-peca:disabled { filter: grayscale(.8) brightness(.5); cursor: not-allowed; }
+.mont-peca.sugerida { animation: pecaChama 1.1s ease-in-out infinite; }
+@keyframes pecaChama {
+  0%,100% { box-shadow: 0 3px 0 #0b1729, 0 0 0 rgba(253,230,138,0); }
+  50%     { box-shadow: 0 3px 0 #0b1729, 0 0 22px rgba(253,230,138,.85); }
+}
+.mont-peca .peca-nome { font-size: 11px; }
+.mont-peca .peca-qtd { font-size: 13px; color: #fde68a; }
+
+.mont-fala {
+  flex: 1; text-align: center; font-size: 11px; font-style: italic;
+  color: #b9a27c; text-shadow: 0 1px 2px #000; line-height: 1.35;
+}
+.mont-fala.erro { color: #fca5a5; font-style: normal; font-weight: 700; }
+.mont-fala.ok { color: #4ade80; font-weight: 700; font-style: normal; }
+.altar-montar.tremendo { animation: montTreme .3s; }
+@keyframes montTreme { 25% { transform: translateX(-6px);} 75% { transform: translateX(6px);} }
+
+@media (max-width: 900px), (pointer: coarse) {
+  .altar-aba { font-size: 9px; padding: 2px 7px; }
+  .mont-titulo { font-size: 11px; }
+  .casa { width: 19px; height: 19px; font-size: 7px; }
+  .mont-peca { min-width: 62px; padding: 4px 6px; }
+  .mont-peca .peca-nome { font-size: 9px; } .mont-peca .peca-qtd { font-size: 11px; }
+  .mont-fala { font-size: 9px; }
+}
+
+/* ── Inventário: drawer lateral ────────────────────────────────────────────────
+   Painel vertical que desliza da direita, não-modal — o jogo continua visível.
+   A arte é a pele; TODOS os encaixes são HTML posicionado nas regiões medidas
+   direto na imagem, então escalam junto e nunca desalinham. */
+.drawer-fundo {
+  /* A caixa é ajustada por JS para casar exatamente com a área do jogo — no editor
+     o canvas é um retângulo no meio da página, e cobrir a janela inteira ficava errado. */
+  position: fixed; z-index: 1250;
+  display: flex; justify-content: flex-end;
+  background: linear-gradient(90deg, transparent 35%, rgba(4,3,8,.5));
+  font-family: 'Outfit', sans-serif;
+  pointer-events: none;
+  overflow: hidden;
+}
+.drawer-fundo.hidden { display: none; }
+
+.drawer {
+  position: relative; pointer-events: auto;
+  height: 96%; align-self: center; aspect-ratio: 767 / 1374;
+  max-width: 46%;
+  background: url('assets/ui_drawer.png') center/100% 100% no-repeat;
+  filter: drop-shadow(-14px 0 30px rgba(0,0,0,.7));
+  animation: drawerEntra .28s cubic-bezier(.2,.9,.3,1);
+}
+@keyframes drawerEntra { from { transform: translateX(100%); } to { transform: none; } }
+
+.dw-titulo {
+  position: absolute; left: 12%; right: 12%; top: 3.4%;
+  text-align: center; font-family: 'Cinzel', serif; font-weight: 700;
+  font-size: 15px; letter-spacing: 1.4px; color: #6b4a1e;
+  text-shadow: 0 1px 0 rgba(255,240,210,.5);
+}
+/* Bolsa de moedas dentro do painel, como no Albion: o HUD do jogo fica limpo. */
+.dw-moedas {
+  /* Entre o equipamento e a mochila: é o "bolso" do personagem. */
+  position: absolute; left: 10%; right: 10%; top: 44.5%;
+  display: flex; justify-content: center; gap: 10px;
+}
+.dw-moeda {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 800; color: #f7e3bd;
+  background: linear-gradient(180deg, #4a3018, #2a1a0c);
+  border: 1px solid #8a6a2f; border-radius: 4px; padding: 2px 9px;
+  box-shadow: inset 0 1px 0 rgba(255,235,190,.2);
+}
+.dw-moeda.ouro b { color: #fbbf24; }
+.dw-moeda.clave b { color: #fde68a; }
+
+.dw-fechar {
+  position: absolute; right: 6%; top: 2.6%;
+  width: 26px; height: 26px; cursor: pointer; font-size: 12px;
+  color: #7c2d12; background: rgba(255,240,210,.55);
+  border: 1px solid #8a5a2a; border-radius: 4px;
+}
+
+/* 3x3 de cima — equipamento. Regiões medidas na arte. */
+.dw-equip {
+  position: absolute; left: 20%; right: 19%; top: 11%; bottom: 58%;
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+  gap: 6%;
+}
+/* 4 colunas de baixo — mochila, com rolagem */
+.dw-bolsa {
+  position: absolute; left: 8%; right: 15%; top: 54%; bottom: 4.5%;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 1fr; gap: 4.5%;
+  overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.dw-bolsa::-webkit-scrollbar { display: none; }
+
+/* um encaixe */
+.dw-casa {
+  /* Interior escuro: os itens são dourados e ciano, e sumiam contra o pergaminho. */
+  position: relative; cursor: pointer; border-radius: 7px;
+  display: grid; place-items: center;
+  background: linear-gradient(180deg, #4a3018, #2a1a0c);
+  border: 1px solid #8a6a2f;
+  box-shadow: inset 0 3px 7px rgba(0,0,0,.6), inset 0 -1px 0 rgba(255,235,190,.18),
+              0 1px 0 rgba(255,240,205,.35);
+  transition: transform .1s, box-shadow .14s;
+}
+.dw-casa.vazia { cursor: default; }
+.dw-casa:not(.vazia):hover { transform: translateY(-2px); box-shadow: inset 0 2px 5px rgba(90,55,20,.4), 0 0 14px rgba(180,120,40,.8); }
+.dw-casa.sel { box-shadow: inset 0 2px 5px rgba(90,55,20,.4), 0 0 0 2px #b45309, 0 0 16px rgba(217,119,6,.8); }
+.dw-casa canvas, .dw-casa .dw-emoji {
+  max-width: 78%; max-height: 78%; image-rendering: pixelated; font-size: 19px;
+  filter: drop-shadow(0 0 4px rgba(0,0,0,.85));
+}
+.dw-qtd {
+  position: absolute; right: 2px; bottom: 2px;
+  min-width: 15px; padding: 0 3px; border-radius: 4px;
+  font-size: 10.5px; font-weight: 800; line-height: 15px; text-align: center;
+  color: #fde68a; background: rgba(8,5,2,.85); border: 1px solid #8a6a2f;
+}
+.dw-casa.vazio-rotulo::after {
+  content: attr(data-rotulo); position: absolute;
+  font-size: 7px; color: #a07b40; letter-spacing: .3px;
+}
+.dw-casa.vazia { background: linear-gradient(180deg, #3d2714, #241608); }
+
+/* ficha do item */
+.dw-ficha {
+  position: absolute; left: 8%; right: 8%; bottom: 3%;
+  padding: 8px 10px; border-radius: 6px;
+  background: linear-gradient(180deg, rgba(48,32,16,.96), rgba(28,18,8,.96));
+  border: 1px solid #8a6a2f; box-shadow: 0 -6px 20px rgba(0,0,0,.55);
+}
+.dw-ficha.hidden { display: none; }
+.dw-f-nome { font-family: 'Cinzel', serif; font-weight: 700; font-size: 12.5px; color: #fde68a; }
+.dw-f-tipo { font-size: 9px; color: #b08a56; letter-spacing: .5px; text-transform: uppercase; }
+.dw-f-desc { font-size: 10.5px; color: #e3cfae; line-height: 1.45; margin-top: 3px; }
+.dw-f-org  { font-size: 9.5px; color: #9c7a58; font-style: italic; margin-top: 2px; }
+.dw-f-x {
+  position: absolute; right: 6px; top: 5px; cursor: pointer;
+  width: 18px; height: 18px; line-height: 16px; text-align: center;
+  font-size: 11px; color: #c8a97a;
+  background: rgba(0,0,0,.4); border: 1px solid #6b5228; border-radius: 3px;
+}
+
+/* abas presas na borda de fora do painel */
+.dw-abas {
+  position: absolute; left: -30px; top: 14%;
+  display: flex; flex-direction: column; gap: 7px;
+}
+/* Marcador de couro com o nome escrito na vertical. Emoji em botão pequeno vira
+   borrão ilegível — palavra curta lê melhor e parece feita de propósito. */
+.dw-aba {
+  width: 30px; padding: 12px 0; cursor: pointer;
+  border: 1px solid #4a2c10; border-right: none; border-radius: 7px 0 0 7px;
+  background: linear-gradient(90deg, #7a4a1e, #a4682c);
+  box-shadow: -3px 3px 9px rgba(0,0,0,.55), inset 1px 0 0 rgba(255,225,170,.25);
+  transition: transform .12s, filter .12s;
+}
+.dw-aba span {
+  display: block; writing-mode: vertical-rl; transform: rotate(180deg);
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 9.5px;
+  letter-spacing: 2px; color: #f7e3bd; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+.dw-aba:hover { transform: translateX(-3px); filter: brightness(1.1); }
+.dw-aba.ativa {
+  background: linear-gradient(90deg, #b8862a, #f0c060);
+  transform: translateX(-5px);
+}
+.dw-aba.ativa span { color: #33200a; text-shadow: 0 1px 0 rgba(255,240,200,.5); }
+.dw-aba.bloqueada { filter: grayscale(.85) brightness(.55); cursor: not-allowed; }
+.dw-aba.bloqueada:hover { transform: none; }
+.dw-aba.bloqueada span::after { content: ' 🔒'; }
+
+/* atributos usam a mesma área da mochila */
+.dw-attr-lista {
+  /* Cobre o pergaminho inteiro: a arte tem encaixes pintados nas duas grades, e sem
+     esta camada eles vazam por trás das linhas de atributo. */
+  position: absolute; left: 7.5%; right: 12%; top: 10.5%; bottom: 3.5%;
+  display: flex; flex-direction: column; gap: 7px;
+  padding: 10px 9px; overflow-y: auto; scrollbar-width: none;
+  background: linear-gradient(180deg, #f2dfb4, #e6cd9c);
+  border-radius: 8px;
+  box-shadow: inset 0 0 26px rgba(140,100,45,.32);
+}
+.dw-attr-lista::-webkit-scrollbar { display: none; }
+.dw-attr {
+  flex: none; min-height: 46px;
+  display: grid; grid-template-columns: 24px 1fr auto 24px;
+  align-items: center; gap: 7px; padding: 7px 8px;
+  background: linear-gradient(180deg, rgba(150,104,58,.6), rgba(112,74,38,.6));
+  border: 1px solid rgba(120,80,30,.55); border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(255,240,210,.35);
+}
+.dw-attr-ico { font-size: 15px; color: #5c3312; text-align: center; }
+.dw-attr-nome { font-family: 'Cinzel', serif; font-size: 11.5px; color: #3b2410; font-weight: 700; }
+.dw-attr-desc { font-size: 8.5px; color: #6b4a26; line-height: 1.25; }
+.dw-attr-val { font-size: 15px; font-weight: 800; color: #3b2410; }
+.dw-attr-add {
+  width: 22px; height: 22px; border-radius: 5px; cursor: pointer;
+  font-size: 14px; font-weight: 800; color: #2b1d08;
+  background: linear-gradient(180deg, #f0c060, #b8862a); border: 1px solid #6b4a12;
+}
+.dw-attr-add:disabled { opacity: .3; cursor: not-allowed; }
+.dw-resumo {
+  flex: none; margin-top: 2px; padding: 9px 10px; border-radius: 6px;
+  background: rgba(48,32,16,.9); border: 1px solid #8a6a2f;
+  font-size: 10px; color: #e3cfae; line-height: 1.8;
+}
+.dw-resumo b { color: #fde68a; }
+.dw-resumo .dw-res-tit {
+  display: block; font-family: 'Cinzel', serif; font-size: 12px;
+  color: #fde68a; letter-spacing: 1px; margin-bottom: 3px;
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+  .dw-titulo { font-size: 12px; }
+  .dw-qtd { font-size: 9px; }
+  .dw-f-nome { font-size: 11px; } .dw-f-desc { font-size: 9px; }
+  .dw-aba { width: 28px; height: 34px; font-size: 12px; }
+  .dw-abas { left: -28px; }
+  .dw-attr-nome { font-size: 10px; } .dw-attr-desc { font-size: 7.5px; }
+}
+
+/* ── Ritual de condensação ─────────────────────────────────────────────────────
+   Três segundos de cerimônia: os fragmentos convergem, colapsam num clarão e a
+   nota nasce. Sem isto o jogador sente que "comprou um item" em vez de ter feito
+   alguma coisa acontecer. */
+.ritual {
+  position: absolute; inset: -4% -3%; z-index: 20;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 50%, rgba(20,14,8,.9), rgba(4,3,2,.98));
+  overflow: hidden;
+}
+.ritual.hidden { display: none; }
+
+/* anéis de runa girando em sentidos opostos */
+.ritual-anel {
+  position: absolute; width: 250px; height: 250px; border-radius: 50%;
+  border: 2px dashed rgba(253,230,138,.55);
+  animation: ritualGira 3.4s linear infinite;
+}
+.ritual-anel.r2 {
+  width: 170px; height: 170px;
+  border: 2px dotted rgba(125,211,252,.6);
+  animation: ritualGira 2.2s linear infinite reverse;
+}
+@keyframes ritualGira { to { transform: rotate(360deg); } }
+
+/* fragmentos que voam para o centro */
+.ritual-faisca {
+  position: absolute; width: 7px; height: 7px; border-radius: 50%;
+  background: #fbbf24; box-shadow: 0 0 12px #fde68a;
+  animation: ritualPuxa var(--dur, 1.1s) cubic-bezier(.5,0,.85,.3) forwards;
+}
+@keyframes ritualPuxa {
+  from { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 0; }
+  15%  { opacity: 1; }
+  to   { transform: translate(0, 0) scale(.2); opacity: 0; }
+}
+
+/* o núcleo pulsa, estoura e vira a nota */
+.ritual-nucleo {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: radial-gradient(circle, #fff7ed, #fbbf24 60%, rgba(180,83,9,0));
+  box-shadow: 0 0 40px #fbbf24;
+  animation: ritualPulsa 1.4s ease-in-out infinite;
+  display: grid; place-items: center;
+}
+.ritual-nucleo canvas { image-rendering: pixelated; max-height: 90px; }
+@keyframes ritualPulsa { 0%,100% { transform: scale(1); } 50% { transform: scale(1.35); } }
+
+.ritual.estourou .ritual-nucleo {
+  animation: ritualEstoura .55s cubic-bezier(.2,1.5,.4,1) forwards;
+  width: auto; height: auto; background: none; box-shadow: none;
+}
+@keyframes ritualEstoura {
+  0%   { transform: scale(.2); filter: brightness(4); }
+  55%  { transform: scale(1.5); filter: brightness(2.2) drop-shadow(0 0 40px #fde68a); }
+  100% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 22px #fbbf24); }
+}
+.ritual.estourou .ritual-anel { animation: ritualSai .5s ease-out forwards; }
+@keyframes ritualSai { to { transform: scale(2.4); opacity: 0; } }
+
+.ritual-nome {
+  position: absolute; bottom: 26%; opacity: 0;
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 34px;
+  color: #fde68a; letter-spacing: 4px;
+  text-shadow: 0 0 26px rgba(251,191,36,.8), 0 3px 0 #2b1d08;
+}
+.ritual.estourou .ritual-nome { animation: ritualNome .7s ease-out .25s forwards; }
+@keyframes ritualNome { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+.ritual-legenda {
+  position: absolute; bottom: 16%;
+  font-size: 12px; font-style: italic; color: #9a7f5a; letter-spacing: 2px;
+}
+.ritual.estourou .ritual-legenda { color: #4ade80; font-style: normal; font-weight: 700; }
+
+@media (max-width: 900px), (pointer: coarse) {
+  .ritual-anel { width: 175px; height: 175px; }
+  .ritual-anel.r2 { width: 120px; height: 120px; }
+  .ritual-nome { font-size: 24px; bottom: 22%; }
+  .ritual-nucleo canvas { max-height: 64px; }
+}
+
+/* ── Altar: abas e montagem de escala ────────────────────────────────────────── */
+.altar-abas { display: flex; gap: 6px; margin: 2px 0 0; }
+.altar-aba {
+  font-family: 'Cinzel', serif; font-size: 10.5px; font-weight: 700; letter-spacing: .6px;
+  color: #8d7a5c; background: rgba(10,7,4,.6);
+  border: 1px solid #4a3718; border-radius: 3px; padding: 3px 10px; cursor: pointer;
+}
+.altar-aba.ativa { color: #fde68a; border-color: #8a6a2f; background: rgba(90,68,32,.4); }
+.altar-aba:disabled { opacity: .35; cursor: not-allowed; }
+
+.altar-montar { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
+.altar-montar.hidden { display: none; }
+.mont-titulo {
+  font-family: 'Cinzel', serif; font-size: 13px; color: #fde68a; text-align: center;
+  letter-spacing: 1px; text-shadow: 0 1px 3px #000;
+}
+
+/* a escada cromática: 13 casas, do Dó ao Dó da oitava */
+/* rótulo de seção, gravado na pedra */
+.mont-secao {
+  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 2px;
+  color: #8d7a5c; text-transform: uppercase; text-align: center;
+  margin: 6px 0 2px;
+}
+.mont-escada {
+  position: relative; display: flex; justify-content: space-between;
+  padding: 8px 4px 4px;
+}
+
+/* ── os graus da escala: é aqui que a escala aparece nascendo ── */
+.mont-graus {
+  display: flex; align-items: stretch; justify-content: center;
+  gap: 0; padding: 2px 0 4px;
+}
+.grau {
+  flex: 1 1 0; min-width: 0; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 5px 1px 4px; border-radius: 6px;
+  background: linear-gradient(180deg, rgba(20,14,8,.75), rgba(8,6,4,.75));
+  border: 1px solid #3a2c14;
+}
+.grau.feito {
+  background: linear-gradient(180deg, rgba(120,86,30,.85), rgba(60,40,12,.9));
+  border-color: #fde68a; box-shadow: 0 0 16px rgba(251,191,36,.45);
+}
+.grau.atual { border-color: #7dd3fc; box-shadow: 0 0 16px rgba(56,189,248,.5); }
+.grau.falta { border-style: dashed; border-color: #7c2d12; }
+.grau-num {
+  font-family: 'Cinzel', serif; font-size: 9px; font-weight: 700;
+  color: #9a7f5a; letter-spacing: .5px;
+}
+.grau.feito .grau-num { color: #fde68a; }
+.grau-nota { font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700; color: #6b5228; }
+.grau.feito .grau-nota { color: #fff7ed; text-shadow: 0 0 10px rgba(251,191,36,.7); }
+.grau.falta .grau-nota { color: #fca5a5; }
+
+/* o intervalo vive ENTRE dois graus, que é exatamente o que ele é */
+.intervalo {
+  flex: 0 0 26px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px;
+}
+.intervalo i {
+  display: block; width: 100%; height: 2px; border-radius: 1px;
+  background: #3a2c14;
+}
+.intervalo.feito i { background: linear-gradient(90deg, #b45309, #fde68a); box-shadow: 0 0 8px rgba(251,191,36,.7); }
+.intervalo.agora i { background: #38bdf8; box-shadow: 0 0 10px rgba(56,189,248,.8); }
+.intervalo span {
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  color: #4a3718; letter-spacing: 1px;
+}
+.intervalo.feito span { color: #fde68a; }
+.intervalo.agora span { color: #7dd3fc; }
+
+@media (max-width: 900px), (pointer: coarse) {
+  .mont-secao { font-size: 7.5px; margin: 3px 0 1px; }
+  .grau { padding: 3px 0; } .grau-num { font-size: 7px; } .grau-nota { font-size: 10px; }
+  .intervalo { flex-basis: 18px; } .intervalo span { font-size: 8px; }
+}
+.casa {
+  position: relative; width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 8.5px; font-weight: 700; color: #6b5228;
+  background: rgba(8,6,4,.7); border: 1px solid #3a2c14;
+  transition: all .18s;
+}
+.casa.preta { background: rgba(4,6,12,.85); border-color: #1e3a5f; color: #3f5a7a; }
+.casa.pisada {
+  color: #1c1206; background: radial-gradient(circle at 40% 35%, #fff7ed, #fbbf24 70%);
+  border-color: #fde68a; box-shadow: 0 0 18px rgba(251,191,36,.75);
+  transform: scale(1.18);
+}
+.casa.atual {
+  border-color: #7dd3fc; box-shadow: 0 0 0 2px rgba(125,211,252,.5), 0 0 22px rgba(56,189,248,.6);
+  animation: casaPulsa 1.4s ease-in-out infinite;
+}
+@keyframes casaPulsa { 0%,100% { transform: scale(1.1);} 50% { transform: scale(1.28);} }
+.casa.faltando { border-color: #7c2d12; color: #7c2d12; }
+/* trilha percorrida */
+.mont-trilha {
+  position: absolute; left: 0; top: 26px; height: 3px; border-radius: 2px;
+  background: linear-gradient(90deg, rgba(251,191,36,.25), #fde68a);
+  box-shadow: 0 0 12px rgba(251,191,36,.7); transition: width .35s ease;
+}
+
+/* a fórmula sendo escrita */
+.mont-formula {
+  display: flex; justify-content: center; gap: 5px; font-family: 'Cinzel', serif;
+  font-size: 11px; letter-spacing: 1px; min-height: 16px;
+}
+.passo-marca { color: #4a3718; }
+.passo-marca.feito { color: #fde68a; text-shadow: 0 0 10px rgba(251,191,36,.6); }
+.passo-marca.agora { color: #7dd3fc; text-shadow: 0 0 10px rgba(56,189,248,.7); }
+
+.mont-controles { display: flex; align-items: center; gap: 10px; margin-top: auto; padding-bottom: 2px; }
+.mont-peca {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  min-width: 86px; padding: 6px 10px; cursor: pointer;
+  font-family: 'Cinzel', serif; font-weight: 700; letter-spacing: .8px;
+  border-radius: 4px; transition: transform .1s, box-shadow .15s, filter .15s;
+}
+.mont-peca.tom {
+  color: #dbeafe; background: linear-gradient(180deg, #1e3a5f, #0f2038);
+  border: 2px solid #3b82f6; box-shadow: 0 3px 0 #0b1729;
+}
+.mont-peca.semitom {
+  color: #f3e8ff; background: linear-gradient(180deg, #4c1d6b, #2a0f3d);
+  border: 2px solid #a855f7; box-shadow: 0 3px 0 #1a0827;
+}
+.mont-peca:active { transform: translateY(3px); box-shadow: none; }
+.mont-peca:disabled { filter: grayscale(.8) brightness(.5); cursor: not-allowed; }
+.mont-peca.sugerida { animation: pecaChama 1.1s ease-in-out infinite; }
+@keyframes pecaChama {
+  0%,100% { box-shadow: 0 3px 0 #0b1729, 0 0 0 rgba(253,230,138,0); }
+  50%     { box-shadow: 0 3px 0 #0b1729, 0 0 22px rgba(253,230,138,.85); }
+}
+.mont-peca .peca-nome { font-size: 11px; }
+.mont-peca .peca-qtd { font-size: 13px; color: #fde68a; }
+
+.mont-fala {
+  flex: 1; text-align: center; font-size: 11px; font-style: italic;
+  color: #b9a27c; text-shadow: 0 1px 2px #000; line-height: 1.35;
+}
+.mont-fala.erro { color: #fca5a5; font-style: normal; font-weight: 700; }
+.mont-fala.ok { color: #4ade80; font-weight: 700; font-style: normal; }
+.altar-montar.tremendo { animation: montTreme .3s; }
+@keyframes montTreme { 25% { transform: translateX(-6px);} 75% { transform: translateX(6px);} }
+
+@media (max-width: 900px), (pointer: coarse) {
+  .altar-aba { font-size: 9px; padding: 2px 7px; }
+  .mont-titulo { font-size: 11px; }
+  .casa { width: 19px; height: 19px; font-size: 7px; }
+  .mont-peca { min-width: 62px; padding: 4px 6px; }
+  .mont-peca .peca-nome { font-size: 9px; } .mont-peca .peca-qtd { font-size: 11px; }
+  .mont-fala { font-size: 9px; }
+}
+
+/* ── Grimório: inventário, atributos e notas ───────────────────────────────────
+   A arte do livro É a tela. As regiões abaixo foram medidas em cima da imagem:
+   página esquerda = grade, nicho central = personagem, coluna direita = equipamento,
+   fita inferior = abas. Tudo em porcentagem, então escala junto com o livro. */
+.grimorio-overlay {
+  position: fixed; inset: 0; z-index: 1250;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 45%, rgba(24,16,8,.85), rgba(3,4,8,.96));
+  font-family: 'Outfit', sans-serif;
+}
+.grimorio-overlay.hidden { display: none; }
+
+.grimorio {
+  position: relative;
+  height: min(94vh, 690px);
+  aspect-ratio: 1171 / 655;
+  background: url('assets/ui_grimorio.png') center/100% 100% no-repeat;
+  filter: drop-shadow(0 26px 55px rgba(0,0,0,.8));
+}
+@media (max-aspect-ratio: 16/10) { .grimorio { width: 97vw; height: auto; } }
+
+.gr-titulo {
+  position: absolute; left: 13%; top: 5.6%; width: 31%;
+  text-align: center; font-family: 'Cinzel', serif; font-weight: 700;
+  font-size: 13px; color: #f5e6c8; letter-spacing: 1.4px;
+  text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+
+/* grade da página esquerda */
+.gr-grade {
+  /* A grade pintada foi apagada da arte: aqui ela é desenhada por código, então o
+     alinhamento é exato em qualquer tamanho de tela. */
+  position: absolute; left: 9.5%; top: 15.5%; width: 40%; height: 67%;
+  display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(4, 1fr);
+  gap: 2.4%;
+}
+.gr-casa {
+  position: relative; border-radius: 5px; cursor: pointer;
+  display: grid; place-items: center;
+  background:
+    repeating-conic-gradient(rgba(0,0,0,.13) 0% 25%, transparent 0% 50%) 0 0/8px 8px,
+    linear-gradient(180deg, #634323, #3d2716);
+  border: 1px solid #8a6a2f;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.6), inset 0 -1px 0 rgba(255,220,160,.14),
+              0 1px 0 rgba(255,235,190,.25);
+  transition: transform .1s, box-shadow .15s;
+}
+.gr-casa.vazia { cursor: default; }
+.gr-casa:not(.vazia):hover { transform: translateY(-2px); box-shadow: inset 0 2px 5px rgba(0,0,0,.5), 0 0 14px rgba(251,191,36,.55); }
+.gr-casa.sel { box-shadow: inset 0 2px 5px rgba(0,0,0,.5), 0 0 0 2px #fbbf24, 0 0 18px rgba(251,191,36,.7); }
+.gr-casa canvas, .gr-casa .gr-emoji { max-width: 78%; max-height: 78%; image-rendering: pixelated; font-size: 19px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.55)); }
+.gr-qtd {
+  position: absolute; right: 3px; bottom: 1px;
+  font-size: 11px; font-weight: 800; color: #fde68a; text-shadow: 0 1px 2px #000, 0 0 3px #000;
+}
+
+/* personagem no nicho e coluna de equipamento */
+.gr-nicho {
+  position: absolute; left: 57.7%; top: 23.5%; width: 16.8%; height: 56%;
+  display: grid; place-items: center;
+}
+.gr-nicho canvas { max-width: 88%; max-height: 94%; image-rendering: pixelated;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,.6)); }
+.gr-equip {
+  position: absolute; left: 80.5%; top: 15.5%; width: 8.6%; height: 67%;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.gr-slot {
+  position: relative; flex: 1; margin: 2% 0; border-radius: 5px; cursor: pointer;
+  display: grid; place-items: center;
+  background: linear-gradient(180deg, #634323, #35210f);
+  border: 1px solid #a07b34;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.6), 0 1px 0 rgba(255,235,190,.25);
+}
+.gr-slot canvas, .gr-slot .gr-emoji { max-width: 72%; max-height: 72%; image-rendering: pixelated; font-size: 17px; }
+.gr-slot.vazio { opacity: .45; }
+.gr-slot.vazio::after {
+  content: attr(data-rotulo); position: absolute; font-size: 7.5px;
+  color: #c8a97a; letter-spacing: .3px;
+}
+
+/* ficha do item selecionado */
+.gr-detalhe {
+  position: absolute; left: 9.5%; bottom: 3.5%; width: 40%;
+  padding: 6px 9px; border-radius: 5px;
+  background: linear-gradient(180deg, rgba(62,42,22,.97), rgba(38,24,12,.97));
+  border: 1px solid #8a6a2f; box-shadow: 0 -4px 18px rgba(0,0,0,.5);
+}
+.gr-detalhe.hidden { display: none; }
+.gr-det-nome { font-family: 'Cinzel', serif; font-weight: 700; font-size: 12.5px; color: #fde68a; }
+.gr-det-tipo { font-size: 9.5px; color: #b08a56; letter-spacing: .5px; text-transform: uppercase; }
+.gr-det-desc { font-size: 10.5px; color: #e3cfae; line-height: 1.45; margin-top: 4px; }
+.gr-det-origem { font-size: 9.5px; color: #9c7a58; font-style: italic; margin-top: 3px; }
+
+/* fitas de marcador = abas */
+.gr-fitas {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: -4.5%; display: flex; gap: 6px;
+}
+.gr-fita {
+  width: 30px; height: 44px; cursor: pointer; font-size: 15px;
+  color: #f5e6c8; border: none; border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, #8a5a2a, #5c3312);
+  clip-path: polygon(0 0, 100% 0, 100% 74%, 50% 100%, 0 74%);
+  box-shadow: 0 3px 8px rgba(0,0,0,.5);
+  transition: transform .12s, filter .12s;
+}
+.gr-fita:hover { transform: translateY(-3px); }
+.gr-fita.ativa { background: linear-gradient(180deg, #d9a441, #9c6a1e); color: #2b1d08; transform: translateY(-5px); }
+
+.gr-fechar {
+  position: absolute; right: 3%; top: 6%;
+  width: 26px; height: 26px; cursor: pointer; font-size: 12px;
+  color: #fca5a5; background: linear-gradient(180deg, #4a1e10, #2a0f08);
+  border: 1px solid #7c2d12; border-radius: 3px;
+}
+
+/* atributos ocupando a página esquerda */
+.gr-attr-lista {
+  position: absolute; left: 9.5%; top: 15.5%; width: 40%; height: 67%;
+  display: flex; flex-direction: column; gap: 2.4%; overflow: hidden;
+}
+.gr-attr {
+  flex: 1; display: grid; grid-template-columns: 26px 1fr auto 26px;
+  align-items: center; gap: 7px; padding: 0 7px;
+  background: linear-gradient(180deg, #6b4a26, #4a3018);
+  border: 1px solid #8a6a2f; border-radius: 5px;
+  box-shadow: inset 0 1px 0 rgba(255,220,160,.2);
+}
+.gr-attr-ico { font-size: 16px; color: #fde68a; text-align: center; }
+.gr-attr-nome { font-family: 'Cinzel', serif; font-size: 11.5px; color: #fde68a; font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.gr-attr-desc { font-size: 8.5px; color: #c8a97a; line-height: 1.25; }
+.gr-attr-val { font-size: 15px; font-weight: 800; color: #fde68a; }
+.gr-attr-add {
+  width: 22px; height: 22px; border-radius: 4px; cursor: pointer;
+  font-size: 14px; font-weight: 800; color: #2b1d08;
+  background: linear-gradient(180deg, #f0c060, #b8862a); border: 1px solid #6b4a12;
+}
+.gr-attr-add:disabled { opacity: .25; cursor: not-allowed; }
+.gr-resumo {
+  /* placa de pedra dentro do nicho: parece inscrição, não caixa de site */
+  position: absolute; left: 57.7%; top: 23.5%; width: 16.8%; height: 56%;
+  padding: 10px 8px; overflow-y: auto;
+  font-size: 10px; color: #dbcbb0; line-height: 1.85;
+  background: linear-gradient(180deg, rgba(30,26,22,.86), rgba(14,12,10,.9));
+  border: 1px solid #6b5228; border-radius: 3px;
+  box-shadow: inset 0 0 26px rgba(0,0,0,.7);
+}
+.gr-resumo b { color: #fde68a; }
+.gr-resumo .gr-res-tit {
+  font-family: 'Cinzel', serif; font-size: 12px; color: #fde68a;
+  letter-spacing: 1px; margin-bottom: 4px; display: block;
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+  .gr-titulo { font-size: 10px; }
+  .gr-qtd { font-size: 9px; }
+  .gr-det-nome { font-size: 10.5px; } .gr-det-desc { font-size: 9px; }
+  .gr-det-tipo, .gr-det-origem { font-size: 8px; }
+  .gr-fita { width: 24px; height: 36px; font-size: 12px; }
+  .gr-attr-nome { font-size: 9.5px; } .gr-attr-desc { font-size: 7.5px; }
+  .gr-attr-val { font-size: 12px; } .gr-attr-add { width: 18px; height: 18px; font-size: 12px; }
+  .gr-resumo { font-size: 8.5px; line-height: 1.7; }
+}
+
+/* encaixe reservado: existe, mas está claramente esperando conteúdo futuro */
+.dw-casa.reservado {
+  background: linear-gradient(180deg, #2e2418, #191208);
+  border-style: dashed; opacity: .55;
+}
+.dw-casa.reservado::after { color: #7a6440; }
+
+/* ── Sorteio no Lugar das Notas Sagradas ───────────────────────────────────────
+   O vídeo é o palco. O prêmio NÃO está no vídeo — ele é composto por cima no
+   quadro do estouro, senão o mesmo sorteio daria sempre o mesmo item. */
+.sorteio-overlay {
+  /* A caixa é ajustada por JS para casar com a área do jogo — cobrir o navegador
+     inteiro fazia a tela do sorteio vazar para fora do palco no editor. */
+  position: fixed; z-index: 1350;
+  display: flex; align-items: center; justify-content: center;
+  background: #05060a; overflow: hidden;
+  font-family: 'Outfit', sans-serif;
+}
+.sorteio-overlay.hidden { display: none; }
+.sorteio-video { width: 100%; height: 100%; object-fit: cover; }
+
+.sorteio-topo {
+  position: absolute; top: 4%; left: 0; right: 0; text-align: center;
+  text-shadow: 0 2px 8px rgba(0,0,0,.9);
+}
+.sorteio-titulo {
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 20px;
+  color: #fde68a; letter-spacing: 2px;
+}
+.sorteio-sub { font-size: 11px; color: #cbb894; font-style: italic; }
+
+/* onde o prêmio nasce: bem no centro da coluna de luz */
+.sorteio-premio {
+  position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  opacity: 0; pointer-events: none;
+}
+.sorteio-premio.revelado { animation: premioNasce .8s cubic-bezier(.2,1.5,.35,1) forwards; }
+@keyframes premioNasce {
+  0%   { opacity: 0; transform: translate(-50%,-50%) scale(.2); filter: brightness(4); }
+  55%  { opacity: 1; transform: translate(-50%,-50%) scale(1.35); filter: brightness(2); }
+  100% { opacity: 1; transform: translate(-50%,-50%) scale(1); filter: brightness(1); }
+}
+.sorteio-premio canvas { max-height: 140px; image-rendering: pixelated;
+  filter: drop-shadow(0 0 26px rgba(251,191,36,.9)); }
+.sorteio-premio .premio-nome {
+  /* Placa escura por trás: o nome cai em cima do lago dourado e sumia no claro. */
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 26px;
+  color: #fde68a; letter-spacing: 2px;
+  padding: 4px 18px; border-radius: 4px;
+  background: rgba(10,7,3,.72);
+  border: 1px solid rgba(253,230,138,.45);
+  text-shadow: 0 0 22px rgba(251,191,36,.9), 0 2px 0 #2b1d08;
+}
+.sorteio-premio .premio-tipo {
+  padding: 1px 10px; border-radius: 3px; background: rgba(10,7,3,.6);
+}
+.sorteio-premio .premio-tipo { font-size: 11px; color: #cbb894; letter-spacing: 3px; text-transform: uppercase; }
+.sorteio-premio.vazio .premio-nome { color: #94a3b8; text-shadow: 0 3px 0 #000; }
+
+.sorteio-rodape {
+  position: absolute; bottom: 5%; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+}
+.sorteio-btn {
+  padding: 11px 26px; cursor: pointer; border-radius: 8px;
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 15px; letter-spacing: 1px;
+  color: #2b1d08; background: linear-gradient(180deg, #f0c060, #b8862a);
+  border: 2px solid #fde68a; box-shadow: 0 4px 0 #6b4a12, 0 0 30px rgba(251,191,36,.4);
+}
+.sorteio-btn:active { transform: translateY(4px); box-shadow: 0 0 30px rgba(251,191,36,.4); }
+.sorteio-btn:disabled { filter: grayscale(.8) brightness(.6); cursor: not-allowed; }
+.sorteio-custo { font-size: 12px; font-weight: 700; color: #fde68a; text-shadow: 0 1px 3px #000; }
+.sorteio-sair {
+  width: 34px; height: 34px; cursor: pointer; border-radius: 6px; font-size: 14px;
+  color: #fca5a5; background: rgba(20,8,4,.8); border: 1px solid #7c2d12;
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+  .sorteio-titulo { font-size: 15px; } .sorteio-sub { font-size: 9px; }
+  .sorteio-premio canvas { max-height: 96px; }
+  .sorteio-premio .premio-nome { font-size: 17px; }
+  .sorteio-btn { padding: 9px 18px; font-size: 12px; }
+}

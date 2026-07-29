@@ -148,5 +148,10 @@
     {
       "cmd": "fim"
     }
-  ]
+  ],
+  "estadoInicial": {
+    "nivel": 3,
+    "claves": 3,
+    "moedas": 80
+  }
 }

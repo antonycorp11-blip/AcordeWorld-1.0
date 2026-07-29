@@ -1,7 +1,7 @@
 {
   "types": {
     "tempo_toad": {
-      "name": "Sapo do Tempo",
+      "name": "Sapo do Compasso",
       "sprite": "assets/monsters/tempo_toad.jpg",
       "cols": 4,
       "rows": 4,
@@ -11,18 +11,22 @@
       ],
       "height": 62,
       "hp": 30,
-      "damage": 6,
+      "damage": 0,
       "speed": 0.9,
       "aggroRange": 150,
       "touchRange": 34,
-      "drop": {
-        "item": "clave",
-        "min": 1,
-        "max": 2
-      }
+      "pacifico": true,
+      "persegue": false,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        }
+      ]
     },
     "octave_owl": {
-      "name": "Coruja da Oitava",
+      "name": "Coruja das Oitavas",
       "sprite": "assets/monsters/octave_owl.jpg",
       "cols": 4,
       "rows": 4,
@@ -32,18 +36,22 @@
       ],
       "height": 66,
       "hp": 26,
-      "damage": 5,
+      "damage": 0,
       "speed": 1.5,
       "aggroRange": 200,
       "touchRange": 34,
-      "drop": {
-        "item": "clave",
-        "min": 1,
-        "max": 2
-      }
+      "pacifico": true,
+      "persegue": false,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        }
+      ]
     },
     "bass_crawler": {
-      "name": "Rastejante da Clave de Fá",
+      "name": "Rastejante Grave",
       "sprite": "assets/monsters/bass_crawler.jpg",
       "cols": 4,
       "rows": 4,
@@ -53,18 +61,22 @@
       ],
       "height": 58,
       "hp": 40,
-      "damage": 8,
+      "damage": 0,
       "speed": 0.7,
       "aggroRange": 140,
       "touchRange": 36,
-      "drop": {
-        "item": "clave",
-        "min": 2,
-        "max": 3
-      }
+      "pacifico": true,
+      "persegue": false,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        }
+      ]
     },
     "treble_flyer": {
-      "name": "Voador da Clave de Sol",
+      "name": "Voador Agudo",
       "sprite": "assets/monsters/treble_flyer.jpg",
       "cols": 4,
       "rows": 4,
@@ -74,15 +86,19 @@
       ],
       "height": 60,
       "hp": 22,
-      "damage": 4,
+      "damage": 0,
       "speed": 1.7,
       "aggroRange": 210,
       "touchRange": 32,
-      "drop": {
-        "item": "clave",
-        "min": 1,
-        "max": 1
-      }
+      "pacifico": true,
+      "persegue": false,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        }
+      ]
     },
     "coda_crawler": {
       "name": "Rastejante da Coda",
@@ -95,15 +111,19 @@
       ],
       "height": 60,
       "hp": 35,
-      "damage": 7,
+      "damage": 0,
       "speed": 0.8,
       "aggroRange": 150,
       "touchRange": 34,
-      "drop": {
-        "item": "clave",
-        "min": 1,
-        "max": 3
-      }
+      "pacifico": true,
+      "persegue": false,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        }
+      ]
     },
     "shiker": {
       "name": "Shiker",
@@ -120,17 +140,223 @@
       "speed": 1.7,
       "aggroRange": 320,
       "touchRange": 38,
-      "drop": {
-        "item": "clave",
-        "min": 1,
-        "max": 1
-      },
       "walkRow": 1,
       "walkFrames": 4,
       "attackRow": 2,
       "attackFrames": 4,
       "attackWindup": 190,
-      "attackMs": 460
+      "attackMs": 460,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 1,
+          "chance": 0.55
+        }
+      ]
+    },
+    "eco_cristal": {
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 4,
+      "attackWindup": 220,
+      "attackMs": 500,
+      "persegue": true,
+      "exigeRessonador": true,
+      "name": "Eco Cristalino",
+      "sprite": "assets/monsters/eco_cristal.jpg",
+      "height": 70,
+      "hp": 40,
+      "damage": 4,
+      "speed": 1.3,
+      "aggroRange": 260,
+      "touchRange": 36,
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 2,
+          "max": 3
+        },
+        {
+          "item": "tom",
+          "min": 1,
+          "max": 1,
+          "chance": 0.45
+        }
+      ]
+    },
+    "eco_cromatico": {
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 4,
+      "attackWindup": 220,
+      "attackMs": 500,
+      "persegue": true,
+      "exigeRessonador": true,
+      "name": "Eco Cromático",
+      "sprite": "assets/monsters/eco_cromatico.jpg",
+      "height": 72,
+      "hp": 52,
+      "damage": 6,
+      "speed": 1.5,
+      "aggroRange": 300,
+      "touchRange": 36,
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 2,
+          "max": 3
+        },
+        {
+          "item": "semitom",
+          "min": 1,
+          "max": 1,
+          "chance": 0.45
+        }
+      ]
+    },
+    "eco_radiante": {
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 4,
+      "attackWindup": 220,
+      "attackMs": 500,
+      "persegue": true,
+      "exigeRessonador": true,
+      "name": "Eco Radiante",
+      "sprite": "assets/monsters/eco_radiante.jpg",
+      "height": 74,
+      "hp": 70,
+      "damage": 7,
+      "speed": 1.2,
+      "aggroRange": 280,
+      "touchRange": 38,
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 4,
+          "max": 6
+        },
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 1,
+          "chance": 0.35
+        }
+      ]
+    },
+    "eco_consonante": {
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 4,
+      "attackWindup": 220,
+      "attackMs": 500,
+      "persegue": true,
+      "exigeRessonador": true,
+      "name": "Eco Consonante",
+      "sprite": "assets/monsters/eco_consonante.jpg",
+      "height": 72,
+      "hp": 60,
+      "damage": 5,
+      "speed": 1.4,
+      "aggroRange": 290,
+      "touchRange": 36,
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 3,
+          "max": 4
+        },
+        {
+          "item": "tom",
+          "min": 1,
+          "max": 1,
+          "chance": 0.3
+        },
+        {
+          "item": "semitom",
+          "min": 1,
+          "max": 1,
+          "chance": 0.3
+        }
+      ]
+    },
+    "eco_dissonante": {
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 4,
+      "attackWindup": 220,
+      "attackMs": 500,
+      "persegue": true,
+      "exigeRessonador": true,
+      "name": "Eco Dissonante",
+      "sprite": "assets/monsters/eco_dissonante.jpg",
+      "height": 76,
+      "hp": 95,
+      "damage": 11,
+      "speed": 1.9,
+      "aggroRange": 340,
+      "touchRange": 38,
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 6,
+          "max": 9
+        },
+        {
+          "item": "tom",
+          "min": 1,
+          "max": 1,
+          "chance": 0.4
+        },
+        {
+          "item": "semitom",
+          "min": 1,
+          "max": 1,
+          "chance": 0.4
+        },
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2,
+          "chance": 0.5
+        }
+      ]
     }
   },
   "spawns": [
@@ -139,70 +365,135 @@
       "type": "tempo_toad",
       "mapKey": "2_1",
       "x": 300,
-      "y": 380
+      "y": 380,
+      "escala": 1.6,
+      "flipX": false
     },
     {
       "id": "m2",
       "type": "tempo_toad",
       "mapKey": "2_1",
-      "x": 720,
-      "y": 330
+      "x": 444,
+      "y": 330,
+      "escala": 2.1,
+      "flipX": false
     },
     {
       "id": "m3",
       "type": "octave_owl",
       "mapKey": "2_1",
       "x": 520,
-      "y": 250
+      "y": 250,
+      "escala": 1,
+      "flipX": false
     },
     {
       "id": "m4",
       "type": "treble_flyer",
       "mapKey": "2_1",
       "x": 830,
-      "y": 450
+      "y": 450,
+      "escala": 1,
+      "flipX": false
     },
     {
       "id": "m5",
       "type": "bass_crawler",
       "mapKey": "3_1",
       "x": 246,
-      "y": 214
+      "y": 214,
+      "escala": 1,
+      "flipX": false
     },
     {
       "id": "m6",
       "type": "coda_crawler",
       "mapKey": "3_1",
       "x": 694,
-      "y": 187
+      "y": 187,
+      "escala": 1,
+      "flipX": false
     },
     {
       "id": "m7",
       "type": "octave_owl",
       "mapKey": "3_1",
       "x": 758,
-      "y": 490
+      "y": 490,
+      "escala": 1,
+      "flipX": false
     },
     {
       "id": "m8",
       "type": "bass_crawler",
       "mapKey": "3_0",
       "x": 300,
-      "y": 320
+      "y": 320,
+      "escala": 1,
+      "flipX": false
     },
     {
       "id": "m9",
       "type": "coda_crawler",
       "mapKey": "3_0",
       "x": 640,
-      "y": 420
+      "y": 420,
+      "escala": 1,
+      "flipX": false
     },
     {
       "id": "m10",
       "type": "treble_flyer",
       "mapKey": "3_0",
       "x": 800,
-      "y": 260
+      "y": 260,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "eco_cristal_clareira_1",
+      "type": "eco_cristal",
+      "mapKey": "custom_1785254692668_431",
+      "x": 520,
+      "y": 235,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "eco_cristal_clareira_2",
+      "type": "eco_cristal",
+      "mapKey": "custom_1785254692668_431",
+      "x": 395,
+      "y": 330,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "eco_cristal_clareira_3",
+      "type": "eco_cristal",
+      "mapKey": "custom_1785254692668_431",
+      "x": 690,
+      "y": 300,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "eco_cristal_clareira_4",
+      "type": "eco_cristal",
+      "mapKey": "custom_1785254692668_431",
+      "x": 560,
+      "y": 405,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "eco_cromatico_clareira_5",
+      "type": "eco_cromatico",
+      "mapKey": "custom_1785254692668_431",
+      "x": 780,
+      "y": 235,
+      "escala": 1,
+      "flipX": false
     }
   ]
 }

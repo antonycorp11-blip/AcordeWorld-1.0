@@ -3,41 +3,157 @@
   "nome": "Cena 4 — O Líder de Acordelot",
   "mapa": "0_0",
   "autoStart": true,
-  "gatilho": { "tipo": "falar", "npc": "Antony" },
+  "gatilho": {
+    "tipo": "falar",
+    "npc": "Antony"
+  },
   "passos": [
-    { "cmd": "controle", "ativo": false },
-    { "cmd": "acenar", "npc": "Antony", "ms": 1500 },
-
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Ah! Então é você que o Renaldo anunciou pelo rádio da guarda." },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Nós não temos rádio. Ele grita. Mas o efeito é o mesmo." },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Sou Antony, líder desta cidade. E você é...?" },
-    { "cmd": "falar", "quem": "Personagem", "texto": "{PLAYER_NAME}. Vim da floresta.", "auto": 1500 },
-
-    { "cmd": "esperar", "ms": 400 },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Da floresta." },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "À noite." },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "A pé." },
-    { "cmd": "tremer", "forca": 4, "ms": 300 },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Rapaz, tem gente nesta cidade que não atravessa a praça depois do jantar." },
-
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "E isso na sua mão... me mostre." },
-    { "cmd": "esperar", "ms": 700 },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Uma Clave Musical. De um Shiker." },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Eu tenho oitenta e dois anos e nunca segurei uma dessas." },
-    { "cmd": "falar", "quem": "Personagem", "texto": "É importante?", "auto": 1400 },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Meu jovem, isso não é importante. Isso é o começo de alguma coisa." },
-
-    { "cmd": "esperar", "ms": 500 },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Mas antes de qualquer coisa: aqui em Acordelot, amizade vale mais que espada." },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Uma nota sozinha é só barulho. Duas já são música." },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Vá se apresentar ao Bardo Lucian — ele toca ali perto e fala pelos cotovelos." },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Depois, ao Mercador Tibério. Compre nada, ele vai tentar." },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Quando conhecer os dois, volte aqui. Aí conversamos sério." },
-
-    { "cmd": "missao", "id": "amizade_importa" },
-    { "cmd": "tutorial", "texto": "Aproxime-se de um NPC e toque no botão de ação para conversar." },
-    { "cmd": "hud", "visivel": true },
-    { "cmd": "controle", "ativo": true },
-    { "cmd": "fim" }
-  ]
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "acenar",
+      "npc": "Antony",
+      "ms": 1500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Ah! Então é você que o Renaldo anunciou pelo rádio da guarda."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Nós não temos rádio. Ele grita. Mas o efeito é o mesmo."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Sou Antony, líder desta cidade. E você é...?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "{PLAYER_NAME}. Vim da floresta.",
+      "auto": 1500
+    },
+    {
+      "cmd": "esperar",
+      "ms": 400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Da floresta."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "À noite."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "A pé."
+    },
+    {
+      "cmd": "tremer",
+      "forca": 4,
+      "ms": 300
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Rapaz, tem gente nesta cidade que não atravessa a praça depois do jantar."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "E isso na sua mão... me mostre."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 700
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Uma Clave Musical. De um Shiker."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Solta. Na mão de um viajante. Caída no chão de uma floresta."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Eu tenho oitenta e dois anos e esperava morrer sem ver uma dessas fora de uma partitura."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "É importante?",
+      "auto": 1400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Meu jovem, isso não é importante. Isso é o começo de alguma coisa."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Mas antes de qualquer coisa: aqui em Acordelot, amizade vale mais que espada."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Uma nota sozinha é só barulho. Duas já são música."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Vá se apresentar ao Bardo Lucian — ele toca ali perto e fala pelos cotovelos."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Depois, ao Mercador Tibério. Compre nada, ele vai tentar."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Quando conhecer os dois, volte aqui. Aí conversamos sério."
+    },
+    {
+      "cmd": "missao",
+      "id": "amizade_importa"
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "Aproxime-se de um NPC e toque no botão de ação para conversar."
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "fim"
+    }
+  ],
+  "estadoInicial": {
+    "nivel": 2,
+    "claves": 2,
+    "moedas": 60
+  }
 }

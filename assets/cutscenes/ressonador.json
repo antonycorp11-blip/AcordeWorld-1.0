@@ -1,0 +1,530 @@
+{
+  "id": "ressonador",
+  "nome": "Cena 9 — O Som Que Se Perde",
+  "mapa": "0_0",
+  "autoStart": true,
+  "gatilho": {
+    "tipo": "falar",
+    "npc": "Antony"
+  },
+  "requer": {
+    "missaoConcluida": "consertar_ponte"
+  },
+  "passos": [
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "destacar",
+      "npc": "Antony",
+      "zoom": 1.7,
+      "ms": 2400,
+      "rotulo": "Sr. Antony"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "O Dorn me contou. Disse que você bate melhor do que fala."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Vindo dele, isso é um elogio enorme."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Agora senta aqui. Está na hora de falarmos da coisa séria."
+    },
+    {
+      "_": "── o que é magia neste mundo ──"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Você já reparou que aqui ninguém diz \"lançar magia\"?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "A gente diz tocar."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Tocar?",
+      "auto": 1300
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Magia aqui não é gesto nem palavra. É acorde."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Três notas soando juntas na hora certa. Isso move o mundo."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Só que ninguém toca um acorde sem ter as notas."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "E notas, meu jovem, não se compram. Não existe nota à venda em lugar nenhum."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Então de onde elas vêm?",
+      "auto": 1400
+    },
+    {
+      "_": "── os Ecos ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Do que sobrou."
+    },
+    {
+      "cmd": "tremer",
+      "forca": 3,
+      "ms": 300
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Quando a música do mundo começou a desafinar, ela não sumiu de uma vez."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Pedaços dela ficaram presos no ar, vagando. Nós chamamos de Ecos."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Parecem criaturas. E atacam, sim. Mas não são bichos."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "São som que não conseguiu terminar de tocar."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "...e eu preciso lutar contra isso.",
+      "auto": 1600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Você precisa escutar isso. Lutar é só o começo da conversa."
+    },
+    {
+      "_": "── o problema: o som se dispersa ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Aqui está a parte que quebra o coração de todo aprendiz:"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Se você derrubar um Eco com as mãos vazias, ele se desfaz no ar."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "O som escapa. Você fica com nada. E aquele pedaço de música morre de vez."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Então como se guarda um som?",
+      "auto": 1500
+    },
+    {
+      "_": "── o Ressonador ──"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Com um Ressonador."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Um sino aberto com uma câmara de cristal no meio. Você o forja como forjou o martelo."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Quando o Eco estiver quase se desfazendo, ele abre e vibra numa frequência."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Você tem um instante para ressoar junto. Na frequência certa."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Acertar o tom captura o som inteiro — Fragmento Puro, valendo por três."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Errar... bom. Errar você já sabe o que faz."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Dispersa.",
+      "auto": 1300
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Dispersa."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Junte fragmentos suficientes e eles se condensam numa nota inteira."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Junte as notas certas, na ordem certa, e você terá uma escala."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "E de uma escala nascem sete acordes. Sete feitiços."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Sete...",
+      "auto": 1300
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Um de cada vez, rapaz. Você ainda nem tem o sino."
+    },
+    {
+      "_": "── a missão ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Vá à ferraria. Forje um Ressonador de Cobre — o Dorn tem o molde."
+    },
+    {
+      "_": "── o que é uma clave ──"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "E ele vai te cobrar em claves."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Aquelas coisas douradas que os monstros largam?",
+      "auto": 1500
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Me diga uma coisa. Você guardou a primeira, não guardou?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "A do Shiker. Sem saber o que era."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Guardei.",
+      "auto": 1200
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Bom instinto. Escute:"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Uma clave não é som. Ela não toca, não canta, não faz barulho nenhum."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "A clave é o que diz o que o som significa."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Não entendi.",
+      "auto": 1300
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Imagine uma nota escrita num papel, sozinha, sem mais nada."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Ela está ali. Mas é grave? É aguda? É qual nota?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Sem uma clave no começo da linha, aquilo não é música. É só uma bolinha."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "A clave é a referência. É ela que ancora tudo."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Por isso o Ressonador precisa de uma dentro da câmara."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Sem referência, ele captura o som e não sabe que som capturou."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Você teria um punhado de barulho bonito e inútil."
+    },
+    {
+      "_": "── por que elas estão soltas pelo mundo ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "O senhor estranhou a primeira estar solta no chão.",
+      "auto": 1700
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Estranhei. E agora me responda com sinceridade:"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Quantas você já juntou desde então?"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Não precisa dizer. Vi sua bolsa quando você entrou na praça."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Clave não fica largada no chão, rapaz. Ela vive no início da pauta, segurando a música de pé."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Uma caída já seria estranho."
+    },
+    {
+      "cmd": "tremer",
+      "forca": 4,
+      "ms": 400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Um punhado delas quer dizer que as pautas deste mundo estão se rompendo agora. Enquanto conversamos."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 800
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Cada clave que você acha no chão é um pedaço de partitura que desabou."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Use quantas precisar. Elas não vão faltar — e é exatamente esse o problema."
+    },
+    {
+      "_": "── onde encontrar claves ──"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "E onde eu acho mais?",
+      "auto": 1400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Na floresta a leste da praça. Mas escute bem antes de sair correndo."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Lá vivem criaturas mansas. Sapos, corujas, rastejantes."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Elas não atacam ninguém. Nunca atacaram."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Quando as pautas se romperam, as claves caíram em cima delas. E grudaram."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Grudaram?",
+      "auto": 1300
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Um pedaço de partitura quebrada preso nas costas. Pesado. Elas arrastam aquilo há meses."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Golpeie a clave até ela se soltar. A criatura vai embora aliviada e você fica com a clave."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Então eu não estou caçando.",
+      "auto": 1500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Está soltando. Guarde essa diferença — ela vai importar mais para a frente."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Depois vá à clareira a oeste da vila. Os Ecos de lá são mansos."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Mansos para o padrão de coisas que já foram música e não são mais."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Traga oito fragmentos. Aí eu te mostro o Altar."
+    },
+    {
+      "cmd": "missao",
+      "id": "o_primeiro_ressonador"
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "Forje um Ressonador de Cobre na ferraria.\nDepois cace Ecos na Clareira a oeste e ressoe no tom certo."
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "fim"
+    }
+  ],
+  "estadoInicial": {
+    "nivel": 4,
+    "claves": 8,
+    "moedas": 250,
+    "forjar": [
+      "hammer_ferro"
+    ],
+    "itens": {
+      "wood": 8,
+      "stone": 10
+    }
+  }
+}

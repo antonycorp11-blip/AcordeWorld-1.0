@@ -47,6 +47,27 @@ a pedagogia acontece sem texto: o jogador sente que V é tenso e I resolve.
 **Combo de resolução**: usar V e em seguida I dá bônus de dano/cura. É a cadência
 V→I ensinada por recompensa mecânica.
 
+## A Clave — a moeda da magia
+
+A clave **não é som**: é o que dá sentido ao som. Uma nota escrita sem clave no início da
+pauta não tem altura definida — é só uma bolinha no papel. A clave é a referência que
+ancora tudo.
+
+Por isso ela é a moeda de tudo que envolve magia:
+- O **Ressonador** precisa de uma clave na câmara. Sem referência, ele captura o som e
+  não sabe *qual* som capturou.
+- **Sintetizar notas** e **selar escalas** também custam claves, pelo mesmo motivo.
+
+E explica a lore: clave não fica largada no chão, ela vive no começo da pauta segurando a
+música de pé. Se estão caindo de criaturas por aí, é porque **as pautas do mundo se
+romperam**. Cada clave encontrada é um pedaço de partitura que desabou — o que transforma
+o ato de juntar moeda numa evidência silenciosa de que o mundo está quebrado.
+
+**Regra de escrita**: nenhum personagem pode chamar a clave de rara. O jogador vai
+acumular centenas delas, e qualquer fala sobre raridade envelhece em uma hora de jogo. O
+espanto é sempre sobre elas estarem **soltas no mundo**, nunca sobre serem poucas — assim
+a abundância reforça o horror em vez de contradizê-lo.
+
 ## Cores
 
 - **Naturais**: dourado/âmbar quente.

@@ -243,7 +243,7 @@
     },
     {
       "cmd": "tutorial",
-      "texto": "Você encontrou uma Clave Musical.\nUm misterioso fragmento de energia musical.\nGuarde-o. Você descobrirá sua utilidade em breve."
+      "texto": "Você encontrou uma Clave Musical.\nEla não faz som nenhum — e mesmo assim parece importante.\nGuarde. Alguém vai saber explicar."
     },
     {
       "cmd": "dar",

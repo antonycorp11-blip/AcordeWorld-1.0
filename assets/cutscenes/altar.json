@@ -1,0 +1,196 @@
+{
+  "id": "altar",
+  "nome": "Cena 10 — O Altar das Escalas",
+  "mapa": "0_0",
+  "autoStart": true,
+  "gatilho": {
+    "tipo": "falar",
+    "npc": "Antony"
+  },
+  "requer": {
+    "objetivos": {
+      "missao": "o_primeiro_ressonador",
+      "ids": [
+        "forjar",
+        "fragmentos"
+      ]
+    }
+  },
+  "passos": [
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Deixe-me ver."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Oito fragmentos. E alguns deles estão puros."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Você acertou o tom, não foi? Não precisa responder, dá para ver no brilho."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Errei três antes de acertar um.",
+      "auto": 1600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Então você é honesto. Melhor ainda."
+    },
+    {
+      "cmd": "objetivo",
+      "missao": "o_primeiro_ressonador",
+      "id": "voltar"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 700
+    },
+    {
+      "_": "── o que fazer com os fragmentos ──"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Agora preste atenção, porque isto aqui é o coração de tudo."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Fragmento não toca. É pedaço de som, não som inteiro."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Junte fragmentos suficientes e eles se condensam. Viram uma nota de verdade."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Dó. Ré. Mi. As sete naturais, e as cinco de meio caminho entre elas."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Doze ao todo.",
+      "auto": 1400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Doze. Nem uma a mais. Esse é o mundo inteiro da música, rapaz."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Tudo que já foi tocado, em qualquer lugar, saiu dessas doze."
+    },
+    {
+      "_": "── o Altar ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Mas não é aqui que isso acontece. Nem eu tenho poder para condensar som."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Existe um lugar. O Salão do Forjador de Escalas."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Um altar antigo, com um arco de encaixes de cristal. Ninguém sabe quem o construiu."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Ele estava lá antes da cidade. Talvez antes da música."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Leve seus fragmentos até ele. O altar sabe o que fazer."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "E depois das notas?",
+      "auto": 1500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Depois das notas, a escala. E da escala, os acordes."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Mas uma coisa de cada vez. Vá condensar sua primeira nota."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Eu esperei oitenta e dois anos para ver alguém fazer isso. Posso esperar mais um pouco."
+    },
+    {
+      "cmd": "missao",
+      "id": "primeira_nota"
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "Vá ao Salão do Forjador de Escalas e use o Altar para condensar sua primeira nota."
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "fim"
+    }
+  ],
+  "estadoInicial": {
+    "nivel": 5,
+    "claves": 10,
+    "moedas": 300,
+    "forjar": [
+      "hammer_ferro",
+      "reson_cobre"
+    ],
+    "qualidade": "ressonante",
+    "itens": {
+      "fragmento": 6,
+      "fragmento_puro": 2,
+      "tom": 2,
+      "semitom": 1
+    },
+    "mapa": "0_0"
+  }
+}

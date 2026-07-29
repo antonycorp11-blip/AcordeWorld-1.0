@@ -168,6 +168,96 @@
           "text": "Martele a ponte ao lado do Ferreiro Dorn"
         }
       ]
+    },
+    {
+      "id": "o_primeiro_ressonador",
+      "title": "O Som Que Se Perde",
+      "description": "Sem um Ressonador, todo Eco derrotado leva sua música embora.",
+      "xp": 200,
+      "recompensa": {
+        "moedas": 100
+      },
+      "objectives": [
+        {
+          "id": "forjar",
+          "type": "forjar",
+          "item": "reson_cobre",
+          "text": "Forje um Ressonador de Cobre"
+        },
+        {
+          "id": "fragmentos",
+          "type": "coletar",
+          "item": "fragmento",
+          "quantidade": 8,
+          "text": "Capture fragmentos dos Ecos na Clareira",
+          "requer": [
+            "forjar"
+          ]
+        },
+        {
+          "id": "voltar",
+          "type": "talk",
+          "npc": "Antony",
+          "text": "Leve os fragmentos ao Sr. Antony",
+          "requer": [
+            "forjar",
+            "fragmentos"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "primeira_nota",
+      "title": "A Primeira Nota",
+      "description": "Fragmentos não tocam. É preciso condensá-los numa nota inteira.",
+      "xp": 250,
+      "recompensa": {
+        "moedas": 120
+      },
+      "objectives": [
+        {
+          "id": "sintetizar",
+          "type": "sintetizar",
+          "item": "nota",
+          "quantidade": 1,
+          "text": "Condense sua primeira nota no Altar das Escalas"
+        }
+      ],
+      "aoConcluir": {
+        "cena": "primeira_voz"
+      }
+    },
+    {
+      "id": "a_escala_maior",
+      "title": "A Escala Maior",
+      "description": "Sete notas nas distâncias certas. T · T · S · T · T · T · S.",
+      "xp": 400,
+      "recompensa": {
+        "moedas": 250
+      },
+      "objectives": [
+        {
+          "id": "naturais",
+          "type": "sintetizar",
+          "item": "natural",
+          "quantidade": 7,
+          "text": "Condense as sete notas naturais"
+        },
+        {
+          "id": "tons",
+          "type": "coletar",
+          "item": "tom",
+          "quantidade": 5,
+          "text": "Reúna 5 Tons (Ecos Cristalinos)"
+        },
+        {
+          "id": "semitons",
+          "type": "coletar",
+          "item": "semitom",
+          "quantidade": 2,
+          "text": "Reúna 2 Semitons (Ecos Cromáticos)"
+        }
+      ]
     }
   ]
 }

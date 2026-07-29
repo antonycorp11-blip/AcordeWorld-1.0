@@ -81,6 +81,7 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
             if cfg is not None:
                 if isinstance(cfg, dict) and cfg.get('gridPos'):
                     cfg_path = os.path.join(assets_dir, 'acordelot_world_config.json')
+                    self._backup(cfg_path)
                     with open(cfg_path, 'w') as f:
                         json.dump(cfg, f, indent=2, ensure_ascii=False)
                     print("[Server] World config saved.")
@@ -110,11 +111,34 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
             print(f"[Server] Error saving layers: {e}")
             self.send_error(500, str(e))
 
+    def _backup(self, caminho):
+        """Guarda a versão anterior antes de sobrescrever. Uma aba antiga, um teste ou
+        uma requisição errada já custaram trabalho perdido; com isto sempre dá para voltar."""
+        try:
+            if not os.path.exists(caminho):
+                return
+            import time
+            pasta = os.path.join(DIRECTORY, 'assets', '_backups')
+            os.makedirs(pasta, exist_ok=True)
+            nome = os.path.basename(caminho)
+            carimbo = time.strftime('%Y%m%d-%H%M%S')
+            destino = os.path.join(pasta, f'{carimbo}-{nome}')
+            with open(caminho, 'rb') as origem, open(destino, 'wb') as saida:
+                saida.write(origem.read())
+            # mantém só as 40 mais recentes de cada arquivo
+            antigas = sorted(f for f in os.listdir(pasta) if f.endswith('-' + nome))
+            for f in antigas[:-40]:
+                try: os.remove(os.path.join(pasta, f))
+                except OSError: pass
+        except Exception as e:
+            print(f'[Server] backup falhou: {e}')
+
     def _save_npcs(self, data):
         try:
             assets_dir = os.path.join(DIRECTORY, 'assets')
             os.makedirs(assets_dir, exist_ok=True)
             npc_path = os.path.join(assets_dir, 'npcs.json')
+            self._backup(npc_path)
             count = len(data.get('npcs', []))
             # Lista vazia nunca é intencional: seria apagar todos os NPCs do jogo.
             if count == 0:
@@ -134,6 +158,7 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
             assets_dir = os.path.join(DIRECTORY, 'assets')
             os.makedirs(assets_dir, exist_ok=True)
             path = os.path.join(assets_dir, 'monsters.json')
+            self._backup(path)
             with open(path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             count = len(data.get('spawns', []))

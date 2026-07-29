@@ -215,8 +215,24 @@ function serialisableNPC(n) {
 async function saveNPCs() {
   if (IS_PLAY_BUILD) return;
   const payload = { npcs: npcData.map(serialisableNPC) };
-  localStorage.setItem('wasd_npcs_v2', JSON.stringify(payload));
+  try { localStorage.setItem('wasd_npcs_v2', JSON.stringify(payload)); } catch(e) {}
   try { await fetch('/save_npcs', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }); } catch(e) {}
+}
+
+// ...
+
+async function saveMonsters() {
+  if (IS_PLAY_BUILD) return;
+  const payload = {
+    types: monsterDefs,
+    // Grava a POSIÇÃO DE CASA, não onde o bicho está passeando neste instante — senão
+    // cada save moveria o monstro alguns pixels para sempre.
+    spawns: monsters.map(m => ({ id:m.id, type:m.type, mapKey:m.mapKey,
+      x:Math.round(m.homeX ?? m.x), y:Math.round(m.homeY ?? m.y),
+      escala:m.escala || 1, flipX: !!m.flipX })),
+  };
+  try { localStorage.setItem('acordelot_monsters_v1', JSON.stringify(payload)); } catch(e) {}
+  try { await fetch('/save_monsters', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }); } catch(e) {}
 }
 
 // ============================================================
@@ -232,9 +248,9 @@ function getLayers(key) {
   return screenLayers[key];
 }
 async function loadLayers() {
-  await Promise.all(Object.keys(bgSources).map(k => loadLayerKey(k)));
+  await Promise.all(chavesDeCenario().map(k => loadLayerKey(k)));
   // Masks just changed under us — drop the derived caches.
-  Object.keys(bgSources).forEach(k => { invalidateRoadPaint(k); invalidateDoorMarkers(k); });
+  chavesDeCenario().forEach(k => { invalidateRoadPaint(k); invalidateDoorMarkers(k); });
 }
 function loadLayerKey(k) {
   return new Promise(resolve => {
@@ -259,8 +275,8 @@ function loadLayerKey(k) {
 async function saveAllLayers(notify=false) {
   if (IS_PLAY_BUILD) return;
   rebuildGrid();
-  const wc={gridPos,spawns,bgSources,sceneNames:SCENE_NAMES,startMap,ambience}, payload={worldConfig:wc};
-  for (const k of Object.keys(bgSources)) {
+  const wc={gridPos,spawns,bgSources,sceneNames:SCENE_NAMES,startMap,ambience,videoSources}, payload={worldConfig:wc};
+  for (const k of chavesDeCenario()) {
     const L=getLayers(k);
     const rd=L.roadCanvas.toDataURL('image/png'), fg=L.fgCanvas.toDataURL('image/png'), dr=L.doorCanvas.toDataURL('image/png');
     payload[`road_${k}`]=rd; payload[`fg_${k}`]=fg; payload[`door_${k}`]=dr;
@@ -279,6 +295,7 @@ async function loadWorldConfig() {
     if(c.sceneNames)Object.assign(SCENE_NAMES,c.sceneNames);
     if(c.startMap)startMap=c.startMap;
     if(c.ambience)Object.assign(ambience,c.ambience);
+    if(c.videoSources)Object.assign(videoSources,c.videoSources);
   } catch(e) {
     const ls=localStorage.getItem('wasd_world_config_v17');
     if(ls){
@@ -290,6 +307,7 @@ async function loadWorldConfig() {
         if(c.sceneNames)Object.assign(SCENE_NAMES,c.sceneNames);
         if(c.startMap)startMap=c.startMap;
         if(c.ambience)Object.assign(ambience,c.ambience);
+        if(c.videoSources)Object.assign(videoSources,c.videoSources);
       }catch(ee){}
     }
   }
@@ -308,6 +326,15 @@ async function loadWorldConfig() {
 // PLAYER
 // ============================================================
 let currentKey = '0_1', currentScene = 'world', playerName = '';
+// Cenários animados: o fundo é um vídeo em laço desenhado NO canvas, então colisão,
+// camada de teto, placas e monstros funcionam exatamente como num cenário de imagem.
+let videoSources = {};
+const videoMapas = {};      // mapKey -> <video>
+// Lista única de cenários: imagem ou vídeo, os dois contam igual para o editor.
+function cenarioExiste(k) { return !!(bgSources[k] || videoSources[k]); }
+function chavesDeCenario() {
+  return [...new Set([...Object.keys(bgSources), ...Object.keys(videoSources)])];
+}
 // Cenário onde o jogo começa. Vem do acordelot_world_config.json (campo `startMap`),
 // para trocar o ponto de surgimento sem mexer em código.
 let startMap = '0_1';
@@ -902,8 +929,28 @@ function drawPontoMartelada(ctx2, npc, now) {
   ctx2.restore();
 }
 
+// Lago do Sorteio: ponto de interação de um cenário. No editor é um anel visível;
+// no jogo ele some, porque o lago já está pintado no vídeo do cenário.
+function drawLagoSorteio(ctx2, npc, now) {
+  const p = (Math.sin((now || 0) * 0.003) + 1) / 2;
+  if (isPlayMode) return;
+  const sc = npc.scale || 1, rx = 70 * sc, ry = 26 * sc;
+  ctx2.save();
+  ctx2.globalAlpha = 0.9;
+  ctx2.strokeStyle = '#fde68a'; ctx2.lineWidth = 2.5;
+  ctx2.setLineDash([9, 6]);
+  ctx2.beginPath(); ctx2.ellipse(npc.x, npc.y, rx + p * 4, ry + p * 2, 0, 0, Math.PI * 2); ctx2.stroke();
+  ctx2.setLineDash([]);
+  ctx2.font = '20px serif'; ctx2.textAlign = 'center'; ctx2.textBaseline = 'middle';
+  ctx2.fillText('✦', npc.x, npc.y);
+  ctx2.fillStyle = '#fde68a'; ctx2.font = 'bold 10px Outfit, sans-serif';
+  ctx2.fillText('LAGO DO SORTEIO', npc.x, npc.y - ry - 8);
+  ctx2.restore();
+}
+
 const NPC_DRAW = {
   porta: drawPorta,
+  lago_sorteio: drawLagoSorteio,
   ponto_martelada: drawPontoMartelada,
   guard: drawGuard,
   sr_antony: drawVillagerType,
@@ -926,6 +973,7 @@ const ELEMENT_BOUNDS = {
   signpost:       { w: 52, h: 46 },
   porta:          { w: 40, h: 62 },
   ponto_martelada:{ w: 56, h: 56 },
+  lago_sorteio:   { w: 150, h: 60 },
   spot_wood:      { w: 64, h: 56 },
   spot_stone:     { w: 66, h: 60 },
 };
@@ -1400,6 +1448,37 @@ const INTERIORS = {
 
 function interiorDef() { return INTERIORS[currentScene] || null; }
 
+// Cria (uma vez) e devolve o vídeo de fundo de um cenário animado.
+function videoDoMapa(key) {
+  if (!videoSources[key]) return null;
+  let v = videoMapas[key];
+  if (!v) {
+    v = document.createElement('video');
+    v.src = videoSources[key];
+    v.loop = true; v.muted = true; v.playsInline = true; v.preload = 'auto';
+    v.style.display = 'none';
+    document.body.appendChild(v);
+    videoMapas[key] = v;
+  }
+  if (v.paused) v.play().catch(() => {});
+  return v.readyState >= 2 ? v : null;
+}
+
+// Vídeo de ambiente é do ambiente, não do jogo: qualquer um que não seja o da cena
+// atual precisa estar parado e mudo. Sem isto o barulho da ferraria tocava o jogo
+// inteiro, porque a tag nasce com autoplay e só era pausada ao sair pela porta.
+function silenciarVideosDeInterior() {
+  for (const [chave, def] of Object.entries(INTERIORS)) {
+    if (!def.videoId) continue;
+    const v = document.getElementById(def.videoId);
+    if (!v) continue;
+    if (chave === currentScene && !def.still?.()) continue;   // este é o da cena
+    if (!v.paused) { v.pause(); v.currentTime = 0; }
+    v.muted = true;
+    v.classList.add('hidden');
+  }
+}
+
 function enterInterior(key) {
   const def = INTERIORS[key];
   if (!def) return;
@@ -1407,6 +1486,9 @@ function enterInterior(key) {
   savedDoorMap = currentKey;
   lastDoorTime = performance.now();
   currentScene = key;
+  // Entrar num ambiente libera o jogador — a menos que uma cena esteja no comando,
+  // que é quem decide quando devolver o controle.
+  if (!CUT.ativo) playerLocked = false;
   player.x = def.enterAt.x; player.y = def.enterAt.y;
   if (!def.still?.() && def.videoId) {
     const v = document.getElementById(def.videoId);
@@ -1423,6 +1505,7 @@ function leaveInterior() {
   }
   lastDoorTime = performance.now();
   currentScene = 'world';
+  silenciarVideosDeInterior();
   if (savedDoorMap) currentKey = savedDoorMap;
   player.x = savedDoorPos.x; player.y = savedDoorPos.y;
   showToast('🏰 Voltou ao mapa!');
@@ -1516,7 +1599,7 @@ function checkTransitions() {
   bordaTravada = true;
   currentKey = destino;
   player.x = p.x; player.y = p.y;
-  if (activeMapSelect && bgSources[destino]) activeMapSelect.value = destino;
+  if (activeMapSelect && cenarioExiste(destino)) activeMapSelect.value = destino;
   if (pathGuide.active && pathGuide.questId) {
     const q = activeQuests.find(q => q.id === pathGuide.questId);
     if (q) { pathGuide.waypoints = (q.path_waypoints?.[currentKey]) || []; pathGuide.particles = []; }
@@ -1564,8 +1647,10 @@ function renderMarcadoresDoInterior(now) {
   ctx.ellipse(c.x, c.y + 34, 62 + pulso * 5, 24 + pulso * 3, 0, 0, Math.PI * 2);
   ctx.stroke();
   ctx.restore();
-  const ROTULO_BALCAO = { forge: '🔨 Bigorna', shop: '🏪 Balcão', forjarEscala: '🎼 Altar das Escalas' };
-  const ACAO_BALCAO   = { forge: 'Forjar', shop: 'Comprar', forjarEscala: 'Montar Escala' };
+  const ROTULO_BALCAO = { forge: '🔨 Bigorna', shop: '🏪 Balcão',
+                          forjarEscala: '🎼 Altar das Escalas', sortear: '✦ Lago das Notas' };
+  const ACAO_BALCAO   = { forge: 'Forjar', shop: 'Comprar',
+                          forjarEscala: 'Montar Escala', sortear: 'Tentar a Sorte' };
   const rotulo = ROTULO_BALCAO[def.counterAction] || '✦ Interagir';
   drawBubble(ctx, c.x, c.y - 6, perto ? `E  ·  ${ACAO_BALCAO[def.counterAction] || 'Usar'}` : rotulo,
     { bg: perto ? 'rgba(251,191,36,0.94)' : 'rgba(12,16,24,0.82)',
@@ -1682,11 +1767,20 @@ let monsterDefs = {}, monsters = [];
 const monsterSprites = {}; // type -> prepared sheet
 
 async function loadMonsters() {
-  let cfg;
+  let cfg = null;
   try {
     const r = await fetch(`assets/monsters.json?t=${Date.now()}`);
-    cfg = await r.json();
-  } catch (e) { return; }
+    if (r.ok) cfg = await r.json();
+  } catch (e) {}
+
+  if (!cfg) {
+    try {
+      const ls = localStorage.getItem('acordelot_monsters_v1');
+      if (ls) cfg = JSON.parse(ls);
+    } catch (e) {}
+  }
+  if (!cfg) return;
+
   monsterDefs = cfg.types || {};
 
   Object.entries(monsterDefs).forEach(([type, def]) => {
@@ -1718,6 +1812,7 @@ async function loadMonsters() {
     return {
       ...s,
       hp: def.hp ?? 20, maxHp: def.hp ?? 20,
+      escala: s.escala || 1,
       homeX: s.x, homeY: s.y,
       dead: false, respawnAt: 0, hurtUntil: 0, lastHit: 0, facing: 1,
       phase: Math.random() * Math.PI * 2,
@@ -1739,7 +1834,9 @@ function prepareSpriteCell(img, def) {
 function monsterDef(m) { return monsterDefs[m.type] || {}; }
 function monsterBounds(m) {
   const spr = monsterSprites[m.type];
-  const h = monsterDef(m).height || 60;
+  // Escala por instância: dois Ecos do mesmo tipo podem ter tamanhos diferentes,
+  // o que ajuda a compor o cenário sem criar tipo novo para cada variação.
+  const h = (monsterDef(m).height || 60) * (m.escala || 1);
   const w = spr ? h * (spr.sw / spr.sh) : h * 0.8;
   return { x: m.x - w/2, y: m.y - h, w, h };
 }
@@ -1760,20 +1857,83 @@ function monsterAt(mx, my) {
   return null;
 }
 
-async function saveMonsters() {
-  if (IS_PLAY_BUILD) return;
-  const payload = {
-    types: monsterDefs,
-    spawns: monsters.map(m => ({ id:m.id, type:m.type, mapKey:m.mapKey, x:Math.round(m.x), y:Math.round(m.y) })),
-  };
-  localStorage.setItem('acordelot_monsters_v1', JSON.stringify(payload));
-  try { await fetch('/save_monsters', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }); } catch(e) {}
-}
+
 
 const monsterWalk = {}, monsterAtaque = {};
 
+// Quantos podem avançar ao mesmo tempo. Sem isto o bando inteiro cola no jogador e
+// vira uma pilha de sprites — ilegível e impossível de reagir.
+const MAX_PERSEGUIDORES = 2;
+
+// ── Rotina de bicho ──────────────────────────────────────────────────────────────
+// Monstro parado feito estátua mata a vida do cenário. Aqui cada um ganha um ciclo
+// simples de animal: fica quieto um tempo, olha em volta, dá alguns passos curtos
+// perto de casa e para de novo. Nunca sai do chão pintado e nunca ataca por isso —
+// perseguir continua sendo decisão de quem tem `persegue`.
+const PASSEIO = {
+  raio: 70,          // até onde se afasta do ponto onde você o posicionou
+  paradaMin: 1400, paradaMax: 4200,
+  passoMin: 500,  passoMax: 1500,
+  velocidade: 0.42,  // fração da velocidade de perseguição
+};
+
+function atualizarRotina(m, def, now) {
+  if (!m.rotina) m.rotina = { estado: 'parado', ate: now + Math.random() * PASSEIO.paradaMax };
+
+  const r = m.rotina;
+  if (now < r.ate) {
+    if (r.estado === 'andando') {
+      const dx = r.alvoX - m.x, dy = r.alvoY - m.y;
+      const d = Math.hypot(dx, dy);
+      if (d < 3) { r.estado = 'parado'; r.ate = now + PASSEIO.paradaMin + Math.random() * (PASSEIO.paradaMax - PASSEIO.paradaMin); return; }
+      const v = (def.speed || 1) * PASSEIO.velocidade;
+      const nx = m.x + (dx / d) * v, ny = m.y + (dy / d) * v;
+      if (canMoveTo(nx, ny)) {
+        m.x = nx; m.y = ny;
+        m.facing = dx < 0 ? -1 : 1;
+        m.andandoAte = now + 120;         // liga a animação de caminhada
+      } else {
+        r.estado = 'parado'; r.ate = now + 600;   // esbarrou: para e escolhe outro rumo
+      }
+    }
+    return;
+  }
+
+  if (r.estado === 'parado') {
+    // Escolhe um ponto perto de casa. Se não achar chão livre, fica mais um tempo
+    // parado — bicho encurralado não atravessa pedra.
+    const homeX = m.homeX ?? m.x, homeY = m.homeY ?? m.y;
+    for (let t = 0; t < 8; t++) {
+      const ang = Math.random() * Math.PI * 2;
+      const dist = 18 + Math.random() * PASSEIO.raio;
+      const ax = homeX + Math.cos(ang) * dist, ay = homeY + Math.sin(ang) * dist * 0.6;
+      if (canMoveTo(ax, ay)) {
+        r.estado = 'andando'; r.alvoX = ax; r.alvoY = ay;
+        r.ate = now + PASSEIO.passoMin + Math.random() * (PASSEIO.passoMax - PASSEIO.passoMin);
+        return;
+      }
+    }
+    // Sem para onde ir: só vira a cabeça, que já dá sinal de vida.
+    m.facing = Math.random() < 0.5 ? -1 : 1;
+    r.ate = now + PASSEIO.paradaMin + Math.random() * PASSEIO.paradaMax;
+  } else {
+    r.estado = 'parado';
+    r.ate = now + PASSEIO.paradaMin + Math.random() * (PASSEIO.paradaMax - PASSEIO.paradaMin);
+  }
+}
+const ESPACO_ENTRE_MONSTROS = 46;
+
 function updateMonsters(now) {
   if (!isPlayMode || currentScene !== 'world') return;
+  atualizarCaptura(now);
+
+  // Elege os que perseguem nesta rodada: os mais próximos primeiro. Os demais rondam
+  // à distância, o que também dá tempo do jogador escolher um alvo por vez.
+  const vivos = monsters.filter(m => !m.dead && m.mapKey === currentKey && now >= (m.abertoAte || 0));
+  const candidatos = vivos
+    .filter(m => { const d = monsterDef(m); return (m.persegue ?? d.persegue ?? false) && !d.pacifico; })
+    .sort((a, b) => Math.hypot(player.x - a.x, player.y - a.y) - Math.hypot(player.x - b.x, player.y - b.y));
+  candidatos.forEach((m, i) => { m.podePerseguir = i < MAX_PERSEGUIDORES; });
   monsters.forEach(m => {
     if (m.dead) {
       if (m.respawnAt && now >= m.respawnAt) {
@@ -1782,6 +1942,7 @@ function updateMonsters(now) {
       return;
     }
     if (m.mapKey !== currentKey) return;
+    if (now < (m.abertoAte || 0)) return;   // aberto: parado, esperando a ressonância
     const def = monsterDef(m);
     const dx = player.x - m.x, dy = player.y - m.y;
     const dist = Math.hypot(dx, dy);
@@ -1794,7 +1955,7 @@ function updateMonsters(now) {
     const persegue = m.persegue ?? def.persegue ?? false;
     // Avança mesmo com o jogador travado numa fala — parar de andar durante o diálogo
     // é o que fazia a criatura parecer estátua. Só o dano é que respeita a trava.
-    if (persegue && playerHp > 0 && now >= (m.atacandoAte || 0) &&
+    if (persegue && m.podePerseguir && playerHp > 0 && now >= (m.atacandoAte || 0) &&
         dist < (def.aggroRange ?? 160) && dist > (def.touchRange ?? 34) * 0.75) {
       const sp = def.speed ?? 1;
       const px = m.x + (dx / dist) * sp, py = m.y + (dy / dist) * sp;
@@ -1804,6 +1965,26 @@ function updateMonsters(now) {
       else if (canMoveTo(m.x, py)) m.y = py;
       if (m.x !== ax || m.y !== ay) m.andandoAte = now + 120;
     }
+
+    if (def.pacifico) return;   // criatura mansa: carrega clave, não ataca ninguém
+
+    // Quem não está avançando sobre o jogador vive sua vida: passeia perto de casa.
+    const emPerseguicao = (m.persegue ?? def.persegue ?? false) && m.podePerseguir &&
+                          dist < (def.aggroRange ?? 160);
+    if (!emPerseguicao && now >= (m.atacandoAte || 0)) atualizarRotina(m, def, now);
+    else m.rotina = null;      // volta ao passeio depois, com ritmo novo
+
+    // Empurrão suave entre monstros: dois nunca ocupam o mesmo ponto.
+    monsters.forEach(o => {
+      if (o === m || o.dead || o.mapKey !== currentKey) return;
+      const ox = m.x - o.x, oy = m.y - o.y;
+      const od = Math.hypot(ox, oy);
+      if (od > 0.001 && od < ESPACO_ENTRE_MONSTROS) {
+        const empurra = (ESPACO_ENTRE_MONSTROS - od) * 0.06;
+        const nx = m.x + (ox / od) * empurra, ny = m.y + (oy / od) * empurra;
+        if (canMoveTo(nx, ny)) { m.x = nx; m.y = ny; }
+      }
+    });
 
     // O golpe tem três tempos: bote (o jogador vê vindo), impacto e recuperação.
     // Bater sem aviso é o que fazia parecer que o monstro só encostava e tirava vida.
@@ -1822,6 +2003,100 @@ function updateMonsters(now) {
       }
     }
   });
+}
+
+// Barra de afinação, desenhada em cima do Eco aberto. Fica no mundo e não em overlay:
+// o jogador precisa continuar vendo a criatura enquanto decide.
+function renderCaptura(now) {
+  if (!capturaAtiva) return;
+  const c = capturaAtiva, m = c.m;
+  const b = monsterBounds(m);
+  const W = 190, H = 20;
+  const x = Math.max(12, Math.min(SCREEN_W - W - 12, m.x - W / 2));
+  const y = Math.max(30, b.y - 54);
+  const restante = Math.max(0, (m.abertoAte - now) / (c.duracao || CAPTURA_MS));
+
+  ctx.save();
+  // halo pulsando no próprio Eco
+  const p = (Math.sin(now * 0.02) + 1) / 2;
+  ctx.globalAlpha = 0.35 + p * 0.35;
+  ctx.strokeStyle = '#e0f2fe'; ctx.lineWidth = 3;
+  ctx.shadowColor = '#7dd3fc'; ctx.shadowBlur = 18;
+  ctx.beginPath(); ctx.ellipse(m.x, m.y - b.h * 0.45, b.w * 0.7, b.h * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(6,9,14,0.9)';
+  ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(x, y, W, H, 5); ctx.fill(); ctx.stroke();
+
+  // zona quase-afinada e zona afinada
+  const lb = c.largura * 2.6, lp = c.largura;
+  ctx.fillStyle = 'rgba(125,211,252,0.28)';
+  ctx.fillRect(x + W * (0.5 - lb / 2), y + 2, W * lb, H - 4);
+  ctx.fillStyle = 'rgba(253,230,138,0.62)';
+  ctx.fillRect(x + W * (0.5 - lp / 2), y + 2, W * lp, H - 4);
+
+  // agulha
+  const cx = x + W * c.cursor;
+  ctx.fillStyle = '#fff7ed';
+  ctx.shadowColor = '#fde68a'; ctx.shadowBlur = 10;
+  ctx.fillRect(cx - 2, y - 3, 4, H + 6);
+  ctx.restore();
+
+  // tempo restante e chamada
+  ctx.save();
+  ctx.fillStyle = '#fde68a';
+  ctx.fillRect(x, y + H + 3, W * restante, 3);
+  ctx.font = 'bold 11px Outfit, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#e0f2fe';
+  ctx.fillText('RESSOE!', x + W / 2, y - 8);
+  ctx.restore();
+}
+
+// Medidor de ressonância do cenário: só aparece onde há Ecos, para não poluir.
+function renderRessonancia(now) {
+  if (!isPlayMode || currentScene !== 'world' || !mapaTemEcos(currentKey)) return;
+  const r = ressonanciaDe(currentKey);
+  const W = 108, H = 8, x = SCREEN_W - W - 16, y = 16;
+  ctx.save();
+  ctx.font = 'bold 9px Outfit, sans-serif'; ctx.textAlign = 'right';
+  ctx.fillStyle = r.valor > 0 ? '#7dd3fc' : '#64748b';
+  ctx.fillText(r.valor > 0 ? 'RESSONÂNCIA DO LUGAR' : 'LUGAR EM SILÊNCIO', x + W, y - 4);
+  ctx.fillStyle = 'rgba(6,9,14,0.8)';
+  ctx.fillRect(x - 1, y - 1, W + 2, H + 2);
+  for (let i = 0; i < RESSONANCIA_MAX; i++) {
+    const cw = W / RESSONANCIA_MAX;
+    ctx.fillStyle = i < r.valor ? '#38bdf8' : '#1e293b';
+    ctx.fillRect(x + i * cw + 1, y, cw - 2, H);
+  }
+  ctx.restore();
+}
+
+// Só no editor: quando o jogador não pode andar, diz na tela quem está segurando o
+// controle. Adivinhar isso pelo comportamento já custou tempo demais.
+function renderMotivoDoTravamento() {
+  if (!isPlayMode || !playerLocked) return;
+  const motivos = [];
+  if (CUT.ativo) motivos.push('cena ' + (CUT.roteiro?.id || '?') + ' passo ' + CUT.passo);
+  if (dlg.state !== DLG_STATE.CLOSED) motivos.push('diálogo ' + dlg.state);
+  if (shopOpen) motivos.push('loja');
+  if (inventoryOpen) motivos.push('inventário');
+  if (charOpen) motivos.push('atributos');
+  if (forging) motivos.push('forja');
+  if (capturaAtiva) motivos.push('captura');
+  if (CUT.caminhadas?.length) motivos.push('caminhada de cena');
+  const txt = '🔒 TRAVADO — ' + (motivos.length ? motivos.join(' · ') : 'sem dono (destravando…)');
+  ctx.save();
+  ctx.font = 'bold 12px Outfit, sans-serif';
+  const w = ctx.measureText(txt).width + 16;
+  ctx.fillStyle = 'rgba(120,10,10,.88)';
+  ctx.fillRect(8, SCREEN_H - 28, w, 20);
+  ctx.fillStyle = '#fecaca';
+  ctx.textAlign = 'left';
+  ctx.fillText(txt, 16, SCREEN_H - 14);
+  ctx.restore();
 }
 
 function drawHealthBar(x, topY, w, ratio, colour) {
@@ -1881,10 +2156,16 @@ function renderMonsters(now) {
 // ============================================================
 const BASE_MAX_HP = 100, BASE_DAMAGE = 10, BASE_COOLDOWN = 480;
 const BASE_SPEED = 3.9, BASE_SPRINT = 6.65, BASE_CAPACITY = 40;
-const POINTS_PER_LEVEL = 3;
+const POINTS_PER_LEVEL = 2;
+const SLOTS_DE_ACORDE = 2;        // igual para todos: o arsenal cresce por arco, não por build
+
+// Atributos de MÚSICO, não de guerreiro. Cada um governa um sistema que o jogador já
+// sente na mão — errar na bigorna vira motivo para investir em Ritmo, perder captura
+// vira motivo para Afinação. O nome do atributo ensina o vocabulário de graça.
+// Nada aqui mexe em velocidade de movimento: com cenários estáticos isso não é escolha.
 
 let level = 1, xp = 0, attrPoints = 0, skillPoints = 1;
-let attrs = { forca: 0, agilidade: 0, capacidade: 0 };
+let attrs = { ritmo: 0, afinacao: 0, folego: 0, dinamica: 0, memoria: 0 };
 let learnedSkills = [];
 let skillTree = { branches: [] };
 
@@ -1898,11 +2179,17 @@ function hasSkill(id) { return learnedSkills.includes(id); }
 // Sum of every source: base + attribute points + learned skills.
 function derivedStats() {
   const s = {
-    maxHp: BASE_MAX_HP + attrs.forca * 4,
-    dmg: BASE_DAMAGE + attrs.forca * 2,
-    atkSpeed: attrs.agilidade * 3,     // percent
-    moveSpeed: attrs.agilidade * 2,    // percent
-    capacity: BASE_CAPACITY + attrs.capacidade * 10,
+    maxHp: BASE_MAX_HP + attrs.folego * 6,
+    dmg: BASE_DAMAGE + attrs.dinamica * 3,
+    dmgMagia: attrs.dinamica * 4,          // % a mais no dano de feitiço
+    atkSpeed: attrs.ritmo * 3,             // %
+    recarga: Math.min(60, attrs.folego * 4), // % de redução na recarga de feitiço
+    forja: Math.min(70, attrs.ritmo * 6),  // % de zona/lentidão a mais na bigorna
+    captura: Math.min(70, attrs.afinacao * 6), // % de janela/zona a mais na captura
+    puro: Math.min(45, attrs.afinacao * 3),    // % extra de chance de Fragmento Puro
+    capacity: BASE_CAPACITY + attrs.memoria * 10,
+    desconto: Math.min(50, attrs.memoria * 4), // % a menos de fragmentos na síntese
+    moveSpeed: 0,                          // cenários estáticos: movimento não é build
     crit: 0, lifesteal: 0,
   };
   learnedSkills.forEach(id => {
@@ -1916,6 +2203,9 @@ function playerMaxHp()   { return derivedStats().maxHp; }
 function playerDamage()  { return derivedStats().dmg; }
 function attackCooldown(){ return BASE_COOLDOWN / (1 + derivedStats().atkSpeed / 100); }
 function claveCapacity() { return derivedStats().capacity; }
+// Usados pelo arco da magia: dano do feitiço e recarga entre lançamentos.
+function danoDeFeitico(base)  { return Math.round(base * (1 + derivedStats().dmgMagia / 100)); }
+function recargaDeFeitico(ms) { return Math.round(ms * (1 - derivedStats().recarga / 100)); }
 
 function applyMovementStats() {
   const m = 1 + derivedStats().moveSpeed / 100;
@@ -2094,7 +2384,153 @@ function doAttack() {
   }
 
   playHitSound();
-  if (m.hp <= 0) killMonster(m, now);
+  if (m.hp <= 0) {
+    // Eco não morre de pancada: ele se abre e pede para ser afinado.
+    if (monsterDef(m).exigeRessonador && equipped.ressonador && !capturaAtiva) abrirEco(m, now);
+    else killMonster(m, now);
+  }
+}
+
+// ── Ressonância do mapa ──────────────────────────────────────────────────────────
+// Cada cenário guarda uma reserva de som. Capturar consome; quando zera, os Ecos dali
+// silenciam por um tempo. É o que impede farm parado num canto e faz os cenários
+// existirem por um motivo — o jogador precisa circular pelo mundo.
+const RESSONANCIA_MAX = 6, RESSONANCIA_RECARGA_MS = 75000;
+let ressonancia = {};   // mapKey -> { valor, ultimaRecarga }
+
+function ressonanciaDe(mapKey) {
+  if (!ressonancia[mapKey]) ressonancia[mapKey] = { valor: RESSONANCIA_MAX, ultimaRecarga: performance.now() };
+  const r = ressonancia[mapKey];
+  const agora = performance.now();
+  const ganhos = Math.floor((agora - r.ultimaRecarga) / RESSONANCIA_RECARGA_MS);
+  if (ganhos > 0 && r.valor < RESSONANCIA_MAX) {
+    r.valor = Math.min(RESSONANCIA_MAX, r.valor + ganhos);
+    r.ultimaRecarga = agora;
+  }
+  return r;
+}
+
+function consumirRessonancia(mapKey) {
+  const r = ressonanciaDe(mapKey);
+  if (r.valor <= 0) return false;
+  if (r.valor === RESSONANCIA_MAX) r.ultimaRecarga = performance.now();
+  r.valor--;
+  if (r.valor === 0) showToast('🔇 Este lugar ficou em silêncio. Procure outro cenário.');
+  return true;
+}
+
+function mapaTemEcos(mapKey) {
+  return monsters.some(m => m.mapKey === mapKey && monsterDef(m).exigeRessonador);
+}
+
+// ── Captura por afinação ─────────────────────────────────────────────────────────
+// Com pouca vida o Eco não morre: ele se abre e vibra. O jogador tem uma janela curta
+// para ressoar no ponto certo. Acertar rende Fragmento Puro; errar dispersa tudo.
+const CAPTURA_MS = 2200;
+let capturaAtiva = null;   // { m, inicio, cursor, dir, vel, largura }
+
+function abrirEco(m, now) {
+  const af = derivedStats().captura / 100;       // Afinação
+  m.hp = 1;
+  m.abertoAte = now + CAPTURA_MS * (1 + af * 0.8);
+  const def = monsterDef(m);
+  capturaAtiva = {
+    m, inicio: now,
+    cursor: 0, dir: 1,
+    vel: (1.1 + (def.speed || 1) * 0.25) * (1 - af * 0.4),
+    largura: 0.16,                       // zona afinada; encolhe nos Ecos fortes
+    duracao: CAPTURA_MS * (1 + af * 0.8),
+  };
+  capturaAtiva.largura = Math.max(0.08, 0.20 - (def.hp || 40) / 900) * (1 + af);
+  playForgeHit();
+  addFloater(m.x, m.y - 60, 'O ECO SE ABRE!', '#e0f2fe');
+}
+
+function atualizarCaptura(now) {
+  if (!capturaAtiva) return;
+  const c = capturaAtiva;
+  if (c.m.dead || now > c.m.abertoAte) { dispersarEco('tempo'); return; }
+  c.cursor += c.dir * c.vel * 0.016;
+  if (c.cursor >= 1) { c.cursor = 1; c.dir = -1; }
+  if (c.cursor <= 0) { c.cursor = 0; c.dir = 1; }
+}
+
+function dispersarEco(motivo) {
+  if (!capturaAtiva) return;
+  const m = capturaAtiva.m;
+  capturaAtiva = null;
+  m.abertoAte = 0;
+  m.dead = true; m.hp = 0; m.respawnAt = performance.now() + 12000;
+  addFloater(m.x, m.y - 50, motivo === 'tempo' ? '♪ dispersou ♪' : '✧ desafinado', '#94a3b8');
+  showToast('✧ O som se dispersou. Ressoe dentro da faixa dourada.');
+}
+
+// Chamado pelo botão de ação (ou toque na tela) durante a janela de captura.
+function ressoar() {
+  if (!capturaAtiva) return;
+  const c = capturaAtiva, m = c.m, def = monsterDef(m);
+  const d = Math.abs(c.cursor - 0.5);
+  let perfeito = d <= c.largura / 2;
+  const perto = d <= c.largura * 1.3;
+  // Afinação alta às vezes salva uma captura quase-certa: o ouvido treinado corrige.
+  if (!perfeito && perto && Math.random() * 100 < derivedStats().puro) perfeito = true;
+
+  capturaAtiva = null;
+  m.abertoAte = 0;
+
+  if (!perfeito && !perto) { 
+    m.dead = true; m.hp = 0; m.respawnAt = performance.now() + 12000;
+    addFloater(m.x, m.y - 50, '✧ desafinado', '#94a3b8');
+    showToast('✧ Desafinado — o som se dispersou.');
+    return;
+  }
+
+  // Consome a reserva de som do cenário. Sem reserva, a captura rende bem menos.
+  const tinha = consumirRessonancia(m.mapKey);
+  const now = performance.now();
+  m.dead = true; m.hp = 0; m.respawnAt = now + 12000;
+
+  const def0 = def;
+  const tabela = def0.drops || [];
+  const bonusResson = equipped.ressonador
+    ? (CRAFTABLE_TOOLS.find(t => t.id === equipped.ressonador)?.tier || 1) - 1 : 0;
+
+  let puros = 0, comuns = 0;
+  tabela.forEach(drop => {
+    if (drop.item === 'fragmento') {
+      let n = (drop.min ?? 1) + Math.floor(Math.random() * (((drop.max ?? 1) - (drop.min ?? 1)) + 1));
+      n += bonusResson;
+      if (!tinha) n = Math.max(1, Math.floor(n / 3));   // lugar silenciado rende pouco
+      if (perfeito) puros += Math.max(1, Math.round(n / VALOR_FRAGMENTO_PURO));
+      else comuns += n;
+      return;
+    }
+    if (drop.chance != null && Math.random() > drop.chance) return;
+    if (!perfeito && Math.random() < 0.5) return;      // intervalo só vem fácil se afinar
+    const n = (drop.min ?? 1) + Math.floor(Math.random() * (((drop.max ?? 1) - (drop.min ?? 1)) + 1));
+    for (let i = 0; i < n; i++) soltarItem(drop.item, m, now);
+  });
+
+  for (let i = 0; i < puros; i++)  soltarItem('fragmento_puro', m, now);
+  for (let i = 0; i < comuns; i++) soltarItem('fragmento', m, now);
+
+  if (perfeito) {
+    playForgeDone();
+    addFloater(m.x, m.y - 60, `✦ AFINADO!  Fragmento Puro ×${puros}`, '#fde68a');
+    showToast(`✦ Afinado! ${puros} Fragmento${puros > 1 ? 's' : ''} Puro${puros > 1 ? 's' : ''}.`);
+  } else {
+    playForgeHit();
+    addFloater(m.x, m.y - 60, '✦ quase lá', '#7dd3fc');
+    showToast('✦ Perto do tom — fragmentos comuns.');
+  }
+  grantXp(def0.xp ?? Math.max(6, Math.round((def0.hp ?? 20) * 0.6)));
+}
+
+function soltarItem(item, m, now) {
+  dropItems.push({
+    item, x: m.x + (Math.random() * 40 - 20), y: m.y + (Math.random() * 18 - 9),
+    mapKey: m.mapKey, born: now, collected: false,
+  });
 }
 
 function killMonster(m, now) {
@@ -2102,21 +2538,46 @@ function killMonster(m, now) {
   m.hp = 0;
   m.respawnAt = now + 12000; // comes back after 12s so the area stays farmable
   const def = monsterDef(m);
-  const drop = def.drop;
-  if (drop) {
-    const n = (drop.min ?? 1) + Math.floor(Math.random() * (((drop.max ?? 1) - (drop.min ?? 1)) + 1));
+  // Aceita `drop` (um item) ou `drops` (lista com chance) — o monstro pode largar
+  // fragmentos sempre e uma clave de vez em quando.
+  let tabela = def.drops || (def.drop ? [def.drop] : []);
+
+  // Criatura de som: sem Ressonador equipado ela se desfaz no ar e não deixa nada.
+  // A regra é explicada na hora, senão o jogador acha que está bugado.
+  if (def.exigeRessonador && !equipped.ressonador) {
+    tabela = [];
+    if (now - (window.__avisoResson || 0) > 6000) {
+      window.__avisoResson = now;
+      showToast('🔔 O som do Eco se dispersou — forje um Ressonador para capturá-lo.');
+      addFloater(m.x, m.y - 50, '♪ dispersou ♪', '#94a3b8');
+    }
+  }
+  // Ressonador melhor rende mais: cada tier soma um fragmento.
+  const bonusResson = equipped.ressonador
+    ? (CRAFTABLE_TOOLS.find(t => t.id === equipped.ressonador)?.tier || 1) - 1 : 0;
+
+  tabela.forEach(drop => {
+    if (drop.chance != null && Math.random() > drop.chance) return;
+    let n = (drop.min ?? 1) + Math.floor(Math.random() * (((drop.max ?? 1) - (drop.min ?? 1)) + 1));
+    if (drop.item === 'fragmento') n += bonusResson;
     for (let i = 0; i < n; i++) {
       dropItems.push({
         item: drop.item || 'clave',
-        x: m.x + (Math.random() * 34 - 17),
-        y: m.y + (Math.random() * 16 - 8),
+        x: m.x + (Math.random() * 40 - 20),
+        y: m.y + (Math.random() * 18 - 9),
         mapKey: m.mapKey,
         born: now, collected: false,
       });
     }
-  }
+  });
   grantXp(def.xp ?? Math.max(6, Math.round((def.hp ?? 20) * 0.6)));
-  showToast(`✨ ${def.name || 'Monstro'} derrotado!`);
+  if (def.pacifico) {
+    // Não é uma morte: a clave presa se soltou e a criatura foi embora aliviada.
+    addFloater(m.x, m.y - 50, '✧ libertado', '#a7f3d0');
+    showToast(`✧ A clave se soltou — ${def.name || 'a criatura'} seguiu seu caminho.`);
+  } else {
+    showToast(`✨ ${def.name || 'Monstro'} derrotado!`);
+  }
 }
 
 function damagePlayer(amount) {
@@ -2177,40 +2638,112 @@ function updateDrops(now) {
     if (d.mapKey !== currentKey) continue;
     if (now - d.born > 45000) { dropItems.splice(i, 1); continue; } // despawn
     if (Math.hypot(player.x - d.x, player.y - d.y) < 34) {
-      if (claveCount >= claveCapacity()) {
-        if (now - lastFullToast > 4000) {
-          lastFullToast = now;
-          showToast(`🎒 Bolsa cheia (${claveCapacity()}) — aumente a Capacidade`);
+      if (d.item === 'clave') {
+        if (claveCount >= claveCapacity()) {
+          if (now - lastFullToast > 4000) {
+            lastFullToast = now;
+            showToast(`🎒 Bolsa cheia (${claveCapacity()}) — aumente a Capacidade`);
+          }
+          continue; // leave it on the ground
         }
-        continue; // leave it on the ground
+        dropItems.splice(i, 1);
+        claveCount++;
+        addFloater(player.x, player.y - player.height - 6, '+1 clave', '#fcd34d');
+        showToast(`🎼 Clave coletada! (${claveCount}/${claveCapacity()})`);
+      } else {
+        // Fragmentos, tons e semitons: itens de mochila, sem limite de claves.
+        dropItems.splice(i, 1);
+        playerInventory[d.item] = (playerInventory[d.item] || 0) + 1;
+        const info = ITENS_DE_MAGIA[d.item];
+        addFloater(player.x, player.y - player.height - 6, `+1 ${info?.nome || d.item}`, info?.cor || '#fcd34d');
+        // Um Fragmento Puro vale três na síntese, então vale três na missão também —
+        // senão afinar bem pareceria render menos progresso do que bater de qualquer jeito.
+        if (d.item === 'fragmento_puro') progressoDeMissao('coletar', 'fragmento', VALOR_FRAGMENTO_PURO);
+        else progressoDeMissao('coletar', d.item);
+        updateInventorySlotsUI?.();
       }
-      dropItems.splice(i, 1);
-      claveCount++;
       savePlayerData();
-      addFloater(player.x, player.y - player.height - 6, '+1 clave', '#fcd34d');
-      showToast(`🎼 Clave coletada! (${claveCount}/${claveCapacity()})`);
     }
   }
 }
+
+// Itens de magia largados pelos monstros. Cor e nome vêm daqui, então acrescentar um
+// item novo é uma linha nesta tabela.
+// Catálogo do grimório. Cada item tem nome, tipo, descrição e origem — selecionar no
+// inventário é como o jogador aprende o que é cada coisa. Sem isto, fragmento é só um
+// número subindo no canto da tela.
+const CATALOGO = {
+  fragmento: {
+    nome: 'Fragmento de Nota', tipo: 'Essência', sprite: 'fragmento', cor: '#fbbf24',
+    desc: 'Um pedaço de som que não chegou a terminar. Sozinho não toca nada — vibra baixinho, como quem tenta lembrar de uma melodia.',
+    origem: 'Capturado de Ecos com um Ressonador equipado.',
+  },
+  fragmento_puro: {
+    nome: 'Fragmento Puro', tipo: 'Essência rara', sprite: 'fragmento', cor: '#fef3c7',
+    desc: 'Capturado exatamente no tom. O som veio inteiro, sem se esfarelar no ar. Vale por três fragmentos comuns na síntese.',
+    origem: 'Captura afinada — acertar a faixa dourada da ressonância.',
+  },
+  tom: {
+    nome: 'Tom', tipo: 'Intervalo', sprite: 'tom', cor: '#60a5fa',
+    desc: 'Não é som: é distância. O passo largo entre duas notas, com uma casa inteira pulada no meio do caminho.',
+    origem: 'Ecos Cristalinos, os azuis.',
+  },
+  semitom: {
+    nome: 'Semitom', tipo: 'Intervalo', sprite: 'semitom', cor: '#c084fc',
+    desc: 'O menor passo que existe na música. Entre duas notas vizinhas não cabe mais nada — e é por isso que ele soa tão apertado.',
+    origem: 'Ecos Cromáticos, os roxos.',
+  },
+  clave: {
+    nome: 'Clave', tipo: 'Referência', emoji: '𝄞', cor: '#fde68a',
+    desc: 'Não faz som algum. É ela que diz o que o som significa: sem uma clave no início da pauta, uma nota escrita é apenas uma bolinha no papel.',
+    origem: 'Presa às criaturas mansas da floresta a leste. Golpeie até ela se soltar.',
+  },
+  wood: {
+    nome: 'Madeira Rústica', tipo: 'Material', emoji: '🪵', cor: '#a16207',
+    desc: 'Carvalho seco, bom para cabo de ferramenta. O Ferreiro Dorn diz que madeira boa é a que não reclama quando você bate.',
+    origem: 'Troncos na Floresta Mágica.',
+  },
+  stone: {
+    nome: 'Pedra', tipo: 'Material', emoji: '🪨', cor: '#94a3b8',
+    desc: 'Pedra de rio, densa e fria. Serve para cabeça de martelo, para ponte e para calar discussão.',
+    origem: 'Afloramentos na Floresta Mágica.',
+  },
+  potions: {
+    nome: 'Poção de Vida', tipo: 'Consumível', emoji: '🧪', cor: '#ef4444',
+    desc: 'Restaura 40 pontos de vida. Tem gosto de mel queimado.',
+    origem: 'Comprada no Mercador Tibério.',
+  },
+};
+
+const ITENS_DE_MAGIA = {
+  fragmento:       { nome: 'Fragmento de Nota', cor: '#fbbf24', brilho: '253,224,71',  sprite: 'fragmento' },
+  fragmento_puro:  { nome: 'Fragmento Puro',    cor: '#fef3c7', brilho: '255,255,255', sprite: 'fragmento', puro: true },
+  tom:       { nome: 'Tom',               cor: '#60a5fa', brilho: '96,165,250',  sprite: 'tom' },
+  semitom:   { nome: 'Semitom',           cor: '#c084fc', brilho: '192,132,252', sprite: 'semitom' },
+};
 
 function renderDrops(now) {
   dropItems.forEach(d => {
     if (d.mapKey !== currentKey) return;
     const bob = Math.sin(now * 0.005 + d.x) * 4;
-    const h = 30, w = claveSprite ? h * (claveSprite.sw / claveSprite.sh) : 16;
+    const info = ITENS_DE_MAGIA[d.item];
+    const spr = info ? magiaSprites[info.sprite] : claveSprite;
+    const brilho = info ? info.brilho : '253,224,71';
+    const h = info ? 26 : 30, w = spr ? h * (spr.sw / spr.sh) : 16;
     ctx.save();
     // Glow under the pickup so it reads against busy forest art
     const g = ctx.createRadialGradient(d.x, d.y, 1, d.x, d.y, 20);
-    g.addColorStop(0, 'rgba(253,224,71,0.5)');
-    g.addColorStop(1, 'rgba(253,224,71,0)');
+    g.addColorStop(0, `rgba(${brilho},0.5)`);
+    g.addColorStop(1, `rgba(${brilho},0)`);
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.arc(d.x, d.y, 20, 0, Math.PI * 2); ctx.fill();
-    if (claveSprite) {
-      ctx.drawImage(claveSprite.canvas, claveSprite.sx, claveSprite.sy, claveSprite.sw, claveSprite.sh,
+    if (spr) {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(spr.canvas, spr.sx, spr.sy, spr.sw, spr.sh,
                     d.x - w/2, d.y - h - bob, w, h);
     } else {
-      ctx.fillStyle = '#fbbf24'; ctx.font = '22px serif'; ctx.textAlign = 'center';
-      ctx.fillText('𝄞', d.x, d.y - bob);
+      ctx.fillStyle = info?.cor || '#fbbf24'; ctx.font = '22px serif'; ctx.textAlign = 'center';
+      ctx.fillText(info ? '♪' : '𝄞', d.x, d.y - bob);
     }
     ctx.restore();
   });
@@ -2227,12 +2760,6 @@ const SHOP_COUNTER = { x: 512, y: 330, r: 150 };
 // A still interior beats the looping video: drop assets/shop_interior.png and it takes
 // over automatically, video stays parked.
 let shopInterior = null;
-(() => {
-  const img = new Image();
-  img.onload = () => { shopInterior = img; };
-  img.onerror = () => {};
-  img.src = 'assets/shop_interior.png';
-})();
 
 // Salão do Forjador de Escalas: interior próprio, sem vídeo, só arte.
 let forjadorInterior = null;
@@ -2248,21 +2775,61 @@ let shopCatalog = { coins_start: 300, slots: {}, items: [] };
 let playerCoins = 300;
 let ownedItems = [];
 let equipped = { hat: null, outfit: null, wings: null, aura: null,
-                 axe: null, pickaxe: null, hammer: null, activeTool: null };
+                 axe: null, pickaxe: null, hammer: null, ressonador: null, activeTool: null };
 const skinImages = {}; // item id -> HTMLImageElement (only for items with a sprite)
 
 // Zera o que é progresso de partida (ferramentas, materiais, missões, nível), mas
 // preserva o que é cosmético comprado, que o jogador escolheu de propósito.
+// Aplica o `estadoInicial` de uma cena: nível, itens, ferramentas equipadas, notas e
+// missões já vencidas. Permite testar qualquer trecho da história isoladamente.
+function aplicarEstadoInicial(cena) {
+  const e = cena?.estadoInicial;
+  if (!e) return;
+
+  if (e.nivel && e.nivel > level) {
+    while (level < e.nivel) { level++; attrPoints += POINTS_PER_LEVEL; skillPoints++; }
+    xp = 0; playerHp = playerMaxHp();
+  }
+  if (e.interior && INTERIORS[e.interior]) {
+    // Cena que acontece dentro de um ambiente: entra nele em vez de largar o jogador
+    // no mapa de surgimento. Sem isto a Cena 11 abria na Floresta Sombria.
+    if (e.mapa && cenarioExiste(e.mapa)) currentKey = e.mapa;
+    setTimeout(() => { if (isPlayMode) enterInterior(e.interior); }, 60);
+  }
+  if (e.claves) claveCount += e.claves;
+  if (e.moedas) playerCoins += e.moedas;
+  Object.entries(e.itens || {}).forEach(([k, v]) => {
+    playerInventory[k] = (playerInventory[k] || 0) + v;
+  });
+  (e.forjar || []).forEach(id => {
+    const t = CRAFTABLE_TOOLS.find(x => x.id === id);
+    if (!t) return;
+    playerInventory[t.id] = 1;
+    toolQuality[t.id] = e.qualidade || 'boa';
+    const slot = Object.entries(CATEGORIA_POR_SLOT).find(([, cat]) => cat === t.category)?.[0];
+    if (slot) equipped[slot] = t.id;
+  });
+  (e.notas || []).forEach(id => { notasPossuidas[id] = (notasPossuidas[id] || 0) + 1; });
+  (e.missoesFeitas || []).forEach(id => { if (!completedQuests.includes(id)) completedQuests.push(id); });
+
+  updateInventorySlotsUI?.();
+  updateHotbarUI?.();
+  savePlayerData();
+  showToast('🎒 Equipamento e itens da história aplicados.');
+}
+
 function reiniciarProgressoDeJogo() {
-  equipped.axe = equipped.pickaxe = equipped.hammer = null;
+  equipped.axe = equipped.pickaxe = equipped.hammer = equipped.ressonador = null;
   equipped.activeTool = null;
   toolQuality = {};
+  notasPossuidas = {};
+  escalasMontadas = []; montagem = null; acordesObtidos = {};
   CRAFTABLE_TOOLS.forEach(t => { delete playerInventory[t.id]; });
   playerInventory.wood = 0; playerInventory.stone = 0; playerInventory.potions = 0;
   claveCount = 0;
   activeQuests = []; completedQuests = [];
   level = 1; xp = 0; attrPoints = 0; skillPoints = 1;
-  attrs = { forca: 0, agilidade: 0, capacidade: 0 };
+  attrs = { ritmo: 0, afinacao: 0, folego: 0, dinamica: 0, memoria: 0 };
   learnedSkills = [];
   playerHp = playerMaxHp();
   atualizarRastreador(); updateHotbarUI(); updateInventorySlotsUI?.();
@@ -2299,7 +2866,7 @@ function savePlayerData() {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       coins: playerCoins, owned: ownedItems, equipped, claves: claveCount,
       level, xp, attrPoints, skillPoints, attrs, skills: learnedSkills,
-      toolQuality,
+      toolQuality, notas: notasPossuidas, escalas: escalasMontadas, acordes: acordesObtidos,
       // Progresso de jogo: no celular não há servidor, então tudo vive aqui.
       nome: playerName, heroi: selectedHeroId,
       inventario: playerInventory,
@@ -2317,6 +2884,9 @@ function loadPlayerData() {
     if (!raw) return;
     const d = JSON.parse(raw);
     if (d.toolQuality) toolQuality = d.toolQuality;
+    if (d.notas) notasPossuidas = d.notas;
+    if (Array.isArray(d.escalas)) escalasMontadas = d.escalas;
+    if (d.acordes) acordesObtidos = d.acordes;
     if (d.nome) playerName = d.nome;
     if (d.heroi) selectedHeroId = d.heroi;
     if (d.inventario) playerInventory = { ...playerInventory, ...d.inventario };
@@ -2334,7 +2904,19 @@ function loadPlayerData() {
     if (typeof d.xp === 'number') xp = d.xp;
     if (typeof d.attrPoints === 'number') attrPoints = d.attrPoints;
     if (typeof d.skillPoints === 'number') skillPoints = d.skillPoints;
-    if (d.attrs) attrs = { ...attrs, ...d.attrs };
+    if (d.attrs) {
+      // Saves antigos guardam força/agilidade/capacidade. Converte em vez de descartar,
+      // senão quem já jogou perde o progresso ao atualizar.
+      const a = d.attrs;
+      if (a.forca != null || a.agilidade != null || a.capacidade != null) {
+        attrs.dinamica += a.forca || 0;
+        attrs.folego   += a.forca || 0;
+        attrs.ritmo    += a.agilidade || 0;
+        attrs.memoria  += a.capacidade || 0;
+      } else {
+        attrs = { ...attrs, ...a };
+      }
+    }
     if (Array.isArray(d.skills)) learnedSkills = d.skills;
     applyMovementStats();
   } catch (e) {}
@@ -2387,10 +2969,526 @@ function equipItem(id) {
 // Standing at the interior's counter/anvil. Returns the action it offers, or null.
 // O painel de montagem de escalas entra quando os sprites de nota estiverem recortados.
 // Por enquanto o altar responde, para a sala já ter função e poder ser testada.
-function abrirForjadorDeEscalas() {
-  showToast('🔒 O Altar ainda dorme. Ele desperta quando você trouxer as notas.');
-  addFloater(player.x, player.y - 60, '♪ ♫ ♪', '#7dd3fc');
+// ── Altar das Escalas ────────────────────────────────────────────────────────────
+// Primeira função: condensar fragmentos em notas. A montagem da escala entra depois,
+// no mesmo altar — por isso o painel já nasce como uma tela e não como um toast.
+let notasPossuidas = {};   // id da nota -> quantidade
+
+function temNota(id) { return (notasPossuidas[id] || 0) > 0; }
+
+let ritualEmCurso = false;
+
+function condensarNota(nota) {
+  if (ritualEmCurso) return;
+  const c = custoDaNota(nota);
+  if (!podePagarNota(nota)) {
+    showToast(`✧ Faltam fragmentos ou claves para condensar ${nota.nome}.`);
+    return;
+  }
+  gastarFragmentos(c.fragmentos);
+  claveCount -= c.claves;
+  rodarRitual(nota, () => {
+    notasPossuidas[nota.id] = (notasPossuidas[nota.id] || 0) + 1;
+    progressoDeMissao('sintetizar', 'nota');
+    progressoDeMissao('sintetizar', nota.natural ? 'natural' : 'sustenida');
+    savePlayerData();
+    renderAltar();
+  });
 }
+
+// Cerimônia de três tempos: os fragmentos são puxados para o centro, o núcleo
+// colapsa num clarão e a nota nasce tocando a si mesma.
+function rodarRitual(nota, aoTerminar) {
+  const ov = document.getElementById('ritualOverlay');
+  const nucleo = document.getElementById('ritualNucleo');
+  const nome = document.getElementById('ritualNome');
+  const legenda = document.getElementById('ritualLegenda');
+  if (!ov || !nucleo) { aoTerminar(); return; }
+
+  ritualEmCurso = true;
+  ov.classList.remove('hidden', 'estourou');
+  nucleo.innerHTML = '';
+  nome.textContent = '';
+  legenda.textContent = 'condensando…';
+  ov.querySelectorAll('.ritual-faisca').forEach(e => e.remove());
+
+  // fragmentos vindo das bordas
+  const c = custoDaNota(nota);
+  for (let i = 0; i < Math.min(18, c.fragmentos + 4); i++) {
+    const f = document.createElement('i');
+    f.className = 'ritual-faisca';
+    const ang = Math.random() * Math.PI * 2, raio = 180 + Math.random() * 140;
+    f.style.setProperty('--dx', `${Math.cos(ang) * raio}px`);
+    f.style.setProperty('--dy', `${Math.sin(ang) * raio}px`);
+    f.style.setProperty('--dur', `${0.8 + Math.random() * 0.7}s`);
+    f.style.animationDelay = `${Math.random() * 0.5}s`;
+    if (!nota.natural) { f.style.background = '#7dd3fc'; f.style.boxShadow = '0 0 12px #38bdf8'; }
+    ov.appendChild(f);
+  }
+
+  tocarCondensacao(nota.id);
+
+  // o estouro: o núcleo vira a nota e ela toca
+  setTimeout(() => {
+    const spr = magiaSprites['nota_' + nota.id];
+    if (spr) {
+      const h = 90, w = Math.round(h * (spr.sw / spr.sh));
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      const cx = cv.getContext('2d');
+      cx.imageSmoothingEnabled = false;
+      cx.drawImage(spr.canvas, spr.sx, spr.sy, spr.sw, spr.sh, 0, 0, w, h);
+      nucleo.appendChild(cv);
+    } else nucleo.textContent = '♪';
+    nome.textContent = nota.nome;
+    legenda.textContent = 'NOTA CONDENSADA';
+    ov.classList.add('estourou');
+    tocarNota(nota.id, 2.2, 0.16);
+    addFloater(player.x, player.y - 60, `♪ ${nota.nome}`, nota.natural ? '#fde68a' : '#7dd3fc');
+    aoTerminar();
+  }, 1500);
+
+  // sai de cena
+  setTimeout(() => {
+    ov.classList.add('hidden');
+    ov.querySelectorAll('.ritual-faisca').forEach(e => e.remove());
+    ritualEmCurso = false;
+  }, 3400);
+}
+
+// Toca a nota de verdade, com um harmônico por cima para soar a cristal e não a bipe.
+function tocarNota(id, dur = 1.6, volume = 0.14) {
+  if (!audioCtx) initAudio();
+  if (!audioCtx) return;
+  const f = FREQ_BASE[id];
+  if (!f) return;
+  try {
+    const t0 = audioCtx.currentTime;
+    [[f, volume], [f * 2, volume * 0.35], [f * 3, volume * 0.12]].forEach(([freq, vol], i) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = i === 0 ? 'triangle' : 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t0); o.stop(t0 + dur + 0.05);
+    });
+  } catch (e) {}
+}
+
+// Sopro grave que sobe: o som do altar acordando durante a condensação.
+function tocarCondensacao(id) {
+  if (!audioCtx) initAudio();
+  if (!audioCtx) return;
+  const alvo = FREQ_BASE[id] || 330;
+  try {
+    const t0 = audioCtx.currentTime, dur = 1.5;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(alvo / 4, t0);
+    o.frequency.exponentialRampToValueAtTime(alvo, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.05, t0 + dur * 0.7);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    const filtro = audioCtx.createBiquadFilter();
+    filtro.type = 'lowpass'; filtro.frequency.value = 1200;
+    o.connect(filtro); filtro.connect(g); g.connect(audioCtx.destination);
+    o.start(t0); o.stop(t0 + dur + 0.05);
+  } catch (e) {}
+}
+
+// ── Montagem de escala ───────────────────────────────────────────────────────────
+// Intervalo aqui não é ingrediente, é PASSO. Cada peça encaixada move o jogador pela
+// cromática: Tom pula duas casas, Semitom pula uma. A fórmula deixa de ser uma sigla
+// decorada e vira um caminho que ele percorreu com o dedo.
+const FORMULA_MAIOR = ['T','T','S','T','T','T','S'];
+const NOMES_PASSO = { T: 'TOM', S: 'SEMITOM' };
+let escalasMontadas = [];      // [{ tonica, tipo }]
+let montagem = null;           // { tonica, passos:[], posicao, guiado }
+
+function iniciarMontagem(tonicaId = 'do') {
+  const iT = CROMATICA.findIndex(n => n.id === tonicaId);
+  montagem = {
+    tonica: tonicaId, iTonica: iT, passos: [], posicao: iT,
+    guiado: escalasMontadas.length === 0,   // só a primeira escala é guiada
+  };
+  renderMontagem();
+}
+
+function notaNaPosicao(i) { return CROMATICA[i % CROMATICA.length]; }
+
+function colocarIntervalo(tipo) {
+  if (!montagem) return;
+  const item = tipo === 'T' ? 'tom' : 'semitom';
+  if ((playerInventory[item] || 0) <= 0) { falaDoAltar(`Você não tem ${NOMES_PASSO[tipo]}.`, 'erro'); return; }
+
+  const esperado = FORMULA_MAIOR[montagem.passos.length];
+  if (tipo !== esperado) {
+    // Erro soa: o jogador OUVE a distância errada em vez de só ler um aviso.
+    tocarDissonancia(notaNaPosicao(montagem.posicao).id, tipo === 'T' ? 2 : 1);
+    const el = document.getElementById('altarViewMontar');
+    el?.classList.add('tremendo');
+    setTimeout(() => el?.classList.remove('tremendo'), 320);
+    falaDoAltar('ESSA DISTÂNCIA NÃO. ESCUTE COMO SOA TORTO.', 'erro');
+    return;                                  // a peça volta para a mochila: nada se perde
+  }
+
+  playerInventory[item]--;
+  montagem.passos.push(tipo);
+  montagem.posicao += (tipo === 'T' ? 2 : 1);
+  const nota = notaNaPosicao(montagem.posicao);
+  tocarNota(nota.id, 1.0, 0.13);
+
+  if (montagem.passos.length >= FORMULA_MAIOR.length) selarEscala();
+  else { falaDoAltar(`${nota.nome}. ${montagem.passos.length} de ${FORMULA_MAIOR.length}.`, 'ok'); renderMontagem(); }
+  savePlayerData();
+}
+
+function selarEscala() {
+  const graus = grausDaMontagem();
+  const faltando = graus.filter(g => !temNota(g.id));
+  if (faltando.length) {
+    falaDoAltar(`Faltam notas condensadas: ${faltando.map(n => n.nome).join(', ')}.`, 'erro');
+    renderMontagem();
+    return;
+  }
+  escalasMontadas.push({ tonica: montagem.tonica, tipo: 'maior' });
+  falaDoAltar('A ESCALA RESSOA. ELA ESTÁ INTEIRA.', 'ok');
+  progressoDeMissao('montar', 'escala');
+  // toca a escala inteira, degrau por degrau
+  graus.concat([notaNaPosicao(montagem.iTonica)]).forEach((g, i) =>
+    setTimeout(() => tocarNota(g.id, 0.8, 0.13), i * 260));
+  savePlayerData();
+  setTimeout(() => { montagem = null; renderAltar(); }, 2600);
+}
+
+// Notas onde o caminho pisou, incluindo a tônica.
+function grausDaMontagem() {
+  const out = [notaNaPosicao(montagem.iTonica)];
+  let p = montagem.iTonica;
+  montagem.passos.forEach(t => { p += (t === 'T' ? 2 : 1); out.push(notaNaPosicao(p)); });
+  return out.slice(0, -1).concat(out.length > FORMULA_MAIOR.length ? [] : []);
+}
+
+function renderMontagem() {
+  if (!montagem) return;
+  const escada = document.getElementById('montEscada');
+  if (!escada) return;
+
+  document.getElementById('montTitulo').textContent =
+    `Escala Maior de ${notaNaPosicao(montagem.iTonica).nome}`;
+  const q = (id) => { const el = document.getElementById(id); if (el) el.textContent = playerInventory[id === 'qtdTom' ? 'tom' : 'semitom'] || 0; };
+  q('qtdTom'); q('qtdSemitom');
+
+  // 13 casas: uma oitava inteira, do Dó ao Dó
+  const pisadas = new Set();
+  let p = montagem.iTonica; pisadas.add(p);
+  montagem.passos.forEach(t => { p += (t === 'T' ? 2 : 1); pisadas.add(p); });
+
+  escada.innerHTML = '<i class="mont-trilha"></i>';
+  for (let i = montagem.iTonica; i <= montagem.iTonica + 12; i++) {
+    const nota = notaNaPosicao(i);
+    const c = document.createElement('div');
+    c.className = 'casa' + (nota.natural ? '' : ' preta')
+                + (pisadas.has(i) ? ' pisada' : '')
+                + (i === montagem.posicao ? ' atual' : '')
+                + (pisadas.has(i) && !temNota(nota.id) ? ' faltando' : '');
+    c.textContent = nota.nome;
+    c.title = nota.nome + (temNota(nota.id) ? '' : ' — ainda não condensada');
+    escada.appendChild(c);
+  }
+  const trilha = escada.querySelector('.mont-trilha');
+  if (trilha) {
+    const andado = (montagem.posicao - montagem.iTonica) / 12;
+    trilha.style.width = `calc(${andado * 100}% )`;
+  }
+
+  // Os graus da escala, com o intervalo desenhado ENTRE eles — que é onde ele mora.
+  const graus = document.getElementById('montGraus');
+  if (graus) {
+    const ROMANOS = ['I','II','III','IV','V','VI','VII','VIII'];
+    graus.innerHTML = '';
+    let p = montagem.iTonica;
+    for (let i = 0; i < 8; i++) {
+      if (i > 0) {
+        const t = FORMULA_MAIOR[i - 1];
+        const feito = i - 1 < montagem.passos.length;
+        const agora = i - 1 === montagem.passos.length;
+        const iv = document.createElement('div');
+        iv.className = 'intervalo' + (feito ? ' feito' : agora ? ' agora' : '');
+        iv.innerHTML = `<i></i><span>${(feito || (agora && montagem.guiado)) ? t : '·'}</span><i></i>`;
+        graus.appendChild(iv);
+        if (feito) p += (t === 'T' ? 2 : 1);
+      }
+      const alcancado = i <= montagem.passos.length;
+      const nota = alcancado ? notaNaPosicao(p) : null;
+      const g = document.createElement('div');
+      const falta = nota && !temNota(nota.id);
+      g.className = 'grau' + (alcancado ? ' feito' : '')
+                  + (i === montagem.passos.length ? ' atual' : '')
+                  + (falta ? ' falta' : '');
+      g.innerHTML = `<span class="grau-num">${ROMANOS[i]}</span>` +
+                    `<span class="grau-nota">${nota ? nota.nome : '—'}</span>`;
+      if (falta) g.title = `${nota.nome} ainda não foi condensada`;
+      graus.appendChild(g);
+    }
+  }
+
+  // Guiado só na primeira escala: acende a peça certa e diz o passo.
+  const esperado = FORMULA_MAIOR[montagem.passos.length];
+  const bTom = document.getElementById('pecaTom');
+  const bSem = document.getElementById('pecaSemitom');
+  [bTom, bSem].forEach(b => b?.classList.remove('sugerida'));
+  if (bTom) bTom.disabled = (playerInventory.tom || 0) <= 0;
+  if (bSem) bSem.disabled = (playerInventory.semitom || 0) <= 0;
+  if (montagem.guiado && esperado) {
+    (esperado === 'T' ? bTom : bSem)?.classList.add('sugerida');
+    if (!montagem.passos.length) falaDoAltar(`COMECE NO ${notaNaPosicao(montagem.iTonica).nome}. AGORA UM ${NOMES_PASSO[esperado]}.`);
+    else falaDoAltar(`AGORA UM ${NOMES_PASSO[esperado]}.`);
+  } else if (esperado && !montagem.passos.length) {
+    falaDoAltar('O caminho é seu. Lembre da fórmula.');
+  }
+}
+
+function falaDoAltar(txt, tipo = '') {
+  const el = document.getElementById('montFala');
+  if (!el) return;
+  el.className = 'mont-fala' + (tipo ? ' ' + tipo : '');
+  el.textContent = txt;
+}
+
+// Duas notas erradas soando juntas: é assim que se ensina o que é dissonância.
+function tocarDissonancia(idBase, semitons) {
+  if (!audioCtx) initAudio();
+  if (!audioCtx) return;
+  const f = FREQ_BASE[idBase] || 330;
+  const f2 = f * Math.pow(2, semitons / 12);
+  try {
+    const t0 = audioCtx.currentTime;
+    [f, f2 * 1.06].forEach(freq => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'sawtooth'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.07, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.7);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t0); o.stop(t0 + 0.75);
+    });
+  } catch (e) {}
+}
+
+// ── Sorteio ──────────────────────────────────────────────────────────────────────
+// O vídeo é o mesmo sempre; o prêmio é composto por cima no instante do estouro.
+// Por isso o contrato com a animação é o segundo 5,0 — é lá que a luz abre o centro.
+// Tempos medidos no próprio vídeo: o brilho sobe a partir de ~5,0s, chega ao pico em
+// ~5,8s e sustenta até ~6,4s. Revelar em 5,4s faz o item terminar de nascer junto com
+// o auge da luz.
+const SORTEIO = { custoClaves: 5, tEspera: 1.4, tRevelacao: 5.4, tFim: 8.0 };
+let sorteioForcado = null;      // uma cena pode ditar o resultado (Cena 12 dá nada)
+
+function abrirSorteio(forcado) {
+  const o = document.getElementById('sorteioOverlay');
+  if (!o) return;
+  sorteioForcado = forcado || null;
+  o.classList.remove('hidden');
+  ajustarCaixaDoSorteio();
+  requestAnimationFrame(ajustarCaixaDoSorteio);
+  const premio = document.getElementById('sorteioPremio');
+  premio.className = 'sorteio-premio'; premio.innerHTML = '';
+  const btn = document.getElementById('sorteioBtn');
+  btn.disabled = claveCount < SORTEIO.custoClaves && !sorteioForcado;
+  btn.textContent = '✦ TENTAR A SORTE';
+  document.getElementById('sorteioCusto').textContent = `𝄞 ${SORTEIO.custoClaves} claves  ·  você tem ${claveCount}`;
+  document.getElementById('sorteioSub').textContent = 'Os acordes se personificam aqui.';
+
+  const v = document.getElementById('sorteioVideo');
+  if (v) {
+    v.currentTime = 0;
+    v.loop = true;
+    v.play().catch(() => {});
+    // laço curto no trecho de espera enquanto o jogador decide
+    v.ontimeupdate = () => { if (!sorteioRodando && v.currentTime > SORTEIO.tEspera) v.currentTime = 0; };
+  }
+}
+
+let sorteioRodando = false;
+
+function rodarSorteio() {
+  if (sorteioRodando) return;
+  if (!sorteioForcado) {
+    if (claveCount < SORTEIO.custoClaves) { showToast('𝄞 Claves insuficientes.'); return; }
+    claveCount -= SORTEIO.custoClaves;
+    savePlayerData();
+  }
+  sorteioRodando = true;
+  const btn = document.getElementById('sorteioBtn');
+  btn.disabled = true; btn.textContent = '…';
+
+  const resultado = sorteioForcado === 'nada' ? null : sortearPremio();
+  const v = document.getElementById('sorteioVideo');
+  let revelou = false;
+  const revelar = () => { if (!revelou) { revelou = true; revelarPremio(resultado); } };
+
+  if (v && v.readyState >= 2) {
+    v.loop = false;
+    v.currentTime = SORTEIO.tEspera;
+    // Ancorado no relógio do vídeo, não num temporizador: se o quadro atrasar por
+    // carregamento, a revelação atrasa junto e continua casada com a luz.
+    v.ontimeupdate = () => { if (v.currentTime >= SORTEIO.tRevelacao) revelar(); };
+    v.onended = revelar;
+    v.play().catch(() => {});
+    // rede de segurança, caso o vídeo trave
+    setTimeout(revelar, (SORTEIO.tRevelacao - SORTEIO.tEspera) * 1000 + 2500);
+  } else {
+    setTimeout(revelar, 1200);        // sem vídeo, a cerimônia acontece mesmo assim
+  }
+}
+
+function sortearPremio() {
+  // Por enquanto sorteia entre os sete graus do campo harmônico.
+  const grau = 1 + Math.floor(Math.random() * 7);
+  return { tipo: 'acorde', grau, nome: NOMES_DE_ACORDE[grau - 1] };
+}
+const NOMES_DE_ACORDE = ['Tônica','Supertônica','Mediante','Subdominante','Dominante','Relativa Menor','Sensível'];
+
+function revelarPremio(resultado) {
+  const premio = document.getElementById('sorteioPremio');
+  if (!premio) return;
+  premio.innerHTML = '';
+
+  if (!resultado) {
+    premio.className = 'sorteio-premio vazio revelado';
+    premio.innerHTML = '<div class="premio-tipo">o lago devolveu</div>' +
+                       '<div class="premio-nome">NADA</div>';
+    playForgeHit();
+  } else {
+    premio.className = 'sorteio-premio revelado';
+    const spr = magiaSprites['acorde_' + resultado.grau];
+    const cv = spr ? miniCanvas(spr, 140) : null;
+    if (cv) premio.appendChild(cv);
+    const t = document.createElement('div');
+    t.className = 'premio-tipo'; t.textContent = 'acorde';
+    const n = document.createElement('div');
+    n.className = 'premio-nome'; n.textContent = resultado.nome;
+    premio.appendChild(t); premio.appendChild(n);
+    playForgeDone();
+    acordesObtidos[resultado.grau] = (acordesObtidos[resultado.grau] || 0) + 1;
+    savePlayerData();
+  }
+
+  const v = document.getElementById('sorteioVideo');
+  if (v) v.ontimeupdate = null;
+  setTimeout(() => {
+    sorteioRodando = false;
+    const btn = document.getElementById('sorteioBtn');
+    if (btn && !sorteioForcado) {
+      btn.disabled = claveCount < SORTEIO.custoClaves;
+      btn.textContent = '✦ TENTAR DE NOVO';
+    }
+    document.getElementById('sorteioCusto').textContent =
+      `𝄞 ${SORTEIO.custoClaves} claves  ·  você tem ${claveCount}`;
+  }, 2200);
+}
+
+let acordesObtidos = {};
+
+function fecharSorteio() {
+  const o = document.getElementById('sorteioOverlay');
+  const v = document.getElementById('sorteioVideo');
+  if (v) { v.pause(); v.ontimeupdate = null; }
+  o?.classList.add('hidden');
+  sorteioRodando = false; sorteioForcado = null;
+}
+
+function abrirForjadorDeEscalas() {
+  const o = document.getElementById('altarOverlay');
+  if (!o) { showToast('🔒 O Altar ainda dorme.'); return; }
+  o.classList.remove('hidden');
+  renderAltar();
+}
+
+function renderAltar() {
+  const área = document.getElementById('altarNotasPauta');
+  if (!área) return;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('altarFrag', fragmentosDisponiveis());
+  set('altarClaves', claveCount);
+
+  const dica = document.getElementById('altarHint');
+  if (dica) {
+    const quantas = Object.values(notasPossuidas).filter(v => v > 0).length;
+    const naturais = CROMATICA.filter(n => n.natural && temNota(n.id)).length;
+    dica.textContent = quantas === 0
+      ? 'Toque numa nota para condensá-la. Quanto mais alta na pauta, mais aguda.'
+      : naturais >= 7
+        ? 'As sete naturais estão completas — a escala de Dó pode ser montada.'
+        : `${quantas} de 12 condensadas · ${naturais} das 7 naturais da escala de Dó.`;
+  }
+
+  área.innerHTML = '';
+
+  // A pauta ocupa a faixa central; cada meio-espaço vale metade da distância entre
+  // linhas. Notas sobem da esquerda para a direita, na ordem da cromática.
+  const alturaPauta = window.matchMedia('(max-width: 900px), (pointer: coarse)').matches ? 68 : 96;
+  const passo = alturaPauta / 8;          // 4 espaços entre 5 linhas → 8 meios-espaços
+  const margemEsq = 13, margemDir = 3;
+
+  CROMATICA.forEach((nota, i) => {
+    const c = custoDaNota(nota);
+    const pode = podePagarNota(nota);
+    const el = document.createElement('div');
+    el.className = 'nota' + (nota.natural ? '' : ' sustenida')
+                 + (pode ? ' pode' : ' travada') + (temNota(nota.id) ? ' tem' : '');
+    el.title = `${nota.nome} — ${c.fragmentos} fragmentos + ${c.claves} clave${c.claves > 1 ? 's' : ''}`;
+
+    el.style.left = `${margemEsq + (i / (CROMATICA.length - 1)) * (100 - margemEsq - margemDir)}%`;
+    // grau 0 é a linha de baixo, que fica na base da pauta centralizada
+    el.style.top = `calc(50% + ${alturaPauta / 2 - GRAU_NA_PAUTA[nota.id] * passo}px)`;
+
+    const cabeca = document.createElement('div');
+    cabeca.className = 'nota-cabeca';
+    if (GRAU_NA_PAUTA[nota.id] < -1) {
+      const sup = document.createElement('i');
+      sup.className = 'nota-suplementar';
+      cabeca.appendChild(sup);
+    }
+    if (!nota.natural) {
+      const ac = document.createElement('span');
+      ac.className = 'nota-acidente'; ac.textContent = '♯';
+      cabeca.appendChild(ac);
+    }
+    const spr = magiaSprites['nota_' + nota.id];
+    if (spr) {
+      const h = 34, w = Math.round(h * (spr.sw / spr.sh));
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      const cx = cv.getContext('2d');
+      cx.imageSmoothingEnabled = false;
+      cx.drawImage(spr.canvas, spr.sx, spr.sy, spr.sw, spr.sh, 0, 0, w, h);
+      cabeca.appendChild(cv);
+    } else cabeca.textContent = '♪';
+    el.appendChild(cabeca);
+
+    const nome = document.createElement('div');
+    nome.className = 'nota-nome';
+    nome.textContent = temNota(nota.id) && notasPossuidas[nota.id] > 1
+      ? `${nota.nome}×${notasPossuidas[nota.id]}` : nota.nome;
+    el.appendChild(nome);
+
+    const custo = document.createElement('div');
+    custo.className = 'nota-custo';
+    custo.textContent = `✦${c.fragmentos}·𝄞${c.claves}`;
+    el.appendChild(custo);
+
+    if (pode) el.addEventListener('click', () => condensarNota(nota));
+    else if (temNota(nota.id)) el.addEventListener('click', () => tocarNota(nota.id, 1.2));
+
+    área.appendChild(el);
+  });
+}
+
+
 
 function atCounter() {
   const def = interiorDef();
@@ -2482,9 +3580,13 @@ function signpostTarget() { return elementTarget(['signpost']); }
 function portaTarget() {
   if (currentScene !== 'world') return null;
   const p = elementTarget(['porta']);
-  return p && p.interior && INTERIORS[p.interior] ? p : null;
+  if (!p || !p.interior) return null;
+  // Destino pode ser um ambiente fechado OU um cenário do mundo — assim uma porta já
+  // posicionada continua valendo mesmo depois de o destino virar mapa de verdade.
+  return (INTERIORS[p.interior] || bgSources[p.interior] || videoSources[p.interior]) ? p : null;
 }
 // Só vale martelar onde há trabalho: o ponto precisa de uma missão ativa pedindo isso.
+function lagoTarget() { return currentScene === 'world' ? elementTarget(['lago_sorteio']) : null; }
 function marteladaTarget() {
   if (!activeQuests.some(q => q.objectives.some(o => o.type === 'martelar' && !o.completed))) return null;
   return elementTarget(['ponto_martelada']);
@@ -2494,12 +3596,14 @@ function forgeDoorTarget(){ return currentScene==='world' ? elementTarget(['forg
 
 function actionAvailable() {
   if(shopOpen||inventoryOpen||charOpen)return null;
+  if(capturaAtiva)return 'ressoar';   // a janela é curta: nada mais importa agora
   if(attackTarget())return 'attack'; // a monster in reach beats everything else
   const counter = atCounter();          // 'shop' inside the skin store, 'forge' in the smithy
   if(counter)return counter;
   if(naSaidaDoInterior())return 'sair';
   // Martelar vem antes de falar: durante a obra o ferreiro está em cima do ponto de
   // trabalho, e o botão ficava preso no diálogo dele em vez de bater na ponte.
+  if(lagoTarget())return 'sortear';
   if(portaTarget())return 'entrarPorta';
   if(marteladaTarget())return 'martelar';
   if(talkTarget())return 'talk';
@@ -2577,13 +3681,23 @@ function changeMapWithFade(targetMapKey, targetX = 512, targetY = 300) {
 // the automatic proximity trigger, so a finished conversation stays reviewable.
 function tryTalk() {
   const act=actionAvailable();
+  if(act==='ressoar'){ ressoar(); return; }
   if(act==='attack'){ doAttack(); return; }
   else if(act==='shop'){ openShop(); return; }
   else if(act==='forge'){ openForgeMenu(); return; }
   else if(act==='sair'){ leaveInterior(); return; }
   else if(act==='martelar'){ darMartelada(); return; }
-  else if(act==='entrarPorta'){ enterInterior(portaTarget().interior); return; }
+  else if(act==='entrarPorta'){
+    const p = portaTarget(), destino = p.interior;
+    if (INTERIORS[destino]) enterInterior(destino);
+    else {
+      const sp = spawns[destino] || { x: 512, y: 420 };
+      changeMapWithFade(destino, sp.x, sp.y);
+    }
+    return;
+  }
   else if(act==='forjarEscala'){ abrirForjadorDeEscalas(); return; }
+  else if(act==='sortear'){ abrirSorteio(); return; }
   
   // In play mode the map that matters is currentKey. Reading the editor's dropdown here
   // meant that after travelling — when the two drift apart — interactions were looked up
@@ -2597,7 +3711,7 @@ function tryTalk() {
     if(dist<=radius){
       if(npc.type==='forge_entrance'){ enterInterior('ferraria'); return; }
       if(npc.type==='signpost'){
-        if(!npc.targetMapKey || !bgSources[npc.targetMapKey]){
+        if(!npc.targetMapKey || !cenarioExiste(npc.targetMapKey)){
           showToast('🪧 Placa sem destino — use 🔗 Reconfigurar Vinculação no Inspetor.');
           return;
         }
@@ -2808,7 +3922,7 @@ function renderHat(pW, pH) {
 
 // Ferramenta equipada na mão. Fica atrás do corpo quando o personagem anda para
 // cima (a mão está do outro lado), e acompanha o balanço da caminhada e dos golpes.
-const CATEGORIA_POR_SLOT = { hammer: 'hammers', axe: 'axes', pickaxe: 'pickaxes' };
+const CATEGORIA_POR_SLOT = { hammer: 'hammers', axe: 'axes', pickaxe: 'pickaxes', ressonador: 'ressonadores' };
 function ferramentaEmMaos() {
   for (const slot of ['hammer', 'axe', 'pickaxe']) {
     const id = equipped[slot];
@@ -2893,7 +4007,8 @@ let wvDragKey=null, wvDragMouse={x:0,y:0};
 function getCell(mx,my){const col=Math.floor((mx-GOX)/(GCW+GPAD)),row=Math.floor((my-GOY)/(GCH+GPAD));if(col>=0&&col<GCOLS&&row>=0&&row<GROWS)return{col,row};return null;}
 function cellRect(col,row){return{x:GOX+col*(GCW+GPAD),y:GOY+row*(GCH+GPAD),w:GCW,h:GCH};}
 function keyAtCell(col,row){return worldGrid[row]?.[col]||null;}
-function sideKeys(){const pl=new Set(Object.keys(gridPos).filter(k=>{const p=gridPos[k];return worldGrid[p.row]?.[p.col]===k;}));return Object.keys(bgSources).filter(k=>!pl.has(k));}
+function sideKeys(){const pl=new Set(Object.keys(gridPos).filter(k=>{const p=gridPos[k];return worldGrid[p.row]?.[p.col]===k;}));
+  return chavesDeCenario().filter(k=>!pl.has(k));}
 function sideKeyAt(mx,my){if(mx<SIDEX||SIDEW<=0)return null;const sk=sideKeys();for(let i=0;i<sk.length;i++){const r={x:SIDEX,y:GOY+30+i*(SIDECARDH+5),w:SIDEW,h:SIDECARDH};if(mx>=r.x&&mx<=r.x+r.w&&my>=r.y&&my<=r.y+r.h)return sk[i];}return null;}
 
 function deleteScene(mx, my) {
@@ -3128,6 +4243,7 @@ function getM(e){
 }
 
 function onPointerDown(m){
+  if (capturaAtiva && isPlayMode) { ressoar(); return; }   // janela de captura
   if (avancarCena()) return;      // uma cena em curso consome o toque
   // An open dialogue owns the pointer whatever the editor mode is — otherwise the
   // editor branches below return early and taps never reach the choices.
@@ -3166,12 +4282,12 @@ function onPointerDown(m){
     // Monsters are draggable too — they sit on top, so they get first claim on a click.
     const mob=monsterAt(m.x,m.y);
     if(mob){
-      selectedMonster=mob; deselectNPC();
+      selectedMonster=mob; deselectNPC(); mostrarInspetorDeMonstro(mob);
       dragMonster=mob; dragStart={x:m.x,y:m.y}; dragOffX=m.x-mob.x; dragOffY=m.y-mob.y;
       showToast(`👾 ${monsterDef(mob).name||mob.type}`);
       return;
     }
-    selectedMonster=null;
+    selectedMonster=null; mostrarInspetorDeMonstro(null);
     const hit=npcAt(m.x,m.y);
     if(hit){
       selectNPC(hit);
@@ -3346,9 +4462,7 @@ function useIconArt(imgId, emojiId, src) {
   probe.src = src;
 }
 function loadUIArt() {
-  useIconArt('coinIcon', 'coinEmoji', 'assets/ui/coin.png');
-  useIconArt('storeCoinIcon', 'storeCoinEmoji', 'assets/ui/coin.png');
-  useIconArt('invIcon', 'invEmoji', 'assets/ui/inventory.png');
+  // Uses clean native emojis for coins and inventory
 }
 
 // ============================================================
@@ -3359,9 +4473,11 @@ let charOverlay, csLevel, csName, csXpFill, csXpText, csAttrs, csSkills;
 let lvlNum, xpFill, xpLabel, pointDot;
 
 const ATTR_META = {
-  forca:      { icon:'⚔️', name:'Força',      desc:'+2 de dano e +4 de vida por ponto' },
-  agilidade:  { icon:'🌀', name:'Agilidade',  desc:'+3% ataque e +2% movimento por ponto' },
-  capacidade: { icon:'🎒', name:'Capacidade', desc:'+10 claves na bolsa por ponto' },
+  ritmo:    { icon:'♪',  name:'Ritmo',    desc:'Bigorna mais lenta e zona maior · +3% velocidade de ataque' },
+  afinacao: { icon:'♫',  name:'Afinação', desc:'Janela de captura maior · mais chance de Fragmento Puro' },
+  folego:   { icon:'◉',  name:'Fôlego',   desc:'+6 de vida · feitiços recarregam mais rápido' },
+  dinamica: { icon:'◈',  name:'Dinâmica', desc:'+3 de dano · +4% de dano nos feitiços' },
+  memoria:  { icon:'▤',  name:'Memória',  desc:'+10 de bolsa · notas custam menos fragmentos' },
 };
 
 function openChar() { charOpen = true; charTab = 'attrs'; playerLocked = true;
@@ -3416,15 +4532,16 @@ function renderAttrs() {
   const sum = document.createElement('div');
   sum.className = 'attr-row';
   sum.style.gridTemplateColumns = '1fr';
+  const b = v => `<b style="color:#f2f5f9">${v}</b>`;
   sum.innerHTML =
-    `<div class="attr-desc" style="line-height:1.7">` +
-    `❤️ Vida máxima <b style="color:#f2f5f9">${s.maxHp}</b> &nbsp;·&nbsp; ` +
-    `⚔️ Dano <b style="color:#f2f5f9">${s.dmg}</b> &nbsp;·&nbsp; ` +
-    `⚡ Ataque <b style="color:#f2f5f9">+${s.atkSpeed}%</b> &nbsp;·&nbsp; ` +
-    `👟 Movimento <b style="color:#f2f5f9">+${s.moveSpeed}%</b><br>` +
-    `🎒 Bolsa <b style="color:#f2f5f9">${claveCount}/${s.capacity}</b>` +
-    (s.crit ? ` &nbsp;·&nbsp; 💥 Crítico <b style="color:#f2f5f9">${s.crit}%</b>` : '') +
-    (s.lifesteal ? ` &nbsp;·&nbsp; 💚 Roubo de vida <b style="color:#f2f5f9">${s.lifesteal}%</b>` : '') +
+    `<div class="attr-desc" style="line-height:1.8">` +
+    `❤️ Vida ${b(s.maxHp)} &nbsp;·&nbsp; ⚔️ Dano ${b(s.dmg)} &nbsp;·&nbsp; ` +
+    `⚡ Ataque ${b('+' + s.atkSpeed + '%')} &nbsp;·&nbsp; 🎒 Bolsa ${b(claveCount + '/' + s.capacity)}<br>` +
+    `🔨 Forja ${b('+' + s.forja + '%')} &nbsp;·&nbsp; 🔔 Captura ${b('+' + s.captura + '%')} &nbsp;·&nbsp; ` +
+    `✦ Puro ${b('+' + s.puro + '%')} &nbsp;·&nbsp; 🎵 Síntese ${b('−' + s.desconto + '%')}<br>` +
+    `✨ Feitiço ${b('+' + s.dmgMagia + '% dano')} &nbsp;·&nbsp; ⏳ Recarga ${b('−' + s.recarga + '%')}` +
+    (s.crit ? ` &nbsp;·&nbsp; 💥 Crítico ${b(s.crit + '%')}` : '') +
+    (s.lifesteal ? ` &nbsp;·&nbsp; 💚 Roubo ${b(s.lifesteal + '%')}` : '') +
     `</div>`;
   csAttrs.appendChild(sum);
 }
@@ -3478,7 +4595,13 @@ function bindCharUI() {
   xpFill  = document.getElementById('xpFill');
   xpLabel = document.getElementById('xpLabel');
   pointDot= document.getElementById('pointDot');
-  document.getElementById('charBtn')?.addEventListener('click', openChar);
+  // A ficha antiga (charOverlay) foi substituída pelo grimório. Sem esta troca, o
+  // mesmo botão abria duas telas de atributos diferentes, uma por cima da outra.
+  document.getElementById('charBtn')?.addEventListener('click', () => {
+    grAba = 'atributos'; grSelecionado = null;
+    document.getElementById('inventoryOverlay')?.classList.remove('hidden');
+    renderGrimorio();
+  });
   document.getElementById('charClose')?.addEventListener('click', closeChar);
   charOverlay?.addEventListener('click', e => { if (e.target === charOverlay) closeChar(); });
   document.querySelectorAll('[data-cstab]').forEach(b =>
@@ -3498,7 +4621,13 @@ function bindStoreUI() {
   hpFill       = document.getElementById('hpFill');
   loadUIArt();
   document.getElementById('storeClose')?.addEventListener('click', closeStore);
-  document.getElementById('invBtn')?.addEventListener('click', openInventory);
+  // O inventário é o drawer. A tela antiga (loja de skins) continua existindo, mas só
+  // é aberta pelo balcão da loja — sem isto o mesmo botão abria as duas.
+  document.getElementById('invBtn')?.addEventListener('click', () => {
+    grAba = 'bolsa'; grSelecionado = null;
+    document.getElementById('inventoryOverlay')?.classList.remove('hidden');
+    renderGrimorio();
+  });
   storeOverlay?.addEventListener('click', e => { if (e.target === storeOverlay) closeStore(); });
 }
 
@@ -3674,6 +4803,43 @@ function bindCanvasEvents(){
 // ============================================================
 // NPC EDITOR HELPERS
 // ============================================================
+// ── Inspetor de monstro ──────────────────────────────────────────────────────────
+function mostrarInspetorDeMonstro(m) {
+  const painel = document.getElementById('inspMobPanel');
+  const vazio  = document.getElementById('inspEmpty');
+  const npcP   = document.getElementById('inspNPCPanel');
+  if (!painel) return;
+  if (!m) { painel.classList.add('hidden'); return; }
+
+  npcP?.classList.add('hidden');
+  vazio?.classList.add('hidden');
+  painel.classList.remove('hidden');
+  document.querySelector('[data-btab="inspector"]')?.click();
+
+  const def = monsterDef(m);
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  set('mob_nome', def.name || m.type);
+  set('mob_x', Math.round(m.x));
+  set('mob_y', Math.round(m.y));
+  set('mob_escala', m.escala || 1);
+  const val = document.getElementById('mob_escala_val');
+  if (val) val.textContent = (m.escala || 1).toFixed(2) + 'x';
+  const st = document.getElementById('mob_stats');
+  if (st) st.textContent = `❤️ ${def.hp ?? '?'}  ·  ⚔️ ${def.damage ?? 0}  ·  🏃 ${def.speed ?? 1}` +
+                           (def.exigeRessonador ? '  ·  exige Ressonador' : '');
+  const flip = document.getElementById('mob_espelhar');
+  if (flip) flip.checked = !!m.flipX;
+}
+
+function aplicarEscalaDoMonstro(v) {
+  if (!selectedMonster) return;
+  const e = Math.max(0.4, Math.min(3, parseFloat(v) || 1));
+  selectedMonster.escala = e;
+  const el = document.getElementById('mob_escala');   if (el) el.value = e;
+  const val = document.getElementById('mob_escala_val'); if (val) val.textContent = e.toFixed(2) + 'x';
+  saveMonsters();
+}
+
 function selectNPC(npc){
   selectedNPC=npc;
   inspEmpty?.classList.add('hidden'); inspNPCPanel?.classList.remove('hidden');
@@ -4148,8 +5314,9 @@ function weDesenhaCena(k, col, row, fantasma) {
 
   c.save();
   if (fantasma) c.globalAlpha = 0.7;
-  const img = bgImages[k];
-  if (img?.complete) c.drawImage(img, s.x, s.y, w, h);
+  // Mesma regra do cartão: vídeo primeiro, e nada de exceção por arquivo quebrado.
+  const fonte = videoDoMapa(k) || (bgImages[k]?.complete && bgImages[k].naturalWidth ? bgImages[k] : null);
+  if (fonte) { try { c.drawImage(fonte, s.x, s.y, w, h); } catch (e) {} }
   else { c.fillStyle = '#131c28'; c.fillRect(s.x, s.y, w, h); }
 
   const sel = WE.hover && !WE.drag && weKeyAt(WE.hover.col, WE.hover.row) === k;
@@ -4287,22 +5454,30 @@ function weAtualizaGaleria() {
   const g = document.getElementById('sceneGallery');
   if (!g) return;
   g.innerHTML = '';
-  for (const id of Object.keys(bgSources)) {
+  for (const id of chavesDeCenario()) {
     const p = gridPos[id];
     const card = document.createElement('div');
     card.className = 'scene-card' + (p ? ' placed' : '');
     card.draggable = true;
     card.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', id));
 
-    const img = bgImages[id];
-    if (img?.complete) {
-      const cv = document.createElement('canvas');
-      cv.width = 108; cv.height = 60;
-      cv.getContext('2d').drawImage(img, 0, 0, 108, 60);
-      card.appendChild(cv);
-    } else {
+    // Cenário animado tem vídeo no lugar da imagem. E um arquivo quebrado nunca pode
+    // derrubar o desenho: um drawImage com imagem inválida lança e matava o Mapa-Múndi.
+    const fonte = videoDoMapa(id) || (bgImages[id]?.complete && bgImages[id].naturalWidth ? bgImages[id] : null);
+    let desenhou = false;
+    if (fonte) {
+      try {
+        const cv = document.createElement('canvas');
+        cv.width = 108; cv.height = 60;
+        cv.getContext('2d').drawImage(fonte, 0, 0, 108, 60);
+        card.appendChild(cv);
+        desenhou = true;
+      } catch (e) { desenhou = false; }
+    }
+    if (!desenhou) {
       const d = document.createElement('div');
-      d.className = 'thumb-empty'; d.textContent = '🖼️';
+      d.className = 'thumb-empty';
+      d.textContent = videoSources[id] ? '🎬' : '🖼️';
       card.appendChild(d);
     }
     const info = document.createElement('div');
@@ -4353,6 +5528,7 @@ function weMostrar(ativo) {
 //   andarJogador {para, sumir?}             o jogador caminha sozinho até um ponto
 //   mostrar      {npc, visivel}             esconde/mostra um NPC (npc:"jogador" vale também)
 //   destacar     {npc, zoom?, ms?, rotulo?} aproxima a câmera para apresentar alguém
+//   sorteio      {resultado?}               abre o sorteio; `resultado:"nada"` força vazio
 //   missao       {id}                       inicia a missão do assets/quests/quests.json
 //   objetivo     {missao, id}               fecha um objetivo pelo roteiro
 //   ambiente     {escuro, cor?, ms?}        muda a luz do mapa (amanhecer/anoitecer)
@@ -4423,7 +5599,7 @@ function preencherMenuDeCenas() {
   });
   const livre = document.createElement('option');
   livre.value = 'livre';
-  livre.textContent = '▶ Sem cena — direto no mapa inicial';
+  livre.textContent = '🔓 Modo livre — tudo liberado, sem cenas';
   sel.appendChild(livre);
   if ([...sel.options].some(o => o.value === salvo)) sel.value = salvo;
   sel.onchange = () => { try { localStorage.setItem('acordelot_inicio', sel.value); } catch (e) {} };
@@ -4441,6 +5617,8 @@ function condicoesDaCena(c) {
   if (!r) return true;
   if (r.missaoConcluida && !missaoConcluida(r.missaoConcluida)) return false;
   if (r.missaoAtiva && !missaoAtiva(r.missaoAtiva)) return false;
+  if (r.notasCondensadas != null &&
+      Object.values(notasPossuidas).filter(v => v > 0).length < r.notasCondensadas) return false;
   if (r.objetivos) {
     const q = missaoAtiva(r.objetivos.missao);
     // Missão já concluída também satisfaz: o que importa é o jogador ter feito aquilo,
@@ -4606,14 +5784,16 @@ function iniciarCena(roteiro) {
   npcData.forEach(n => { n.oculto = false; });
   CUT.fade = CUT.fadeAlvo = 0; CUT.tintaForca = CUT.tintaAlvo = 0;
   CUT.vinheta = CUT.vinhetaAlvo = 0;
-  if (roteiro.mapa && bgSources[roteiro.mapa]) {
+  // Cena de mundo troca o mapa e garante a cena externa. Cena SEM `mapa` acontece onde
+  // o jogador está — inclusive dentro de um interior. Forçar 'world' aqui expulsava o
+  // jogador do Forjador para o mapa do mundo no meio da fala do Altar.
+  if (roteiro.mapa && cenarioExiste(roteiro.mapa)) {
     currentKey = roteiro.mapa;
     if (activeMapSelect) activeMapSelect.value = roteiro.mapa;
+    monsters = monsters.filter(m => m.mapKey !== currentKey);
+    currentScene = 'world';
   }
-  // Clear any pre-placed monsters on the cutscene map so they spawn progressively
-  monsters = monsters.filter(m => m.mapKey !== currentKey);
   if (!isPlayMode) togglePlay();
-  currentScene = 'world';
   proximoPasso();
 }
 
@@ -4846,6 +6026,12 @@ function executarPasso(p) {
       return false;
     }
 
+    case 'sorteio':
+      // A cena pode ditar o resultado — é assim que a Cena 12 garante o "nada".
+      abrirSorteio(p.resultado || null);
+      CUT.aguardando = { tipo: 'sorteio' };
+      return true;
+
     case 'missao':
       unlockQuest(p.id);
       return false;
@@ -4936,6 +6122,12 @@ function atualizarCena(now) {
     const alvo = npcPorNome(a.npc);
     if (!alvo) { CUT.aguardando = null; proximoPasso(); return; }   // NPC sumiu: não trava a cena
     if (Math.hypot(player.x - alvo.x, player.y - alvo.y) <= a.dist) {
+      CUT.aguardando = null; proximoPasso();
+    }
+  }
+  else if (a.tipo === 'sorteio') {
+    // segue quando o jogador fechar a tela do sorteio
+    if (document.getElementById('sorteioOverlay')?.classList.contains('hidden')) {
       CUT.aguardando = null; proximoPasso();
     }
   }
@@ -5279,6 +6471,9 @@ function safeSpawn(key){
   } finally { currentKey = prev; }
 }
 
+let jogoIniciado = false;          // já houve uma partida nesta sessão do editor
+let ultimaPosicaoDeJogo = null;    // onde o jogador estava quando você apertou Parar
+
 function togglePlay(){
   isPlayMode=!isPlayMode;
   if(isPlayMode){
@@ -5289,21 +6484,46 @@ function togglePlay(){
     playBtn?.classList.add('hidden'); stopBtn?.classList.remove('hidden');
     wasdPanel?.classList.remove('hidden');
     playerHud?.classList.remove('hidden');
+    // Entrar em jogo nunca pode deixar o jogador travado por sobra de estado anterior.
+    playerLocked = false; dlg.state = DLG_STATE.CLOSED;
+
     // Começo de jogo acontece no mapa de surgimento — só até a abertura ter rodado;
-    // depois disso o ▶ testa o cenário em que o editor está.
-    if(startMap&&bgSources[startMap]&&!CUT.jaRodou['mapa:'+startMap]){
+    // depois disso o ▶ testa o cenário em que o editor está. Mas se o menu já escolheu
+    // o destino (cena com `estadoInicial`), ele manda: senão o mapa de surgimento
+    // sobrescrevia a escolha e a cena abria no lugar errado.
+    if(!window.__mapaDefinidoPelaCena&&startMap&&cenarioExiste(startMap)&&!CUT.jaRodou['mapa:'+startMap]){
       currentKey=startMap;
-      if(activeMapSelect&&bgSources[startMap])activeMapSelect.value=startMap;
+      if(activeMapSelect&&cenarioExiste(startMap))activeMapSelect.value=startMap;
       updateMapStatus();
     }
-    const sp=safeSpawn(currentKey);player.x=sp.x;player.y=sp.y;spawnFlashUntil=performance.now()+1600;
-    // Fresh run: full health, monsters back on their posts, loot cleared.
-    playerHp=playerMaxHp(); deadUntil=0; dropItems=[]; floaters.length=0;
-    monsters.forEach(m=>{m.dead=false;m.hp=m.maxHp;m.x=m.homeX;m.y=m.homeY;m.respawnAt=0;});
+    // Retomada: volta exatamente para onde você estava, no mapa em que estava.
+    const retoma = jogoIniciado && ultimaPosicaoDeJogo && ultimaPosicaoDeJogo.mapa === currentKey;
+    if (retoma) {
+      player.x = ultimaPosicaoDeJogo.x; player.y = ultimaPosicaoDeJogo.y;
+      if (ultimaPosicaoDeJogo.cena && INTERIORS[ultimaPosicaoDeJogo.cena]) {
+        currentScene = ultimaPosicaoDeJogo.cena;
+      }
+    } else {
+      const sp=safeSpawn(currentKey);player.x=sp.x;player.y=sp.y;
+      spawnFlashUntil=performance.now()+1600;
+    }
+    if (playerHp <= 0) playerHp = playerMaxHp();
+    deadUntil=0; floaters.length=0;
+    if (!retoma) {
+      dropItems=[];
+      monsters.forEach(m=>{m.dead=false;m.hp=m.maxHp;m.x=m.homeX;m.y=m.homeY;m.respawnAt=0;});
+    }
+    jogoIniciado = true;
     atualizarRastreador();
-    showToast('▶ Jogo iniciado! WASD para mover.');
+    showToast(retoma ? '▶ Retomando de onde você parou.' : '▶ Jogo iniciado! WASD para mover.');
     talvezIniciarCenaDoMapa(currentKey);   // a abertura roda aqui também, não só no celular
   } else {
+    // Voltar ao editor no mapa em que você estava jogando: o seletor ficava no mapa
+    // antigo e a impressão era de ter sido expulso do cenário.
+    ultimaPosicaoDeJogo = { mapa: currentKey, x: player.x, y: player.y, cena: currentScene };
+    if (currentScene !== 'world') { currentScene = 'world'; silenciarVideosDeInterior(); }
+    if (activeMapSelect && cenarioExiste(currentKey)) activeMapSelect.value = currentKey;
+    updateMapStatus?.(); refreshNPCHierarchy?.();
     playBtn?.classList.remove('hidden'); stopBtn?.classList.add('hidden');
     wasdPanel?.classList.add('hidden');
     playerHud?.classList.add('hidden'); closeStore();
@@ -5322,14 +6542,14 @@ function refreshMapSelect(){
   if(!activeMapSelect)return;
   const keep=activeMapSelect.value;
   activeMapSelect.innerHTML='';
-  Object.keys(bgSources).forEach(k=>{
+  chavesDeCenario().forEach(k=>{
     const p=gridPos[k];
     const o=document.createElement('option');
     o.value=k;
     o.textContent=`${SCENE_NAMES[k]||k}${p?` (${p.col},${p.row})`:' (fora do grid)'}`;
     activeMapSelect.appendChild(o);
   });
-  activeMapSelect.value=bgSources[keep]?keep:Object.keys(bgSources)[0];
+  activeMapSelect.value=(bgSources[keep]||videoSources[keep])?keep:chavesDeCenario()[0];
 }
 
 // ============================================================
@@ -5430,7 +6650,6 @@ function loop(now){
   ctx.save();
   ctx.scale(dpr, dpr);
   ctx.clearRect(0,0,SCREEN_W,SCREEN_H);ctx.imageSmoothingEnabled=false;
-  document.getElementById('gameHotbar')?.classList.toggle('hidden', !hotbarVisivel());
   const camOn = isPlayMode && forcaDoDestaque(now) > 0.001;
   if (camOn) { ctx.save(); aplicarCameraDeDestaque(now); }
 
@@ -5460,11 +6679,32 @@ function loop(now){
       try { ctx.drawImage(bg, 0, 0, dims.w, dims.h); } catch(e) {}
     }
   } else {
-    if(currentScene==='world'||!isPlayMode){const bg=bgImages[mapKey];if(bg?.complete)ctx.drawImage(bg,0,0,SCREEN_W,SCREEN_H);}
+    if(currentScene==='world'||!isPlayMode){
+      const vid = videoDoMapa(mapKey);
+      if (vid) ctx.drawImage(vid, 0, 0, SCREEN_W, SCREEN_H);
+      else { const bg=bgImages[mapKey]; if(bg?.complete) ctx.drawImage(bg,0,0,SCREEN_W,SCREEN_H); }
+    }
     else { const st=interiorDef()?.still?.(); if(st)ctx.drawImage(st,0,0,SCREEN_W,SCREEN_H); }
   }
 
   if(isPlayMode){
+    // Cão de guarda: se o jogador está travado mas NADA está no comando (cena, diálogo,
+    // menu, forja, captura, caminhada roteirizada), destrava. Um `controle: false` que
+    // não foi desfeito congelava o personagem sem nenhuma pista na tela.
+    // Diálogo sem roteiro é fantasma: não desenha nada mas engole todas as teclas,
+    // porque o keydown devolve cedo quando dlg.state !== CLOSED.
+    if (dlg.state !== DLG_STATE.CLOSED && !dlg.script) endDialogue();
+
+    if (playerLocked && !CUT.ativo && dlg.state === DLG_STATE.CLOSED &&
+        !shopOpen && !inventoryOpen && !charOpen && !forging && !capturaAtiva &&
+        !(CUT.caminhadas && CUT.caminhadas.length)) {
+      if (!window.__travadoDesde) window.__travadoDesde = now;
+      else if (now - window.__travadoDesde > 900) {
+        playerLocked = false; window.__travadoDesde = 0;
+        console.warn('[Acordelot] destravado pelo cão de guarda — nada estava no comando');
+      }
+    } else window.__travadoDesde = 0;
+
     if(!playerLocked){
       let dx=0,dy=0;
       if(keys.w)dy-=1;if(keys.s)dy+=1;if(keys.a)dx-=1;if(keys.d)dx+=1;
@@ -5548,6 +6788,11 @@ function loop(now){
     }
     {const pW=outdoors?player.width:68,pH=outdoors?player.height:92;
      renderFerramenta(now,pW,pH,true);}      // atrás do corpo (andando para cima)
+    // Fora do bloco de cenário externo: numa sala fechada a cena não avançava nunca,
+    // congelava no primeiro `esperar` e deixava o jogador travado para sempre.
+    atualizarCena(now);
+    if (frameCount % 30 === 0) silenciarVideosDeInterior();
+
     renderPlayer();
     if(!player.oculto){const pW=outdoors?player.width:68,pH=outdoors?player.height:92;
      renderFerramenta(now,pW,pH,false);      // na frente, nas outras direções
@@ -5557,14 +6802,14 @@ function loop(now){
       renderGatherSwing(now);
       ctx.drawImage(L.fgCanvas,0,0);renderDoorMarkers(now);updateLeaves();renderLeaves();
       updatePath();renderPath(now);
-      atualizarCena(now);
       updateAmbient(now);renderSpeech(now);renderFloaters(now);
       // Prompt over whatever the action button is currently pointing at — not just
       // NPCs. A door you can't see is a door that doesn't exist.
-      const ACT_PROMPT={talk:'E  ·  Falar',travel:'E  ·  Viajar',gather:'E  ·  Coletar',enterForge:'E  ·  Entrar',martelar:'E  ·  Martelar',entrarPorta:'E  ·  Entrar'};
+      const ACT_PROMPT={sortear:'E  ·  Tentar a Sorte',ressoar:'E  ·  RESSOAR',talk:'E  ·  Falar',travel:'E  ·  Viajar',gather:'E  ·  Coletar',enterForge:'E  ·  Entrar',martelar:'E  ·  Martelar',entrarPorta:'E  ·  Entrar'};
       const act=actionAvailable();
       const tgt = act==='talk' ? talkTarget()
                 : act==='travel' ? signpostTarget()
+                : act==='sortear' ? lagoTarget()
                 : act==='entrarPorta' ? portaTarget()
                 : act==='martelar' ? marteladaTarget()
                 : act==='gather' ? spotTarget()
@@ -5578,8 +6823,37 @@ function loop(now){
       npcData.forEach(n=>{
         if(n.mapKey!==currentKey)return;
         if(n.type==='ponto_martelada'&&!marteladaTarget())return;
+        // O gatilho do sorteio é invisível de propósito: o lago dourado já está pintado
+        // no vídeo do cenário, então desenhar um anel por cima só sujaria a arte.
+        if(n.type==='lago_sorteio')return;
         if(n.type==='porta'&&!n.interior)return;      // porta sem destino é só marcador
-        if(!['forge_entrance','signpost','spot_wood','spot_stone','ponto_martelada','porta'].includes(n.type))return;
+        if(n.type==='porta'){
+          // Entrada de cenário especial: pilar de luz e faíscas subindo. Uma porta
+          // discreta no meio do mato passa despercebida.
+          const p2=(Math.sin(now*0.003)+1)/2;
+          ctx.save();
+          const g=ctx.createLinearGradient(n.x,n.y-150,n.x,n.y+10);
+          g.addColorStop(0,'rgba(253,230,138,0)');
+          g.addColorStop(1,`rgba(253,230,138,${0.16+p2*0.16})`);
+          ctx.fillStyle=g;
+          ctx.fillRect(n.x-34,n.y-150,68,160);
+          ctx.globalAlpha=0.5+p2*0.4;
+          ctx.strokeStyle='#fde68a'; ctx.lineWidth=2.5;
+          ctx.shadowColor='#fbbf24'; ctx.shadowBlur=22;
+          ctx.beginPath(); ctx.ellipse(n.x,n.y,40+p2*6,15+p2*3,0,0,Math.PI*2); ctx.stroke();
+          ctx.fillStyle='#fde68a';
+          for(let i=0;i<5;i++){
+            const f=((now*0.0004)+i*0.2)%1;
+            ctx.globalAlpha=(1-f)*0.8;
+            ctx.fillRect(n.x-26+((i*37)%52), n.y-f*130, 2.5, 2.5);
+          }
+          ctx.restore();
+          const b2=npcBounds(n);
+          drawBubble(ctx,n.x,b2.y-6,SCENE_NAMES[n.interior]||INTERIORS[n.interior]?.name||'Entrada',
+            {bg:'rgba(20,14,6,.9)',border:'#fde68a',fg:'#fde68a',font:'bold 11px Outfit, sans-serif'});
+          return;
+        }
+        if(!['forge_entrance','signpost','spot_wood','spot_stone','ponto_martelada','porta','lago_sorteio'].includes(n.type))return;
         const d=Math.hypot(player.x-n.x,player.y-n.y);
         if(d>340)return;
         const b=npcBounds(n);
@@ -5594,7 +6868,9 @@ function loop(now){
         ctx.restore();
       });
     }
-    if (outdoors) renderMarcadoresDeNPC(now);
+    if (outdoors) { renderMarcadoresDeNPC(now); renderCaptura(now); renderRessonancia(now); }
+    else { renderSpeech(now); renderFloaters(now); }
+    if (!IS_PLAY_BUILD) renderMotivoDoTravamento();
     else renderMarcadoresDoInterior(now);
     if (camOn) { ctx.restore(); renderRotuloDoDestaque(now); }
     renderAmbiente();
@@ -5621,12 +6897,22 @@ function loop(now){
 // ============================================================
 function setupHighDPICanvas() {
   if (!canvas) return;
-  const dpr = Math.max(2, window.devicePixelRatio || 2);
-  const targetW = Math.round(SCREEN_W * dpr);
-  const targetH = Math.round(SCREEN_H * dpr);
+  // A resolução interna acompanha o tamanho REAL em tela, não um múltiplo fixo. Num
+  // monitor grande o canvas era desenhado a 2048px e esticado para ~2600, o que
+  // borrava a arte; agora ele desenha na densidade que o painel realmente tem.
+  const r = canvas.getBoundingClientRect();
+  const densidade = window.devicePixelRatio || 1;
+  const larguraCss = r.width > 40 ? r.width : SCREEN_W;
+  // Quantos pixels reais existem para cada unidade lógica do jogo, com teto para não
+  // torrar memória em telas 4K.
+  const escala = Math.min(4, Math.max(2, (larguraCss * densidade) / SCREEN_W));
+  const targetW = Math.round(SCREEN_W * escala);
+  const targetH = Math.round(SCREEN_H * escala);
   if (canvas.width !== targetW || canvas.height !== targetH) {
     canvas.width = targetW;
     canvas.height = targetH;
+    ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;   // pixel art: nunca suavizar
   }
 }
 
@@ -5635,6 +6921,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;
   setupHighDPICanvas();
   window.addEventListener('resize', setupHighDPICanvas);
+  window.addEventListener('orientationchange', () => setTimeout(setupHighDPICanvas, 120));
+  if (window.ResizeObserver) new ResizeObserver(setupHighDPICanvas).observe(canvas);
   bindCanvasEvents();
   skinShopVideo=document.getElementById('skinShopVideo');
   loadingOverlay=document.getElementById('loadingOverlay');
@@ -5681,18 +6969,24 @@ document.addEventListener('DOMContentLoaded',()=>{
   // WV subtools
   document.querySelectorAll('[data-wvtool]').forEach(btn=>btn.addEventListener('click',()=>setWVTool(btn.dataset.wvtool)));
 
+  // ▶ Jogar: na primeira vez abre o menu; depois RETOMA de onde parou, no mesmo mapa
+  // e na mesma posição. Editar e testar é um vaivém constante — refazer o caminho a
+  // cada teste é o que mais custa tempo.
   playBtn?.addEventListener('click', () => {
     initAudio();
     const menu = document.getElementById('mainMenuOverlay');
+    if (jogoIniciado) { togglePlay(); return; }
     if (menu && !isPlayMode) {
       menu.classList.remove('hidden');
-      renderHeroAvatars(); // render avatars the moment menu opens
-    } else {
-      togglePlay();
-    }
+      renderHeroAvatars();
+    } else togglePlay();
   });
+  // Segurar Shift ao clicar força o menu, para quando você quiser recomeçar de fato.
+  playBtn?.addEventListener('mousedown', e => { if (e.shiftKey) jogoIniciado = false; });
   stopBtn?.addEventListener('click',()=>togglePlay());
-  saveProjectBtn?.addEventListener('click',()=>{saveAllLayers(false);saveNPCs();showToast('💾 Projeto salvo!');});
+  // Monstros entram aqui também: o botão diz "Salvar", e quem clica nele espera que
+  // TUDO seja gravado. Faltar os monstros aqui já custou uma sessão de edição.
+  saveProjectBtn?.addEventListener('click',()=>{saveAllLayers(false);saveNPCs();saveMonsters();showToast('💾 Projeto salvo!');});
   saveLayersBtn?.addEventListener('click',()=>saveAllLayers(true));
   saveWorldBtn?.addEventListener('click',()=>saveAllLayers(true));
   brushSizeSelect?.addEventListener('change',e=>brushSize=parseInt(e.target.value));
@@ -5771,6 +7065,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   initOrnateInventory();
   initForgeUI();
   loadToolSheets();
+  loadMagiaSheets();
   loadSpotSheets();
   initHotbar();
   initScenarioUploader();
@@ -6082,9 +7377,11 @@ function initMainMenu() {
     const cenaEscolhida = escolha.startsWith('cena:')
       ? CUT.roteiros.find(r => r.id === escolha.slice(5)) : null;
 
-    const startMapKey = cenaEscolhida?.mapa
-      || ((startMap && bgSources[startMap]) ? startMap : 'custom_1785173102424_996');
-    if (bgSources[startMapKey]) {
+    const modoLivre = escolha === 'livre';
+    const startMapKey = modoLivre ? '0_0'
+      : (cenaEscolhida?.mapa
+      || ((startMap && cenarioExiste(startMap)) ? startMap : 'custom_1785173102424_996'));
+    if (cenarioExiste(startMapKey)) {
       currentKey = startMapKey;
       if (activeMapSelect) activeMapSelect.value = startMapKey;
       updateMapStatus();
@@ -6110,7 +7407,32 @@ function initMainMenu() {
       updateInventorySlotsUI?.();
     }
 
+    // Cada cena pode declarar o estado que ela pressupõe (`estadoInicial` no JSON).
+    // Começar pela Cena 10 sem Ressonador deixava o jogador preso: o diálogo dizia
+    // que ele já tinha um. Agora entrar no meio da história entrega o que a história
+    // já teria entregado.
+    // Modo livre: nada de cena, tudo liberado. É a porta de entrada para editar o mundo
+    // andando por ele, como se a história inteira já tivesse acontecido.
+    if (modoLivre) {
+      CUT.roteiros.forEach(r => marcarCenaRodada(r));
+      questsData.forEach(q => { if (!completedQuests.includes(q.id)) completedQuests.push(q.id); });
+      activeQuests = [];
+      aplicarEstadoInicial({ estadoInicial: {
+        nivel: 8, claves: 40, moedas: 900,
+        forjar: ['hammer_ferro', 'reson_cobre', 'axe_bronze', 'pick_bronze'],
+        qualidade: 'ressonante',
+        itens: { fragmento: 60, fragmento_puro: 10, tom: 10, semitom: 6, wood: 30, stone: 30, potions: 5 },
+        notas: CROMATICA.map(n => n.id),
+      }});
+      showToast('🔓 Modo livre — todas as cenas já vistas, tudo desbloqueado.');
+    }
+
+    window.__mapaDefinidoPelaCena = modoLivre || !!(cenaEscolhida?.mapa || cenaEscolhida?.estadoInicial?.mapa);
+    if (!modoLivre) aplicarEstadoInicial(cenaEscolhida);
+
+    jogoIniciado = false; ultimaPosicaoDeJogo = null;   // partida nova, do começo
     if (!isPlayMode) togglePlay();
+    window.__mapaDefinidoPelaCena = false;
 
     if (wantsMobilePlay() || document.body.classList.contains('mobile-play')) {
       document.getElementById('touchControls')?.classList.remove('hidden');
@@ -6619,29 +7941,29 @@ function initOrnateInventory() {
   const invSortBtn = document.getElementById('invSortBtn');
   const invTrashBtn = document.getElementById('invTrashBtn');
 
-  // Window Tab Switching (Bolsa de Coleta vs Perfil & Equipamentos)
-  document.querySelectorAll('.win-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.win-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      const target = tab.dataset.wintab;
-      document.getElementById('winTabBag')?.classList.toggle('hidden', target !== 'bag');
-      document.getElementById('winTabProfile')?.classList.toggle('hidden', target !== 'profile');
-      if (target === 'profile') renderCharPreview();
+  // O grimório vive no body: dentro do palco do canvas a altura resolve 0.
+  if (invOverlay && invOverlay.parentElement !== document.body) document.body.appendChild(invOverlay);
+
+  document.querySelectorAll('[data-grtab]').forEach(fita => {
+    fita.addEventListener('click', () => {
+      if (fita.disabled) return;
+      grAba = fita.dataset.grtab;
+      grSelecionado = null;
+      renderGrimorio();
     });
   });
 
   const openInv = () => {
-    updateInventorySlotsUI();
+    grAba = 'bolsa'; grSelecionado = null;
     invOverlay?.classList.remove('hidden');
-    document.querySelector('[data-wintab="bag"]')?.click();
+    renderGrimorio();
   };
 
+  // O botão de atributos abre o mesmo grimório, na fita dos atributos.
   const openCharProfile = () => {
-    updateAttributeStatsUI();
+    grAba = 'atributos'; grSelecionado = null;
     invOverlay?.classList.remove('hidden');
-    document.querySelector('[data-wintab="profile"]')?.click();
-    renderCharPreview();
+    renderGrimorio();
   };
 
   const closeInv = () => {
@@ -6652,15 +7974,6 @@ function initOrnateInventory() {
   charBtn?.addEventListener('click', openCharProfile);
   invCloseBtn?.addEventListener('click', closeInv);
   invCloseFooterBtn?.addEventListener('click', closeInv);
-
-  invSortBtn?.addEventListener('click', () => {
-    showToast('⇅ Inventário organizado!');
-    updateInventorySlotsUI();
-  });
-
-  invTrashBtn?.addEventListener('click', () => {
-    showToast('🗑️ Selecione um item para descartar.');
-  });
 
   // Attribute Upgrade buttons
   document.querySelectorAll('.btn-up-stat').forEach(btn => {
@@ -6681,42 +7994,278 @@ function initOrnateInventory() {
   });
 }
 
-function updateInventorySlotsUI(category = 'all') {
-  const container = document.getElementById('invGridSlots');
-  if (!container) return;
-  container.innerHTML = '';
+let grAba = 'bolsa', grSelecionado = null;
 
-  const items = [
-    { name: 'Madeira Rústica', icon: '🪵', count: playerInventory.wood || 0, cat: 'gear' },
-    { name: 'Minério de Pedra', icon: '🪨', count: playerInventory.stone || 0, cat: 'gear' },
-    { name: 'Moedas de Ouro', icon: '🪙', count: playerCoins || 0, cat: 'all' },
-    { name: 'Clave Dourada', icon: '🎼', count: claveCount || 0, cat: 'quest' },
-    { name: 'Poção de Cura', icon: '🧪', count: playerInventory.potions || 0, cat: 'consumables' },
-    { name: 'Picareta de Forja', icon: '⛏️', count: playerInventory.pickaxe || 0, cat: 'gear' }
-  ];
+// Desenha um sprite preparado dentro de um <canvas> do tamanho pedido.
+function miniCanvas(spr, alt) {
+  if (!spr) return null;
+  const w = Math.round(alt * (spr.sw / spr.sh));
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = alt;
+  const c = cv.getContext('2d');
+  c.imageSmoothingEnabled = false;
+  c.drawImage(spr.canvas, spr.sx, spr.sy, spr.sw, spr.sh, 0, 0, w, alt);
+  return cv;
+}
 
-  const filtered = items.filter(it => it.count > 0 && (category === 'all' || it.cat === category || it.cat === 'all'));
+function spriteDoItem(id) {
+  const info = CATALOGO[id];
+  if (info?.sprite) return magiaSprites[info.sprite];
+  if (id.startsWith('nota_')) return magiaSprites[id];
+  const t = CRAFTABLE_TOOLS.find(x => x.id === id);
+  if (t) return toolSprites[`${t.category}_${t.tier}`];
+  return null;
+}
 
-  for (let i = 0; i < 25; i++) {
-    const slot = document.createElement('div');
-    slot.className = 'inv-slot-card';
-    const item = filtered[i];
-    if (item && item.count > 0) {
-      slot.classList.add('has-item');
-      slot.title = `${item.name} (${item.count})`;
-      slot.innerHTML = `
-        <span class="inv-slot-icon">${item.icon}</span>
-        <span class="inv-slot-count">${item.count}</span>
-      `;
-      slot.addEventListener('click', () => {
-        showToast(`✨ ${item.name} (${item.count}x)`);
-      });
-    } else {
-      slot.classList.add('empty-slot');
-    }
-    container.appendChild(slot);
+// Tudo que o jogador carrega, na ordem em que faz sentido ler.
+function itensDaBolsa() {
+  const out = [];
+  const push = (id, qtd) => { if (qtd > 0) out.push({ id, qtd }); };
+  push('fragmento_puro', playerInventory.fragmento_puro || 0);
+  push('fragmento', playerInventory.fragmento || 0);
+  push('tom', playerInventory.tom || 0);
+  push('semitom', playerInventory.semitom || 0);
+  push('clave', claveCount || 0);
+  push('wood', playerInventory.wood || 0);
+  push('stone', playerInventory.stone || 0);
+  push('potions', playerInventory.potions || 0);
+  CROMATICA.forEach(n => push('nota_' + n.id, notasPossuidas[n.id] || 0));
+  return out;
+}
+
+function infoDoItem(id) {
+  if (CATALOGO[id]) return CATALOGO[id];
+  if (id.startsWith('nota_')) {
+    const n = notaPorId(id.slice(5));
+    return n ? {
+      nome: `Nota ${n.nome}`, tipo: n.natural ? 'Nota natural' : 'Nota sustenida',
+      cor: n.natural ? '#fde68a' : '#7dd3fc',
+      desc: n.natural
+        ? 'Som inteiro, condensado a partir de fragmentos. Repousa onde cai.'
+        : 'Meio caminho entre duas naturais. Mais difícil de segurar, e por isso mais cara.',
+      origem: 'Condensada no Altar das Escalas.',
+    } : null;
+  }
+  const t = CRAFTABLE_TOOLS.find(x => x.id === id);
+  if (t) return { nome: t.name, tipo: 'Ferramenta · ' + t.rarity, cor: t.color, desc: t.desc, origem: 'Forjada na ferraria.' };
+  return null;
+}
+
+function updateInventorySlotsUI() { if (!document.getElementById('inventoryOverlay')?.classList.contains('hidden')) renderGrimorio(); }
+
+// As nove casas de cima: ferramentas, cosméticos e consumível. A arte tem 3x3, então
+// o equipamento inteiro cabe numa olhada só.
+const SLOTS_GRIMORIO = [
+  // Linha de cima: cosméticos — é o que o jogador mostra.
+  { slot: 'hat',        rotulo: 'CHAPÉU',   tipo: 'cosmetico' },
+  { slot: 'outfit',     rotulo: 'ROUPA',    tipo: 'cosmetico' },
+  { slot: 'wings',      rotulo: 'ASAS',     tipo: 'cosmetico' },
+  // Linha do meio: aura, machado e o encaixe de arma, reservado para o arco de combate.
+  { slot: 'aura',       rotulo: 'AURA',     tipo: 'cosmetico' },
+  { slot: 'axe',        rotulo: 'MACHADO',  tipo: 'ferramenta' },
+  { slot: 'arma',       rotulo: 'ARMA',     tipo: 'reservado' },
+  // Linha de baixo: as ferramentas de ofício.
+  { slot: 'hammer',     rotulo: 'MARTELO',  tipo: 'ferramenta' },
+  { slot: 'ressonador', rotulo: 'RESSON.',  tipo: 'ferramenta' },
+  { slot: 'pickaxe',    rotulo: 'DIAPASÃO', tipo: 'ferramenta' },
+];
+
+// Encaixa o drawer exatamente sobre a área jogável. No editor o canvas é um retângulo
+// no meio da página; em modo celular ele ocupa a tela toda. Um só cálculo serve aos dois.
+function ajustarCaixaDoDrawer() { ajustarCaixaNoPalco('inventoryOverlay'); }
+function ajustarCaixaDoSorteio() { ajustarCaixaNoPalco('sorteioOverlay'); }
+
+// Encaixa um painel exatamente sobre a área jogável, seja no editor (retângulo no meio
+// da página) ou em modo celular (tela cheia).
+function ajustarCaixaNoPalco(id) {
+  const fundo = document.getElementById(id);
+  if (!fundo) return;
+  // Prefere o canvas; se ele ainda não tiver medida, tenta o palco; por último, a tela.
+  // Assim o painel nunca fica com tamanho zero nem estoura para fora da área do jogo.
+  const alvos = [document.getElementById('gameCanvas'),
+                 document.getElementById('canvas-stage'),
+                 document.getElementById('viewport-container')];
+  let r = null;
+  for (const el of alvos) {
+    if (!el) continue;
+    const b = el.getBoundingClientRect();
+    if (b.width > 40 && b.height > 40) { r = b; break; }
+  }
+  if (r) {
+    fundo.style.left = r.left + 'px';
+    fundo.style.top = r.top + 'px';
+    fundo.style.width = r.width + 'px';
+    fundo.style.height = r.height + 'px';
+  } else {
+    fundo.style.left = '0px'; fundo.style.top = '0px';
+    fundo.style.width = '100vw'; fundo.style.height = '100vh';
   }
 }
+window.addEventListener('resize', () => { ajustarCaixaDoDrawer(); ajustarCaixaDoSorteio(); });
+
+function renderGrimorio() {
+  ajustarCaixaDoDrawer();
+  requestAnimationFrame(ajustarCaixaDoDrawer);   // de novo com o layout já resolvido
+  const equip = document.getElementById('dwEquip');
+  const bolsa = document.getElementById('dwBolsa');
+  if (!equip || !bolsa) return;
+
+  document.querySelectorAll('[data-grtab]').forEach(b =>
+    b.classList.toggle('ativa', b.dataset.grtab === grAba));
+
+  const tit = document.getElementById('dwTitulo');
+  const ficha = document.getElementById('dwFicha');
+  const moe = document.getElementById('dwMoedas'); if (moe) moe.textContent = playerCoins || 0;
+  const clv = document.getElementById('dwClaves'); if (clv) clv.textContent = claveCount || 0;
+  document.querySelector('.dw-attr-lista')?.remove();
+
+  if (grAba === 'atributos') {
+    equip.style.display = 'none'; bolsa.style.display = 'none';
+    ficha?.classList.add('hidden');
+    if (tit) tit.textContent = 'Atributos';
+    renderAtributosNoDrawer();
+    return;
+  }
+
+  equip.style.display = ''; bolsa.style.display = '';
+  if (tit) tit.textContent = 'Bolsa';
+
+  // 3x3 de cima: equipamento
+  equip.innerHTML = '';
+  SLOTS_GRIMORIO.forEach(def => {
+    const el = document.createElement('div');
+    el.dataset.rotulo = def.rotulo;
+    let cheio = false;
+
+    if (def.tipo === 'reservado') {
+      el.className = 'dw-casa vazia vazio-rotulo reservado';
+      el.dataset.rotulo = def.rotulo;
+      el.title = 'Reservado para armas — em breve';
+      equip.appendChild(el);
+      return;
+    }
+    if (def.tipo === 'consumivel') {
+      const n = playerInventory.potions || 0;
+      cheio = n > 0;
+      if (cheio) {
+        const e = document.createElement('span'); e.className = 'dw-emoji'; e.textContent = '🧪';
+        el.appendChild(e);
+        const q = document.createElement('span'); q.className = 'dw-qtd'; q.textContent = n;
+        el.appendChild(q);
+        el.title = 'Poção de Vida';
+        el.addEventListener('click', () => { grSelecionado = 'potions'; renderGrimorio(); });
+      }
+    } else if (def.tipo === 'ferramenta') {
+      const t = equipped[def.slot] && CRAFTABLE_TOOLS.find(x => x.id === equipped[def.slot]);
+      cheio = !!t;
+      if (t) {
+        const cv = miniCanvas(toolSprites[`${t.category}_${t.tier}`], 34);
+        if (cv) el.appendChild(cv);
+        else { const e = document.createElement('span'); e.className = 'dw-emoji'; e.textContent = t.icon; el.appendChild(e); }
+        const q = qualidadeDe(t.id);
+        el.title = t.name + (q.selo ? ' · ' + q.nome : '');
+        el.addEventListener('click', () => { grSelecionado = t.id; renderGrimorio(); });
+      }
+    } else {
+      const id = equipped[def.slot];
+      const it = id && (typeof itemById === 'function' ? itemById(id) : null);
+      cheio = !!id;
+      if (cheio) {
+        const spr = skinImages?.[id];
+        const cv = spr ? miniCanvas(spr, 32) : null;
+        if (cv) el.appendChild(cv);
+        else { const e = document.createElement('span'); e.className = 'dw-emoji'; e.textContent = it?.icon || '✦'; el.appendChild(e); }
+        el.title = it?.name || def.rotulo;
+      }
+    }
+
+    el.className = 'dw-casa' + (cheio ? '' : ' vazia vazio-rotulo');
+    equip.appendChild(el);
+  });
+
+  // grade de baixo: a mochila
+  const lista = itensDaBolsa();   // matérias-primas e notas na mesma bolsa
+
+  bolsa.innerHTML = '';
+  const minimo = 16;                       // sempre 4 linhas visíveis; o resto rola
+  for (let i = 0; i < Math.max(minimo, lista.length); i++) {
+    const it = lista[i];
+    const casa = document.createElement('div');
+    casa.className = 'dw-casa' + (it ? '' : ' vazia') + (it && grSelecionado === it.id ? ' sel' : '');
+    if (it) {
+      const info = infoDoItem(it.id);
+      const cv = miniCanvas(spriteDoItem(it.id), 34);
+      if (cv) casa.appendChild(cv);
+      else { const e = document.createElement('span'); e.className = 'dw-emoji'; e.textContent = info?.emoji || '❔'; casa.appendChild(e); }
+      const q = document.createElement('span');
+      q.className = 'dw-qtd'; q.textContent = it.qtd;
+      casa.appendChild(q);
+      casa.title = info?.nome || it.id;
+      casa.addEventListener('click', () => {
+        // Tocar de novo no mesmo item fecha a ficha — sem isso ela ficava para sempre.
+        grSelecionado = (grSelecionado === it.id) ? null : it.id;
+        renderGrimorio();
+      });
+    } else {
+      casa.addEventListener('click', () => { grSelecionado = null; renderGrimorio(); });
+    }
+    bolsa.appendChild(casa);
+  }
+
+  const info = grSelecionado ? infoDoItem(grSelecionado) : null;
+  if (info && ficha) {
+    ficha.classList.remove('hidden');
+    ficha.innerHTML =
+      `<i class="dw-f-x" id="dwFichaX">✕</i>` +
+      `<div class="dw-f-nome" style="color:${info.cor || '#fde68a'}">${info.nome}</div>` +
+      `<div class="dw-f-tipo">${info.tipo || ''}</div>` +
+      `<div class="dw-f-desc">${info.desc || ''}</div>` +
+      (info.origem ? `<div class="dw-f-org">${info.origem}</div>` : '');
+    ficha.querySelector('#dwFichaX')?.addEventListener('click', e => {
+      e.stopPropagation(); grSelecionado = null; renderGrimorio();
+    });
+  } else ficha?.classList.add('hidden');
+}
+
+function renderAtributosNoDrawer() {
+  const painel = document.getElementById('drawerPainel');
+  if (!painel) return;
+  const s = derivedStats();
+
+  const lista = document.createElement('div');
+  lista.className = 'dw-attr-lista';
+  Object.keys(attrs).forEach(k => {
+    const meta = ATTR_META[k];
+    const row = document.createElement('div');
+    row.className = 'dw-attr';
+    row.innerHTML =
+      `<div class="dw-attr-ico">${meta.icon}</div>` +
+      `<div><div class="dw-attr-nome">${meta.name}</div><div class="dw-attr-desc">${meta.desc}</div></div>` +
+      `<div class="dw-attr-val">${attrs[k]}</div>`;
+    const b = document.createElement('button');
+    b.className = 'dw-attr-add'; b.textContent = '+';
+    b.disabled = attrPoints <= 0;
+    b.addEventListener('click', () => { spendAttr(k); renderGrimorio(); });
+    row.appendChild(b);
+    lista.appendChild(row);
+  });
+
+  const res = document.createElement('div');
+  res.className = 'dw-resumo';
+  const b = v => `<b>${v}</b>`;
+  res.innerHTML =
+    `<span class="dw-res-tit">Nível ${level}</span>` +
+    (attrPoints ? `<div style="color:#4ade80;font-weight:700">✦ ${attrPoints} ponto${attrPoints > 1 ? 's' : ''} para distribuir</div>` : '') +
+    `❤️ Vida ${b(s.maxHp)} · ⚔️ Dano ${b(s.dmg)} · ⚡ Ataque ${b('+' + s.atkSpeed + '%')}<br>` +
+    `🔨 Forja ${b('+' + s.forja + '%')} · 🔔 Captura ${b('+' + s.captura + '%')}<br>` +
+    `✦ Puro ${b('+' + s.puro + '%')} · 🎵 Síntese ${b('−' + s.desconto + '%')}<br>` +
+    `✨ Feitiço ${b('+' + s.dmgMagia + '%')} · ⏳ Recarga ${b('−' + s.recarga + '%')}<br>` +
+    `🎒 Bolsa ${b(claveCount + '/' + s.capacity)}`;
+  lista.appendChild(res);
+  painel.appendChild(lista);
+}
+
+
 
 // ============================================================
 // DRAG & DROP SCENARIO CREATION
@@ -6845,6 +8394,9 @@ const TOOL_SHEETS = {
   axes: { src: 'assets/ref_axes.jpg', boxes: [
     [51,46,252,446], [388,51,247,441], [727,46,246,451], [166,531,295,452], [576,527,270,462],
   ]},
+  ressonadores: { src: 'assets/ref_ressonadores.jpg', boxes: [
+    [48,255,270,545], [378,250,275,545], [700,250,300,545],
+  ]},
   hammers: { src: 'assets/ref_hammers.jpg', boxes: [
     [40,55,300,420], [372,58,308,408], [698,58,272,404], [108,516,326,438], [556,492,404,470],
   ]},
@@ -6853,6 +8405,136 @@ const TOOL_SHEETS = {
   ]},
 };
 const toolSprites = {};   // `${category}_${tier}` -> prepared sprite
+
+// ── Teoria musical como dado ────────────────────────────────────────────────────
+// A cromática é a base de tudo: 12 notas, 7 naturais e 5 sustenidas. As folhas de
+// sprite seguem exatamente esta ordem, então índice de nota = índice de recorte.
+// Frequências reais da 4ª oitava (Lá4 = 440 Hz). Condensar Dó toca um Dó de verdade:
+// num jogo de educação musical, o som não pode ser decorativo.
+const FREQ_BASE = { do:261.63, do_s:277.18, re:293.66, re_s:311.13, mi:329.63, fa:349.23,
+                    fa_s:369.99, sol:392.00, sol_s:415.30, la:440.00, la_s:466.16, si:493.88 };
+
+// Posição de cada nota na pauta em clave de sol, contada em meios-espaços a partir
+// da linha de baixo (Mi4 = 0). É a altura REAL que a nota ocupa numa partitura.
+const GRAU_NA_PAUTA = { do:-2, do_s:-2, re:-1, re_s:-1, mi:0, fa:1, fa_s:1,
+                        sol:2, sol_s:2, la:3, la_s:3, si:4 };
+
+const CROMATICA = [
+  { id: 'do',      nome: 'Dó',  natural: true,  i: 0 },
+  { id: 'do_s',    nome: 'Dó#', natural: false, i: 0 },
+  { id: 're',      nome: 'Ré',  natural: true,  i: 1 },
+  { id: 're_s',    nome: 'Ré#', natural: false, i: 1 },
+  { id: 'mi',      nome: 'Mi',  natural: true,  i: 2 },
+  { id: 'fa',      nome: 'Fá',  natural: true,  i: 3 },
+  { id: 'fa_s',    nome: 'Fá#', natural: false, i: 2 },
+  { id: 'sol',     nome: 'Sol', natural: true,  i: 4 },
+  { id: 'sol_s',   nome: 'Sol#',natural: false, i: 3 },
+  { id: 'la',      nome: 'Lá',  natural: true,  i: 5 },
+  { id: 'la_s',    nome: 'Lá#', natural: false, i: 4 },
+  { id: 'si',      nome: 'Si',  natural: true,  i: 6 },
+];
+// Economia da magia é PvE: paga-se com o que se arranca dos monstros, nunca com moedas.
+// Fragmentos vêm dos Ecos; claves vêm de todo o resto. Ouro compra roupa, não poder.
+const CUSTO_NOTA = {
+  natural:   { fragmentos: 8,  claves: 1 },
+  sustenida: { fragmentos: 14, claves: 2 },
+};
+const CUSTO_ESCALA = { claves: 5 };   // selar uma escala montada no altar
+
+const VALOR_FRAGMENTO_PURO = 3;   // capturar afinado vale por três coletas comuns
+
+function fragmentosDisponiveis() {
+  return (playerInventory.fragmento || 0)
+       + (playerInventory.fragmento_puro || 0) * VALOR_FRAGMENTO_PURO;
+}
+
+// Gasta os puros primeiro: o jogador não precisa administrar duas moedas na cabeça.
+function gastarFragmentos(n) {
+  let falta = n;
+  while (falta >= VALOR_FRAGMENTO_PURO && (playerInventory.fragmento_puro || 0) > 0) {
+    playerInventory.fragmento_puro--; falta -= VALOR_FRAGMENTO_PURO;
+  }
+  if (falta > 0 && (playerInventory.fragmento || 0) >= falta) {
+    playerInventory.fragmento -= falta; falta = 0;
+  }
+  while (falta > 0 && (playerInventory.fragmento_puro || 0) > 0) {
+    playerInventory.fragmento_puro--;
+    playerInventory.fragmento = (playerInventory.fragmento || 0) + (VALOR_FRAGMENTO_PURO - falta);
+    falta = 0;
+  }
+  return falta === 0;
+}
+
+function custoDaNota(nota) {
+  const base = nota.natural ? CUSTO_NOTA.natural : CUSTO_NOTA.sustenida;
+  const desconto = derivedStats().desconto / 100;    // Memória
+  return {
+    fragmentos: Math.max(2, Math.round(base.fragmentos * (1 - desconto))),
+    claves: base.claves,
+  };
+}
+function podePagarNota(nota) {
+  const c = custoDaNota(nota);
+  return fragmentosDisponiveis() >= c.fragmentos && claveCount >= c.claves;
+}
+function notaPorId(id) { return CROMATICA.find(n => n.id === id) || null; }
+
+const MAGIA_SHEETS = {
+  fragmentos: { src: 'assets/ref_fragmentos.jpg', boxes: [
+    [45,330,275,365], [352,332,332,362], [762,332,206,372],
+  ]},
+  notas: { src: 'assets/ref_notas_naturais.jpg', boxes: [
+    [20,95,215,360], [275,95,215,360], [530,95,215,360], [765,95,235,360],
+    [20,565,215,400], [270,565,225,400], [545,565,215,400],
+  ]},
+  sustenidas: { src: 'assets/ref_notas_sustenidas.jpg', boxes: [
+    [65,415,160,200], [240,410,180,205], [445,405,140,215], [615,415,165,190], [845,410,135,205],
+  ]},
+  acordes: { src: 'assets/ref_acordes.jpg', boxes: [] },   // recortado por grade 4x2 abaixo
+};
+const magiaSprites = {};   // 'fragmento' | 'tom' | 'semitom' | 'nota_do' | 'acorde_1'...
+
+function loadMagiaSheets() {
+  const nomes = ['fragmento', 'tom', 'semitom'];
+  for (const [cat, sheet] of Object.entries(MAGIA_SHEETS)) {
+    if (!sheet.boxes.length) continue;
+    const img = new Image();
+    img.onload = () => {
+      sheet.boxes.forEach((b, i) => {
+        try {
+          const cut = document.createElement('canvas');
+          cut.width = b[2]; cut.height = b[3];
+          cut.getContext('2d').drawImage(img, b[0], b[1], b[2], b[3], 0, 0, b[2], b[3]);
+          const pronto = prepareSprite(cut);
+          if (cat === 'fragmentos') magiaSprites[nomes[i]] = pronto;
+          else if (cat === 'notas') {
+            const n = CROMATICA.find(x => x.natural && x.i === i);
+            if (n) magiaSprites['nota_' + n.id] = pronto;
+          } else if (cat === 'sustenidas') {
+            const n = CROMATICA.find(x => !x.natural && x.i === i);
+            if (n) magiaSprites['nota_' + n.id] = pronto;
+          }
+        } catch (e) {}
+      });
+    };
+    img.src = sheet.src;
+  }
+
+  // Selos de acorde: grade 4x2, os 7 graus do campo harmônico.
+  const sel = new Image();
+  sel.onload = () => {
+    const cw = Math.floor(sel.width / 4), ch = Math.floor(sel.height / 2);
+    for (let i = 0; i < 7; i++) {
+      try {
+        const cut = document.createElement('canvas');
+        cut.width = cw; cut.height = ch;
+        cut.getContext('2d').drawImage(sel, (i % 4) * cw, Math.floor(i / 4) * ch, cw, ch, 0, 0, cw, ch);
+        magiaSprites['acorde_' + (i + 1)] = prepareSprite(cut);
+      } catch (e) {}
+    }
+  };
+  sel.src = MAGIA_SHEETS.acordes.src;
+}
 
 function loadToolSheets() {
   for (const [cat, sheet] of Object.entries(TOOL_SHEETS)) {
@@ -6888,6 +8570,12 @@ function toolIconCanvas(cat, tier, max = 64) {
 }
 
 const CRAFTABLE_TOOLS = [
+  // Ressonadores — a chave da magia. Sem um deles equipado, o som do Eco se dispersa
+  // e não vira Fragmento de Nota. Custa claves: é o que finalmente dá função a elas.
+  { id: 'reson_cobre',  category: 'ressonadores', name: 'Ressonador de Cobre',   tier: 1, rarity: 'bronze', icon: '🔔', wood: 4,  stone: 6,  coins: 0, claves: 4,  minLvl: 2, color: '#b45309', desc: 'Captura o som de um Eco antes que ele se desfaça no ar.' },
+  { id: 'reson_prata',  category: 'ressonadores', name: 'Ressonador de Prata',   tier: 2, rarity: 'prata',  icon: '🔔', wood: 10, stone: 14, coins: 0, claves: 10, minLvl: 4, color: '#475569', desc: 'Prata pura: nenhum harmônico escapa. Rende mais fragmentos.' },
+  { id: 'reson_clave',  category: 'ressonadores', name: 'Ressonador da Clave',   tier: 3, rarity: 'ouro',   icon: '🔔', wood: 18, stone: 24, coins: 0, claves: 20, minLvl: 6, color: '#b45309', desc: 'Guarda o som inteiro do Eco, inclusive os intervalos.' },
+
   // Martelos — a ferramenta que abre o ofício. O primeiro é a missão do Ferreiro Dorn.
   { id: 'hammer_ferro', category: 'hammers', name: 'Martelo do Ferreiro', tier: 1, rarity: 'bronze', icon: '🔨', wood: 3, stone: 4, coins: 0, claves: 0, minLvl: 1, color: '#78350f', desc: 'Cabo de carvalho e cabeça de ferro batido. O primeiro martelo de todo aprendiz.' },
   { id: 'hammer_aco', category: 'hammers', name: 'Martelo de Aço Temperado', tier: 2, rarity: 'prata', icon: '🔨', wood: 8, stone: 12, coins: 140, claves: 0, minLvl: 3, color: '#475569', desc: 'Aço temperado três vezes. Soa como um sino ao bater.' },
@@ -6914,7 +8602,62 @@ function initForgeUI() {
   // Os dois painéis nascem dentro de #canvas-stage, que tem altura resolvida 0 e um
   // ancestral com transform — o que ancora até `position: fixed`. Movidos para o body,
   // eles voltam a ocupar a viewport inteira, como todo modal deve fazer.
-  ['forgeOverlay', 'forgeAnvilOverlay', 'mainMenuOverlay'].forEach(id => {
+  document.querySelectorAll('[data-altaraba]').forEach(b => {
+    b.addEventListener('click', () => {
+      const alvo = b.dataset.altaraba;
+      document.querySelectorAll('[data-altaraba]').forEach(x => x.classList.toggle('ativa', x === b));
+      document.getElementById('altarViewCondensar')?.classList.toggle('hidden', alvo !== 'condensar');
+      document.getElementById('altarViewMontar')?.classList.toggle('hidden', alvo === 'condensar');
+      if (alvo === 'montar' && !montagem) iniciarMontagem('do');
+    });
+  });
+  document.getElementById('pecaTom')?.addEventListener('click', () => colocarIntervalo('T'));
+  document.getElementById('pecaSemitom')?.addEventListener('click', () => colocarIntervalo('S'));
+
+  // Inspetor de monstro
+  document.getElementById('mob_escala')?.addEventListener('input', e => aplicarEscalaDoMonstro(e.target.value));
+  document.getElementById('mobEscalaMenos')?.addEventListener('click',
+    () => aplicarEscalaDoMonstro((selectedMonster?.escala || 1) - 0.1));
+  document.getElementById('mobEscalaMais')?.addEventListener('click',
+    () => aplicarEscalaDoMonstro((selectedMonster?.escala || 1) + 0.1));
+  ['mob_x','mob_y'].forEach(id => document.getElementById(id)?.addEventListener('change', e => {
+    if (!selectedMonster) return;
+    const v = parseInt(e.target.value, 10) || 0;
+    if (id === 'mob_x') { selectedMonster.x = v; selectedMonster.homeX = v; }
+    else { selectedMonster.y = v; selectedMonster.homeY = v; }
+    saveMonsters();
+  }));
+  document.getElementById('mob_espelhar')?.addEventListener('change', e => {
+    if (!selectedMonster) return;
+    selectedMonster.flipX = e.target.checked; saveMonsters();
+  });
+  document.getElementById('mobDuplicar')?.addEventListener('click', () => {
+    if (!selectedMonster) return;
+    const m = selectedMonster;
+    const novo = { ...m, id: `${m.type}_${Date.now()}`, x: m.x + 40, y: m.y + 20 };
+    novo.homeX = novo.x; novo.homeY = novo.y;
+    monsters.push(novo); selectedMonster = novo;
+    mostrarInspetorDeMonstro(novo); saveMonsters();
+    showToast('⧉ Monstro duplicado');
+  });
+  document.getElementById('mobApagar')?.addEventListener('click', () => {
+    if (!selectedMonster) return;
+    monsters = monsters.filter(x => x !== selectedMonster);
+    selectedMonster = null; mostrarInspetorDeMonstro(null); saveMonsters();
+    showToast('🗑️ Monstro removido');
+  });
+
+  document.getElementById('sorteioBtn')?.addEventListener('click', rodarSorteio);
+  document.getElementById('sorteioSair')?.addEventListener('click', fecharSorteio);
+  ['sorteioOverlay'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.parentElement !== document.body) document.body.appendChild(el);
+  });
+
+  document.getElementById('altarCloseBtn')?.addEventListener('click',
+    () => document.getElementById('altarOverlay')?.classList.add('hidden'));
+
+  ['forgeOverlay', 'forgeAnvilOverlay', 'mainMenuOverlay', 'altarOverlay'].forEach(id => {
     const el = document.getElementById(id);
     if (el && el.parentElement !== document.body) document.body.appendChild(el);
   });
@@ -6993,11 +8736,13 @@ function startForging(tool) {
 
   // Quanto melhor a ferramenta, mais golpes e mais rápido o cursor: o ofício cobra ritmo.
   const golpes = 3 + Math.min(2, tool.tier - 1);
+  const bonus = derivedStats().forja / 100;      // Ritmo
   forging = {
     tool, golpes, feitos: 0, pontos: 0,
-    calor: 1, cursor: 0, dir: 1, vel: 0.9 + tool.tier * 0.12,
+    calor: 1, cursor: 0, dir: 1, vel: (0.9 + tool.tier * 0.12) * (1 - bonus * 0.5),
     // Zona perfeita no meio, com uma faixa "boa" em volta. Encolhe conforme o tier.
-    largura: Math.max(0.09, 0.20 - tool.tier * 0.02),
+    // Ritmo alarga a zona dourada: o atributo tem que ser sentido na mão.
+    largura: Math.max(0.09, 0.20 - tool.tier * 0.02) * (1 + bonus),
     encerrando: false,
   };
 
@@ -7133,6 +8878,7 @@ function completeForging(tool, qualidade = 'comum') {
   if (tool.category === 'axes') equipped.axe = tool.id;
   if (tool.category === 'pickaxes') equipped.pickaxe = tool.id;
   if (tool.category === 'hammers') equipped.hammer = tool.id;
+  if (tool.category === 'ressonadores') equipped.ressonador = tool.id;
   progressoDeMissao('forjar', tool.id);
   const q = QUALIDADES[qualidade];
   addFloater(player.x, player.y - 50, `✨ ${tool.name} ${q.selo}`, q.cor);
@@ -7239,7 +8985,8 @@ const HOTBAR_SLOTS = [
   { tecla: '1', slot: 'axe',     padrao: 'axe_bronze',  nome: 'Machado',   emoji: '🪓' },
   { tecla: '2', slot: 'pickaxe', padrao: 'pick_bronze', nome: 'Diapasão',  emoji: '⛏️' },
   { tecla: '3', slot: 'hammer',  padrao: 'hammer_ferro',nome: 'Martelo',   emoji: '🔨' },
-  { tecla: '4', slot: 'potion',  nome: 'Poção', emoji: '🧪' },
+  { tecla: '4', slot: 'ressonador', padrao: 'reson_cobre', nome: 'Ressonador', emoji: '🔔' },
+  { tecla: '5', slot: 'potion',  nome: 'Poção', emoji: '🧪' },
 ];
 
 function usarSlotDaHotbar(def) {
@@ -7289,6 +9036,8 @@ function hotbarVisivel() {
 }
 
 function updateHotbarUI() {
+  // A barra de itens foi removida: as ações rápidas virão em botões de canto junto
+  // com a magia. A função continua existindo porque é chamada em vários lugares.
   const hotbar = document.getElementById('gameHotbar');
   const caixa = document.getElementById('hotbarSlots');
   if (!hotbar || !caixa) return;
