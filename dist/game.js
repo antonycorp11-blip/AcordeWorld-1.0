@@ -1956,11 +1956,14 @@ function updateMonsters(now) {
     if (m.dead) {
       if (m.respawnAt && now >= m.respawnAt) {
         m.dead = false; m.hp = m.maxHp; m.x = m.homeX; m.y = m.homeY; m.respawnAt = 0;
+        m.pronto = false; m.rotina = null;
       }
       return;
     }
     if (m.mapKey !== currentKey) return;
-    if (now < (m.abertoAte || 0)) return;   // aberto: parado, esperando a ressonância
+    // Eco aberto fica imóvel esperando a ressonância: nem avança, nem golpeia, nem
+    // passeia. Ele já não é mais um combate — é uma oferta.
+    if (m.pronto) { m.golpeEm = 0; return; }
     const def = monsterDef(m);
     const dx = player.x - m.x, dy = player.y - m.y;
     const dist = Math.hypot(dx, dy);
@@ -2026,62 +2029,119 @@ function updateMonsters(now) {
   });
 }
 
-// Barra de afinação, desenhada em cima do Eco aberto. Fica no mundo e não em overlay:
-// o jogador precisa continuar vendo a criatura enquanto decide.
+// Duas coisas nascem aqui: o selo de RESSOAR que pulsa sobre o Eco aberto, e o ritual
+// de ressonância que roda quando o jogador aceita. Tudo no mundo, nunca em overlay — o
+// jogador precisa continuar vendo a criatura de quem está tirando o som.
 function renderCaptura(now) {
-  if (!capturaAtiva) return;
-  const c = capturaAtiva, m = c.m;
-  const b = monsterBounds(m);
-  const W = 190, H = 20;
-  const x = Math.max(12, Math.min(SCREEN_W - W - 12, m.x - W / 2));
-  const y = Math.max(30, b.y - 54);
-  const restante = Math.max(0, (m.abertoAte - now) / (c.duracao || CAPTURA_MS));
+  liveMonsters().forEach(m => { if (m.pronto) renderSeloDeRessoar(m, now); });
+  if (capturaAtiva) renderRitualDeCaptura(now);
+}
 
+function renderSeloDeRessoar(m, now) {
+  const b = monsterBounds(m);
+  const p = (Math.sin(now * 0.006) + 1) / 2;
+  const perto = Math.hypot(player.x - m.x, player.y - m.y) < ALCANCE_RESSOAR;
+
+  // halo respirando na criatura
   ctx.save();
-  // halo pulsando no próprio Eco
-  const p = (Math.sin(now * 0.02) + 1) / 2;
-  ctx.globalAlpha = 0.35 + p * 0.35;
+  ctx.globalAlpha = 0.3 + p * 0.35;
   ctx.strokeStyle = '#e0f2fe'; ctx.lineWidth = 3;
   ctx.shadowColor = '#7dd3fc'; ctx.shadowBlur = 18;
-  ctx.beginPath(); ctx.ellipse(m.x, m.y - b.h * 0.45, b.w * 0.7, b.h * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(m.x, m.y - b.h * 0.45, b.w * 0.7, b.h * 0.6, 0, 0, Math.PI * 2);
+  ctx.stroke();
   ctx.restore();
 
+  // selo flutuante. Longe fica translúcido: diz "existe" sem gritar "aperte agora".
+  const txt = 'RESSOAR';
   ctx.save();
-  ctx.fillStyle = 'rgba(6,9,14,0.9)';
-  ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.roundRect(x, y, W, H, 5); ctx.fill(); ctx.stroke();
+  ctx.globalAlpha = perto ? 1 : 0.55;
+  ctx.font = 'bold 12px Outfit, sans-serif';
+  const w = ctx.measureText(txt).width + 26, h = 22;
+  const x = m.x - w / 2, y = b.y - 34 - Math.sin(now * 0.004) * 3;
 
-  // zona quase-afinada e zona afinada
-  const lb = c.largura * 2.6, lp = c.largura;
-  ctx.fillStyle = 'rgba(125,211,252,0.28)';
-  ctx.fillRect(x + W * (0.5 - lb / 2), y + 2, W * lb, H - 4);
-  ctx.fillStyle = 'rgba(253,230,138,0.62)';
-  ctx.fillRect(x + W * (0.5 - lp / 2), y + 2, W * lp, H - 4);
+  ctx.fillStyle = 'rgba(6,9,14,0.88)';
+  ctx.strokeStyle = perto ? '#fde68a' : '#7dd3fc';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, 11); ctx.fill(); ctx.stroke();
 
-  // agulha
-  const cx = x + W * c.cursor;
-  ctx.fillStyle = '#fff7ed';
-  ctx.shadowColor = '#fde68a'; ctx.shadowBlur = 10;
-  ctx.fillRect(cx - 2, y - 3, 4, H + 6);
-  ctx.restore();
+  ctx.fillStyle = perto ? '#fde68a' : '#cbd5e1';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('🔔 ' + txt, m.x, y + h / 2 + 1);
 
-  // tempo restante e chamada
-  ctx.save();
-  ctx.fillStyle = '#fde68a';
-  ctx.fillRect(x, y + H + 3, W * restante, 3);
-  ctx.font = 'bold 11px Outfit, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#e0f2fe';
-  ctx.fillText('RESSOE!', x + W / 2, y - 8);
+  // seta apontando para baixo, ligando o selo à criatura
+  ctx.beginPath();
+  ctx.moveTo(m.x - 5, y + h); ctx.lineTo(m.x + 5, y + h); ctx.lineTo(m.x, y + h + 6);
+  ctx.closePath(); ctx.fill();
   ctx.restore();
 }
 
-// Medidor de ressonância do cenário: só aparece onde há Ecos, para não poluir.
+// Três tempos: os anéis se fecham, o Eco colapsa num clarão, e o som viaja até o
+// jogador. Sem pressa — é o instante que dá peso ao fragmento que vem depois.
+function renderRitualDeCaptura(now) {
+  const c = capturaAtiva, m = c.m;
+  const t = Math.min(1, (now - c.inicio) / RITUAL_MS);
+  const b = monsterBounds(m);
+  const cx = m.x, cy = m.y - b.h * 0.45;
+
+  ctx.save();
+  // escurece o cenário em volta, com o Eco no centro da luz
+  const g = ctx.createRadialGradient(cx, cy, 10, cx, cy, SCREEN_W * 0.55);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, `rgba(2,4,8,${0.55 * Math.min(1, t * 3)})`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+  ctx.restore();
+
+  if (t < 0.55) {
+    // 1º tempo: anéis convergindo
+    const k = t / 0.55;
+    ctx.save();
+    ctx.strokeStyle = '#7dd3fc'; ctx.shadowColor = '#e0f2fe'; ctx.shadowBlur = 14;
+    for (let i = 0; i < 3; i++) {
+      const fase = Math.max(0, Math.min(1, k * 1.4 - i * 0.2));
+      const raio = 110 * (1 - fase) + 14;
+      ctx.globalAlpha = 0.15 + 0.6 * fase;
+      ctx.lineWidth = 1 + 2 * fase;
+      ctx.beginPath(); ctx.arc(cx, cy, raio, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  } else if (t < 0.68) {
+    // 2º tempo: o clarão
+    const k = (t - 0.55) / 0.13;
+    ctx.save();
+    ctx.globalAlpha = 1 - k;
+    ctx.fillStyle = '#f8fafc'; ctx.shadowColor = '#fde68a'; ctx.shadowBlur = 40;
+    ctx.beginPath(); ctx.arc(cx, cy, 12 + 90 * k, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  } else {
+    // 3º tempo: as motas de som subindo até o jogador
+    const k = (t - 0.68) / 0.32;
+    ctx.save();
+    for (let i = 0; i < 7; i++) {
+      const f = Math.max(0, Math.min(1, k * 1.3 - i * 0.05));
+      const px = cx + (player.x - cx) * f + Math.sin(i * 2.1 + now * 0.006) * 12 * (1 - f);
+      const py = cy + (player.y - player.height * 0.5 - cy) * f - Math.sin(f * Math.PI) * 26;
+      ctx.globalAlpha = 0.25 + 0.75 * (1 - f);
+      ctx.fillStyle = i % 3 === 0 ? '#fde68a' : '#7dd3fc';
+      ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 12;
+      ctx.beginPath(); ctx.arc(px, py, 3.5 - 1.5 * f, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.font = 'bold 13px Cinzel, serif'; ctx.textAlign = 'center';
+  ctx.globalAlpha = 0.55 + 0.45 * Math.sin(now * 0.008);
+  ctx.fillStyle = '#e0f2fe';
+  ctx.fillText('RESSOANDO…', SCREEN_W / 2, 46);
+  ctx.restore();
+}
+
+// Medidor da reserva de som do cenário. Centralizado no alto: no canto direito ele
+// ficava por baixo dos botões de bolsa e atributos do HUD.
 function renderRessonancia(now) {
   if (!isPlayMode || currentScene !== 'world' || !mapaTemEcos(currentKey)) return;
   const r = ressonanciaDe(currentKey);
-  // Centralizada no alto. No canto direito ela ficava POR BAIXO dos botões de bolsa e
-  // atributos do HUD, virando um borrão de texto sem dono atrás dos ícones.
   const W = 108, H = 8, x = Math.round((SCREEN_W - W) / 2), y = 14;
   ctx.save();
   ctx.font = 'bold 9px Outfit, sans-serif'; ctx.textAlign = 'center';
@@ -2095,6 +2155,45 @@ function renderRessonancia(now) {
     ctx.fillRect(x + i * cw + 1, y, cw - 2, H);
   }
   ctx.restore();
+}
+
+// A revelação: o que saiu do Eco, com nome e quantidade. É o fecho da captura e o
+// único momento em que o jogo para para dizer "isto é seu agora".
+function mostrarRevelacaoDaCaptura(itens, silenciado) {
+  const ov = document.getElementById('capturaReveal');
+  const grade = document.getElementById('capturaItens');
+  if (!ov || !grade) {   // sem a tela, ao menos não engole o resultado
+    showToast('✦ ' + itens.map(i => `${infoDoItem(i.id)?.nome || i.id} ×${i.n}`).join(' · '));
+    return;
+  }
+  ajustarCaixaNoPalco('capturaReveal');
+  grade.innerHTML = '';
+  itens.forEach(i => {
+    const info = infoDoItem(i.id) || {};
+    const casa = document.createElement('div');
+    casa.className = 'cap-item';
+    const cv = miniCanvas(spriteDoItem(i.id), 46);
+    if (cv) casa.appendChild(cv);
+    else { const e = document.createElement('span'); e.className = 'cap-emoji'; e.textContent = info.emoji || '✦'; casa.appendChild(e); }
+    const nome = document.createElement('div');
+    nome.className = 'cap-nome'; nome.style.color = info.cor || '#fde68a';
+    nome.textContent = `${info.nome || i.id} ×${i.n}`;
+    casa.appendChild(nome);
+    grade.appendChild(casa);
+  });
+  const aviso = document.getElementById('capturaAviso');
+  if (aviso) {
+    aviso.textContent = silenciado
+      ? 'Este lugar está em silêncio: o Eco rendeu pouco. Procure outro cenário.'
+      : 'O som voltou às suas mãos.';
+    aviso.classList.toggle('alerta', !!silenciado);
+  }
+  ov.classList.remove('hidden');
+  playForgeDone();
+}
+
+function fecharRevelacaoDaCaptura() {
+  document.getElementById('capturaReveal')?.classList.add('hidden');
 }
 
 // Só no editor: quando o jogador não pode andar, diz na tela quem está segurando o
@@ -2405,6 +2504,7 @@ function doAttack() {
   if (now - lastAttack < attackCooldown()) return;
   const m = attackTarget();
   if (!m) return;
+  if (m.pronto) return;   // já se abriu: agora é ressoar, não bater
   const s = derivedStats();
   lastAttack = now; attackAnimUntil = now + 180;
 
@@ -2460,111 +2560,115 @@ function mapaTemEcos(mapKey) {
   return monsters.some(m => m.mapKey === mapKey && monsterDef(m).exigeRessonador);
 }
 
-// ── Captura por afinação ─────────────────────────────────────────────────────────
-// Com pouca vida o Eco não morre: ele se abre e vibra. O jogador tem uma janela curta
-// para ressoar no ponto certo. Acertar rende Fragmento Puro; errar dispersa tudo.
-const CAPTURA_MS = 2200;
-let capturaAtiva = null;   // { m, inicio, cursor, dir, vel, largura }
+// ── Captura de Ecos ──────────────────────────────────────────────────────────────
+// O Eco não morre de pancada. Quando a vida chega na última lasca ele se abre, para de
+// se mexer e FICA ESPERANDO: um selo de RESSOAR pulsa sobre ele até o jogador aceitar.
+//
+// A versão anterior era uma janela de dois segundos com agulha e faixa dourada. Bonita
+// no papel, péssima na prática: no celular a barra some no meio do cenário, o toque
+// chega atrasado e a criatura se desfazia sem o jogador entender o que tinha feito de
+// errado. Sem cronômetro, o momento da captura é uma decisão — e dá tempo de olhar.
+const PISO_DE_VIDA_DO_ECO = 0.12;   // fração da vida que nunca se perde no golpe
+const RITUAL_MS = 2600;             // duração da animação de ressonância
+const ALCANCE_RESSOAR = 90;
 
+// `capturaAtiva` guarda o RITUAL em andamento (não mais a janela de mira). O nome fica:
+// o resto do jogo já o usa para saber que a captura está no comando e travar o HUD.
+let capturaAtiva = null;   // { m, inicio, itens, xp }
+
+// Chamado quando o golpe levaria o Eco a zero.
 function abrirEco(m, now) {
-  const af = derivedStats().captura / 100;       // Afinação
-  m.hp = 1;
-  m.abertoAte = now + CAPTURA_MS * (1 + af * 0.8);
-  const def = monsterDef(m);
-  capturaAtiva = {
-    m, inicio: now,
-    cursor: 0, dir: 1,
-    vel: (1.1 + (def.speed || 1) * 0.25) * (1 - af * 0.4),
-    largura: 0.16,                       // zona afinada; encolhe nos Ecos fortes
-    duracao: CAPTURA_MS * (1 + af * 0.8),
-  };
-  capturaAtiva.largura = Math.max(0.08, 0.20 - (def.hp || 40) / 900) * (1 + af);
+  m.hp = Math.max(1, Math.round((m.maxHp || 40) * PISO_DE_VIDA_DO_ECO));
+  m.pronto = true;          // congela no lugar e passa a pedir ressonância
+  m.abertoAte = 0;
   playForgeHit();
   addFloater(m.x, m.y - 60, 'O ECO SE ABRE!', '#e0f2fe');
-  // No celular a barra fica pequena no meio do cenário: o aviso em texto é o que faz
-  // o jogador entender que aqueles dois segundos são dele.
-  showToast('🔔 O Eco se abriu — RESSOE dentro da faixa dourada!');
+  showToast('🔔 O Eco se abriu — toque em RESSOAR para capturar o som.');
+}
+
+// O Eco aberto mais próximo, se houver algum ao alcance.
+function ecoProntoPerto() {
+  if (!isPlayMode || playerLocked || currentScene !== 'world') return null;
+  let melhor = null, menor = Infinity;
+  liveMonsters().forEach(m => {
+    if (!m.pronto) return;
+    const d = Math.hypot(player.x - m.x, player.y - m.y);
+    if (d < ALCANCE_RESSOAR && d < menor) { melhor = m; menor = d; }
+  });
+  return melhor;
+}
+
+// Quanto o Eco rende. Separado do ritual para que a animação só mostre o resultado.
+function colheitaDoEco(m) {
+  const def = monsterDef(m);
+  const tinha = consumirRessonancia(m.mapKey);
+  const idResson = ressonadorEmUso();
+  const tier = idResson ? (CRAFTABLE_TOOLS.find(t => t.id === idResson)?.tier || 1) : 1;
+  const chancePuro = derivedStats().puro;      // Afinação: ouvido treinado tira som limpo
+
+  const itens = [];
+  const somar = (id, n) => {
+    if (n <= 0) return;
+    const j = itens.find(i => i.id === id);
+    if (j) j.n += n; else itens.push({ id, n });
+  };
+
+  (def.drops || []).forEach(drop => {
+    if (drop.item === 'fragmento') {
+      let n = (drop.min ?? 1) + Math.floor(Math.random() * (((drop.max ?? 1) - (drop.min ?? 1)) + 1));
+      n += tier - 1;                                   // Ressonador melhor, mais som
+      if (!tinha) n = Math.max(1, Math.floor(n / 3));  // lugar silenciado rende pouco
+      let puros = 0;
+      for (let i = 0; i < n; i++) if (Math.random() * 100 < chancePuro) puros++;
+      somar('fragmento_puro', Math.floor(puros / VALOR_FRAGMENTO_PURO));
+      somar('fragmento', n - Math.floor(puros / VALOR_FRAGMENTO_PURO) * VALOR_FRAGMENTO_PURO);
+      return;
+    }
+    if (drop.chance != null && Math.random() > drop.chance) return;
+    somar(drop.item, (drop.min ?? 1) + Math.floor(Math.random() * (((drop.max ?? 1) - (drop.min ?? 1)) + 1)));
+  });
+
+  return { itens, silenciado: !tinha, xp: def.xp ?? Math.max(6, Math.round((def.hp ?? 20) * 0.6)) };
+}
+
+// Vai direto para a bolsa: fragmento capturado não fica no chão esperando ser pisado.
+function receberDaCaptura(id, n) {
+  if (id === 'clave') { claveCount += n; return; }
+  playerInventory[id] = (playerInventory[id] || 0) + n;
+  if (id === 'fragmento_puro') progressoDeMissao('coletar', 'fragmento', n * VALOR_FRAGMENTO_PURO);
+  else progressoDeMissao('coletar', id, n);
+}
+
+// Chamado pelo botão de ação (ou toque na tela) diante de um Eco aberto.
+function ressoar() {
+  if (capturaAtiva) return;                 // ritual já em andamento
+  const m = ecoProntoPerto();
+  if (!m) return;
+
+  const colheita = colheitaDoEco(m);
+  m.pronto = false;
+  capturaAtiva = { m, inicio: performance.now(), ...colheita };
+  playerLocked = true;                      // o ritual é um momento, não um combate
+  playForgeDone();
 }
 
 function atualizarCaptura(now) {
   if (!capturaAtiva) return;
   const c = capturaAtiva;
-  if (c.m.dead || now > c.m.abertoAte) { dispersarEco('tempo'); return; }
-  c.cursor += c.dir * c.vel * 0.016;
-  if (c.cursor >= 1) { c.cursor = 1; c.dir = -1; }
-  if (c.cursor <= 0) { c.cursor = 0; c.dir = 1; }
-}
+  if (now - c.inicio < RITUAL_MS) return;
 
-function dispersarEco(motivo) {
-  if (!capturaAtiva) return;
-  const m = capturaAtiva.m;
+  // Fim do ritual: o Eco se desfaz, os itens entram na bolsa e a tela de revelação
+  // conta ao jogador o que ele acabou de arrancar do silêncio.
+  const m = c.m;
+  m.dead = true; m.hp = 0; m.pronto = false; m.respawnAt = now + 12000;
+  c.itens.forEach(i => receberDaCaptura(i.id, i.n));
+  grantXp(c.xp);
+  savePlayerData();
+  updateInventorySlotsUI?.();
+  const itens = c.itens, silenciado = c.silenciado;
   capturaAtiva = null;
-  m.abertoAte = 0;
-  m.dead = true; m.hp = 0; m.respawnAt = performance.now() + 12000;
-  addFloater(m.x, m.y - 50, motivo === 'tempo' ? '♪ dispersou ♪' : '✧ desafinado', '#94a3b8');
-  showToast('✧ O som se dispersou. Ressoe dentro da faixa dourada.');
-}
-
-// Chamado pelo botão de ação (ou toque na tela) durante a janela de captura.
-function ressoar() {
-  if (!capturaAtiva) return;
-  const c = capturaAtiva, m = c.m, def = monsterDef(m);
-  const d = Math.abs(c.cursor - 0.5);
-  let perfeito = d <= c.largura / 2;
-  const perto = d <= c.largura * 1.3;
-  // Afinação alta às vezes salva uma captura quase-certa: o ouvido treinado corrige.
-  if (!perfeito && perto && Math.random() * 100 < derivedStats().puro) perfeito = true;
-
-  capturaAtiva = null;
-  m.abertoAte = 0;
-
-  if (!perfeito && !perto) { 
-    m.dead = true; m.hp = 0; m.respawnAt = performance.now() + 12000;
-    addFloater(m.x, m.y - 50, '✧ desafinado', '#94a3b8');
-    showToast('✧ Desafinado — o som se dispersou.');
-    return;
-  }
-
-  // Consome a reserva de som do cenário. Sem reserva, a captura rende bem menos.
-  const tinha = consumirRessonancia(m.mapKey);
-  const now = performance.now();
-  m.dead = true; m.hp = 0; m.respawnAt = now + 12000;
-
-  const def0 = def;
-  const tabela = def0.drops || [];
-  const idResson = ressonadorEmUso();
-  const bonusResson = idResson
-    ? (CRAFTABLE_TOOLS.find(t => t.id === idResson)?.tier || 1) - 1 : 0;
-
-  let puros = 0, comuns = 0;
-  tabela.forEach(drop => {
-    if (drop.item === 'fragmento') {
-      let n = (drop.min ?? 1) + Math.floor(Math.random() * (((drop.max ?? 1) - (drop.min ?? 1)) + 1));
-      n += bonusResson;
-      if (!tinha) n = Math.max(1, Math.floor(n / 3));   // lugar silenciado rende pouco
-      if (perfeito) puros += Math.max(1, Math.round(n / VALOR_FRAGMENTO_PURO));
-      else comuns += n;
-      return;
-    }
-    if (drop.chance != null && Math.random() > drop.chance) return;
-    if (!perfeito && Math.random() < 0.5) return;      // intervalo só vem fácil se afinar
-    const n = (drop.min ?? 1) + Math.floor(Math.random() * (((drop.max ?? 1) - (drop.min ?? 1)) + 1));
-    for (let i = 0; i < n; i++) soltarItem(drop.item, m, now);
-  });
-
-  for (let i = 0; i < puros; i++)  soltarItem('fragmento_puro', m, now);
-  for (let i = 0; i < comuns; i++) soltarItem('fragmento', m, now);
-
-  if (perfeito) {
-    playForgeDone();
-    addFloater(m.x, m.y - 60, `✦ AFINADO!  Fragmento Puro ×${puros}`, '#fde68a');
-    showToast(`✦ Afinado! ${puros} Fragmento${puros > 1 ? 's' : ''} Puro${puros > 1 ? 's' : ''}.`);
-  } else {
-    playForgeHit();
-    addFloater(m.x, m.y - 60, '✦ quase lá', '#7dd3fc');
-    showToast('✦ Perto do tom — fragmentos comuns.');
-  }
-  grantXp(def0.xp ?? Math.max(6, Math.round((def0.hp ?? 20) * 0.6)));
+  playerLocked = false;
+  mostrarRevelacaoDaCaptura(itens, silenciado);
 }
 
 function soltarItem(item, m, now) {
@@ -3633,7 +3737,8 @@ function forgeDoorTarget(){ return currentScene==='world' ? elementTarget(['forg
 
 function actionAvailable() {
   if(shopOpen||inventoryOpen||charOpen)return null;
-  if(capturaAtiva)return 'ressoar';   // a janela é curta: nada mais importa agora
+  if(capturaAtiva)return null;        // ritual em andamento: nada a fazer, só assistir
+  if(ecoProntoPerto())return 'ressoar'; // Eco aberto ganha do ataque: bater nele não adianta
   if(attackTarget())return 'attack'; // a monster in reach beats everything else
   const counter = atCounter();          // 'shop' inside the skin store, 'forge' in the smithy
   if(counter)return counter;
@@ -4282,7 +4387,8 @@ function getM(e){
 }
 
 function onPointerDown(m){
-  if (capturaAtiva && isPlayMode) { ressoar(); return; }   // janela de captura
+  if (isPlayMode && capturaAtiva) return;                  // ritual rodando
+  if (isPlayMode && ecoProntoPerto()) { ressoar(); return; }
   if (avancarCena()) return;      // uma cena em curso consome o toque
   // An open dialogue owns the pointer whatever the editor mode is — otherwise the
   // editor branches below return early and taps never reach the choices.
@@ -8737,6 +8843,7 @@ function initForgeUI() {
     showToast('🗑️ Monstro removido');
   });
 
+  document.getElementById('capturaOk')?.addEventListener('click', fecharRevelacaoDaCaptura);
   document.getElementById('sorteioBtn')?.addEventListener('click', rodarSorteio);
   document.getElementById('sorteioSair')?.addEventListener('click', fecharSorteio);
   ['sorteioOverlay'].forEach(id => {

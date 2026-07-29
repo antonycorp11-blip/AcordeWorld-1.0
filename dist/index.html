@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
-  <link rel="stylesheet" href="style.css?v=20260729132419">
+  <link rel="stylesheet" href="style.css?v=20260729133931">
 </head>
 <body>
 
@@ -372,6 +372,17 @@
             </div>
           </div>
 
+          <!-- Revelação da captura: o fecho do ritual do Eco. Mostra o que saiu dali,
+               com nome e quantidade, e só sai quando o jogador manda. -->
+          <div id="capturaReveal" class="cap-reveal hidden">
+            <div class="cap-caixa">
+              <div class="cap-titulo">SOM CAPTURADO</div>
+              <div id="capturaItens" class="cap-itens"></div>
+              <div id="capturaAviso" class="cap-aviso"></div>
+              <button id="capturaOk" class="cap-ok">Guardar</button>
+            </div>
+          </div>
+
           <!-- ═══ RETRO 16-BIT INVENTORY & PROFILE OVERLAY ═══ -->
           <!-- Inventário: painel lateral deslizante (drawer), estilo Albion.
                Não-modal: o jogo continua visível e rodando atrás dele. -->
@@ -436,7 +447,7 @@
 <!-- ═══ SIGNPOST LINKING WIZARD OVERLAY ═══ -->
 
 
-<script src="config.js?v=20260729132419"></script>
-<script src="game.js?v=20260729132419"></script>
+<script src="config.js?v=20260729133931"></script>
+<script src="game.js?v=20260729133931"></script>
 </body>
 </html>

@@ -4143,3 +4143,62 @@ body.mobile-play #gameCanvas {
   .sorteio-premio .premio-nome { font-size: 17px; }
   .sorteio-btn { padding: 9px 18px; font-size: 12px; }
 }
+
+/* ── Revelação da captura ──────────────────────────────────────────────────────
+   O ritual termina aqui. É a única tela que interrompe o jogo depois de um Eco, e
+   existe por um motivo: sem ela o fragmento entra na bolsa em silêncio e a captura
+   não parece ter acontecido. Ancorada na área jogável, como o drawer. */
+.cap-reveal {
+  position: fixed; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 45%, rgba(12,20,32,.72), rgba(2,4,8,.92));
+  animation: capFade .25s ease-out;
+}
+.cap-reveal.hidden { display: none; }
+@keyframes capFade { from { opacity: 0; } to { opacity: 1; } }
+
+.cap-caixa {
+  min-width: 240px; max-width: 82%; padding: 16px 20px 14px;
+  text-align: center;
+  border: 2px solid #7dd3fc; border-radius: 12px;
+  background: linear-gradient(180deg, rgba(14,22,36,.97), rgba(6,10,18,.97));
+  box-shadow: 0 0 34px rgba(125,211,252,.35), inset 0 0 22px rgba(125,211,252,.09);
+  animation: capSobe .3s cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes capSobe { from { transform: translateY(14px) scale(.94); } to { transform: none; } }
+
+.cap-titulo {
+  font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 3px;
+  color: #e0f2fe; text-shadow: 0 0 12px rgba(125,211,252,.6); margin-bottom: 12px;
+}
+.cap-itens { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.cap-item {
+  min-width: 76px; padding: 8px 6px 6px;
+  border: 1px solid #33506b; border-radius: 8px;
+  background: rgba(8,14,24,.9);
+}
+.cap-item canvas { display: block; margin: 0 auto 4px; image-rendering: pixelated; }
+.cap-emoji { display: block; font-size: 30px; line-height: 1.1; margin-bottom: 4px; }
+.cap-nome { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 10px; }
+
+.cap-aviso {
+  margin-top: 11px; font-size: 9.5px; color: #94a3b8; font-style: italic;
+}
+.cap-aviso.alerta { color: #fca5a5; font-style: normal; }
+
+.cap-ok {
+  margin-top: 13px; padding: 8px 26px; cursor: pointer;
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 11px; letter-spacing: 2px;
+  color: #06210f; background: linear-gradient(180deg, #fde68a, #eab308);
+  border: 1px solid #b8862a; border-radius: 7px;
+  box-shadow: 0 3px 0 #8a5f13, 0 5px 12px rgba(0,0,0,.5);
+}
+.cap-ok:active { transform: translateY(2px); box-shadow: 0 1px 0 #8a5f13; }
+
+@media (max-width: 900px), (pointer: coarse) {
+  .cap-caixa { padding: 12px 14px 11px; }
+  .cap-titulo { font-size: 11px; margin-bottom: 9px; }
+  .cap-item { min-width: 64px; }
+  .cap-nome { font-size: 9px; }
+  .cap-ok { padding: 9px 22px; font-size: 10px; }
+}
