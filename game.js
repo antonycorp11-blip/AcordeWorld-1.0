@@ -231,8 +231,26 @@ async function saveMonsters() {
       x:Math.round(m.homeX ?? m.x), y:Math.round(m.homeY ?? m.y),
       escala:m.escala || 1, flipX: !!m.flipX })),
   };
-  try { localStorage.setItem('acordelot_monsters_v1', JSON.stringify(payload)); } catch(e) {}
-  try { await fetch('/save_monsters', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }); } catch(e) {}
+  const corpo = JSON.stringify(payload);
+
+  // O SERVIDOR VEM PRIMEIRO: assets/monsters.json é a fonte da verdade — é ele que o
+  // jogo carrega e é ele que vai no deploy. O localStorage é só reserva e vive
+  // estourando a cota (as camadas guardam imagens em base64), então nunca pode rodar
+  // antes daqui nem derrubar o envio.
+  //
+  // E o resultado tem que APARECER. Um `catch(e){}` mudo já custou uma sessão inteira
+  // de edição de monstros: o jogo dizia "salvo" e o arquivo continuava intacto.
+  try {
+    const r = await fetch('/save_monsters', { method:'POST',
+      headers:{'Content-Type':'application/json'}, body:corpo });
+    if (!r.ok) showToast(`⚠️ Servidor recusou os monstros (HTTP ${r.status}) — NÃO salvo`);
+    else if (window.__logSaveMonstros) console.log('[monstros] gravados:', payload.spawns.length);
+  } catch (e) {
+    showToast('⚠️ Monstros NÃO salvos: sem resposta do servidor');
+    console.error('[monstros] falha ao gravar:', e);
+  }
+
+  try { localStorage.setItem('acordelot_monsters_v1', corpo); } catch (e) {}
 }
 
 // ============================================================
@@ -2548,7 +2566,9 @@ function killMonster(m, now) {
     tabela = [];
     if (now - (window.__avisoResson || 0) > 6000) {
       window.__avisoResson = now;
-      showToast('🔔 O som do Eco se dispersou — forje um Ressonador para capturá-lo.');
+      showToast((playerInventory.reson_cobre || playerInventory.reson_prata || playerInventory.reson_clave)
+        ? '🔔 Ressonador guardado! Abra a bolsa e toque nele para equipar.'
+        : '🔔 O som do Eco se dispersou — forje um Ressonador para capturá-lo.');
       addFloater(m.x, m.y - 50, '♪ dispersou ♪', '#94a3b8');
     }
   }
@@ -6740,11 +6760,26 @@ function loop(now){
     // The stick zone covers a big chunk of the lower-left screen, which is exactly where
     // the dialogue box sits. Pull the whole overlay while talking so every tap reaches
     // the canvas — the player is locked in place anyway.
+    // Some com o overlay em QUALQUER momento em que o jogador não comanda o personagem:
+    // diálogo, cutscene, menu aberto, forja, captura. Checar só o diálogo deixava o
+    // joystick e o botão de ação por cima das falas das cenas, no celular.
+    // Não use CUT.ativo aqui: há cenas que devolvem o controle no meio (o "chegue perto
+    // do guarda"), e esconder o joystick nessas horas trava o jogo no celular. Quem
+    // responde a pergunta certa — "o jogador manda no personagem agora?" — é playerLocked.
+    // `capturaAtiva` fica FORA desta lista de propósito: a janela de afinação dura pouco
+    // mais de dois segundos e o botão de ação é o único jeito de ressoar no celular.
+    // Escondê-lo aí garantiria o "dispersou" em toda captura.
+    const semControle = talking || playerLocked ||
+                        shopOpen || inventoryOpen || charOpen || forging;
     if(touchControls&&document.body.classList.contains('mobile-play')){
-      touchControls.classList.toggle('hidden', talking);
-      if(talking&&stick.active){stick.active=false;stick.x=stick.y=0;}
+      touchControls.classList.toggle('hidden', semControle);
+      if(semControle&&stick.active){stick.active=false;stick.x=stick.y=0;}
     }
-    const ACT_LABEL={attack:'Atacar',shop:'Loja',forge:'Forjar',enter:'Entrar',enterForge:'Entrar',talk:'Falar',travel:'Viajar',gather:'Coletar'};
+    // Toda ação precisa de rótulo: sem entrada aqui o botão do celular ficava com o
+    // texto da ação anterior, e o jogador não sabia que era para ressoar.
+    const ACT_LABEL={attack:'Atacar',shop:'Loja',forge:'Forjar',enter:'Entrar',enterForge:'Entrar',
+      talk:'Falar',travel:'Viajar',gather:'Coletar',ressoar:'RESSOAR',martelar:'Martelar',
+      sair:'Sair',sortear:'Sortear',entrarPorta:'Entrar',forjarEscala:'Forjar Escala'};
     if(touchAction&&act)touchAction.textContent=ACT_LABEL[act];
     touchAction?.classList.toggle('disabled', !act);
     playerHud?.classList.toggle('hidden', talking||shopOpen||inventoryOpen||charOpen);
@@ -8030,7 +8065,27 @@ function itensDaBolsa() {
   push('stone', playerInventory.stone || 0);
   push('potions', playerInventory.potions || 0);
   CROMATICA.forEach(n => push('nota_' + n.id, notasPossuidas[n.id] || 0));
+  // Ferramentas forjadas que não estão em nenhum slot. Sem isto elas sumiam do jogo:
+  // ficavam em playerInventory sem aparecer em lugar nenhum, e não havia como equipar
+  // de volta — foi o que deixou o Ressonador "no inventário" e a captura sem abrir.
+  CRAFTABLE_TOOLS.forEach(t => {
+    if ((playerInventory[t.id] || 0) > 0 && !Object.values(equipped).includes(t.id))
+      out.push({ id: t.id, qtd: 1, ferramenta: true });
+  });
   return out;
+}
+
+// Manda a ferramenta para o slot da sua categoria. Devolve o que estava lá para a bolsa.
+function equiparFerramenta(id) {
+  const t = CRAFTABLE_TOOLS.find(x => x.id === id);
+  if (!t) return false;
+  const slot = Object.entries(CATEGORIA_POR_SLOT).find(([, cat]) => cat === t.category)?.[0];
+  if (!slot) return false;
+  equipped[slot] = id;
+  playerInventory[id] = 1;
+  savePlayerData();
+  showToast(`${t.icon} ${t.name} equipado`);
+  return true;
 }
 
 function infoDoItem(id) {
@@ -8163,8 +8218,12 @@ function renderGrimorio() {
         if (cv) el.appendChild(cv);
         else { const e = document.createElement('span'); e.className = 'dw-emoji'; e.textContent = t.icon; el.appendChild(e); }
         const q = qualidadeDe(t.id);
-        el.title = t.name + (q.selo ? ' · ' + q.nome : '');
+        el.title = t.name + (q.selo ? ' · ' + q.nome : '') + ' — toque duas vezes para guardar';
         el.addEventListener('click', () => { grSelecionado = t.id; renderGrimorio(); });
+        el.addEventListener('dblclick', () => {
+          equipped[def.slot] = null; savePlayerData();
+          showToast(`${t.icon} ${t.name} guardado na bolsa`); renderGrimorio();
+        });
       }
     } else {
       const id = equipped[def.slot];
@@ -8202,6 +8261,9 @@ function renderGrimorio() {
       casa.appendChild(q);
       casa.title = info?.nome || it.id;
       casa.addEventListener('click', () => {
+        // Ferramenta na bolsa é ferramenta guardada: um toque veste. É a única forma de
+        // equipar no celular, onde não existem as teclas 1–4.
+        if (it.ferramenta) { equiparFerramenta(it.id); grSelecionado = it.id; renderGrimorio(); return; }
         // Tocar de novo no mesmo item fecha a ficha — sem isso ela ficava para sempre.
         grSelecionado = (grSelecionado === it.id) ? null : it.id;
         renderGrimorio();

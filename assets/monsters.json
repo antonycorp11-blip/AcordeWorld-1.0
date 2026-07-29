@@ -364,44 +364,35 @@
       "id": "m1",
       "type": "tempo_toad",
       "mapKey": "2_1",
-      "x": 300,
-      "y": 380,
-      "escala": 1.6,
-      "flipX": false
-    },
-    {
-      "id": "m2",
-      "type": "tempo_toad",
-      "mapKey": "2_1",
-      "x": 444,
-      "y": 330,
-      "escala": 2.1,
+      "x": 378,
+      "y": 498,
+      "escala": 0.4,
       "flipX": false
     },
     {
       "id": "m3",
       "type": "octave_owl",
       "mapKey": "2_1",
-      "x": 520,
-      "y": 250,
-      "escala": 1,
+      "x": 528,
+      "y": 309,
+      "escala": 0.6000000000000001,
       "flipX": false
     },
     {
       "id": "m4",
       "type": "treble_flyer",
       "mapKey": "2_1",
-      "x": 830,
-      "y": 450,
-      "escala": 1,
+      "x": 752,
+      "y": 118,
+      "escala": 0.6000000000000001,
       "flipX": false
     },
     {
       "id": "m5",
       "type": "bass_crawler",
       "mapKey": "3_1",
-      "x": 246,
-      "y": 214,
+      "x": 150,
+      "y": 133,
       "escala": 1,
       "flipX": false
     },
@@ -409,18 +400,18 @@
       "id": "m6",
       "type": "coda_crawler",
       "mapKey": "3_1",
-      "x": 694,
-      "y": 187,
-      "escala": 1,
+      "x": 307,
+      "y": 488,
+      "escala": 0.4,
       "flipX": false
     },
     {
       "id": "m7",
       "type": "octave_owl",
       "mapKey": "3_1",
-      "x": 758,
-      "y": 490,
-      "escala": 1,
+      "x": 749,
+      "y": 361,
+      "escala": 0.6000000000000001,
       "flipX": false
     },
     {
@@ -493,6 +484,168 @@
       "x": 780,
       "y": 235,
       "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "bass_crawler_1785341970403",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 136,
+      "y": 243,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "bass_crawler_1785341970886",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 304,
+      "y": 127,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "bass_crawler_1785341971067",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 218,
+      "y": 273,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "bass_crawler_1785341971270",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 310,
+      "y": 213,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "octave_owl_1785341994252",
+      "type": "octave_owl",
+      "mapKey": "3_1",
+      "x": 880,
+      "y": 484,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "octave_owl_1785341994446",
+      "type": "octave_owl",
+      "mapKey": "3_1",
+      "x": 861,
+      "y": 346,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342020242",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 404,
+      "y": 454,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342020478",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 413,
+      "y": 493,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342020642",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 496,
+      "y": 448,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342020825",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 483,
+      "y": 477,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342021005",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 327,
+      "y": 430,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342021291",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 641,
+      "y": 608,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342021489",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 681,
+      "y": 628,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "tempo_toad_1785342067034",
+      "type": "tempo_toad",
+      "mapKey": "2_1",
+      "x": 428,
+      "y": 486,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "octave_owl_1785342079364",
+      "type": "octave_owl",
+      "mapKey": "2_1",
+      "x": 472,
+      "y": 354,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "treble_flyer_1785342091147",
+      "type": "treble_flyer",
+      "mapKey": "2_1",
+      "x": 792,
+      "y": 138,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "treble_flyer_1785342091546",
+      "type": "treble_flyer",
+      "mapKey": "2_1",
+      "x": 832,
+      "y": 168,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "treble_flyer_1785342093515",
+      "type": "treble_flyer",
+      "mapKey": "2_1",
+      "x": 872,
+      "y": 208,
+      "escala": 0.6000000000000001,
       "flipX": false
     }
   ]
