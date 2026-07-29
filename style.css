@@ -699,10 +699,17 @@ body.mobile-play #gameCanvas {
 .icon-btn { position: relative; width: 32px; padding: 0; justify-content: center; cursor: pointer; }
 .icon-btn:hover { border-color: #f59e0b; color: #fff; transform: translateY(-1px); }
 .icon-btn:active { transform: scale(.94); }
+/* Aviso de pontos não gastos. Era uma bolinha verde muda encostada na borda direita
+   do botão — caía bem no vão entre os dois ícones e parecia sujeira na tela. Agora
+   carrega o número, fica no canto de fora (à esquerda, longe do botão vizinho) e se
+   explica sozinha. */
 .icon-btn .dot {
-  position: absolute; top: -2px; right: -2px;
-  width: 9px; height: 9px; border-radius: 50%;
-  background: #22c55e; box-shadow: 0 0 0 2px rgba(0,0,0,.6);
+  position: absolute; top: -5px; left: -5px;
+  min-width: 14px; height: 14px; padding: 0 3px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; background: #22c55e; color: #06210f;
+  font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 9px; line-height: 1;
+  box-shadow: 0 0 0 2px rgba(0,0,0,.6);
   animation: dotPulse 1.3s ease-in-out infinite;
 }
 .icon-btn .dot.hidden { display: none; }

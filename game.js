@@ -2080,11 +2080,13 @@ function renderCaptura(now) {
 function renderRessonancia(now) {
   if (!isPlayMode || currentScene !== 'world' || !mapaTemEcos(currentKey)) return;
   const r = ressonanciaDe(currentKey);
-  const W = 108, H = 8, x = SCREEN_W - W - 16, y = 16;
+  // Centralizada no alto. No canto direito ela ficava POR BAIXO dos botões de bolsa e
+  // atributos do HUD, virando um borrão de texto sem dono atrás dos ícones.
+  const W = 108, H = 8, x = Math.round((SCREEN_W - W) / 2), y = 14;
   ctx.save();
-  ctx.font = 'bold 9px Outfit, sans-serif'; ctx.textAlign = 'right';
+  ctx.font = 'bold 9px Outfit, sans-serif'; ctx.textAlign = 'center';
   ctx.fillStyle = r.valor > 0 ? '#7dd3fc' : '#64748b';
-  ctx.fillText(r.valor > 0 ? 'RESSONÂNCIA DO LUGAR' : 'LUGAR EM SILÊNCIO', x + W, y - 4);
+  ctx.fillText(r.valor > 0 ? 'RESSONÂNCIA DO LUGAR' : 'LUGAR EM SILÊNCIO', x + W / 2, y - 4);
   ctx.fillStyle = 'rgba(6,9,14,0.8)';
   ctx.fillRect(x - 1, y - 1, W + 2, H + 2);
   for (let i = 0; i < RESSONANCIA_MAX; i++) {
@@ -2224,6 +2226,20 @@ function playerMaxHp()   { return derivedStats().maxHp; }
 function playerDamage()  { return derivedStats().dmg; }
 function attackCooldown(){ return BASE_COOLDOWN / (1 + derivedStats().atkSpeed / 100); }
 function claveCapacity() { return derivedStats().capacity; }
+
+// O Ressonador é ferramenta de bolsa, não arma de punho: basta POSSUIR um. Exigir que
+// estivesse no slot certo era invisível para o jogador — ele via o item no inventário,
+// batia no Eco e via tudo se desfazer sem explicação. O slot continua valendo pelo
+// tier: um Ressonador melhor equipado rende mais fragmentos.
+function ressonadorEmUso() {
+  if (equipped.ressonador) return equipped.ressonador;
+  let melhor = null;
+  CRAFTABLE_TOOLS.forEach(t => {
+    if (t.category !== 'ressonadores') return;
+    if ((playerInventory[t.id] || 0) > 0 && (!melhor || t.tier > melhor.tier)) melhor = t;
+  });
+  return melhor?.id || null;
+}
 // Usados pelo arco da magia: dano do feitiço e recarga entre lançamentos.
 function danoDeFeitico(base)  { return Math.round(base * (1 + derivedStats().dmgMagia / 100)); }
 function recargaDeFeitico(ms) { return Math.round(ms * (1 - derivedStats().recarga / 100)); }
@@ -2407,7 +2423,7 @@ function doAttack() {
   playHitSound();
   if (m.hp <= 0) {
     // Eco não morre de pancada: ele se abre e pede para ser afinado.
-    if (monsterDef(m).exigeRessonador && equipped.ressonador && !capturaAtiva) abrirEco(m, now);
+    if (monsterDef(m).exigeRessonador && ressonadorEmUso() && !capturaAtiva) abrirEco(m, now);
     else killMonster(m, now);
   }
 }
@@ -2516,8 +2532,9 @@ function ressoar() {
 
   const def0 = def;
   const tabela = def0.drops || [];
-  const bonusResson = equipped.ressonador
-    ? (CRAFTABLE_TOOLS.find(t => t.id === equipped.ressonador)?.tier || 1) - 1 : 0;
+  const idResson = ressonadorEmUso();
+  const bonusResson = idResson
+    ? (CRAFTABLE_TOOLS.find(t => t.id === idResson)?.tier || 1) - 1 : 0;
 
   let puros = 0, comuns = 0;
   tabela.forEach(drop => {
@@ -2568,19 +2585,18 @@ function killMonster(m, now) {
 
   // Criatura de som: sem Ressonador equipado ela se desfaz no ar e não deixa nada.
   // A regra é explicada na hora, senão o jogador acha que está bugado.
-  if (def.exigeRessonador && !equipped.ressonador) {
+  if (def.exigeRessonador && !ressonadorEmUso()) {
     tabela = [];
     if (now - (window.__avisoResson || 0) > 6000) {
       window.__avisoResson = now;
-      showToast((playerInventory.reson_cobre || playerInventory.reson_prata || playerInventory.reson_clave)
-        ? '🔔 Ressonador guardado! Abra a bolsa e toque nele para equipar.'
-        : '🔔 O som do Eco se dispersou — forje um Ressonador para capturá-lo.');
+      showToast('🔔 O som do Eco se dispersou — forje um Ressonador para capturá-lo.');
       addFloater(m.x, m.y - 50, '♪ dispersou ♪', '#94a3b8');
     }
   }
   // Ressonador melhor rende mais: cada tier soma um fragmento.
-  const bonusResson = equipped.ressonador
-    ? (CRAFTABLE_TOOLS.find(t => t.id === equipped.ressonador)?.tier || 1) - 1 : 0;
+  const idResson = ressonadorEmUso();
+  const bonusResson = idResson
+    ? (CRAFTABLE_TOOLS.find(t => t.id === idResson)?.tier || 1) - 1 : 0;
 
   tabela.forEach(drop => {
     if (drop.chance != null && Math.random() > drop.chance) return;
@@ -6802,7 +6818,13 @@ function loop(now){
       xpFill.style.width=Math.min(100,(xp/need)*100)+'%';
       if(xpLabel)xpLabel.textContent=`XP ${xp} / ${need}`;
     }
-    pointDot?.classList.toggle('hidden', attrPoints<=0&&skillPoints<=0);
+    // O aviso diz QUANTOS pontos esperam: bolinha sem número não informa nada.
+    const pontos = (attrPoints||0) + (skillPoints||0);
+    pointDot?.classList.toggle('hidden', pontos<=0);
+    if (pointDot && pontos>0) {
+      pointDot.textContent = pontos > 9 ? '9+' : pontos;
+      pointDot.title = `${pontos} ponto${pontos>1?'s':''} para distribuir`;
+    }
     // Interiors are their own space: the outdoor map's NPCs, chatter and overlays must
     // not bleed through onto the shop floor.
     const outdoors=currentScene==='world';
@@ -8224,9 +8246,11 @@ function renderGrimorio() {
         const q = qualidadeDe(t.id);
         el.title = t.name + (q.selo ? ' · ' + q.nome : '') + ' — toque duas vezes para guardar';
         el.addEventListener('click', () => { grSelecionado = t.id; renderGrimorio(); });
+        // Toque duplo põe a peça NA MÃO. Guardar de volta seria o gesto mais fácil de
+        // fazer sem querer, e nenhuma ferramenta precisa sair do slot para funcionar.
         el.addEventListener('dblclick', () => {
-          equipped[def.slot] = null; savePlayerData();
-          showToast(`${t.icon} ${t.name} guardado na bolsa`); renderGrimorio();
+          equipped.activeTool = def.slot; savePlayerData();
+          showToast(`${t.icon} ${t.name} em mãos`); renderGrimorio();
         });
       }
     } else {
