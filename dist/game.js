@@ -2034,7 +2034,77 @@ function updateMonsters(now) {
 // jogador precisa continuar vendo a criatura de quem está tirando o som.
 function renderCaptura(now) {
   liveMonsters().forEach(m => { if (m.pronto) renderSeloDeRessoar(m, now); });
-  if (capturaAtiva) renderRitualDeCaptura(now);
+  if (!capturaAtiva) return;
+  if (capturaAtiva.fase === 'juntar') renderVozesSoltas(now);
+  else renderRitualDeCaptura(now);
+}
+
+// As vozes do Eco espalhadas pela tela. Tudo que o jogador precisa saber está aqui:
+// quanto tempo resta, quais vozes faltam encostar e o quanto elas já estão perto.
+function renderVozesSoltas(now) {
+  const c = capturaAtiva;
+  const restante = Math.max(0, 1 - (now - c.inicio) / c.limite);
+  const { cx, cy, raio } = centroDasVozes(c.orbes);
+  const quase = raio <= c.raioFusao * 2.2;
+
+  ctx.save();
+  ctx.fillStyle = `rgba(2,4,8,${0.34 + 0.16 * (1 - restante)})`;
+  ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+  ctx.restore();
+
+  // alvo de fusão: aparece quando as vozes já estão se aproximando
+  if (quase) {
+    ctx.save();
+    ctx.globalAlpha = 0.25 + 0.3 * ((Math.sin(now * 0.008) + 1) / 2);
+    ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
+    ctx.beginPath(); ctx.arc(cx, cy, c.raioFusao, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // teia ligando as vozes: fica mais forte conforme elas se juntam
+  ctx.save();
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < c.orbes.length; i++) {
+    for (let j = i + 1; j < c.orbes.length; j++) {
+      const a = c.orbes[i], b = c.orbes[j];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (d > 190) continue;
+      ctx.globalAlpha = Math.max(0, 0.55 * (1 - d / 190));
+      ctx.strokeStyle = '#7dd3fc';
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+  }
+  ctx.restore();
+
+  c.orbes.forEach(o => {
+    const p = (Math.sin(o.fase) + 1) / 2;
+    const r = (o.pega ? 15 : 12) + p * 3;
+    ctx.save();
+    ctx.shadowColor = o.cor; ctx.shadowBlur = 22 + p * 12;
+    ctx.fillStyle = o.cor; ctx.globalAlpha = 0.9;
+    ctx.beginPath(); ctx.arc(o.x, o.y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1; ctx.fillStyle = '#f8fafc';
+    ctx.beginPath(); ctx.arc(o.x, o.y, r * 0.42, 0, Math.PI * 2); ctx.fill();
+    // anel de quem está sob o dedo
+    if (o.pega) {
+      ctx.globalAlpha = 0.8; ctx.strokeStyle = '#fff7ed'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(o.x, o.y, r + 7, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  });
+
+  // tempo restante: arco no alto, com a instrução
+  ctx.save();
+  // Abaixo do medidor de ressonância, que já mora no alto ao centro.
+  const W = 190, H = 6, x = (SCREEN_W - W) / 2, y = 58;
+  ctx.fillStyle = 'rgba(6,9,14,0.85)';
+  ctx.fillRect(x - 1, y - 1, W + 2, H + 2);
+  ctx.fillStyle = restante > 0.35 ? '#7dd3fc' : '#fca5a5';
+  ctx.fillRect(x, y, W * restante, H);
+  ctx.font = 'bold 11px Cinzel, serif'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#e0f2fe';
+  ctx.fillText('JUNTE AS VOZES', SCREEN_W / 2, y - 8);
+  ctx.restore();
 }
 
 function renderSeloDeRessoar(m, now) {
@@ -2082,7 +2152,8 @@ function renderRitualDeCaptura(now) {
   const c = capturaAtiva, m = c.m;
   const t = Math.min(1, (now - c.inicio) / RITUAL_MS);
   const b = monsterBounds(m);
-  const cx = m.x, cy = m.y - b.h * 0.45;
+  // O acorde nasce onde o jogador juntou as vozes, não onde a criatura estava.
+  const cx = c.focoX ?? m.x, cy = c.focoY ?? (m.y - b.h * 0.45);
 
   ctx.save();
   // escurece o cenário em volta, com o Eco no centro da luz
@@ -2159,7 +2230,7 @@ function renderRessonancia(now) {
 
 // A revelação: o que saiu do Eco, com nome e quantidade. É o fecho da captura e o
 // único momento em que o jogo para para dizer "isto é seu agora".
-function mostrarRevelacaoDaCaptura(itens, silenciado) {
+function mostrarRevelacaoDaCaptura(itens, silenciado, qualidade = 0) {
   const ov = document.getElementById('capturaReveal');
   const grade = document.getElementById('capturaItens');
   if (!ov || !grade) {   // sem a tela, ao menos não engole o resultado
@@ -2185,7 +2256,9 @@ function mostrarRevelacaoDaCaptura(itens, silenciado) {
   if (aviso) {
     aviso.textContent = silenciado
       ? 'Este lugar está em silêncio: o Eco rendeu pouco. Procure outro cenário.'
-      : 'O som voltou às suas mãos.';
+      : qualidade > 0.66 ? 'Acorde limpo — as vozes mal tiveram tempo de fugir.'
+      : qualidade > 0.3  ? 'Bom encontro. Junte-as mais rápido para tirar som puro.'
+      : 'As vozes vagaram bastante: o som veio embaçado.';
     aviso.classList.toggle('alerta', !!silenciado);
   }
   ov.classList.remove('hidden');
@@ -2599,12 +2672,13 @@ function ecoProntoPerto() {
 }
 
 // Quanto o Eco rende. Separado do ritual para que a animação só mostre o resultado.
-function colheitaDoEco(m) {
+function colheitaDoEco(m, qualidade = 0) {
   const def = monsterDef(m);
   const tinha = consumirRessonancia(m.mapKey);
   const idResson = ressonadorEmUso();
   const tier = idResson ? (CRAFTABLE_TOOLS.find(t => t.id === idResson)?.tier || 1) : 1;
-  const chancePuro = derivedStats().puro;      // Afinação: ouvido treinado tira som limpo
+  // Afinação dá a base; juntar as vozes rápido é o que realmente limpa o som.
+  const chancePuro = Math.min(70, derivedStats().puro + qualidade * 55);
 
   const itens = [];
   const somar = (id, n) => {
@@ -2618,10 +2692,14 @@ function colheitaDoEco(m) {
       let n = (drop.min ?? 1) + Math.floor(Math.random() * (((drop.max ?? 1) - (drop.min ?? 1)) + 1));
       n += tier - 1;                                   // Ressonador melhor, mais som
       if (!tinha) n = Math.max(1, Math.floor(n / 3));  // lugar silenciado rende pouco
+      // Cada fragmento sorteado sai PURO ou comum. Um puro vale três na síntese, então
+      // trocar um pelo outro é o prêmio de quem juntou as vozes depressa — antes eu
+      // exigia três sortes para gerar um puro, o que dava exatamente no mesmo e fazia a
+      // perícia não valer nada.
       let puros = 0;
       for (let i = 0; i < n; i++) if (Math.random() * 100 < chancePuro) puros++;
-      somar('fragmento_puro', Math.floor(puros / VALOR_FRAGMENTO_PURO));
-      somar('fragmento', n - Math.floor(puros / VALOR_FRAGMENTO_PURO) * VALOR_FRAGMENTO_PURO);
+      somar('fragmento_puro', puros);
+      somar('fragmento', n - puros);
       return;
     }
     if (drop.chance != null && Math.random() > drop.chance) return;
@@ -2639,36 +2717,160 @@ function receberDaCaptura(id, n) {
   else progressoDeMissao('coletar', id, n);
 }
 
-// Chamado pelo botão de ação (ou toque na tela) diante de um Eco aberto.
+// ── O acorde disperso ────────────────────────────────────────────────────────────
+// Ressoar não captura na hora: o Eco se parte em três ou quatro vozes soltas que saem
+// vagando pelo cenário. O jogador arrasta uma por uma com o dedo e as junta num ponto
+// qualquer da tela — quando todas se encostam, elas fundem num acorde e o som é seu.
+//
+// A ideia é a mesma da afinação antiga (é preciso ter mão), mas o gesto é arrastar e
+// não acertar um instante de 116 ms: no celular isso é a diferença entre um desafio e
+// um sorteio. Quem junta rápido tira Fragmento Puro; quem demora demais vê tudo se
+// dispersar.
+const CAPTURA_LIMITE_MS = 14000;
+const RAIO_FUSAO = 40;      // distância entre as vozes para que elas se fundam
+const RAIO_PEGADA = 38;     // folga do dedo para agarrar uma voz
+const CORES_DAS_VOZES = ['#7dd3fc', '#fde68a', '#c4b5fd', '#86efac'];
+
 function ressoar() {
-  if (capturaAtiva) return;                 // ritual já em andamento
+  if (capturaAtiva) return;
   const m = ecoProntoPerto();
   if (!m) return;
 
-  const colheita = colheitaDoEco(m);
+  const def = monsterDef(m);
+  const af = derivedStats().captura / 100;    // Afinação: mais tempo, vozes mais mansas
+  const vozes = (def.hp ?? 40) >= 60 ? 4 : 3;
+  const b = monsterBounds(m);
+  const cx = m.x, cy = m.y - b.h * 0.45;
+
+  const orbes = [];
+  for (let i = 0; i < vozes; i++) {
+    const ang = (Math.PI * 2 * i) / vozes + Math.random() * 0.5;
+    const raio = 78 + Math.random() * 26;
+    const v = 0.42 * (1 - af * 0.45);
+    orbes.push({
+      x: Math.max(40, Math.min(SCREEN_W - 40, cx + Math.cos(ang) * raio)),
+      y: Math.max(50, Math.min(SCREEN_H - 50, cy + Math.sin(ang) * raio * 0.7)),
+      vx: Math.cos(ang) * v, vy: Math.sin(ang) * v * 0.7,
+      cor: CORES_DAS_VOZES[i % CORES_DAS_VOZES.length],
+      fase: Math.random() * Math.PI * 2,
+      pega: false,
+    });
+  }
+
   m.pronto = false;
-  capturaAtiva = { m, inicio: performance.now(), ...colheita };
-  playerLocked = true;                      // o ritual é um momento, não um combate
-  playForgeDone();
+  capturaAtiva = {
+    m, fase: 'juntar', inicio: performance.now(),
+    limite: CAPTURA_LIMITE_MS * (1 + af * 0.5),
+    raioFusao: RAIO_FUSAO * (1 + af * 0.4),
+    orbes, arrastando: null,
+  };
+  playerLocked = true;         // as duas mãos são do minijogo agora
+  playForgeHit();
+  showToast('✧ O Eco se partiu — junte as vozes num ponto só.');
+}
+
+// Onde as vozes estão, em média, e o quanto estão espalhadas.
+function centroDasVozes(orbes) {
+  const cx = orbes.reduce((a, o) => a + o.x, 0) / orbes.length;
+  const cy = orbes.reduce((a, o) => a + o.y, 0) / orbes.length;
+  const raio = Math.max(...orbes.map(o => Math.hypot(o.x - cx, o.y - cy)));
+  return { cx, cy, raio };
 }
 
 function atualizarCaptura(now) {
   if (!capturaAtiva) return;
   const c = capturaAtiva;
+
+  if (c.fase === 'juntar') {
+    const t = now - c.inicio;
+    if (t > c.limite) { dispersarCaptura(); return; }
+
+    c.orbes.forEach(o => {
+      o.fase += 0.05;
+      if (o === c.arrastando) return;                 // na mão do jogador: não vagueia
+      o.x += o.vx; o.y += o.vy;
+      // Bate nas beiradas e volta, senão a voz foge da tela e a captura fica impossível.
+      if (o.x < 34 || o.x > SCREEN_W - 34) { o.vx *= -1; o.x = Math.max(34, Math.min(SCREEN_W - 34, o.x)); }
+      if (o.y < 46 || o.y > SCREEN_H - 46) { o.vy *= -1; o.y = Math.max(46, Math.min(SCREEN_H - 46, o.y)); }
+    });
+
+    const { cx, cy, raio } = centroDasVozes(c.orbes);
+    if (raio <= c.raioFusao) fundirVozes(cx, cy, now);
+    return;
+  }
+
+  // fase do ritual: só espera a animação terminar
   if (now - c.inicio < RITUAL_MS) return;
 
-  // Fim do ritual: o Eco se desfaz, os itens entram na bolsa e a tela de revelação
-  // conta ao jogador o que ele acabou de arrancar do silêncio.
   const m = c.m;
   m.dead = true; m.hp = 0; m.pronto = false; m.respawnAt = now + 12000;
   c.itens.forEach(i => receberDaCaptura(i.id, i.n));
   grantXp(c.xp);
   savePlayerData();
   updateInventorySlotsUI?.();
-  const itens = c.itens, silenciado = c.silenciado;
+  const itens = c.itens, silenciado = c.silenciado, qualidade = c.qualidade;
   capturaAtiva = null;
   playerLocked = false;
-  mostrarRevelacaoDaCaptura(itens, silenciado);
+  mostrarRevelacaoDaCaptura(itens, silenciado, qualidade);
+}
+
+// As vozes se encontraram: vira acorde, e a pressa do jogador vira qualidade.
+function fundirVozes(cx, cy, now) {
+  const c = capturaAtiva;
+  const usado = (now - c.inicio) / c.limite;
+  // Rápido rende som limpo. A curva é generosa no começo: até um terço do tempo ainda
+  // conta como captura perfeita.
+  const nota = Math.max(0, Math.min(1, 1 - (usado - 0.33) / 0.67));
+  const colheita = colheitaDoEco(c.m, nota);
+
+  capturaAtiva = {
+    m: c.m, fase: 'ritual', inicio: now, focoX: cx, focoY: cy,
+    qualidade: nota, ...colheita,
+  };
+  playerLocked = true;
+  playForgeDone();
+}
+
+function dispersarCaptura() {
+  const m = capturaAtiva.m;
+  capturaAtiva = null;
+  playerLocked = false;
+  m.dead = true; m.hp = 0; m.pronto = false; m.respawnAt = performance.now() + 12000;
+  addFloater(m.x, m.y - 50, '♪ dispersou ♪', '#94a3b8');
+  showToast('✧ As vozes se perderam. Junte-as mais rápido da próxima vez.');
+}
+
+// ── Arrastar as vozes ────────────────────────────────────────────────────────────
+// Chamados pelos eventos de ponteiro do canvas, que já valem para dedo e para mouse.
+function pegarVoz(mx, my) {
+  if (!capturaAtiva || capturaAtiva.fase !== 'juntar') return false;
+  let alvo = null, menor = RAIO_PEGADA;
+  capturaAtiva.orbes.forEach(o => {
+    const d = Math.hypot(o.x - mx, o.y - my);
+    if (d < menor) { alvo = o; menor = d; }
+  });
+  if (!alvo) return false;
+  capturaAtiva.arrastando = alvo;
+  alvo.pega = true;
+  playStep(false);
+  return true;
+}
+
+function arrastarVoz(mx, my) {
+  const c = capturaAtiva;
+  if (!c || c.fase !== 'juntar' || !c.arrastando) return;
+  c.arrastando.x = Math.max(34, Math.min(SCREEN_W - 34, mx));
+  c.arrastando.y = Math.max(46, Math.min(SCREEN_H - 46, my));
+}
+
+function soltarVoz() {
+  const c = capturaAtiva;
+  if (!c || !c.arrastando) return;
+  // Solta parada: sem isto ela dispara de volta com a velocidade antiga e desfaz o
+  // trabalho de quem acabou de posicioná-la.
+  c.arrastando.vx *= 0.25; c.arrastando.vy *= 0.25;
+  c.arrastando.pega = false;
+  c.arrastando = null;
 }
 
 function soltarItem(item, m, now) {
@@ -4387,7 +4589,7 @@ function getM(e){
 }
 
 function onPointerDown(m){
-  if (isPlayMode && capturaAtiva) return;                  // ritual rodando
+  if (isPlayMode && capturaAtiva) { pegarVoz(m.x, m.y); return; }
   if (isPlayMode && ecoProntoPerto()) { ressoar(); return; }
   if (avancarCena()) return;      // uma cena em curso consome o toque
   // An open dialogue owns the pointer whatever the editor mode is — otherwise the
@@ -4443,6 +4645,7 @@ function onPointerDown(m){
 }
 
 function onPointerMove(m){
+  if(capturaAtiva&&capturaAtiva.arrastando){arrastarVoz(m.x,m.y);return;}
   if(engineMode==='worldmap'&&wvDragKey){wvDragMouse={...m};}
   if(engineMode==='scene'&&!isPlayMode&&dragMonster){
     dragMonster.x=Math.round(Math.max(0,Math.min(SCREEN_W,m.x-dragOffX)));
@@ -4468,6 +4671,7 @@ function onPointerMove(m){
 }
 
 function onPointerUp(){
+  if(capturaAtiva&&capturaAtiva.arrastando){soltarVoz();return;}
   const m={x:mouseCanvasX,y:mouseCanvasY}; // touchend carries no coords — use the last known
   if(engineMode==='worldmap'&&wvDragKey){
     const cell=getCell(m.x,m.y);
