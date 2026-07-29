@@ -45,6 +45,8 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
             self._save_monsters(data)
         elif self.path == '/save_objects':
             self._save_objects(data)
+        elif self.path == '/save_mundo':
+            self._save_mundo(data)
         elif self.path == '/save_dialogue':
             self._save_dialogue(data)
         elif self.path == '/upload_image':
@@ -183,6 +185,21 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
             self._ok({'status': 'ok', 'count': count})
         except Exception as e:
             print(f"[Server] Error saving objects: {e}")
+            self.send_error(500, str(e))
+
+    def _save_mundo(self, data):
+        try:
+            pasta = os.path.join(DIRECTORY, 'assets', 'mundo')
+            os.makedirs(os.path.join(pasta, 'chunks'), exist_ok=True)
+            path = os.path.join(pasta, 'mundo.json')
+            self._backup(path)
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            print(f"[Server] Mundo saved: {len(data.get('props', []))} prop(s), "
+                  f"{data.get('cols')}x{data.get('rows')} blocos.")
+            self._ok({'status': 'ok'})
+        except Exception as e:
+            print(f"[Server] Error saving mundo: {e}")
             self.send_error(500, str(e))
 
     def _save_dialogue(self, data):

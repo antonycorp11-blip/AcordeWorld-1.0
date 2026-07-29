@@ -31,7 +31,7 @@ IDS_EDITOR = [
 ]
 
 # Pastas e arquivos de assets que o jogo realmente carrega.
-ASSETS_INCLUIR = ['cutscenes', 'dialogues', 'icons', 'monsters', 'props', 'quests', 'skins']
+ASSETS_INCLUIR = ['cutscenes', 'dialogues', 'icons', 'monsters', 'mundo', 'props', 'quests', 'skins']
 EXT_ASSET = {'.jpg', '.jpeg', '.png', '.mp4', '.json', '.webp', '.ogg', '.mp3'}
 
 # Referências que existem no código mas cujo arquivo pode não estar na pasta.

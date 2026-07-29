@@ -25,5 +25,33 @@
       "colide": false
     }
   },
-  "objetos": []
+  "objetos": [
+    {
+      "id": "pedra_placeholder_1785368050376",
+      "prop": "pedra_placeholder",
+      "mapKey": "0_1",
+      "x": 531,
+      "y": 361,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "pedra_placeholder_1785368052306",
+      "prop": "pedra_placeholder",
+      "mapKey": "0_1",
+      "x": 518,
+      "y": 347,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "pedra_placeholder_1785368092523",
+      "prop": "pedra_placeholder",
+      "mapKey": "0_1",
+      "x": 524,
+      "y": 360,
+      "escala": 1,
+      "flipX": false
+    }
+  ]
 }

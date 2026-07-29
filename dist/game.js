@@ -396,6 +396,7 @@ window.addEventListener('keydown', e => {
   if(k==='d'||k==='arrowright'){keys.d=true;keyD?.classList.add('active');}
   if(k==='e'){e.preventDefault();keyE?.classList.add('active');doAction();}
   if(e.key==='Shift')keys.shift=true;
+  if(e.key==='Escape'&&engineMode==='mundo'&&mundoTeste){e.preventDefault();mundoTestar(false);}
   if(e.key==='F5'){e.preventDefault();togglePlay();}
 });
 window.addEventListener('keyup', e => {
@@ -1779,6 +1780,370 @@ function talkTarget() {
     if(d<(npc.triggerRadius||90)&&d<bestD){best=npc;bestD=d;}
   }
   return best;
+}
+
+// ============================================================
+// CRIADOR DE MUNDO
+// Uma área separada do resto do motor, de propósito.
+//
+// O jogo de hoje é uma grade de fotos: cada cenário é uma imagem de 1024x571 e a
+// travessia acontece por placa. Isso funciona e continua funcionando — nada aqui mexe
+// nele. Este modo constrói a OUTRA coisa: um mundo contínuo, grande, feito de blocos de
+// chão que entram e saem da memória conforme o jogador caminha, povoado por objetos com
+// física própria.
+//
+// Por que blocos: uma imagem de 4096x2304 ocupa ~38 MB de RAM descomprimida, não
+// importa que o arquivo tenha 3 MB. Três dessas e o navegador de um celular mata a aba.
+// Em blocos de 1024x571 (~2,3 MB cada), a memória fica constante — dez blocos por vez,
+// independente de o mundo ter 12 ou 1200.
+// ============================================================
+let MUNDO = {
+  nome: 'Mundo Novo',
+  bloco: { w: 1024, h: 571 },
+  cols: 4, rows: 3,
+  blocos: {},                 // "col_row" -> caminho da imagem do chão
+  props: [],                  // instâncias em COORDENADA DE MUNDO, não de tela
+  spawn: { x: 512, y: 400 },
+};
+let mundoCam = { x: 0, y: 0, zoom: 1 };
+let mundoTeste = false;         // andando pelo mundo em vez de editando
+let mundoFerramenta = 'mover';  // 'mover' | 'plantar' | 'selecionar'
+let mundoPropSel = null, mundoArrastando = null, mundoPan = null;
+const mundoBlocos = {};         // "col_row" -> { img, ultimoUso }
+
+function mundoLargura() { return MUNDO.cols * MUNDO.bloco.w; }
+function mundoAltura()  { return MUNDO.rows * MUNDO.bloco.h; }
+
+async function loadMundo() {
+  try {
+    const r = await fetch(`assets/mundo/mundo.json?t=${Date.now()}`);
+    if (r.ok) {
+      const d = await r.json();
+      MUNDO = { ...MUNDO, ...d };
+      MUNDO.props = (d.props || []).map(p => ({ ...p, escala: p.escala || 1 }));
+    }
+  } catch (e) {}
+}
+
+async function saveMundo() {
+  if (IS_PLAY_BUILD) return;
+  const corpo = JSON.stringify({
+    nome: MUNDO.nome, bloco: MUNDO.bloco, cols: MUNDO.cols, rows: MUNDO.rows,
+    blocos: MUNDO.blocos, spawn: MUNDO.spawn,
+    props: MUNDO.props.map(p => ({
+      id: p.id, prop: p.prop, x: Math.round(p.x), y: Math.round(p.y),
+      escala: +(p.escala || 1).toFixed(2), flipX: !!p.flipX,
+    })),
+  });
+  try {
+    const r = await fetch('/save_mundo', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: corpo });
+    if (!r.ok) showToast(`⚠️ Servidor recusou o mundo (HTTP ${r.status}) — NÃO salvo`);
+    else showToast('🌍 Mundo salvo');
+  } catch (e) { showToast('⚠️ Mundo NÃO salvo: servidor fora do ar'); }
+}
+
+// ── Streaming dos blocos de chão ────────────────────────────────────────────────
+// Carrega o que está à vista mais uma borda de um bloco, e joga fora o que ficou longe.
+// A borda evita o pop-in: o bloco chega antes de entrar em cena.
+const MUNDO_MARGEM_BLOCOS = 1;
+const MUNDO_DESCARTE_MS = 8000;
+
+function mundoFaixaVisivel() {
+  const vw = SCREEN_W / mundoCam.zoom, vh = SCREEN_H / mundoCam.zoom;
+  const c0 = Math.floor(mundoCam.x / MUNDO.bloco.w) - MUNDO_MARGEM_BLOCOS;
+  const r0 = Math.floor(mundoCam.y / MUNDO.bloco.h) - MUNDO_MARGEM_BLOCOS;
+  const c1 = Math.floor((mundoCam.x + vw) / MUNDO.bloco.w) + MUNDO_MARGEM_BLOCOS;
+  const r1 = Math.floor((mundoCam.y + vh) / MUNDO.bloco.h) + MUNDO_MARGEM_BLOCOS;
+  return {
+    c0: Math.max(0, c0), r0: Math.max(0, r0),
+    c1: Math.min(MUNDO.cols - 1, c1), r1: Math.min(MUNDO.rows - 1, r1),
+  };
+}
+
+function mundoAtualizarBlocos(now) {
+  const f = mundoFaixaVisivel();
+  for (let c = f.c0; c <= f.c1; c++) {
+    for (let r = f.r0; r <= f.r1; r++) {
+      const k = `${c}_${r}`;
+      const caminho = MUNDO.blocos[k];
+      if (!caminho) continue;
+      if (!mundoBlocos[k]) {
+        const img = new Image();
+        img.src = caminho;
+        mundoBlocos[k] = { img, ultimoUso: now };
+      } else mundoBlocos[k].ultimoUso = now;
+    }
+  }
+  // Descarte: solta a referência e zera o src, que é o que devolve a memória de fato.
+  for (const k in mundoBlocos) {
+    if (now - mundoBlocos[k].ultimoUso < MUNDO_DESCARTE_MS) continue;
+    try { mundoBlocos[k].img.src = ''; } catch (e) {}
+    delete mundoBlocos[k];
+  }
+}
+
+// ── Props do mundo ──────────────────────────────────────────────────────────────
+function mundoPropBounds(p) {
+  const spr = propSprites[p.prop];
+  const def = propDefs[p.prop] || {};
+  const h = (def.altura || (spr ? spr.sh : 96)) * (p.escala || 1);
+  const w = spr ? h * (spr.sw / spr.sh) : h * 0.8;
+  return { x: p.x - w / 2, y: p.y - h * (def.pe ?? 0.9), w, h };
+}
+
+function mundoBloqueia(x, y) {
+  for (const p of MUNDO.props) {
+    const def = propDefs[p.prop] || {};
+    if (!def.colide || !def.raio) continue;
+    const r = def.raio * (p.escala || 1);
+    const dx = (x - p.x) / r, dy = (y - p.y) / (r * 0.55);
+    if (dx * dx + dy * dy < 1) return true;
+  }
+  return false;
+}
+
+function mundoPropEm(wx, wy) {
+  const lista = MUNDO.props.slice().sort((a, b) => b.y - a.y);
+  for (const p of lista) {
+    const b = mundoPropBounds(p);
+    if (wx >= b.x - 3 && wx <= b.x + b.w + 3 && wy >= b.y - 3 && wy <= b.y + b.h + 3) return p;
+  }
+  return null;
+}
+
+// Tela -> mundo. Todo clique passa por aqui: no editor a câmera se move livremente, e
+// sem esta conversão o objeto nasce onde o dedo tocou na TELA, não no mundo.
+function mundoDoPonteiro(m) {
+  return { x: mundoCam.x + m.x / mundoCam.zoom, y: mundoCam.y + m.y / mundoCam.zoom };
+}
+
+function mundoCentralizarEm(x, y) {
+  const vw = SCREEN_W / mundoCam.zoom, vh = SCREEN_H / mundoCam.zoom;
+  mundoCam.x = Math.max(0, Math.min(mundoLargura() - vw, x - vw / 2));
+  mundoCam.y = Math.max(0, Math.min(mundoAltura() - vh, y - vh / 2));
+}
+
+// ── Desenho ─────────────────────────────────────────────────────────────────────
+function renderMundo(now) {
+  mundoAtualizarBlocos(now);
+  if (mundoTeste) {
+    mundoMoverJogador();
+    mundoCentralizarEm(player.x, player.y);
+  }
+
+  ctx.save();
+  ctx.scale(mundoCam.zoom, mundoCam.zoom);
+  ctx.translate(-mundoCam.x, -mundoCam.y);
+
+  // chão
+  const f = mundoFaixaVisivel();
+  for (let c = f.c0; c <= f.c1; c++) {
+    for (let r = f.r0; r <= f.r1; r++) {
+      const k = `${c}_${r}`, bl = mundoBlocos[k];
+      const x = c * MUNDO.bloco.w, y = r * MUNDO.bloco.h;
+      if (bl?.img.complete && bl.img.naturalWidth) {
+        try { ctx.drawImage(bl.img, x, y, MUNDO.bloco.w, MUNDO.bloco.h); } catch (e) {}
+      } else if (!mundoTeste) {
+        // Bloco vazio ou ainda carregando: no editor mostra a moldura, para você saber
+        // que o espaço existe e onde ele começa.
+        ctx.save();
+        ctx.fillStyle = '#12100c';
+        ctx.fillRect(x, y, MUNDO.bloco.w, MUNDO.bloco.h);
+        ctx.strokeStyle = MUNDO.blocos[k] ? '#3f3a2a' : '#2a2620';
+        ctx.setLineDash([8, 6]); ctx.lineWidth = 2;
+        ctx.strokeRect(x + 1, y + 1, MUNDO.bloco.w - 2, MUNDO.bloco.h - 2);
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#5b5342';
+        ctx.font = 'bold 22px Outfit, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(MUNDO.blocos[k] ? 'carregando…' : `bloco ${k} vazio`,
+                     x + MUNDO.bloco.w / 2, y + MUNDO.bloco.h / 2);
+        ctx.restore();
+      }
+    }
+  }
+
+  // grade dos blocos, só no editor: é a régua do mundo
+  if (!mundoTeste) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(125,211,252,0.20)'; ctx.lineWidth = 1;
+    for (let c = 0; c <= MUNDO.cols; c++) {
+      const x = c * MUNDO.bloco.w;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, mundoAltura()); ctx.stroke();
+    }
+    for (let r = 0; r <= MUNDO.rows; r++) {
+      const y = r * MUNDO.bloco.h;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(mundoLargura(), y); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // props e jogador, ordenados pelo pé: é isto que faz passar atrás da árvore
+  const desenhaveis = MUNDO.props.map(p => ({ tipo: 'prop', y: p.y, p }));
+  if (mundoTeste) desenhaveis.push({ tipo: 'jogador', y: player.y });
+  desenhaveis.sort((a, b) => a.y - b.y);
+
+  desenhaveis.forEach(d => {
+    if (d.tipo === 'jogador') { renderPlayer(); return; }
+    const p = d.p, spr = propSprites[p.prop], b = mundoPropBounds(p);
+    if (!spr) {
+      if (!mundoTeste) {
+        ctx.save(); ctx.strokeStyle = '#f472b6'; ctx.setLineDash([4, 3]);
+        ctx.strokeRect(b.x, b.y, b.w, b.h); ctx.restore();
+      }
+      return;
+    }
+    ctx.save();
+    if (p.flipX) {
+      ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1);
+      ctx.drawImage(spr.canvas, 0, 0, b.w, b.h);
+    } else ctx.drawImage(spr.canvas, b.x, b.y, b.w, b.h);
+    ctx.restore();
+
+    if (!mundoTeste) {
+      const def = propDefs[p.prop] || {};
+      ctx.save();
+      if (def.colide && def.raio) {
+        const r = def.raio * (p.escala || 1);
+        ctx.strokeStyle = 'rgba(248,113,113,0.7)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * 0.55, 0, 0, Math.PI * 2); ctx.stroke();
+      }
+      if (mundoPropSel === p) {
+        ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+        ctx.strokeRect(b.x, b.y, b.w, b.h);
+      }
+      ctx.restore();
+    }
+  });
+
+  // marca do ponto de partida
+  if (!mundoTeste) {
+    ctx.save();
+    ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(MUNDO.spawn.x, MUNDO.spawn.y, 22, 10, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#4ade80'; ctx.font = 'bold 11px Outfit, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('PARTIDA', MUNDO.spawn.x, MUNDO.spawn.y - 16);
+    ctx.restore();
+  }
+
+  ctx.restore();
+  renderHudDoMundo();
+}
+
+function renderHudDoMundo() {
+  ctx.save();
+  ctx.font = 'bold 11px Outfit, sans-serif';
+  const txt = mundoTeste
+    ? `🌍 ${MUNDO.nome} — andando · ESC para voltar a editar`
+    : `🌍 ${MUNDO.nome} · ${mundoLargura()}x${mundoAltura()}px · ${MUNDO.props.length} objetos · ` +
+      `zoom ${mundoCam.zoom.toFixed(2)}x · ferramenta: ${mundoFerramenta}`;
+  const w = ctx.measureText(txt).width + 18;
+  ctx.fillStyle = 'rgba(6,9,14,0.85)';
+  ctx.fillRect(10, 10, w, 22);
+  ctx.fillStyle = '#e0f2fe'; ctx.textAlign = 'left';
+  ctx.fillText(txt, 19, 25);
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText(`blocos na memória: ${Object.keys(mundoBlocos).length}`, 19, 46);
+  ctx.restore();
+}
+
+// Movimento no mundo: mesmas teclas e mesmo joystick do jogo, só que sem os limites da
+// tela — quem limita agora é a borda do mundo.
+function mundoMoverJogador() {
+  let dx = 0, dy = 0;
+  if (keys.w) dy -= 1; if (keys.s) dy += 1;
+  if (keys.a) dx -= 1; if (keys.d) dx += 1;
+  if (stick.active) { dx = stick.x; dy = stick.y; }
+  const len = Math.hypot(dx, dy);
+  player.isMoving = len > 0.15;
+  if (!player.isMoving) { player.animFrame = 0; player.animTimer = 0; return; }
+
+  const sprint = keys.shift || len > 0.92;
+  const spd = (sprint ? player.sprintSpeed : player.speed) * Math.min(1, len);
+  dx /= len; dy /= len;
+  if (Math.abs(dx) > Math.abs(dy)) player.direction = dx < 0 ? 'left' : 'right';
+  else player.direction = dy < 0 ? 'up' : 'down';
+
+  const tx = player.x + dx * spd, ty = player.y + dy * spd;
+  const livre = (x, y) => x > 20 && y > 24 && x < mundoLargura() - 20 && y < mundoAltura() - 24
+                          && !mundoBloqueia(x, y);
+  if (livre(tx, ty)) { player.x = tx; player.y = ty; }
+  else if (livre(tx, player.y)) player.x = tx;
+  else if (livre(player.x, ty)) player.y = ty;
+
+  player.animTimer++;
+  if (player.animTimer >= (sprint ? 3 : 6)) {
+    player.animTimer = 0; player.animFrame = (player.animFrame + 1) % 4;
+  }
+}
+
+// ── Ponteiro no criador de mundo ────────────────────────────────────────────────
+function mundoPointerDown(m) {
+  const w = mundoDoPonteiro(m);
+  if (mundoFerramenta === 'plantar' && propParaColocar) {
+    const novo = { id: `${propParaColocar}_${Date.now()}`, prop: propParaColocar,
+                   x: Math.round(w.x), y: Math.round(w.y), escala: 1, flipX: false };
+    MUNDO.props.push(novo);
+    mundoPropSel = novo;
+    saveMundo();
+    return;
+  }
+  if (mundoFerramenta === 'partida') {
+    MUNDO.spawn = { x: Math.round(w.x), y: Math.round(w.y) };
+    saveMundo(); showToast('🚩 Ponto de partida movido');
+    return;
+  }
+  const p = mundoPropEm(w.x, w.y);
+  if (p && mundoFerramenta !== 'mover') {
+    mundoPropSel = p; mundoArrastando = p;
+    dragOffX = w.x - p.x; dragOffY = w.y - p.y;
+    return;
+  }
+  // Nada sob o dedo (ou ferramenta de mover): arrasta a câmera.
+  mundoPan = { telaX: m.x, telaY: m.y, camX: mundoCam.x, camY: mundoCam.y };
+  if (!p) mundoPropSel = null;
+}
+
+function mundoPointerMove(m) {
+  if (mundoArrastando) {
+    const w = mundoDoPonteiro(m);
+    mundoArrastando.x = Math.round(w.x - dragOffX);
+    mundoArrastando.y = Math.round(w.y - dragOffY);
+    return;
+  }
+  if (mundoPan) {
+    const vw = SCREEN_W / mundoCam.zoom, vh = SCREEN_H / mundoCam.zoom;
+    mundoCam.x = Math.max(0, Math.min(mundoLargura() - vw,
+      mundoPan.camX - (m.x - mundoPan.telaX) / mundoCam.zoom));
+    mundoCam.y = Math.max(0, Math.min(mundoAltura() - vh,
+      mundoPan.camY - (m.y - mundoPan.telaY) / mundoCam.zoom));
+  }
+}
+
+function mundoPointerUp() {
+  if (mundoArrastando) { saveMundo(); mundoArrastando = null; }
+  mundoPan = null;
+}
+
+function mundoZoom(delta) {
+  const antes = mundoCam.zoom;
+  mundoCam.zoom = Math.max(0.25, Math.min(3, mundoCam.zoom * (delta > 0 ? 0.9 : 1.1)));
+  // Mantém o centro da tela olhando para o mesmo ponto do mundo.
+  const vwA = SCREEN_W / antes, vhA = SCREEN_H / antes;
+  const vwD = SCREEN_W / mundoCam.zoom, vhD = SCREEN_H / mundoCam.zoom;
+  mundoCam.x = Math.max(0, Math.min(Math.max(0, mundoLargura() - vwD), mundoCam.x + (vwA - vwD) / 2));
+  mundoCam.y = Math.max(0, Math.min(Math.max(0, mundoAltura() - vhD), mundoCam.y + (vhA - vhD) / 2));
+}
+
+function mundoTestar(ligar) {
+  mundoTeste = ligar;
+  if (ligar) {
+    player.x = MUNDO.spawn.x; player.y = MUNDO.spawn.y;
+    player.oculto = false;
+    showToast('🌍 Andando pelo mundo — ESC para voltar a editar');
+  } else showToast('✏️ De volta ao editor de mundo');
+  document.getElementById('mundoTestarBtn')
+    ?.classList.toggle('ativo', ligar);
 }
 
 // ============================================================
@@ -4765,6 +5130,7 @@ function getM(e){
 }
 
 function onPointerDown(m){
+  if(engineMode==='mundo'){ if(!mundoTeste) mundoPointerDown(m); return; }
   if (isPlayMode && capturaAtiva) { pegarVoz(m.x, m.y); return; }
   if (isPlayMode && ecoProntoPerto()) { ressoar(); return; }
   if (avancarCena()) return;      // uma cena em curso consome o toque
@@ -4836,6 +5202,7 @@ function onPointerDown(m){
 }
 
 function onPointerMove(m){
+  if(engineMode==='mundo'){ if(!mundoTeste) mundoPointerMove(m); return; }
   if(capturaAtiva&&capturaAtiva.arrastando){arrastarVoz(m.x,m.y);return;}
   if(engineMode==='worldmap'&&wvDragKey){wvDragMouse={...m};}
   if(engineMode==='scene'&&!isPlayMode&&arrastandoObjeto){
@@ -4867,6 +5234,7 @@ function onPointerMove(m){
 }
 
 function onPointerUp(){
+  if(engineMode==='mundo'){ mundoPointerUp(); return; }
   if(capturaAtiva&&capturaAtiva.arrastando){soltarVoz();return;}
   const m={x:mouseCanvasX,y:mouseCanvasY}; // touchend carries no coords — use the last known
   if(engineMode==='worldmap'&&wvDragKey){
@@ -7072,6 +7440,8 @@ function setMode(mode){
   // O Mapa-Múndi tem área própria: troca o palco do jogo pelo editor de mundo em vez
   // de desenhar por cima dele.
   weMostrar(mode==='worldmap');
+  document.getElementById('mundoToolsGroup')?.style.setProperty('display',mode==='mundo'?'':'none');
+  if(mode==='mundo'){ mundoTeste=false; renderPaletaDeProps(); }
   // Show/hide tool groups
   document.getElementById('sceneToolsGroup')?.style.setProperty('display',mode==='scene'?'':'none');
   document.getElementById('collisionToolsGroup')?.style.setProperty('display',mode==='collision'?'':'none');
@@ -7285,6 +7655,15 @@ function loop(now){
   ctx.save();
   ctx.scale(dpr, dpr);
   ctx.clearRect(0,0,SCREEN_W,SCREEN_H);ctx.imageSmoothingEnabled=false;
+
+  // O criador de mundo é uma área própria: desenha e sai. Isolar assim garante que
+  // nenhuma linha do jogo antigo (grade de fotos, placas, cenas) seja afetada.
+  if (engineMode === 'mundo') {
+    renderMundo(now);
+    ctx.restore();
+    frameCount++;
+    return;
+  }
   const camOn = isPlayMode && forcaDoDestaque(now) > 0.001;
   if (camOn) { ctx.save(); aplicarCameraDeDestaque(now); }
 
@@ -7802,6 +8181,7 @@ function initMegaWorldControls() {
   // Mouse Wheel Zoom directly on canvas!
   if (canvas) {
     canvas.addEventListener('wheel', (e) => {
+      if (engineMode === 'mundo') { e.preventDefault(); mundoZoom(e.deltaY); return; }
       if (currentKey !== 'mega_world' && activeMapSelect?.value !== 'mega_world') return;
       e.preventDefault();
       const delta = e.deltaY < 0 ? 0.15 : -0.15;
@@ -8188,7 +8568,7 @@ window.testQuest = function(idx) {
 };
 
 async function finishInit(){
-  await loadWorldConfig();await loadLayers();await loadNPCs();await loadQuests();await loadShopCatalog();await loadMonsters();await loadObjetos();await loadSkillTree();
+  await loadWorldConfig();await loadLayers();await loadNPCs();await loadQuests();await loadShopCatalog();await loadMonsters();await loadObjetos();await loadMundo();await loadSkillTree();
   refreshMapSelect();
   renderQuestBuilderList();
   // A paleta de props precisa de duas passadas: uma agora, com o catálogo já lido, e
@@ -9306,6 +9686,53 @@ function initForgeUI() {
   });
   document.getElementById('pecaTom')?.addEventListener('click', () => colocarIntervalo('T'));
   document.getElementById('pecaSemitom')?.addEventListener('click', () => colocarIntervalo('S'));
+
+  // ── Criador de mundo ──────────────────────────────────────────────────────────
+  const marcarFerramenta = () => {
+    const mapa = { mover:'mundoFerrMover', plantar:'mundoFerrPlantar',
+                   selecionar:'mundoFerrSel', partida:'mundoFerrPartida' };
+    Object.entries(mapa).forEach(([f, id]) =>
+      document.getElementById(id)?.classList.toggle('ativo', mundoFerramenta === f));
+  };
+  const usarFerramenta = f => {
+    mundoFerramenta = f; marcarFerramenta();
+    if (f === 'plantar' && !propParaColocar)
+      showToast('🌲 Escolha um prop na aba Objetos primeiro');
+  };
+  document.getElementById('mundoFerrMover')?.addEventListener('click', () => usarFerramenta('mover'));
+  document.getElementById('mundoFerrPlantar')?.addEventListener('click', () => usarFerramenta('plantar'));
+  document.getElementById('mundoFerrSel')?.addEventListener('click', () => usarFerramenta('selecionar'));
+  document.getElementById('mundoFerrPartida')?.addEventListener('click', () => usarFerramenta('partida'));
+  document.getElementById('mundoTestarBtn')?.addEventListener('click', () => mundoTestar(!mundoTeste));
+  document.getElementById('mundoSalvarBtn')?.addEventListener('click', saveMundo);
+
+  const atualizarTamanhoDoMundo = () => {
+    const el = document.getElementById('mundoTamanho');
+    if (el) el.textContent =
+      `${mundoLargura()} x ${mundoAltura()} px · ${MUNDO.cols * MUNDO.rows} blocos`;
+  };
+  ['mundoCols','mundoRows'].forEach(id => document.getElementById(id)?.addEventListener('change', e => {
+    const v = Math.max(1, Math.min(40, parseInt(e.target.value, 10) || 1));
+    if (id === 'mundoCols') MUNDO.cols = v; else MUNDO.rows = v;
+    e.target.value = v;
+    atualizarTamanhoDoMundo(); saveMundo();
+  }));
+  setTimeout(() => {
+    const c = document.getElementById('mundoCols'); if (c) c.value = MUNDO.cols;
+    const r = document.getElementById('mundoRows'); if (r) r.value = MUNDO.rows;
+    atualizarTamanhoDoMundo(); marcarFerramenta();
+  }, 500);
+
+  // Apagar objeto do mundo com Delete, que é o gesto de todo editor.
+  window.addEventListener('keydown', e => {
+    if (engineMode !== 'mundo' || mundoTeste || !mundoPropSel) return;
+    if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;
+    e.preventDefault();
+    MUNDO.props = MUNDO.props.filter(p => p !== mundoPropSel);
+    mundoPropSel = null; saveMundo();
+    showToast('🗑️ Objeto removido do mundo');
+  });
 
   // A aba Objetos redesenha a paleta ao abrir: garante a lista certa mesmo que os
   // sprites tenham chegado depois do carregamento, e atualiza a contagem do mapa atual.

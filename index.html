@@ -29,6 +29,7 @@
         <button class="mode-tab active" data-mode="scene">🎭 Cena</button>
         <button class="mode-tab" data-mode="collision">🛣️ Colisão</button>
         <button class="mode-tab" data-mode="worldmap">🗺️ Mapa-Múndi</button>
+        <button class="mode-tab mode-mundo" data-mode="mundo">🌍 Criar Mundo</button>
       </div>
     </div>
 
@@ -252,6 +253,33 @@
         </div>
 
         <!-- TAB: Elements Gallery -->
+        <div id="mundoToolsGroup" class="tool-group" style="display:none">
+          <h4>🌍 Criador de Mundo</h4>
+          <p class="hint">
+            Mundo contínuo, feito de blocos de chão que entram e saem da memória
+            conforme você caminha. Separado do jogo atual: nada aqui mexe nos cenários
+            que já existem.
+          </p>
+          <div class="insp-grid-sidebar">
+            <div class="insp-field"><label>Colunas</label><input type="number" id="mundoCols" class="insp-input" min="1" max="40" value="4"></div>
+            <div class="insp-field"><label>Linhas</label><input type="number" id="mundoRows" class="insp-input" min="1" max="40" value="3"></div>
+          </div>
+          <div id="mundoTamanho" class="hint" style="margin:2px 0 8px"></div>
+          <div class="tools-row" style="flex-wrap:wrap;gap:4px">
+            <button class="tool-pill" id="mundoFerrMover">✋ Mover</button>
+            <button class="tool-pill" id="mundoFerrPlantar">🌲 Plantar</button>
+            <button class="tool-pill" id="mundoFerrSel">⚙️ Selecionar</button>
+            <button class="tool-pill" id="mundoFerrPartida">🚩 Partida</button>
+          </div>
+          <button class="tool-pill save" id="mundoTestarBtn" style="width:100%;margin-top:6px">▶ Andar no mundo</button>
+          <button class="tool-pill" id="mundoSalvarBtn" style="width:100%;margin-top:4px">💾 Salvar mundo</button>
+          <p class="hint" style="margin-top:8px">
+            Roda do mouse dá zoom · arrastar move a câmera · ESC sai do modo andar.
+            Os blocos de chão vão em <code>assets/mundo/chunks/</code> com o nome
+            <code>coluna_linha.jpg</code>.
+          </p>
+        </div>
+
         <div id="btab-elements" class="btab-content hidden">
           <!-- Props de cenário: a decoração do mapa. Vive na mesma aba dos elementos
                funcionais porque o gesto é o mesmo — escolher e tocar no mapa. -->
