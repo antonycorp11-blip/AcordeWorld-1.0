@@ -3570,6 +3570,10 @@ body.mobile-play #gameCanvas {
    borrão ilegível — palavra curta lê melhor e parece feita de propósito. */
 .dw-aba {
   width: 30px; padding: 12px 0; cursor: pointer;
+  /* A palavra é escrita na vertical: quem manda na altura é o texto. Fixar altura
+     fazia "ATRIBUTOS" escorrer para fora do marcador de couro no celular. */
+  display: flex; align-items: center; justify-content: center;
+  min-height: 74px; overflow: hidden;
   border: 1px solid #4a2c10; border-right: none; border-radius: 7px 0 0 7px;
   background: linear-gradient(90deg, #7a4a1e, #a4682c);
   box-shadow: -3px 3px 9px rgba(0,0,0,.55), inset 1px 0 0 rgba(255,225,170,.25);
@@ -3635,8 +3639,10 @@ body.mobile-play #gameCanvas {
   .dw-titulo { font-size: 12px; }
   .dw-qtd { font-size: 9px; }
   .dw-f-nome { font-size: 11px; } .dw-f-desc { font-size: 9px; }
-  .dw-aba { width: 28px; height: 34px; font-size: 12px; }
-  .dw-abas { left: -28px; }
+  /* Sem `height` fixo: a altura sai do texto vertical, senão a palavra vaza da aba. */
+  .dw-aba { width: 26px; padding: 10px 0; min-height: 68px; }
+  .dw-aba span { font-size: 8.5px; letter-spacing: 1.4px; }
+  .dw-abas { left: -26px; top: 10%; gap: 5px; }
   .dw-attr-nome { font-size: 10px; } .dw-attr-desc { font-size: 7.5px; }
 }
 

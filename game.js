@@ -1984,13 +1984,16 @@ function updateMonsters(now) {
       if (m.x !== ax || m.y !== ay) m.andandoAte = now + 120;
     }
 
-    if (def.pacifico) return;   // criatura mansa: carrega clave, não ataca ninguém
-
     // Quem não está avançando sobre o jogador vive sua vida: passeia perto de casa.
+    // Isto vem ANTES do `return` dos pacíficos de propósito — são justamente eles, os
+    // bichos do mundo, que precisam de vida própria; deixá-los depois foi o que manteve
+    // o cenário inteiro de estátuas.
     const emPerseguicao = (m.persegue ?? def.persegue ?? false) && m.podePerseguir &&
                           dist < (def.aggroRange ?? 160);
     if (!emPerseguicao && now >= (m.atacandoAte || 0)) atualizarRotina(m, def, now);
     else m.rotina = null;      // volta ao passeio depois, com ritmo novo
+
+    if (def.pacifico) return;   // criatura mansa: carrega clave, não ataca ninguém
 
     // Empurrão suave entre monstros: dois nunca ocupam o mesmo ponto.
     monsters.forEach(o => {
@@ -2462,6 +2465,9 @@ function abrirEco(m, now) {
   capturaAtiva.largura = Math.max(0.08, 0.20 - (def.hp || 40) / 900) * (1 + af);
   playForgeHit();
   addFloater(m.x, m.y - 60, 'O ECO SE ABRE!', '#e0f2fe');
+  // No celular a barra fica pequena no meio do cenário: o aviso em texto é o que faz
+  // o jogador entender que aqueles dois segundos são dele.
+  showToast('🔔 O Eco se abriu — RESSOE dentro da faixa dourada!');
 }
 
 function atualizarCaptura(now) {
@@ -2659,17 +2665,12 @@ function updateDrops(now) {
     if (now - d.born > 45000) { dropItems.splice(i, 1); continue; } // despawn
     if (Math.hypot(player.x - d.x, player.y - d.y) < 34) {
       if (d.item === 'clave') {
-        if (claveCount >= claveCapacity()) {
-          if (now - lastFullToast > 4000) {
-            lastFullToast = now;
-            showToast(`🎒 Bolsa cheia (${claveCapacity()}) — aumente a Capacidade`);
-          }
-          continue; // leave it on the ground
-        }
+        // Clave é MOEDA, não item de mochila: paga síntese e selagem de escala, e o
+        // jogador vai juntar centenas. Teto de bolsa aqui só produzia "bolsa cheia" e
+        // drops apodrecendo no chão.
         dropItems.splice(i, 1);
         claveCount++;
         addFloater(player.x, player.y - player.height - 6, '+1 clave', '#fcd34d');
-        showToast(`🎼 Clave coletada! (${claveCount}/${claveCapacity()})`);
       } else {
         // Fragmentos, tons e semitons: itens de mochila, sem limite de claves.
         dropItems.splice(i, 1);
@@ -3943,14 +3944,16 @@ function renderHat(pW, pH) {
 // Ferramenta equipada na mão. Fica atrás do corpo quando o personagem anda para
 // cima (a mão está do outro lado), e acompanha o balanço da caminhada e dos golpes.
 const CATEGORIA_POR_SLOT = { hammer: 'hammers', axe: 'axes', pickaxe: 'pickaxes', ressonador: 'ressonadores' };
+// Mostra a ferramenta EM USO, não a primeira que estiver num slot. Varrer a lista em
+// ordem fixa deixava o martelo na mão para sempre assim que ele fosse forjado, mesmo
+// com machado e diapasão equipados.
 function ferramentaEmMaos() {
-  for (const slot of ['hammer', 'axe', 'pickaxe']) {
-    const id = equipped[slot];
-    if (!id) continue;
-    const def = CRAFTABLE_TOOLS.find(t => t.id === id);
-    if (def && toolSprites[`${def.category}_${def.tier}`]) return def;
-  }
-  return null;
+  const slot = equipped.activeTool;
+  if (!slot || !['hammer', 'axe', 'pickaxe'].includes(slot)) return null;
+  const id = equipped[slot];
+  if (!id) return null;
+  const def = CRAFTABLE_TOOLS.find(t => t.id === id);
+  return (def && toolSprites[`${def.category}_${def.tier}`]) ? def : null;
 }
 
 function renderFerramenta(now, pW, pH, atras) {
@@ -4497,7 +4500,7 @@ const ATTR_META = {
   afinacao: { icon:'♫',  name:'Afinação', desc:'Janela de captura maior · mais chance de Fragmento Puro' },
   folego:   { icon:'◉',  name:'Fôlego',   desc:'+6 de vida · feitiços recarregam mais rápido' },
   dinamica: { icon:'◈',  name:'Dinâmica', desc:'+3 de dano · +4% de dano nos feitiços' },
-  memoria:  { icon:'▤',  name:'Memória',  desc:'+10 de bolsa · notas custam menos fragmentos' },
+  memoria:  { icon:'▤',  name:'Memória',  desc:'notas custam menos fragmentos na síntese' },
 };
 
 function openChar() { charOpen = true; charTab = 'attrs'; playerLocked = true;
@@ -4556,7 +4559,7 @@ function renderAttrs() {
   sum.innerHTML =
     `<div class="attr-desc" style="line-height:1.8">` +
     `❤️ Vida ${b(s.maxHp)} &nbsp;·&nbsp; ⚔️ Dano ${b(s.dmg)} &nbsp;·&nbsp; ` +
-    `⚡ Ataque ${b('+' + s.atkSpeed + '%')} &nbsp;·&nbsp; 🎒 Bolsa ${b(claveCount + '/' + s.capacity)}<br>` +
+    `⚡ Ataque ${b('+' + s.atkSpeed + '%')} &nbsp;·&nbsp; 🪙 Síntese ${b('-' + s.desconto + '%')}<br>` +
     `🔨 Forja ${b('+' + s.forja + '%')} &nbsp;·&nbsp; 🔔 Captura ${b('+' + s.captura + '%')} &nbsp;·&nbsp; ` +
     `✦ Puro ${b('+' + s.puro + '%')} &nbsp;·&nbsp; 🎵 Síntese ${b('−' + s.desconto + '%')}<br>` +
     `✨ Feitiço ${b('+' + s.dmgMagia + '% dano')} &nbsp;·&nbsp; ⏳ Recarga ${b('−' + s.recarga + '%')}` +
@@ -6784,7 +6787,7 @@ function loop(now){
     touchAction?.classList.toggle('disabled', !act);
     playerHud?.classList.toggle('hidden', talking||shopOpen||inventoryOpen||charOpen);
     if(coinCount)coinCount.textContent=playerCoins;
-    if(claveCountEl)claveCountEl.textContent=`${claveCount}/${claveCapacity()}`;
+    if(claveCountEl)claveCountEl.textContent=`${claveCount}`;
     if(lvlNum)lvlNum.textContent=level;
     if(hpFill){
       const r=playerHp/playerMaxHp();
@@ -8060,7 +8063,7 @@ function itensDaBolsa() {
   push('fragmento', playerInventory.fragmento || 0);
   push('tom', playerInventory.tom || 0);
   push('semitom', playerInventory.semitom || 0);
-  push('clave', claveCount || 0);
+  // clave não entra aqui: é moeda, e já aparece na linha de moedas do drawer
   push('wood', playerInventory.wood || 0);
   push('stone', playerInventory.stone || 0);
   push('potions', playerInventory.potions || 0);
@@ -8082,6 +8085,7 @@ function equiparFerramenta(id) {
   const slot = Object.entries(CATEGORIA_POR_SLOT).find(([, cat]) => cat === t.category)?.[0];
   if (!slot) return false;
   equipped[slot] = id;
+  equipped.activeTool = slot;
   playerInventory[id] = 1;
   savePlayerData();
   showToast(`${t.icon} ${t.name} equipado`);
@@ -8322,7 +8326,7 @@ function renderAtributosNoDrawer() {
     `🔨 Forja ${b('+' + s.forja + '%')} · 🔔 Captura ${b('+' + s.captura + '%')}<br>` +
     `✦ Puro ${b('+' + s.puro + '%')} · 🎵 Síntese ${b('−' + s.desconto + '%')}<br>` +
     `✨ Feitiço ${b('+' + s.dmgMagia + '%')} · ⏳ Recarga ${b('−' + s.recarga + '%')}<br>` +
-    `🎒 Bolsa ${b(claveCount + '/' + s.capacity)}`;
+    `🪙 Síntese ${b('-' + s.desconto + '%')} de fragmentos`;
   lista.appendChild(res);
   painel.appendChild(lista);
 }
@@ -8941,6 +8945,9 @@ function completeForging(tool, qualidade = 'comum') {
   if (tool.category === 'pickaxes') equipped.pickaxe = tool.id;
   if (tool.category === 'hammers') equipped.hammer = tool.id;
   if (tool.category === 'ressonadores') equipped.ressonador = tool.id;
+  // Sai da bigorna com a peça na mão: é o momento em que o jogador quer vê-la.
+  equipped.activeTool = Object.entries(CATEGORIA_POR_SLOT)
+    .find(([, cat]) => cat === tool.category)?.[0] || equipped.activeTool;
   progressoDeMissao('forjar', tool.id);
   const q = QUALIDADES[qualidade];
   addFloater(player.x, player.y - 50, `✨ ${tool.name} ${q.selo}`, q.cor);
