@@ -2080,7 +2080,7 @@ function renderHudDoMundo() {
   ctx.save();
   ctx.font = 'bold 11px Outfit, sans-serif';
   const txt = mundoTeste
-    ? `🌍 ${MUNDO.nome} — andando · ESC para voltar a editar`
+    ? `🌍 ${MUNDO.nome} — MODO ANDAR · o editor está desligado · ESC para voltar a editar`
     : `🌍 ${MUNDO.nome} · ${mundoLargura()}x${mundoAltura()}px · ${MUNDO.props.length} objetos · ` +
       `zoom ${mundoCam.zoom.toFixed(2)}x · ` +
       (propParaColocar
@@ -2252,11 +2252,18 @@ function mundoPointerDown(m) {
     if (k) { mundoAlca = k; return; }
   }
 
-  if (propParaColocar && mundoFerramenta !== 'selecionar' && mundoFerramenta !== 'partida') {
+  if (propParaColocar && mundoFerramenta !== 'partida') {
     const novo = { id: `${propParaColocar}_${Date.now()}`, prop: propParaColocar,
                    x: Math.round(w.x), y: Math.round(w.y), ex: 1, ey: 1, rot: 0, flipX: false };
     MUNDO.props.push(novo);
+    // Planta UM e já entrega selecionado, com a caixa aberta: o gesto seguinte é sempre
+    // ajustar tamanho ou giro, não plantar outro. Para plantar de novo, toque na paleta.
     mundoPropSel = novo;
+    propParaColocar = null;
+    mundoFerramenta = 'selecionar';
+    renderPaletaDeProps();
+    document.getElementById('mundoFerrPlantar')?.classList.remove('ativo');
+    document.getElementById('mundoFerrSel')?.classList.add('ativo');
     saveMundo();
     return;
   }
@@ -5996,6 +6003,9 @@ function renderPaletaDeProps() {
       // Escolher na paleta JÁ arma o plantar. Exigir um segundo clique na ferramenta
       // fazia o toque no mapa não produzir nada, sem nenhuma pista do porquê.
       if (typeof engineMode !== 'undefined' && engineMode === 'mundo') {
+        // Se o modo de caminhada estava ligado, o editor ignorava TODO clique sem dizer
+        // nada — era isto que fazia "clico e não acontece nada".
+        if (mundoTeste) mundoTestar(false);
         mundoFerramenta = propParaColocar ? 'plantar' : 'mover';
         document.getElementById('mundoFerrPlantar')?.classList.toggle('ativo', !!propParaColocar);
         document.getElementById('mundoFerrMover')?.classList.toggle('ativo', !propParaColocar);

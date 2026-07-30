@@ -86,8 +86,14 @@ def main():
     COLS, ROWS = cfg['cols'], cfg['rows']
     H = ROWS * BH
 
-    clara = equilibrar(Image.open(CLARA).convert('RGB'))
-    escura = equilibrar(Image.open(ESCURA).convert('RGB'), (52, 74, 36))
+    # A textura é pixel art de 1024px: ladrilhada em tamanho natural, cada "pixel" dela
+    # fica gigante no mapa e o chão parece grosseiro. Reduzida, o grão cai na escala do
+    # personagem e a superfície fica lisa — mesmo tratamento que a laje precisou.
+    def fina(im, div=3):
+        return im.resize((im.width // div, im.height // div), Image.LANCZOS)
+
+    clara = fina(equilibrar(Image.open(CLARA).convert('RGB')))
+    escura = fina(equilibrar(Image.open(ESCURA).convert('RGB'), (52, 74, 36)))
     terra = Image.open('assets/texturas/terra_1.jpg').convert('RGB')
 
     # A estrada passa a ser TERRENO, pintada no chão, e não uma fila de peças. Peça de
