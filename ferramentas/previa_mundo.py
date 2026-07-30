@@ -17,15 +17,27 @@ def render(destino_geral, recortes=()):
         if p not in cache: cache[p]=Image.open(cat[p]['sprite']).convert('RGBA')
         return cache[p]
     def desenha(p):
-        d=cat[p['prop']]; im=spr(p['prop']); e=p.get('escala',1)
-        if d.get('plano')=='chao':
-            w,h=im.width*e, im.height*e; x,y=p['x']-w/2, p['y']-h/2
-        else:
-            h=d.get('altura',im.height)*e; w=h*im.width/im.height
-            x,y=p['x']-w/2, p['y']-h*d.get('pe',.9)
+        # Espelho, escala por eixo e giro em torno do PÉ — a mesma conta do motor, para
+        # a prévia não mentir sobre o que o jogo mostra.
+        import math
+        d=cat[p['prop']]; im=spr(p['prop'])
+        ex=p.get('ex', p.get('escala',1)); ey=p.get('ey', p.get('escala',1))
+        hb=d.get('altura', im.height)
+        h=hb*ey; w=hb*(im.width/im.height)*ex
+        pe = .5 if d.get('plano')=='chao' else d.get('pe',.9)
         im2=im.resize((max(1,int(w)),max(1,int(h))), Image.LANCZOS)
         if p.get('flipX'): im2=im2.transpose(Image.FLIP_LEFT_RIGHT)
-        tela.paste(im2,(int(x),int(y)),im2)
+        rot=p.get('rot',0)
+        ancora=(w/2, h*pe)                       # o pé, dentro do sprite
+        if rot:
+            g=math.degrees(rot)
+            grande=im2.rotate(-g, expand=True, resample=Image.BICUBIC)
+            c=math.cos(-rot); sn=math.sin(-rot)
+            ax=ancora[0]-w/2; ay=ancora[1]-h/2
+            nx=ax*c-ay*sn + grande.width/2
+            ny=ax*sn+ay*c + grande.height/2
+            im2=grande; ancora=(nx,ny)
+        tela.paste(im2,(int(p['x']-ancora[0]), int(p['y']-ancora[1])), im2)
     ps=mundo['props']
     for p in ps:
         if cat[p['prop']].get('plano')=='chao': desenha(p)

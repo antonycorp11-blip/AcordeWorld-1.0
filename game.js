@@ -1808,7 +1808,7 @@ let MUNDO = {
 let mundoCam = { x: 0, y: 0, zoom: 1 };
 let mundoTeste = false;         // andando pelo mundo em vez de editando
 let mundoFerramenta = 'mover';  // 'mover' | 'plantar' | 'selecionar'
-let mundoPropSel = null, mundoArrastando = null, mundoPan = null;
+let mundoPropSel = null, mundoArrastando = null, mundoPan = null, mundoAlca = null;
 const mundoBlocos = {};         // "col_row" -> { img, ultimoUso }
 
 function mundoLargura() { return MUNDO.cols * MUNDO.bloco.w; }
@@ -1820,7 +1820,10 @@ async function loadMundo() {
     if (r.ok) {
       const d = await r.json();
       MUNDO = { ...MUNDO, ...d };
-      MUNDO.props = (d.props || []).map(p => ({ ...p, escala: p.escala || 1 }));
+      // Aceita o formato antigo (escala única) e o novo (escala por eixo mais giro).
+      MUNDO.props = (d.props || []).map(p => ({
+        ...p, ex: p.ex ?? p.escala ?? 1, ey: p.ey ?? p.escala ?? 1, rot: p.rot || 0,
+      }));
     }
   } catch (e) {}
 }
@@ -1832,7 +1835,8 @@ async function saveMundo() {
     blocos: MUNDO.blocos, spawn: MUNDO.spawn,
     props: MUNDO.props.map(p => ({
       id: p.id, prop: p.prop, x: Math.round(p.x), y: Math.round(p.y),
-      escala: +(p.escala || 1).toFixed(2), flipX: !!p.flipX,
+      ex: +escX(p).toFixed(3), ey: +escY(p).toFixed(3),
+      rot: +((p.rot || 0).toFixed(4)), flipX: !!p.flipX,
     })),
   });
   try {
@@ -1884,23 +1888,50 @@ function mundoAtualizarBlocos(now) {
 }
 
 // ── Props do mundo ──────────────────────────────────────────────────────────────
+// Escala em dois eixos e ângulo próprios. Esticar num eixo só é o que faz uma peça
+// desenhada em 3/4 — muralha, cerca, calçada — encostar na vizinha: sem isso ela só
+// cresce na diagonal e nunca fecha a linha.
+function escX(p) { return p.ex ?? p.escala ?? 1; }
+function escY(p) { return p.ey ?? p.escala ?? 1; }
+
 function mundoPropBounds(p) {
   const spr = propSprites[p.prop];
   const def = propDefs[p.prop] || {};
-  const h = (def.altura || (spr ? spr.sh : 96)) * (p.escala || 1);
-  const w = spr ? h * (spr.sw / spr.sh) : h * 0.8;
+  const hBase = def.altura || (spr ? spr.sh : 96);
+  const h = hBase * escY(p);
+  const w = (spr ? hBase * (spr.sw / spr.sh) : hBase * 0.8) * escX(p);
   // Peça de chão é centrada no ponto onde você clicou; objeto é ancorado pelo pé.
   if (def.plano === 'chao') return { x: p.x - w / 2, y: p.y - h / 2, w, h };
   return { x: p.x - w / 2, y: p.y - h * (def.pe ?? 0.9), w, h };
+}
+
+// Desenha um prop já com espelho, giro e escala aplicados. O giro acontece em torno do
+// PÉ, não do centro: girar pelo centro faz o objeto sair do chão e flutuar.
+function desenharProp(spr, p, b) {
+  const rot = p.rot || 0;
+  ctx.save();
+  if (rot) { ctx.translate(p.x, p.y); ctx.rotate(rot); ctx.translate(-p.x, -p.y); }
+  if (p.flipX) {
+    ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1);
+    ctx.drawImage(spr.canvas, 0, 0, b.w, b.h);
+  } else ctx.drawImage(spr.canvas, b.x, b.y, b.w, b.h);
+  ctx.restore();
 }
 
 function mundoBloqueia(x, y) {
   for (const p of MUNDO.props) {
     const def = propDefs[p.prop] || {};
     if (!def.colide || !def.raio) continue;
-    const r = def.raio * (p.escala || 1);
-    const dx = (x - p.x) / r, dy = (y - p.y) / (r * 0.55);
-    if (dx * dx + dy * dy < 1) return true;
+    // A elipse de colisão acompanha o que você fez com o objeto: estica com a escala
+    // de cada eixo e gira junto. Uma muralha esticada bloqueia o comprimento inteiro.
+    let dx = x - p.x, dy = y - p.y;
+    const rot = p.rot || 0;
+    if (rot) {
+      const c = Math.cos(-rot), s = Math.sin(-rot);
+      [dx, dy] = [dx * c - dy * s, dx * s + dy * c];
+    }
+    const rx = def.raio * escX(p), ry = def.raio * 0.55 * escY(p);
+    if ((dx / rx) ** 2 + (dy / ry) ** 2 < 1) return true;
   }
   return false;
 }
@@ -1908,8 +1939,16 @@ function mundoBloqueia(x, y) {
 function mundoPropEm(wx, wy) {
   const lista = MUNDO.props.slice().sort((a, b) => b.y - a.y);
   for (const p of lista) {
+    // Desfaz o giro no ponto do dedo em vez de girar o retângulo: uma conta em vez de
+    // quatro, e o teste continua sendo o de caixa simples.
+    let x = wx, y = wy;
+    if (p.rot) {
+      const c = Math.cos(-p.rot), s = Math.sin(-p.rot);
+      const dx = wx - p.x, dy = wy - p.y;
+      x = p.x + dx * c - dy * s; y = p.y + dx * s + dy * c;
+    }
     const b = mundoPropBounds(p);
-    if (wx >= b.x - 3 && wx <= b.x + b.w + 3 && wy >= b.y - 3 && wy <= b.y + b.h + 3) return p;
+    if (x >= b.x - 3 && x <= b.x + b.w + 3 && y >= b.y - 3 && y <= b.y + b.h + 3) return p;
   }
   return null;
 }
@@ -1986,11 +2025,7 @@ function renderMundo(now) {
   MUNDO.props.forEach(p => {
     if ((propDefs[p.prop] || {}).plano !== 'chao') return;
     const spr = propSprites[p.prop]; if (!spr) return;
-    const b = mundoPropBounds(p);
-    ctx.save();
-    if (p.flipX) { ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1); ctx.drawImage(spr.canvas, 0, 0, b.w, b.h); }
-    else ctx.drawImage(spr.canvas, b.x, b.y, b.w, b.h);
-    ctx.restore();
+    desenharProp(spr, p, mundoPropBounds(p));
   });
 
   // props e jogador, ordenados pelo pé: é isto que faz passar atrás da árvore
@@ -2010,26 +2045,20 @@ function renderMundo(now) {
       }
       return;
     }
-    ctx.save();
-    if (p.flipX) {
-      ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1);
-      ctx.drawImage(spr.canvas, 0, 0, b.w, b.h);
-    } else ctx.drawImage(spr.canvas, b.x, b.y, b.w, b.h);
-    ctx.restore();
+    desenharProp(spr, p, b);
 
     if (!mundoTeste) {
       const def = propDefs[p.prop] || {};
       ctx.save();
       if (def.colide && def.raio) {
-        const r = def.raio * (p.escala || 1);
         ctx.strokeStyle = 'rgba(248,113,113,0.7)'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * 0.55, 0, 0, Math.PI * 2); ctx.stroke();
-      }
-      if (mundoPropSel === p) {
-        ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
-        ctx.strokeRect(b.x, b.y, b.w, b.h);
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, def.raio * escX(p), def.raio * 0.55 * escY(p),
+                    p.rot || 0, 0, Math.PI * 2);
+        ctx.stroke();
       }
       ctx.restore();
+      if (mundoPropSel === p) renderCaixaDeSelecao(p, b);
     }
   });
 
@@ -2062,6 +2091,121 @@ function renderHudDoMundo() {
   ctx.fillStyle = '#94a3b8';
   ctx.fillText(`blocos na memória: ${Object.keys(mundoBlocos).length}`, 19, 46);
   ctx.restore();
+}
+
+// ── Caixa de seleção ────────────────────────────────────────────────────────────
+// Oito alças e um cabo de giro, como em editor de imagem: canto escala junto, lado
+// estica num eixo só (é assim que muralha e cerca encostam na vizinha), e o cabo de
+// cima gira. Tudo em torno do PÉ do objeto, para ele nunca sair do chão.
+const ALCA = 9;          // meio-lado da alça, em pixels de mundo (dividido pelo zoom)
+const CABO_GIRO = 42;
+
+function cantosDaCaixa(p) {
+  const b = mundoPropBounds(p);
+  const pts = {
+    no: [b.x, b.y], n: [b.x + b.w / 2, b.y], ne: [b.x + b.w, b.y],
+    o: [b.x, b.y + b.h / 2], e: [b.x + b.w, b.y + b.h / 2],
+    so: [b.x, b.y + b.h], s: [b.x + b.w / 2, b.y + b.h], se: [b.x + b.w, b.y + b.h],
+    giro: [b.x + b.w / 2, b.y - CABO_GIRO / (mundoCam.zoom || 1)],
+  };
+  if (p.rot) {                       // as alças giram junto com o objeto
+    const c = Math.cos(p.rot), sn = Math.sin(p.rot);
+    for (const k in pts) {
+      const dx = pts[k][0] - p.x, dy = pts[k][1] - p.y;
+      pts[k] = [p.x + dx * c - dy * sn, p.y + dx * sn + dy * c];
+    }
+  }
+  return { b, pts };
+}
+
+function renderCaixaDeSelecao(p, b) {
+  const { pts } = cantosDaCaixa(p);
+  const z = mundoCam.zoom || 1;
+  ctx.save();
+  ctx.lineWidth = 1.5 / z;
+  ctx.strokeStyle = '#fde68a';
+  ctx.setLineDash([6 / z, 4 / z]);
+  ctx.beginPath();
+  ctx.moveTo(...pts.no); ctx.lineTo(...pts.ne); ctx.lineTo(...pts.se);
+  ctx.lineTo(...pts.so); ctx.closePath(); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // haste do cabo de giro
+  ctx.beginPath(); ctx.moveTo(...pts.n); ctx.lineTo(...pts.giro); ctx.stroke();
+
+  const meia = ALCA / z;
+  const alca = (xy, cor) => {
+    ctx.fillStyle = cor; ctx.strokeStyle = '#1c1408'; ctx.lineWidth = 1.5 / z;
+    ctx.beginPath(); ctx.rect(xy[0] - meia, xy[1] - meia, meia * 2, meia * 2);
+    ctx.fill(); ctx.stroke();
+  };
+  ['no','ne','so','se'].forEach(k => alca(pts[k], '#fde68a'));   // canto: escala junto
+  ['n','s','o','e'].forEach(k => alca(pts[k], '#7dd3fc'));       // lado: estica um eixo
+  ctx.fillStyle = '#4ade80'; ctx.strokeStyle = '#0b2412';
+  ctx.beginPath(); ctx.arc(pts.giro[0], pts.giro[1], meia * 1.1, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+
+  // o pé, que é de onde saem profundidade e colisão
+  ctx.fillStyle = '#fde68a';
+  ctx.beginPath(); ctx.arc(p.x, p.y, 3 / z, 0, Math.PI * 2); ctx.fill();
+
+  // ficha do objeto, presa ao canto
+  const def = propDefs[p.prop] || {};
+  ctx.font = `${11 / z}px Outfit, sans-serif`; ctx.textAlign = 'left';
+  const txt = `${def.nome || p.prop}  ${escX(p).toFixed(2)}x${escY(p).toFixed(2)}` +
+              (p.rot ? `  ${Math.round(p.rot * 180 / Math.PI)}°` : '');
+  const larg = ctx.measureText(txt).width + 10 / z;
+  ctx.fillStyle = 'rgba(6,9,14,.85)';
+  ctx.fillRect(pts.no[0], pts.no[1] - 20 / z, larg, 16 / z);
+  ctx.fillStyle = '#fde68a';
+  ctx.fillText(txt, pts.no[0] + 5 / z, pts.no[1] - 8 / z);
+  ctx.restore();
+}
+
+// Qual alça está sob o dedo, se alguma.
+function alcaEm(p, wx, wy) {
+  const { pts } = cantosDaCaixa(p);
+  const meia = (ALCA + 3) / (mundoCam.zoom || 1);
+  for (const k of ['giro','no','ne','so','se','n','s','o','e']) {
+    const [x, y] = pts[k];
+    if (Math.abs(wx - x) <= meia && Math.abs(wy - y) <= meia) return k;
+  }
+  return null;
+}
+
+// Aplica o arrasto de uma alça. Trabalho em coordenadas SEM giro: desfaço o ângulo no
+// ponto do dedo, calculo a escala em cima do retângulo direito, e o giro volta sozinho
+// no desenho. Sem isso, escalar um objeto girado o faz derrapar de lado.
+function arrastarAlca(p, wx, wy) {
+  const def = propDefs[p.prop] || {};
+  const spr = propSprites[p.prop];
+  const hBase = def.altura || (spr ? spr.sh : 96);
+  const wBase = spr ? hBase * (spr.sw / spr.sh) : hBase * 0.8;
+  const pe = def.plano === 'chao' ? 0.5 : (def.pe ?? 0.9);
+
+  if (mundoAlca === 'giro') {
+    p.rot = Math.atan2(wy - p.y, wx - p.x) + Math.PI / 2;
+    if (keys.shift) p.rot = Math.round(p.rot / (Math.PI / 12)) * (Math.PI / 12);  // 15°
+    return;
+  }
+
+  let dx = wx - p.x, dy = wy - p.y;
+  if (p.rot) {
+    const c = Math.cos(-p.rot), sn = Math.sin(-p.rot);
+    [dx, dy] = [dx * c - dy * sn, dx * sn + dy * c];
+  }
+  const k = mundoAlca;
+  const limite = v => Math.max(0.08, Math.min(12, v));
+
+  if (k.includes('e') || k.includes('o')) p.ex = limite(Math.abs(dx) * 2 / wBase);
+  if (k.includes('n')) p.ey = limite(-dy / (hBase * pe));
+  if (k.includes('s')) p.ey = limite(dy / (hBase * (1 - pe) || 0.05));
+  // canto: mantém a proporção, que é o gesto que o dedo espera
+  if (k.length === 2) {
+    const razao = p.ex / (p.ey || 1);
+    if (Math.abs(razao - 1) > 0.001 && !keys.shift) p.ey = p.ex;
+  }
+  p.escala = undefined;
 }
 
 // Movimento no mundo: mesmas teclas e mesmo joystick do jogo, só que sem os limites da
@@ -2097,9 +2241,17 @@ function mundoMoverJogador() {
 // ── Ponteiro no criador de mundo ────────────────────────────────────────────────
 function mundoPointerDown(m) {
   const w = mundoDoPonteiro(m);
+
+  // A alça do selecionado ganha do resto: ela fica por cima do objeto e de quem estiver
+  // atrás, senão é impossível pegar a alça de um objeto encostado noutro.
+  if (mundoPropSel) {
+    const k = alcaEm(mundoPropSel, w.x, w.y);
+    if (k) { mundoAlca = k; return; }
+  }
+
   if (mundoFerramenta === 'plantar' && propParaColocar) {
     const novo = { id: `${propParaColocar}_${Date.now()}`, prop: propParaColocar,
-                   x: Math.round(w.x), y: Math.round(w.y), escala: 1, flipX: false };
+                   x: Math.round(w.x), y: Math.round(w.y), ex: 1, ey: 1, rot: 0, flipX: false };
     MUNDO.props.push(novo);
     mundoPropSel = novo;
     saveMundo();
@@ -2111,6 +2263,8 @@ function mundoPointerDown(m) {
     return;
   }
   const p = mundoPropEm(w.x, w.y);
+  // Selecionar e arrastar valem em qualquer ferramenta menos a de mover câmera: exigir
+  // trocar de ferramenta para mexer num objeto que você acabou de plantar é atrito puro.
   if (p && mundoFerramenta !== 'mover') {
     mundoPropSel = p; mundoArrastando = p;
     dragOffX = w.x - p.x; dragOffY = w.y - p.y;
@@ -2122,6 +2276,11 @@ function mundoPointerDown(m) {
 }
 
 function mundoPointerMove(m) {
+  if (mundoAlca && mundoPropSel) {
+    const w = mundoDoPonteiro(m);
+    arrastarAlca(mundoPropSel, w.x, w.y);
+    return;
+  }
   if (mundoArrastando) {
     const w = mundoDoPonteiro(m);
     mundoArrastando.x = Math.round(w.x - dragOffX);
@@ -2138,6 +2297,7 @@ function mundoPointerMove(m) {
 }
 
 function mundoPointerUp() {
+  if (mundoAlca) { mundoAlca = null; saveMundo(); return; }
   if (mundoArrastando) { saveMundo(); mundoArrastando = null; }
   mundoPan = null;
 }
@@ -9763,12 +9923,24 @@ function initForgeUI() {
   // Apagar objeto do mundo com Delete, que é o gesto de todo editor.
   window.addEventListener('keydown', e => {
     if (engineMode !== 'mundo' || mundoTeste || !mundoPropSel) return;
-    if (e.key !== 'Delete' && e.key !== 'Backspace') return;
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;
-    e.preventDefault();
-    MUNDO.props = MUNDO.props.filter(p => p !== mundoPropSel);
-    mundoPropSel = null; saveMundo();
-    showToast('🗑️ Objeto removido do mundo');
+    const p = mundoPropSel;
+    const passo = e.shiftKey ? 10 : 1;
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      MUNDO.props = MUNDO.props.filter(x => x !== p);
+      mundoPropSel = null; saveMundo(); showToast('🗑️ Objeto removido');
+    } else if (e.key === 'ArrowLeft')  { e.preventDefault(); p.x -= passo; }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); p.x += passo; }
+    else if (e.key === 'ArrowUp')    { e.preventDefault(); p.y -= passo; }
+    else if (e.key === 'ArrowDown')  { e.preventDefault(); p.y += passo; }
+    else if (e.key === 'd' || e.key === 'D') {
+      const novo = { ...p, id: `${p.prop}_${Date.now()}`, x: p.x + 40, y: p.y + 10 };
+      MUNDO.props.push(novo); mundoPropSel = novo; saveMundo();
+      showToast('⧉ Duplicado');
+    } else if (e.key === 'f' || e.key === 'F') { p.flipX = !p.flipX; saveMundo(); }
+    else if (e.key === 'r' || e.key === 'R') { p.rot = 0; saveMundo(); showToast('↺ Giro zerado'); }
+    else return;
   });
 
   // A aba Objetos redesenha a paleta ao abrir: garante a lista certa mesmo que os

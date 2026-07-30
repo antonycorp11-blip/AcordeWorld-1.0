@@ -76,6 +76,8 @@ def gradiente(h, faixas):
 
 
 def main():
+    import sys
+    LIMPO = '--limpo' in sys.argv     # sem estrada, sem praça, sem sombra: tela em branco
     cfg = json.load(open('assets/mundo/mundo.json'))
     BW, BH = cfg['bloco']['w'], cfg['bloco']['h']
     COLS, ROWS = cfg['cols'], cfg['rows']
@@ -128,42 +130,43 @@ def main():
             base_ch = tiled(clara, BW, BH, ox, oy)
             sombra = tiled(escura, BW, BH, ox, oy)
             mask = coluna.crop((0, oy, 1, oy + BH)).resize((BW, BH), Image.BILINEAR)
-            bloco = Image.composite(sombra, base_ch, mask)
+            bloco = base_ch if LIMPO else Image.composite(sombra, base_ch, mask)
 
             # a faixa de terra, com as duas beiras titubeando
-            chao_terra = tiled(terra, BW, BH, ox, oy)
-            faixa = Image.new('L', (BW, BH), 0)
-            pf = faixa.load()
-            for xl in range(BW):
-                xg = ox + xl
-                y0 = ESTRADA_Y - ESTRADA_MEIA + topo(xg) - oy
-                y1 = ESTRADA_Y + ESTRADA_MEIA + base(xg) - oy
-                for yl in range(max(0, int(y0)), min(BH, int(y1))):
-                    pf[xl, yl] = 255
-            bloco = Image.composite(chao_terra, bloco, faixa)
-
-            # calçamento: praça redonda mais a rua larga que a atravessa
-            if ox < 3400:
-                calc = tiled(laje, BW, BH, ox, oy)
-                mp = Image.new('L', (BW, BH), 0)
-                pm = mp.load()
-                cx, cy, rr = PRACA
+            if not LIMPO:
+                chao_terra = tiled(terra, BW, BH, ox, oy)
+                faixa = Image.new('L', (BW, BH), 0)
+                pf = faixa.load()
                 for xl in range(BW):
                     xg = ox + xl
-                    dx = xg - cx
-                    raio_aqui = rr + borda_praca(abs(xg) % 3000)
-                    if abs(dx) < raio_aqui:
-                        # altura da praça naquele x: círculo achatado
-                        meia = (1 - (dx / raio_aqui) ** 2) ** .5 * raio_aqui * .58
-                        y0, y1 = cy - meia - oy, cy + meia - oy
-                        for yl in range(max(0, int(y0)), min(BH, int(y1))):
-                            pm[xl, yl] = 255
-                    if xg < 3300:      # a rua principal segue para leste
-                        y0 = ESTRADA_Y - RUA_MEIA + topo(xg) - oy
-                        y1 = ESTRADA_Y + RUA_MEIA + base(xg) - oy
-                        for yl in range(max(0, int(y0)), min(BH, int(y1))):
-                            pm[xl, yl] = 255
-                bloco = Image.composite(calc, bloco, mp)
+                    y0 = ESTRADA_Y - ESTRADA_MEIA + topo(xg) - oy
+                    y1 = ESTRADA_Y + ESTRADA_MEIA + base(xg) - oy
+                    for yl in range(max(0, int(y0)), min(BH, int(y1))):
+                        pf[xl, yl] = 255
+                bloco = Image.composite(chao_terra, bloco, faixa)
+
+                # calçamento: praça redonda mais a rua larga que a atravessa
+                if ox < 3400:
+                    calc = tiled(laje, BW, BH, ox, oy)
+                    mp = Image.new('L', (BW, BH), 0)
+                    pm = mp.load()
+                    cx, cy, rr = PRACA
+                    for xl in range(BW):
+                        xg = ox + xl
+                        dx = xg - cx
+                        raio_aqui = rr + borda_praca(abs(xg) % 3000)
+                        if abs(dx) < raio_aqui:
+                            # altura da praça naquele x: círculo achatado
+                            meia = (1 - (dx / raio_aqui) ** 2) ** .5 * raio_aqui * .58
+                            y0, y1 = cy - meia - oy, cy + meia - oy
+                            for yl in range(max(0, int(y0)), min(BH, int(y1))):
+                                pm[xl, yl] = 255
+                        if xg < 3300:      # a rua principal segue para leste
+                            y0 = ESTRADA_Y - RUA_MEIA + topo(xg) - oy
+                            y1 = ESTRADA_Y + RUA_MEIA + base(xg) - oy
+                            for yl in range(max(0, int(y0)), min(BH, int(y1))):
+                                pm[xl, yl] = 255
+                    bloco = Image.composite(calc, bloco, mp)
             caminho = f'{RAIZ}/{c}_{r}.jpg'
             bloco.save(caminho, quality=86)
             blocos[f'{c}_{r}'] = caminho
