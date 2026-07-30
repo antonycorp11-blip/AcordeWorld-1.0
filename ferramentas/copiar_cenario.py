@@ -136,7 +136,7 @@ def main():
     ILHA_GRANDE = 600
     # Espaçamento entre troncos. Subiu de 11 para 16: a mata anterior era um paredão
     # sem passagem, e o jogador precisa caminhar DENTRO do bosque, não em volta dele.
-    PASSO = 16
+    PASSO = 13   # meio-termo: dá para andar dentro da mata sem ela virar campo aberto
 
     def preencher(ilha, tabela, celula):
         dentro = 0
@@ -177,7 +177,7 @@ def main():
         for x in range(1, w - 1):
             if g[y][x] != 'grama': continue
             if g[y-1][x] != 'copa': continue          # logo abaixo da mata
-            if random.random() > .18: continue
+            if random.random() > .26: continue
             plantar(random.choice(MIUDO), x, y + 1, random.uniform(.7, 1.05)); orla += 1
     print(f'  {orla} peças de orla')
 
@@ -191,28 +191,31 @@ def main():
     grama_em = lambda x, y: 0 <= x < w and 0 <= y < h and g[y][x] == 'grama'
 
     musicais = 0
+    ARVORES_MUSICAIS = []          # de fora até serem recortadas de novo: a base delas
+    NOTAS = []                     # ainda tem fundo branco e aparece no chão
     for _ in range(1400):
         x, y = random.randrange(w), random.randrange(h)
         if not copa_em(x, y) or not grama_em(x, y + 6): continue     # na beira da mata
-        if musicais >= 22: break
+        if musicais >= 0: break
         plantar(random.choice(ARVORES_MUSICAIS), x, y + 6, random.uniform(.9, 1.15))
         musicais += 1
 
     # a Árvore-Mãe, uma só, no ponto mais alto da mata do fundo
-    alvo = min((c for c in copas if c['area'] >= ILHA_GRANDE),
-               key=lambda c: c['y'], default=None)
-    if alvo:
-        plantar('sagrado1_01', alvo['x'] + alvo['w'] * .5, alvo['y'] + alvo['h'] * .35, 1.15)
+    alvo = None    # a Árvore-Mãe volta junto com as outras peças musicais
 
     notas = 0
     for _ in range(1600):
         x, y = random.randrange(w), random.randrange(h)
         if not grama_em(x, y) or copa_em(x, y - 3): continue          # pairando na clareira
-        if notas >= 26: break
+        if notas >= 0: break
         plantar(random.choice(NOTAS), x, y, random.uniform(.7, 1.1))
         notas += 1
     print(f'  {musicais} árvores de clave · {notas} notas douradas · Árvore-Mãe: {"sim" if alvo else "não"}')
 
+    # O bosque desce dois blocos: o norte fica livre para a cidade, e a floresta não
+    # perde um pixel de tamanho — era a condição.
+    DESCE = 1142
+    for p in props: p['y'] += DESCE
     Path('/tmp/cenario_props.json').write_text(json.dumps(props, indent=1), encoding='utf-8')
     print(f'  {len(props)} objetos · máscaras em /tmp/cenario_masc · mundo {LARG}x{ALT}')
 
