@@ -396,7 +396,12 @@ window.addEventListener('keydown', e => {
   if(k==='d'||k==='arrowright'){keys.d=true;keyD?.classList.add('active');}
   if(k==='e'){e.preventDefault();keyE?.classList.add('active');doAction();}
   if(e.key==='Shift')keys.shift=true;
-  if(e.key==='Escape'&&engineMode==='mundo'&&mundoTeste){e.preventDefault();mundoTestar(false);}
+  if(e.key==='Escape'&&engineMode==='mundo'){
+    e.preventDefault();
+    // Esc primeiro solta a estrada em andamento; só depois sai do modo andar.
+    if(estradaDe){estradaDe=null;estradaAte=null;showToast('🛣️ Traçado encerrado');}
+    else if(mundoTeste) mundoTestar(false);
+  }
   if(e.key==='F5'){e.preventDefault();togglePlay();}
 });
 window.addEventListener('keyup', e => {
@@ -1965,7 +1970,13 @@ function pincelar(wx, wy) {
   const r1 = Math.min(MUNDO.rows - 1, Math.floor((wy + raio) / BH));
   const apagando = pincelMaterial === 'apagar';
   const tex = apagando ? null : carregarTexturaDoPincel(pincelMaterial);
-  if (!apagando && !tex.pronta) return;
+  if (!apagando && !tex.pronta) {
+    if (!window.__avisoTextura || performance.now() - window.__avisoTextura > 3000) {
+      window.__avisoTextura = performance.now();
+      showToast('⏳ Carregando a textura — tente de novo em um instante');
+    }
+    return;
+  }
 
   for (let c = c0; c <= c1; c++) {
     for (let r = r0; r <= r1; r++) {
@@ -1989,6 +2000,60 @@ function pincelar(wx, wy) {
       pinturaSuja.add(`${c}_${r}`);
     }
   }
+}
+
+// ── Traçado de estrada ──────────────────────────────────────────────────────────
+// O jeito SimCity: clica onde a rua começa, arrasta até onde ela termina, solta. O
+// traço sai reto, com o ângulo travado de 45 em 45 graus, e o ponto final vira o começo
+// do próximo — assim as pernas emendam sem sobra nem falha. Curva e cruzamento saem de
+// graça, porque tudo é pintado na mesma camada e a tinta se funde.
+let pincelModo = 'livre';        // 'livre' = mão livre, 'estrada' = segmentos retos
+let estradaDe = null;            // ponto de origem do segmento em desenho
+let estradaAte = null;           // ponta atual, já com o ângulo travado
+const ANGULO_TRAVA = Math.PI / 4;
+
+function travarAngulo(x0, y0, x1, y1, livre) {
+  const dx = x1 - x0, dy = y1 - y0;
+  const comp = Math.hypot(dx, dy);
+  if (livre || comp < 1) return { x: x1, y: y1, comp };
+  const a = Math.round(Math.atan2(dy, dx) / ANGULO_TRAVA) * ANGULO_TRAVA;
+  return { x: x0 + Math.cos(a) * comp, y: y0 + Math.sin(a) * comp, comp };
+}
+
+// Carimba ao longo da reta. O passo é uma fração do raio: passo maior deixa a estrada
+// com barriga de lagarta, e passo menor só gasta tempo.
+function pintarSegmento(x0, y0, x1, y1) {
+  const passo = Math.max(4, pincelTamanho / 6);
+  const comp = Math.hypot(x1 - x0, y1 - y0);
+  const n = Math.max(1, Math.ceil(comp / passo));
+  for (let i = 0; i <= n; i++) pincelar(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n);
+}
+
+function renderTracadoDeEstrada() {
+  if (!estradaDe || !estradaAte) return;
+  const z = mundoCam.zoom || 1;
+  ctx.save();
+  ctx.strokeStyle = pincelMaterial === 'apagar' ? 'rgba(252,165,165,.55)' : 'rgba(253,230,138,.5)';
+  ctx.lineWidth = pincelTamanho;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(estradaDe.x, estradaDe.y); ctx.lineTo(estradaAte.x, estradaAte.y);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 1.5 / z; ctx.setLineDash([6 / z, 4 / z]);
+  ctx.beginPath(); ctx.moveTo(estradaDe.x, estradaDe.y); ctx.lineTo(estradaAte.x, estradaAte.y);
+  ctx.stroke(); ctx.setLineDash([]);
+
+  const comp = Math.hypot(estradaAte.x - estradaDe.x, estradaAte.y - estradaDe.y);
+  const ang = Math.round(Math.atan2(estradaAte.y - estradaDe.y, estradaAte.x - estradaDe.x) * 180 / Math.PI);
+  ctx.font = `bold ${11 / z}px Outfit, sans-serif`; ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(6,9,14,.85)';
+  const txt = `${Math.round(comp)}px · ${ang}° · ${pincelTamanho}px de largura`;
+  const larg = ctx.measureText(txt).width + 12 / z;
+  const mx = (estradaDe.x + estradaAte.x) / 2, my = (estradaDe.y + estradaAte.y) / 2;
+  ctx.fillRect(mx - larg / 2, my - 30 / z, larg, 18 / z);
+  ctx.fillStyle = '#fde68a';
+  ctx.fillText(txt, mx, my - 17 / z);
+  ctx.restore();
 }
 
 async function salvarPintura() {
@@ -2187,8 +2252,10 @@ function renderMundo(now) {
     }
   });
 
+  renderTracadoDeEstrada();
+
   // círculo do pincel: sem ele você pinta às cegas e descobre o tamanho errando
-  if (pincelMaterial) {
+  if (pincelMaterial && pincelModo !== 'estrada') {
     const w = mundoDoPonteiro({ x: mouseCanvasX, y: mouseCanvasY });
     ctx.save();
     ctx.strokeStyle = pincelMaterial === 'apagar' ? '#fca5a5' : '#fde68a';
@@ -2383,16 +2450,27 @@ function mundoPointerDown(m) {
 
   // Pincel ligado: o toque pinta, e nada mais. Plantar e selecionar voltam quando você
   // desliga o pincel — misturar os dois no mesmo clique só gera objeto sem querer.
-  if (pincelMaterial) { pinturaAtiva = true; pincelar(w.x, w.y); return; }
+  if (pincelMaterial) {
+    if (pincelModo === 'estrada') {
+      // Começa aqui — ou na ponta do segmento anterior, se houver, para as pernas
+      // emendarem exatamente e não sobrar buraco na junta.
+      estradaDe = estradaDe || { x: w.x, y: w.y };
+      estradaAte = { x: w.x, y: w.y };
+      pinturaAtiva = true;
+      return;
+    }
+    pinturaAtiva = true; pincelar(w.x, w.y); return;
+  }
 
-  // A alça do selecionado ganha do resto: ela fica por cima do objeto e de quem estiver
-  // atrás, senão é impossível pegar a alça de um objeto encostado noutro.
-  if (mundoPropSel) {
+  // Com o pincel ligado, ele ganha de tudo — inclusive das alças do objeto que estiver
+  // selecionado. Testar a alça primeiro fazia o traço morrer perto de qualquer objeto
+  // selecionado, e o motivo era invisível.
+  if (!pincelMaterial && mundoPropSel) {
     const k = alcaEm(mundoPropSel, w.x, w.y);
     if (k) { mundoAlca = k; return; }
   }
 
-  if (propParaColocar && mundoFerramenta !== 'partida') {
+  if (propParaColocar && !pincelMaterial && mundoFerramenta !== 'partida') {
     const novo = { id: `${propParaColocar}_${Date.now()}`, prop: propParaColocar,
                    x: Math.round(w.x), y: Math.round(w.y), ex: 1, ey: 1, rot: 0, flipX: false };
     MUNDO.props.push(novo);
@@ -2427,6 +2505,11 @@ function mundoPointerDown(m) {
 }
 
 function mundoPointerMove(m) {
+  if (pinturaAtiva && pincelModo === 'estrada') {
+    const w = mundoDoPonteiro(m);
+    estradaAte = travarAngulo(estradaDe.x, estradaDe.y, w.x, w.y, keys.shift);
+    return;
+  }
   if (pinturaAtiva) { const w = mundoDoPonteiro(m); pincelar(w.x, w.y); return; }
   if (mundoAlca && mundoPropSel) {
     const w = mundoDoPonteiro(m);
@@ -2449,6 +2532,16 @@ function mundoPointerMove(m) {
 }
 
 function mundoPointerUp() {
+  if (pinturaAtiva && pincelModo === 'estrada') {
+    pinturaAtiva = false;
+    if (estradaDe && estradaAte) {
+      pintarSegmento(estradaDe.x, estradaDe.y, estradaAte.x, estradaAte.y);
+      estradaDe = { x: estradaAte.x, y: estradaAte.y };   // a ponta vira o próximo começo
+      estradaAte = null;
+      salvarPintura();
+    }
+    return;
+  }
   if (pinturaAtiva) { pinturaAtiva = false; salvarPintura(); return; }
   if (mundoAlca) { mundoAlca = null; saveMundo(); return; }
   if (mundoArrastando) { saveMundo(); mundoArrastando = null; }
@@ -10094,15 +10187,33 @@ function initForgeUI() {
         pincelMaterial = (pincelMaterial === id) ? null : id;
         if (pincelMaterial) { propParaColocar = null; renderPaletaDeProps(); }
         document.getElementById('pincelTamanhoBox').style.display = pincelMaterial ? '' : 'none';
+        document.getElementById('pincelModoBox').style.display = pincelMaterial ? '' : 'none';
+        if (!pincelMaterial) { estradaDe = null; estradaAte = null; }
         renderMateriais();
         showToast(pincelMaterial ? `🖌️ Pintando ${rotulo}` : '🖌️ Pincel desligado');
       });
       box.appendChild(b);
     };
+    // Carrega as seis de uma vez: a textura leva alguns quadros para decodificar, e
+    // quem escolhe o material e já arrasta pintava no vazio, sem nenhuma pista.
+    Object.keys(MATERIAIS).forEach(carregarTexturaDoPincel);
     Object.entries(MATERIAIS).forEach(([id, d]) => chip(id, d.nome));
     chip('apagar', '🧽 Apagar');
   };
   renderMateriais();
+  const marcarModoDoPincel = () => {
+    document.getElementById('pincelModoLivre')?.classList.toggle('ativo', pincelModo === 'livre');
+    document.getElementById('pincelModoEstrada')?.classList.toggle('ativo', pincelModo === 'estrada');
+  };
+  document.getElementById('pincelModoLivre')?.addEventListener('click', () => {
+    pincelModo = 'livre'; estradaDe = estradaAte = null; marcarModoDoPincel();
+  });
+  document.getElementById('pincelModoEstrada')?.addEventListener('click', () => {
+    pincelModo = 'estrada'; estradaDe = estradaAte = null; marcarModoDoPincel();
+    showToast('🛣️ Clique, arraste e solte. A ponta vira o começo do próximo · Shift solta o ângulo · Esc encerra');
+  });
+  marcarModoDoPincel();
+
   document.getElementById('pincelTam')?.addEventListener('input', e => {
     pincelTamanho = parseInt(e.target.value, 10) || 90;
     const v = document.getElementById('pincelTamVal');
