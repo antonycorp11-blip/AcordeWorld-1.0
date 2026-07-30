@@ -47,6 +47,8 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
             self._save_objects(data)
         elif self.path == '/save_mundo':
             self._save_mundo(data)
+        elif self.path == '/save_pintura':
+            self._save_pintura(data)
         elif self.path == '/save_dialogue':
             self._save_dialogue(data)
         elif self.path == '/upload_image':
@@ -200,6 +202,27 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
             self._ok({'status': 'ok'})
         except Exception as e:
             print(f"[Server] Error saving mundo: {e}")
+            self.send_error(500, str(e))
+
+    def _save_pintura(self, data):
+        """Uma imagem por bloco pintado. Guardo o PNG pronto em vez de uma lista de
+        pinceladas: o traço já está rasterizado, carrega na hora e não depende de
+        reproduzir a ordem exata dos carimbos."""
+        try:
+            import base64
+            chave = str(data.get('chave', '')).replace('/', '')
+            png = data.get('png', '')
+            if not chave or not png.startswith('data:image/png;base64,'):
+                self.send_error(400, 'pintura invalida'); return
+            pasta = os.path.join(DIRECTORY, 'assets', 'mundo', 'pintura')
+            os.makedirs(pasta, exist_ok=True)
+            caminho = os.path.join(pasta, f'{chave}.png')
+            with open(caminho, 'wb') as f:
+                f.write(base64.b64decode(png.split(',', 1)[1]))
+            print(f"[Server] Pintura salva: bloco {chave}")
+            self._ok({'status': 'ok'})
+        except Exception as e:
+            print(f"[Server] Error saving pintura: {e}")
             self.send_error(500, str(e))
 
     def _save_dialogue(self, data):

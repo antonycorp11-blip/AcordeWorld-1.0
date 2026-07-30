@@ -1824,6 +1824,7 @@ async function loadMundo() {
       MUNDO.props = (d.props || []).map(p => ({
         ...p, ex: p.ex ?? p.escala ?? 1, ey: p.ey ?? p.escala ?? 1, rot: p.rot || 0,
       }));
+      carregarPintura();
     }
   } catch (e) {}
 }
@@ -1884,6 +1885,126 @@ function mundoAtualizarBlocos(now) {
     if (now - mundoBlocos[k].ultimoUso < MUNDO_DESCARTE_MS) continue;
     try { mundoBlocos[k].img.src = ''; } catch (e) {}
     delete mundoBlocos[k];
+  }
+}
+
+// ── Pintura de terreno ──────────────────────────────────────────────────────────
+// Caminho não é objeto: é chão. As peças de trilha e calçada trazem a própria franja de
+// grama desenhada, então emendam mal e só servem no sentido em que foram desenhadas.
+// Aqui o traço é pintado direto no bloco, na direção que a mão quiser.
+//
+// Cada bloco ganha uma tela transparente por cima do chão. O pincel carimba um círculo
+// preenchido com a textura do material, e a textura é ancorada nas COORDENADAS DO
+// MUNDO — sem isso, cada carimbo começaria o desenho do zero e a estrada viraria uma
+// colcha de retalhos.
+const MATERIAIS = {
+  terra:        { nome: 'Terra',        arquivo: 'assets/texturas/terra_1.jpg',        div: 2 },
+  laje:         { nome: 'Calçada',      arquivo: 'assets/texturas/laje_1.jpg',         div: 4 },
+  areia:        { nome: 'Areia',        arquivo: 'assets/texturas/areia_1.jpg',        div: 2 },
+  folhas:       { nome: 'Folhas',       arquivo: 'assets/texturas/folhas_1.jpg',       div: 2 },
+  grama_clara:  { nome: 'Grama clara',  arquivo: 'assets/texturas/grama_campo_3.jpg',  div: 3 },
+  grama_escura: { nome: 'Grama escura', arquivo: 'assets/texturas/grama_escura_3.jpg', div: 3 },
+};
+const texturasDoPincel = {};      // id -> { img, padrao }
+let pincelMaterial = null;        // null = pincel desligado
+let pincelTamanho = 90;
+let pinturaAtiva = false;
+const blocosPintados = {};        // "c_r" -> canvas
+const pinturaSuja = new Set();    // blocos alterados desde o último salvamento
+
+function carregarTexturaDoPincel(id) {
+  if (texturasDoPincel[id]) return texturasDoPincel[id];
+  const def = MATERIAIS[id];
+  const img = new Image();
+  const reg = { img, pronta: false };
+  img.onload = () => {
+    // Reduz igual ao gerador de blocos: a textura é pixel art de 1024 e, em tamanho
+    // natural, o grão fica grosseiro perto do personagem.
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(img.width / def.div));
+    c.height = Math.max(1, Math.round(img.height / def.div));
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    reg.tela = c; reg.pronta = true;
+  };
+  img.src = def.arquivo;
+  texturasDoPincel[id] = reg;
+  return reg;
+}
+
+function pinturaDoBloco(c, r) {
+  const k = `${c}_${r}`;
+  if (!blocosPintados[k]) {
+    const cv = document.createElement('canvas');
+    cv.width = MUNDO.bloco.w; cv.height = MUNDO.bloco.h;
+    blocosPintados[k] = cv;
+  }
+  return blocosPintados[k];
+}
+
+async function carregarPintura() {
+  const alvos = Object.keys(MUNDO.blocos);
+  await Promise.all(alvos.map(k => new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const [c, r] = k.split('_').map(Number);
+      pinturaDoBloco(c, r).getContext('2d').drawImage(img, 0, 0);
+      res();
+    };
+    img.onerror = () => res();
+    img.src = `assets/mundo/pintura/${k}.png?t=${Date.now()}`;
+  })));
+}
+
+// Carimba um círculo do material no ponto do mundo, atravessando blocos sem costura.
+function pincelar(wx, wy) {
+  const raio = pincelTamanho / 2;
+  const BW = MUNDO.bloco.w, BH = MUNDO.bloco.h;
+  const c0 = Math.max(0, Math.floor((wx - raio) / BW));
+  const c1 = Math.min(MUNDO.cols - 1, Math.floor((wx + raio) / BW));
+  const r0 = Math.max(0, Math.floor((wy - raio) / BH));
+  const r1 = Math.min(MUNDO.rows - 1, Math.floor((wy + raio) / BH));
+  const apagando = pincelMaterial === 'apagar';
+  const tex = apagando ? null : carregarTexturaDoPincel(pincelMaterial);
+  if (!apagando && !tex.pronta) return;
+
+  for (let c = c0; c <= c1; c++) {
+    for (let r = r0; r <= r1; r++) {
+      const cv = pinturaDoBloco(c, r);
+      const cx = cv.getContext('2d');
+      const lx = wx - c * BW, ly = wy - r * BH;
+      cx.save();
+      cx.beginPath(); cx.arc(lx, ly, raio, 0, Math.PI * 2); cx.clip();
+      if (apagando) {
+        cx.globalCompositeOperation = 'destination-out';
+        cx.fillRect(lx - raio, ly - raio, raio * 2, raio * 2);
+      } else {
+        const pad = cx.createPattern(tex.tela, 'repeat');
+        // Ancora a textura no mundo: o deslocamento desconta a origem do bloco.
+        pad.setTransform(new DOMMatrix().translate(-(c * BW) % tex.tela.width,
+                                                   -(r * BH) % tex.tela.height));
+        cx.fillStyle = pad;
+        cx.fillRect(lx - raio, ly - raio, raio * 2, raio * 2);
+      }
+      cx.restore();
+      pinturaSuja.add(`${c}_${r}`);
+    }
+  }
+}
+
+async function salvarPintura() {
+  if (IS_PLAY_BUILD || !pinturaSuja.size) return;
+  const lote = [...pinturaSuja];
+  pinturaSuja.clear();
+  for (const k of lote) {
+    const cv = blocosPintados[k];
+    if (!cv) continue;
+    try {
+      const r = await fetch('/save_pintura', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chave: k, png: cv.toDataURL('image/png') }),
+      });
+      if (!r.ok) showToast(`⚠️ Pintura do bloco ${k} não salvou (HTTP ${r.status})`);
+    } catch (e) { showToast('⚠️ Pintura não salva: servidor fora do ar'); return; }
   }
 }
 
@@ -1985,6 +2106,8 @@ function renderMundo(now) {
       const x = c * MUNDO.bloco.w, y = r * MUNDO.bloco.h;
       if (bl?.img.complete && bl.img.naturalWidth) {
         try { ctx.drawImage(bl.img, x, y, MUNDO.bloco.w, MUNDO.bloco.h); } catch (e) {}
+        const pin = blocosPintados[k];
+        if (pin) ctx.drawImage(pin, x, y);
       } else if (!mundoTeste) {
         // Bloco vazio ou ainda carregando: no editor mostra a moldura, para você saber
         // que o espaço existe e onde ele começa.
@@ -2063,6 +2186,17 @@ function renderMundo(now) {
       if (mundoPropSel === p) renderCaixaDeSelecao(p, b);
     }
   });
+
+  // círculo do pincel: sem ele você pinta às cegas e descobre o tamanho errando
+  if (pincelMaterial) {
+    const w = mundoDoPonteiro({ x: mouseCanvasX, y: mouseCanvasY });
+    ctx.save();
+    ctx.strokeStyle = pincelMaterial === 'apagar' ? '#fca5a5' : '#fde68a';
+    ctx.lineWidth = 2 / mundoCam.zoom;
+    ctx.setLineDash([6 / mundoCam.zoom, 5 / mundoCam.zoom]);
+    ctx.beginPath(); ctx.arc(w.x, w.y, pincelTamanho / 2, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
 
   // marca do ponto de partida
   if (!mundoTeste) {
@@ -2247,6 +2381,10 @@ function mundoMoverJogador() {
 function mundoPointerDown(m) {
   const w = mundoDoPonteiro(m);
 
+  // Pincel ligado: o toque pinta, e nada mais. Plantar e selecionar voltam quando você
+  // desliga o pincel — misturar os dois no mesmo clique só gera objeto sem querer.
+  if (pincelMaterial) { pinturaAtiva = true; pincelar(w.x, w.y); return; }
+
   // A alça do selecionado ganha do resto: ela fica por cima do objeto e de quem estiver
   // atrás, senão é impossível pegar a alça de um objeto encostado noutro.
   if (mundoPropSel) {
@@ -2289,6 +2427,7 @@ function mundoPointerDown(m) {
 }
 
 function mundoPointerMove(m) {
+  if (pinturaAtiva) { const w = mundoDoPonteiro(m); pincelar(w.x, w.y); return; }
   if (mundoAlca && mundoPropSel) {
     const w = mundoDoPonteiro(m);
     arrastarAlca(mundoPropSel, w.x, w.y);
@@ -2310,6 +2449,7 @@ function mundoPointerMove(m) {
 }
 
 function mundoPointerUp() {
+  if (pinturaAtiva) { pinturaAtiva = false; salvarPintura(); return; }
   if (mundoAlca) { mundoAlca = null; saveMundo(); return; }
   if (mundoArrastando) { saveMundo(); mundoArrastando = null; }
   mundoPan = null;
@@ -6037,6 +6177,11 @@ function renderPaletaDeProps() {
       // fazia o toque no mapa não produzir nada, sem nenhuma pista do porquê.
       if (typeof engineMode !== 'undefined' && engineMode === 'mundo') {
         // Nada de desligar o modo andar: plantar enquanto se caminha é o ponto.
+        if (propParaColocar && pincelMaterial) {
+          pincelMaterial = null;                    // pincel e plantar se excluem
+          document.getElementById('pincelTamanhoBox').style.display = 'none';
+          document.querySelectorAll('#pincelMateriais .prop-cat').forEach(x => x.classList.remove('ativo'));
+        }
         mundoFerramenta = propParaColocar ? 'plantar' : 'mover';
         document.getElementById('mundoFerrPlantar')?.classList.toggle('ativo', !!propParaColocar);
         document.getElementById('mundoFerrMover')?.classList.toggle('ativo', !propParaColocar);
@@ -9935,6 +10080,35 @@ function initForgeUI() {
   document.getElementById('pecaTom')?.addEventListener('click', () => colocarIntervalo('T'));
   document.getElementById('pecaSemitom')?.addEventListener('click', () => colocarIntervalo('S'));
 
+  // ── Pincel de terreno ─────────────────────────────────────────────────────────
+  const renderMateriais = () => {
+    const box = document.getElementById('pincelMateriais');
+    if (!box) return;
+    box.innerHTML = '';
+    const chip = (id, rotulo) => {
+      const b = document.createElement('button');
+      b.className = 'prop-cat' + (pincelMaterial === id ? ' ativo' : '');
+      b.textContent = rotulo;
+      b.addEventListener('click', () => {
+        // Ligar o pincel desarma o plantar: um clique só pode significar uma coisa.
+        pincelMaterial = (pincelMaterial === id) ? null : id;
+        if (pincelMaterial) { propParaColocar = null; renderPaletaDeProps(); }
+        document.getElementById('pincelTamanhoBox').style.display = pincelMaterial ? '' : 'none';
+        renderMateriais();
+        showToast(pincelMaterial ? `🖌️ Pintando ${rotulo}` : '🖌️ Pincel desligado');
+      });
+      box.appendChild(b);
+    };
+    Object.entries(MATERIAIS).forEach(([id, d]) => chip(id, d.nome));
+    chip('apagar', '🧽 Apagar');
+  };
+  renderMateriais();
+  document.getElementById('pincelTam')?.addEventListener('input', e => {
+    pincelTamanho = parseInt(e.target.value, 10) || 90;
+    const v = document.getElementById('pincelTamVal');
+    if (v) v.textContent = pincelTamanho + 'px';
+  });
+
   // ── Criador de mundo ──────────────────────────────────────────────────────────
   const marcarFerramenta = () => {
     const mapa = { mover:'mundoFerrMover', plantar:'mundoFerrPlantar',
@@ -9965,11 +10139,15 @@ function initForgeUI() {
     e.target.value = v;
     atualizarTamanhoDoMundo(); saveMundo();
   }));
-  setTimeout(() => {
+  // Duas passadas: aos 500ms os campos já existem, e aos 1800 o mundo terminou de
+  // carregar. Com uma só, o painel mostrava as dimensões antigas para sempre.
+  const sincronizarPainelDoMundo = () => {
     const c = document.getElementById('mundoCols'); if (c) c.value = MUNDO.cols;
     const r = document.getElementById('mundoRows'); if (r) r.value = MUNDO.rows;
     atualizarTamanhoDoMundo(); marcarFerramenta();
-  }, 500);
+  };
+  setTimeout(sincronizarPainelDoMundo, 500);
+  setTimeout(sincronizarPainelDoMundo, 1800);
 
   // Apagar objeto do mundo com Delete, que é o gesto de todo editor.
   window.addEventListener('keydown', e => {

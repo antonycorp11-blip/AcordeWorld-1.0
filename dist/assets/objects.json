@@ -200,51 +200,6 @@
       "colide": false,
       "altura": 30
     },
-    "f3_01": {
-      "nome": "Trilha Reta",
-      "sprite": "assets/props/f3_01.png",
-      "categoria": "caminho",
-      "plano": "chao",
-      "pe": 1,
-      "raio": 0,
-      "colide": false
-    },
-    "f3_02": {
-      "nome": "Trilha em Curva",
-      "sprite": "assets/props/f3_02.png",
-      "categoria": "caminho",
-      "plano": "chao",
-      "pe": 1,
-      "raio": 0,
-      "colide": false
-    },
-    "f3_03": {
-      "nome": "Trilha em T",
-      "sprite": "assets/props/f3_03.png",
-      "categoria": "caminho",
-      "plano": "chao",
-      "pe": 1,
-      "raio": 0,
-      "colide": false
-    },
-    "f3_04": {
-      "nome": "Trilha Diagonal",
-      "sprite": "assets/props/f3_04.png",
-      "categoria": "caminho",
-      "plano": "chao",
-      "pe": 1,
-      "raio": 0,
-      "colide": false
-    },
-    "f3_05": {
-      "nome": "Trecho de Trilha",
-      "sprite": "assets/props/f3_05.png",
-      "categoria": "caminho",
-      "plano": "chao",
-      "pe": 1,
-      "raio": 0,
-      "colide": false
-    },
     "f4_01": {
       "nome": "Flores Brancas",
       "sprite": "assets/props/f4_01.png",
@@ -304,33 +259,6 @@
       "raio": 0,
       "colide": false,
       "altura": 32
-    },
-    "f4_07": {
-      "nome": "Moita de Grama",
-      "sprite": "assets/props/f4_07.png",
-      "categoria": "chao_grama",
-      "plano": "chao",
-      "pe": 1,
-      "raio": 0,
-      "colide": false
-    },
-    "f4_08": {
-      "nome": "Clareira de Grama",
-      "sprite": "assets/props/f4_08.png",
-      "categoria": "chao_grama",
-      "plano": "chao",
-      "pe": 1,
-      "raio": 0,
-      "colide": false
-    },
-    "f4_09": {
-      "nome": "Grama Rasteira",
-      "sprite": "assets/props/f4_09.png",
-      "categoria": "chao_grama",
-      "plano": "chao",
-      "pe": 1,
-      "raio": 0,
-      "colide": false
     },
     "f4_10": {
       "nome": "Pedra Grande",
@@ -568,15 +496,6 @@
       "colide": true,
       "altura": 78
     },
-    "mata3_01": {
-      "nome": "Faixa de Terra",
-      "sprite": "assets/props/mata3_01.png",
-      "categoria": "caminho",
-      "plano": "chao",
-      "pe": 1,
-      "raio": 0,
-      "colide": false
-    },
     "mata3_02": {
       "nome": "Flores do Campo",
       "sprite": "assets/props/mata3_02.png",
@@ -586,24 +505,6 @@
       "raio": 0,
       "colide": false,
       "altura": 36
-    },
-    "mata3_03": {
-      "nome": "Terra com Vereda",
-      "sprite": "assets/props/mata3_03.png",
-      "categoria": "caminho",
-      "plano": "chao",
-      "pe": 1,
-      "raio": 0,
-      "colide": false
-    },
-    "mata3_04": {
-      "nome": "Chão de Terra",
-      "sprite": "assets/props/mata3_04.png",
-      "categoria": "caminho",
-      "plano": "chao",
-      "pe": 1,
-      "raio": 0,
-      "colide": false
     },
     "mata3_05": {
       "nome": "Flores Miúdas",
@@ -841,33 +742,6 @@
       "raio": 0,
       "colide": false,
       "altura": 115
-    },
-    "casa2_03": {
-      "nome": "Calçada de Pedra",
-      "sprite": "assets/props/casa2_03.png",
-      "categoria": "calcada",
-      "plano": "chao",
-      "pe": 1,
-      "raio": 0,
-      "colide": false
-    },
-    "casa2_06": {
-      "nome": "Calçada em Curva",
-      "sprite": "assets/props/casa2_06.png",
-      "categoria": "calcada",
-      "plano": "chao",
-      "pe": 1,
-      "raio": 0,
-      "colide": false
-    },
-    "casa2_09": {
-      "nome": "Calçada Serpente",
-      "sprite": "assets/props/casa2_09.png",
-      "categoria": "calcada",
-      "plano": "chao",
-      "pe": 1,
-      "raio": 0,
-      "colide": false
     },
     "casa2_04": {
       "nome": "Poste Duplo",
