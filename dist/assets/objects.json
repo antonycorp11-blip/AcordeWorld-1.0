@@ -1072,6 +1072,36 @@
       "raio": 0,
       "colide": false,
       "mascara": "agua"
+    },
+    "magico4_01": {
+      "nome": "Clave de Sol Dourada",
+      "sprite": "assets/props/magico4_01.png",
+      "categoria": "musical",
+      "plano": "objeto",
+      "altura": 95,
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false
+    },
+    "magico4_02": {
+      "nome": "Colcheias Douradas",
+      "sprite": "assets/props/magico4_02.png",
+      "categoria": "musical",
+      "plano": "objeto",
+      "altura": 80,
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false
+    },
+    "magico4_03": {
+      "nome": "Semínima Dourada",
+      "sprite": "assets/props/magico4_03.png",
+      "categoria": "musical",
+      "plano": "objeto",
+      "altura": 75,
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false
     }
   },
   "objetos": []

@@ -177,6 +177,38 @@ def main():
             plantar(random.choice(MIUDO), x, y + 1, random.uniform(.7, 1.05)); orla += 1
     print(f'  {orla} peças de orla')
 
+    # ── O que faz deste bosque o Bosque dos Ecos ────────────────────────────────
+    # Árvores de clave espalhadas na mata e notas douradas pairando na clareira: sem
+    # elas o lugar é uma floresta bonita qualquer, e não o cenário de caçar Ecos.
+    ARVORES_MUSICAIS = ['sagrado1_02', 'sagrado1_03']
+    NOTAS = ['magico4_01', 'magico4_02', 'magico4_03']
+
+    copa_em = lambda x, y: 0 <= x < w and 0 <= y < h and g[y][x] == 'copa'
+    grama_em = lambda x, y: 0 <= x < w and 0 <= y < h and g[y][x] == 'grama'
+
+    musicais = 0
+    for _ in range(400):
+        x, y = random.randrange(w), random.randrange(h)
+        if not copa_em(x, y) or not grama_em(x, y + 6): continue     # na beira da mata
+        if musicais >= 7: break
+        plantar(random.choice(ARVORES_MUSICAIS), x, y + 6, random.uniform(.9, 1.15))
+        musicais += 1
+
+    # a Árvore-Mãe, uma só, no ponto mais alto da mata do fundo
+    alvo = min((c for c in copas if c['area'] >= ILHA_GRANDE),
+               key=lambda c: c['y'], default=None)
+    if alvo:
+        plantar('sagrado1_01', alvo['x'] + alvo['w'] * .5, alvo['y'] + alvo['h'] * .35, 1.15)
+
+    notas = 0
+    for _ in range(600):
+        x, y = random.randrange(w), random.randrange(h)
+        if not grama_em(x, y) or copa_em(x, y - 3): continue          # pairando na clareira
+        if notas >= 14: break
+        plantar(random.choice(NOTAS), x, y, random.uniform(.7, 1.1))
+        notas += 1
+    print(f'  {musicais} árvores de clave · {notas} notas douradas · Árvore-Mãe: {"sim" if alvo else "não"}')
+
     Path('/tmp/cenario_props.json').write_text(json.dumps(props, indent=1), encoding='utf-8')
     print(f'  {len(props)} objetos · máscaras em /tmp/cenario_masc · mundo {LARG}x{ALT}')
 

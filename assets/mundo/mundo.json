@@ -14611,6 +14611,226 @@
       "ey": 0.99,
       "rot": 0,
       "flipX": true
+    },
+    {
+      "id": "sagrado1_02_1459",
+      "prop": "sagrado1_02",
+      "x": 448,
+      "y": 1160,
+      "ex": 1.04,
+      "ey": 1.04,
+      "rot": 0,
+      "flipX": false
+    },
+    {
+      "id": "sagrado1_02_1460",
+      "prop": "sagrado1_02",
+      "x": 2168,
+      "y": 424,
+      "ex": 1.02,
+      "ey": 1.02,
+      "rot": 0,
+      "flipX": false
+    },
+    {
+      "id": "sagrado1_02_1461",
+      "prop": "sagrado1_02",
+      "x": 600,
+      "y": 624,
+      "ex": 1.02,
+      "ey": 1.02,
+      "rot": 0,
+      "flipX": true
+    },
+    {
+      "id": "sagrado1_03_1462",
+      "prop": "sagrado1_03",
+      "x": 2048,
+      "y": 296,
+      "ex": 1.13,
+      "ey": 1.13,
+      "rot": 0,
+      "flipX": true
+    },
+    {
+      "id": "sagrado1_02_1463",
+      "prop": "sagrado1_02",
+      "x": 2696,
+      "y": 952,
+      "ex": 1.11,
+      "ey": 1.11,
+      "rot": 0,
+      "flipX": false
+    },
+    {
+      "id": "sagrado1_03_1464",
+      "prop": "sagrado1_03",
+      "x": 2496,
+      "y": 896,
+      "ex": 0.96,
+      "ey": 0.96,
+      "rot": 0,
+      "flipX": false
+    },
+    {
+      "id": "sagrado1_03_1465",
+      "prop": "sagrado1_03",
+      "x": 296,
+      "y": 424,
+      "ex": 1.08,
+      "ey": 1.08,
+      "rot": 0,
+      "flipX": true
+    },
+    {
+      "id": "sagrado1_01_1466",
+      "prop": "sagrado1_01",
+      "x": 280,
+      "y": 434,
+      "ex": 1.15,
+      "ey": 1.15,
+      "rot": 0,
+      "flipX": true
+    },
+    {
+      "id": "magico4_01_1467",
+      "prop": "magico4_01",
+      "x": 2400,
+      "y": 1248,
+      "ex": 0.92,
+      "ey": 0.92,
+      "rot": 0,
+      "flipX": true
+    },
+    {
+      "id": "magico4_02_1468",
+      "prop": "magico4_02",
+      "x": 152,
+      "y": 1256,
+      "ex": 0.94,
+      "ey": 0.94,
+      "rot": 0,
+      "flipX": false
+    },
+    {
+      "id": "magico4_01_1469",
+      "prop": "magico4_01",
+      "x": 1488,
+      "y": 1208,
+      "ex": 0.96,
+      "ey": 0.96,
+      "rot": 0,
+      "flipX": true
+    },
+    {
+      "id": "magico4_02_1470",
+      "prop": "magico4_02",
+      "x": 1008,
+      "y": 936,
+      "ex": 0.72,
+      "ey": 0.72,
+      "rot": 0,
+      "flipX": true
+    },
+    {
+      "id": "magico4_02_1471",
+      "prop": "magico4_02",
+      "x": 1656,
+      "y": 56,
+      "ex": 0.72,
+      "ey": 0.72,
+      "rot": 0,
+      "flipX": true
+    },
+    {
+      "id": "magico4_02_1472",
+      "prop": "magico4_02",
+      "x": 328,
+      "y": 48,
+      "ex": 0.98,
+      "ey": 0.98,
+      "rot": 0,
+      "flipX": false
+    },
+    {
+      "id": "magico4_03_1473",
+      "prop": "magico4_03",
+      "x": 752,
+      "y": 504,
+      "ex": 0.98,
+      "ey": 0.98,
+      "rot": 0,
+      "flipX": true
+    },
+    {
+      "id": "magico4_01_1474",
+      "prop": "magico4_01",
+      "x": 1016,
+      "y": 1072,
+      "ex": 0.89,
+      "ey": 0.89,
+      "rot": 0,
+      "flipX": false
+    },
+    {
+      "id": "magico4_03_1475",
+      "prop": "magico4_03",
+      "x": 1544,
+      "y": 744,
+      "ex": 0.77,
+      "ey": 0.77,
+      "rot": 0,
+      "flipX": false
+    },
+    {
+      "id": "magico4_02_1476",
+      "prop": "magico4_02",
+      "x": 2184,
+      "y": 1064,
+      "ex": 0.75,
+      "ey": 0.75,
+      "rot": 0,
+      "flipX": true
+    },
+    {
+      "id": "magico4_02_1477",
+      "prop": "magico4_02",
+      "x": 1504,
+      "y": 720,
+      "ex": 0.86,
+      "ey": 0.86,
+      "rot": 0,
+      "flipX": false
+    },
+    {
+      "id": "magico4_01_1478",
+      "prop": "magico4_01",
+      "x": 1096,
+      "y": 8,
+      "ex": 0.86,
+      "ey": 0.86,
+      "rot": 0,
+      "flipX": false
+    },
+    {
+      "id": "magico4_03_1479",
+      "prop": "magico4_03",
+      "x": 1008,
+      "y": 896,
+      "ex": 0.79,
+      "ey": 0.79,
+      "rot": 0,
+      "flipX": true
+    },
+    {
+      "id": "magico4_01_1480",
+      "prop": "magico4_01",
+      "x": 2032,
+      "y": 880,
+      "ex": 0.83,
+      "ey": 0.83,
+      "rot": 0,
+      "flipX": false
     }
   ]
 }

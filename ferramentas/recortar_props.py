@@ -43,7 +43,11 @@ LIMITE_FRANJA = 150
 PASSADAS_DE_FRANJA = 2
 AREA_MINIMA = 120        # em pixels da máscara reduzida
 MARGEM = 2               # folga em volta do recorte
-ESCALA = 4               # a busca de ilhas roda nesta redução
+# A busca de ilhas roda nesta redução. Em 4 ela é rápida, mas FECHA FRESTAS FINAS: o
+# vão entre o tronco e a copa da Árvore Frondosa virava um bolsão de fundo preso dentro
+# do recorte, e o jogador via uma barra branca no meio da árvore. Em 2 só fresta de um
+# pixel se fecha, e a conta ainda roda em segundos — em 1 passa de dez minutos.
+ESCALA = 4
 
 
 def mascara_branca(im):
@@ -105,7 +109,11 @@ def fundo_alcancavel(branca):
 # entre os galhos, e preservá-la deixava uma mancha branca na copa. Já a casca da bétula
 # e o brilho na pedra são branco disperso e pequeno — por isso o corte é por ÁREA, não
 # por cor: ilha grande de branco é fundo esquecido; ilha pequena é desenho.
-LIMITE_BURACO = 10       # em pixels da máscara reduzida (~160px na resolução cheia)
+# Em pixels da máscara reduzida. Começou em 10 (~160px cheios) e deixava passar os vãos
+# ENTRE AS FOLHAS: a Árvore Frondosa ficava com uma barra branca de 26px no meio da copa.
+# Em 3 (~48px cheios) esses vãos somem e o branco legítimo do desenho — casca de bétula,
+# pétala clara — continua, porque ele não é branco puro nem forma ilha isolada.
+LIMITE_BURACO = 3
 
 
 def furar_buracos(branca_pequena, fundo, w, h):
@@ -198,6 +206,48 @@ def fileiras(caixas, tolerancia=0.55):
     return grupos
 
 
+def limpar_bolsoes(rgba, limite=205):
+    """Apaga o fundo que ficou PRESO dentro do recorte.
+
+    A varredura geral roda em escala reduzida por velocidade, e a redução fecha frestas
+    de um ou dois pixels — o vão entre o tronco e a copa, por exemplo. O fundo além
+    dessa fresta fica ilhado e vira uma barra clara no meio do desenho.
+
+    Aqui a limpeza é por sprite, em resolução cheia: qualquer pixel quase branco que
+    ALCANCE a transparência ao redor, andando só por pixels quase brancos, também é
+    fundo. O branco legítimo (casca de bétula, pétala) não alcança — está cercado de
+    desenho por todos os lados.
+    """
+    from collections import deque
+    w, h = rgba.size
+    px = rgba.load()
+    fila = deque()
+    visto = bytearray(w * h)
+
+    def claro(x, y):
+        r, g, b, a = px[x, y]
+        return a > 120 and min(r, g, b) >= limite
+
+    for y in range(h):
+        for x in range(w):
+            if px[x, y][3] > 120:
+                continue                       # opaco: não é semente
+            for dx, dy in ((1,0),(-1,0),(0,1),(0,-1)):
+                nx, ny = x+dx, y+dy
+                if 0 <= nx < w and 0 <= ny < h and not visto[ny*w+nx] and claro(nx, ny):
+                    visto[ny*w+nx] = 1; fila.append((nx, ny))
+    n = 0
+    while fila:
+        x, y = fila.popleft()
+        px[x, y] = (px[x, y][0], px[x, y][1], px[x, y][2], 0)
+        n += 1
+        for dx, dy in ((1,0),(-1,0),(0,1),(0,-1)):
+            nx, ny = x+dx, y+dy
+            if 0 <= nx < w and 0 <= ny < h and not visto[ny*w+nx] and claro(nx, ny):
+                visto[ny*w+nx] = 1; fila.append((nx, ny))
+    return n
+
+
 def sangrar_cor(rgba):
     from PIL import ImageChops
     """Pinta a cor média do sprite POR BAIXO da parte transparente.
@@ -235,6 +285,12 @@ def main():
         prefixo = sys.argv[sys.argv.index('--prefixo') + 1]
     # Limite ajustável: uma das folhas veio com grade de fundo em cinza 229, que sem
     # isto conta como desenho e liga a imagem inteira num objeto só.
+    global LIMITE_BURACO
+    global ESCALA
+    if '--escala' in sys.argv:
+        ESCALA = int(sys.argv[sys.argv.index('--escala') + 1])
+    if '--buraco' in sys.argv:
+        LIMITE_BURACO = int(sys.argv[sys.argv.index('--buraco') + 1])
     if '--branco' in sys.argv:
         LIMITE_BRANCO = int(sys.argv[sys.argv.index('--branco') + 1])
     print(f'limite de branco: {LIMITE_BRANCO} · prefixo: {prefixo}')
@@ -289,6 +345,9 @@ def main():
             caixa = recorte.getbbox()          # apara a folga que sobrou
             if caixa:
                 recorte = recorte.crop(caixa)
+            limpar_bolsoes(recorte)
+            caixa2 = recorte.getbbox()
+            if caixa2: recorte = recorte.crop(caixa2)
             recorte = sangrar_cor(recorte)
             nome = f'{prefixo}{nf}_{ni:02d}.png'
             recorte.save(DESTINO / nome)
