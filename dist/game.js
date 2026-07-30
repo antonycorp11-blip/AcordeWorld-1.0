@@ -2047,7 +2047,9 @@ function renderMundo(now) {
     }
     desenharProp(spr, p, b);
 
-    if (!mundoTeste) {
+    // A elipse de colisão e a caixa continuam à mostra enquanto se anda: é justamente
+    // aí que dá para conferir se o tronco bloqueia no lugar certo.
+    {
       const def = propDefs[p.prop] || {};
       ctx.save();
       if (def.colide && def.raio) {
@@ -2080,7 +2082,7 @@ function renderHudDoMundo() {
   ctx.save();
   ctx.font = 'bold 11px Outfit, sans-serif';
   const txt = mundoTeste
-    ? `🌍 ${MUNDO.nome} — MODO ANDAR · o editor está desligado · ESC para voltar a editar`
+    ? `🌍 ${MUNDO.nome} — andando e editando · WASD anda · toque planta e seleciona · ESC volta`
     : `🌍 ${MUNDO.nome} · ${mundoLargura()}x${mundoAltura()}px · ${MUNDO.props.length} objetos · ` +
       `zoom ${mundoCam.zoom.toFixed(2)}x · ` +
       (propParaColocar
@@ -2280,8 +2282,9 @@ function mundoPointerDown(m) {
     dragOffX = w.x - p.x; dragOffY = w.y - p.y;
     return;
   }
-  // Nada sob o dedo (ou ferramenta de mover): arrasta a câmera.
-  mundoPan = { telaX: m.x, telaY: m.y, camX: mundoCam.x, camY: mundoCam.y };
+  // Nada sob o dedo: arrasta a câmera — mas só parado. Andando, a câmera segue o
+  // personagem, e arrastá-la brigaria com ele a cada quadro.
+  if (!mundoTeste) mundoPan = { telaX: m.x, telaY: m.y, camX: mundoCam.x, camY: mundoCam.y };
   if (!p) mundoPropSel = null;
 }
 
@@ -5333,7 +5336,9 @@ function getM(e){
 }
 
 function onPointerDown(m){
-  if(engineMode==='mundo'){ if(!mundoTeste) mundoPointerDown(m); return; }
+  // Editar andando é o jeito de enxergar escala: a árvore do lado do personagem diz na
+  // hora se está grande demais. Então o clique vale nos dois modos.
+  if(engineMode==='mundo'){ mundoPointerDown(m); return; }
   if (isPlayMode && capturaAtiva) { pegarVoz(m.x, m.y); return; }
   if (isPlayMode && ecoProntoPerto()) { ressoar(); return; }
   if (avancarCena()) return;      // uma cena em curso consome o toque
@@ -5405,7 +5410,7 @@ function onPointerDown(m){
 }
 
 function onPointerMove(m){
-  if(engineMode==='mundo'){ if(!mundoTeste) mundoPointerMove(m); return; }
+  if(engineMode==='mundo'){ mundoPointerMove(m); return; }
   if(capturaAtiva&&capturaAtiva.arrastando){arrastarVoz(m.x,m.y);return;}
   if(engineMode==='worldmap'&&wvDragKey){wvDragMouse={...m};}
   if(engineMode==='scene'&&!isPlayMode&&arrastandoObjeto){
@@ -6003,9 +6008,7 @@ function renderPaletaDeProps() {
       // Escolher na paleta JÁ arma o plantar. Exigir um segundo clique na ferramenta
       // fazia o toque no mapa não produzir nada, sem nenhuma pista do porquê.
       if (typeof engineMode !== 'undefined' && engineMode === 'mundo') {
-        // Se o modo de caminhada estava ligado, o editor ignorava TODO clique sem dizer
-        // nada — era isto que fazia "clico e não acontece nada".
-        if (mundoTeste) mundoTestar(false);
+        // Nada de desligar o modo andar: plantar enquanto se caminha é o ponto.
         mundoFerramenta = propParaColocar ? 'plantar' : 'mover';
         document.getElementById('mundoFerrPlantar')?.classList.toggle('ativo', !!propParaColocar);
         document.getElementById('mundoFerrMover')?.classList.toggle('ativo', !propParaColocar);
@@ -9942,8 +9945,10 @@ function initForgeUI() {
 
   // Apagar objeto do mundo com Delete, que é o gesto de todo editor.
   window.addEventListener('keydown', e => {
-    if (engineMode !== 'mundo' || mundoTeste || !mundoPropSel) return;
+    if (engineMode !== 'mundo' || !mundoPropSel) return;
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;
+    // Andando, D é "ir para a direita" e as setas também andam: só Delete sobrevive.
+    if (mundoTeste && !['Delete', 'Backspace'].includes(e.key)) return;
     const p = mundoPropSel;
     const passo = e.shiftKey ? 10 : 1;
     if (e.key === 'Delete' || e.key === 'Backspace') {
