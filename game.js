@@ -2082,7 +2082,10 @@ function renderHudDoMundo() {
   const txt = mundoTeste
     ? `🌍 ${MUNDO.nome} — andando · ESC para voltar a editar`
     : `🌍 ${MUNDO.nome} · ${mundoLargura()}x${mundoAltura()}px · ${MUNDO.props.length} objetos · ` +
-      `zoom ${mundoCam.zoom.toFixed(2)}x · ferramenta: ${mundoFerramenta}`;
+      `zoom ${mundoCam.zoom.toFixed(2)}x · ` +
+      (propParaColocar
+        ? `plantando: ${(propDefs[propParaColocar] || {}).nome || propParaColocar}`
+        : 'toque num prop na aba Objetos para plantar');
   const w = ctx.measureText(txt).width + 18;
   ctx.fillStyle = 'rgba(6,9,14,0.85)';
   ctx.fillRect(10, 10, w, 22);
@@ -2249,7 +2252,7 @@ function mundoPointerDown(m) {
     if (k) { mundoAlca = k; return; }
   }
 
-  if (mundoFerramenta === 'plantar' && propParaColocar) {
+  if (propParaColocar && mundoFerramenta !== 'selecionar' && mundoFerramenta !== 'partida') {
     const novo = { id: `${propParaColocar}_${Date.now()}`, prop: propParaColocar,
                    x: Math.round(w.x), y: Math.round(w.y), ex: 1, ey: 1, rot: 0, flipX: false };
     MUNDO.props.push(novo);
@@ -5990,6 +5993,13 @@ function renderPaletaDeProps() {
     b.appendChild(t);
     b.addEventListener('click', () => {
       propParaColocar = (propParaColocar === id) ? null : id;
+      // Escolher na paleta JÁ arma o plantar. Exigir um segundo clique na ferramenta
+      // fazia o toque no mapa não produzir nada, sem nenhuma pista do porquê.
+      if (typeof engineMode !== 'undefined' && engineMode === 'mundo') {
+        mundoFerramenta = propParaColocar ? 'plantar' : 'mover';
+        document.getElementById('mundoFerrPlantar')?.classList.toggle('ativo', !!propParaColocar);
+        document.getElementById('mundoFerrMover')?.classList.toggle('ativo', !propParaColocar);
+      }
       renderPaletaDeProps();
       showToast(propParaColocar
         ? `🌲 ${def.nome || id}: toque no mapa para plantar`
