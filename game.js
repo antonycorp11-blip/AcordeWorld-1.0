@@ -1893,6 +1893,94 @@ function mundoAtualizarBlocos(now) {
   }
 }
 
+// ── Ambiente: hora, vento e chuva ───────────────────────────────────────────────
+// Um punhado de números manda em tudo. O vento é o principal: ele inclina as copas,
+// deita a chuva e arrasta as folhas — e como é UM valor só, tudo se move no mesmo
+// ritmo. É isso que faz parecer um lugar em vez de vários efeitos rodando juntos.
+const AMB = { hora: 12, vento: 0.3, chuva: 0, nevoa: 0 };
+
+// Cor do céu sobre o mundo, por hora. Interpolo entre as âncoras para o dia virar
+// devagar em vez de pular de um tom para outro.
+const LUZ_DO_DIA = [
+  { h: 0,  cor: [18, 26, 62],  a: .58 },   // madrugada
+  { h: 6,  cor: [92, 74, 96],  a: .34 },   // primeira luz
+  { h: 8,  cor: [255, 196, 120], a: .16 }, // manhã dourada
+  { h: 12, cor: [255, 255, 255], a: 0 },   // meio-dia
+  { h: 17, cor: [255, 168, 92], a: .18 },  // fim de tarde
+  { h: 20, cor: [64, 62, 120], a: .40 },   // anoitecer
+  { h: 24, cor: [18, 26, 62],  a: .58 },
+];
+
+function corDoAmbiente() {
+  const h = ((AMB.hora % 24) + 24) % 24;
+  let a = LUZ_DO_DIA[0], b = LUZ_DO_DIA[LUZ_DO_DIA.length - 1];
+  for (let i = 0; i < LUZ_DO_DIA.length - 1; i++) {
+    if (h >= LUZ_DO_DIA[i].h && h <= LUZ_DO_DIA[i + 1].h) { a = LUZ_DO_DIA[i]; b = LUZ_DO_DIA[i + 1]; break; }
+  }
+  const t = (h - a.h) / Math.max(0.001, b.h - a.h);
+  const mix = (x, y) => Math.round(x + (y - x) * t);
+  return { cor: [mix(a.cor[0], b.cor[0]), mix(a.cor[1], b.cor[1]), mix(a.cor[2], b.cor[2])],
+           alfa: a.a + (b.a - a.a) * t };
+}
+
+// Chuva: gotas em coordenada de TELA, não de mundo. Chuva presa ao mundo escorregaria
+// junto com a câmera e denunciaria o truque na hora.
+const gotas = [];
+function atualizarChuva(now) {
+  const alvo = Math.round(AMB.chuva * 260);
+  while (gotas.length < alvo) gotas.push({ x: Math.random() * SCREEN_W, y: Math.random() * SCREEN_H,
+                                           v: 9 + Math.random() * 7, c: 8 + Math.random() * 14 });
+  while (gotas.length > alvo) gotas.pop();
+  const inclina = AMB.vento * 7;
+  gotas.forEach(g => {
+    g.y += g.v; g.x += inclina;
+    if (g.y > SCREEN_H) { g.y = -20; g.x = Math.random() * SCREEN_W; }
+    if (g.x > SCREEN_W + 20) g.x = -20;
+    if (g.x < -20) g.x = SCREEN_W + 20;
+  });
+}
+
+// Nome próprio: o motor já tem um `renderAmbiente` do jogo antigo, e duas declarações
+// com o mesmo nome fazem a última vencer — a minha era simplesmente ignorada.
+function renderAmbienteDoMundo(now) {
+  const { cor, alfa } = corDoAmbiente();
+  if (alfa > 0.002) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = `rgba(${cor[0]},${cor[1]},${cor[2]},${alfa})`;
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    ctx.restore();
+  }
+  if (AMB.nevoa > 0.002) {
+    ctx.save();
+    ctx.fillStyle = `rgba(226,232,240,${AMB.nevoa * 0.4})`;
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    ctx.restore();
+  }
+  if (AMB.chuva > 0.002) {
+    atualizarChuva(now);
+    ctx.save();
+    ctx.strokeStyle = `rgba(190,214,240,${0.25 + AMB.chuva * 0.35})`;
+    ctx.lineWidth = 1.2;
+    const inclina = AMB.vento * 7;
+    ctx.beginPath();
+    gotas.forEach(g => { ctx.moveTo(g.x, g.y); ctx.lineTo(g.x - inclina * 1.6, g.y - g.c); });
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// Quanto o topo do sprite se inclina agora. Cada objeto tem defasagem própria, senão a
+// floresta inteira balança em uníssono — que é o erro clássico e entrega o truque.
+const BALANCA = { arvore: 1, sagrado: 1, mato: 1.4, flor: 1.6, musical: 1.2, magico: 1.2 };
+function inclinacaoDoVento(p, def, now) {
+  const forca = BALANCA[def.categoria];
+  if (!forca || AMB.vento < 0.01) return 0;
+  if (p.fase === undefined) p.fase = (p.x * 0.013 + p.y * 0.007) % (Math.PI * 2);
+  const t = now * 0.0011 * (0.6 + AMB.vento) + p.fase;
+  return (Math.sin(t) * 0.55 + Math.sin(t * 2.3) * 0.2) * AMB.vento * 0.075 * forca;
+}
+
 // ── Pintura de terreno ──────────────────────────────────────────────────────────
 // Caminho não é objeto: é chão. As peças de trilha e calçada trazem a própria franja de
 // grama desenhada, então emendam mal e só servem no sentido em que foram desenhadas.
@@ -2093,10 +2181,16 @@ function mundoPropBounds(p) {
 
 // Desenha um prop já com espelho, giro e escala aplicados. O giro acontece em torno do
 // PÉ, não do centro: girar pelo centro faz o objeto sair do chão e flutuar.
-function desenharProp(spr, p, b) {
+function desenharProp(spr, p, b, now) {
   const rot = p.rot || 0;
+  const def = propDefs[p.prop] || {};
   ctx.save();
   if (rot) { ctx.translate(p.x, p.y); ctx.rotate(rot); ctx.translate(-p.x, -p.y); }
+
+  // Balanço: cisalhamento horizontal preso ao pé — nada na base, o máximo na copa. É
+  // mais convincente que trocar quadros porque a folhagem se deforma como folhagem.
+  const k = now !== undefined ? inclinacaoDoVento(p, def, now) : 0;
+  if (k) { ctx.translate(0, p.y); ctx.transform(1, 0, -k, 1, 0, 0); ctx.translate(0, -p.y); }
   if (p.flipX) {
     ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1);
     ctx.drawImage(spr.canvas, 0, 0, b.w, b.h);
@@ -2266,7 +2360,7 @@ function renderMundo(now) {
   MUNDO.props.forEach(p => {
     if ((propDefs[p.prop] || {}).plano !== 'chao') return;
     const spr = propSprites[p.prop]; if (!spr) return;
-    desenharProp(spr, p, mundoPropBounds(p));
+    desenharProp(spr, p, mundoPropBounds(p), now);
   });
 
   // props e jogador, ordenados pelo pé: é isto que faz passar atrás da árvore
@@ -2286,7 +2380,7 @@ function renderMundo(now) {
       }
       return;
     }
-    desenharProp(spr, p, b);
+    desenharProp(spr, p, b, now);
 
     // A elipse de colisão e a caixa continuam à mostra enquanto se anda: é justamente
     // aí que dá para conferir se o tronco bloqueia no lugar certo.
@@ -2329,6 +2423,7 @@ function renderMundo(now) {
   }
 
   ctx.restore();
+  renderAmbienteDoMundo(now);
   renderHudDoMundo();
 }
 
@@ -10225,6 +10320,55 @@ function initForgeUI() {
   });
   document.getElementById('pecaTom')?.addEventListener('click', () => colocarIntervalo('T'));
   document.getElementById('pecaSemitom')?.addEventListener('click', () => colocarIntervalo('S'));
+
+  // ── Ambiente ──────────────────────────────────────────────────────────────────
+  const HORAS = [['🌅 Manhã', 8], ['☀️ Meio-dia', 12], ['🌇 Tarde', 17],
+                 ['🌙 Noite', 21], ['🌌 Madrugada', 2]];
+  const CLIMAS = [['☀️ Limpo', { chuva: 0, nevoa: 0 }],
+                  ['🌫️ Névoa', { chuva: 0, nevoa: .55 }],
+                  ['🌦️ Garoa', { chuva: .35, nevoa: .12 }],
+                  ['🌧️ Chuva', { chuva: .8, nevoa: .2 }],
+                  ['⛈️ Temporal', { chuva: 1, nevoa: .3 }]];
+
+  const sincronizarAmbiente = () => {
+    const h = document.getElementById('ambHora');
+    const hv = document.getElementById('ambHoraVal');
+    if (h) h.value = Math.round(AMB.hora * 10);
+    if (hv) hv.textContent = `${String(Math.floor(AMB.hora)).padStart(2,'0')}:` +
+                             `${String(Math.round((AMB.hora % 1) * 60)).padStart(2,'0')}`;
+    const v = document.getElementById('ambVento');
+    const vv = document.getElementById('ambVentoVal');
+    if (v) v.value = Math.round(AMB.vento * 100);
+    if (vv) vv.textContent = Math.round(AMB.vento * 100) + '%';
+    document.querySelectorAll('#ambHoras .prop-cat').forEach((b, i) =>
+      b.classList.toggle('ativo', Math.abs(AMB.hora - HORAS[i][1]) < .01));
+    document.querySelectorAll('#ambClima .prop-cat').forEach((b, i) =>
+      b.classList.toggle('ativo', Math.abs(AMB.chuva - CLIMAS[i][1].chuva) < .01
+                                && Math.abs(AMB.nevoa - CLIMAS[i][1].nevoa) < .01));
+  };
+
+  const montarChips = (id, lista, aplicar) => {
+    const box = document.getElementById(id);
+    if (!box) return;
+    box.innerHTML = '';
+    lista.forEach(([rotulo, valor]) => {
+      const b = document.createElement('button');
+      b.className = 'prop-cat';
+      b.textContent = rotulo;
+      b.addEventListener('click', () => { aplicar(valor); sincronizarAmbiente(); });
+      box.appendChild(b);
+    });
+  };
+  montarChips('ambHoras', HORAS, h => { AMB.hora = h; });
+  montarChips('ambClima', CLIMAS, c => { AMB.chuva = c.chuva; AMB.nevoa = c.nevoa; });
+
+  document.getElementById('ambHora')?.addEventListener('input', e => {
+    AMB.hora = parseInt(e.target.value, 10) / 10; sincronizarAmbiente();
+  });
+  document.getElementById('ambVento')?.addEventListener('input', e => {
+    AMB.vento = parseInt(e.target.value, 10) / 100; sincronizarAmbiente();
+  });
+  sincronizarAmbiente();
 
   // ── Pincel de terreno ─────────────────────────────────────────────────────────
   const renderMateriais = () => {

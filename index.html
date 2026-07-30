@@ -265,6 +265,16 @@
             <div class="insp-field"><label>Linhas</label><input type="number" id="mundoRows" class="insp-input" min="1" max="40" value="3"></div>
           </div>
           <div id="mundoTamanho" class="hint" style="margin:2px 0 8px"></div>
+          <div class="ambiente-box">
+            <div class="amb-titulo">Ambiente</div>
+            <div class="prop-cats" id="ambHoras"></div>
+            <div class="prop-cats" id="ambClima"></div>
+            <label class="amb-slider">Vento <input type="range" id="ambVento" min="0" max="100" value="30">
+              <b id="ambVentoVal">30%</b></label>
+            <label class="amb-slider">Hora <input type="range" id="ambHora" min="0" max="235" value="120">
+              <b id="ambHoraVal">12:00</b></label>
+          </div>
+
           <div class="prop-cats" id="pincelMateriais"></div>
           <div class="tools-row" id="pincelModoBox" style="display:none;gap:4px">
             <button class="tool-pill" id="pincelModoLivre">🖌️ Mão livre</button>

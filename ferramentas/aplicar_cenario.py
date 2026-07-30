@@ -28,6 +28,9 @@ def main():
 
     cfg = json.loads((RAIZ / 'assets/mundo/mundo.json').read_text())
     cfg['nome'] = 'Clareira dos Ecos'
+    # O mundo é maior que o bosque de propósito: sobra terreno a oeste para Acordelot
+    # crescer sem espremer a floresta.
+    cols = max(cols + 4, 10)
     cfg['cols'], cfg['rows'] = cols, rows
     cfg['props'] = props
     cfg['spawn'] = {'x': LARG // 2, 'y': int(ALT * 0.62)}

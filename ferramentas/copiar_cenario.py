@@ -21,7 +21,9 @@ from pathlib import Path
 from PIL import Image
 
 RAIZ = Path(__file__).resolve().parent.parent
-ESCALA_MUNDO = 2          # o cenário de 1024x571 vira uma área de 2048x1142
+# O cenário vira uma área ESCALA_MUNDO vezes maior. Em 3 o bosque fica com espaço de
+# sobra para andar entre as árvores, e ainda deixa o resto do mundo livre para a cidade.
+ESCALA_MUNDO = 3
 RED = 4                   # a análise roda nesta redução
 
 
@@ -132,7 +134,9 @@ def main():
     # espaçadas reproduz a borda de floresta do cenário — tratá-la como um objeto só
     # daria uma árvore do tamanho de um quarteirão.
     ILHA_GRANDE = 600
-    PASSO = 11          # em pixels reduzidos: ~44px do cenário entre troncos
+    # Espaçamento entre troncos. Subiu de 11 para 16: a mata anterior era um paredão
+    # sem passagem, e o jogador precisa caminhar DENTRO do bosque, não em volta dele.
+    PASSO = 16
 
     def preencher(ilha, tabela, celula):
         dentro = 0
@@ -173,7 +177,7 @@ def main():
         for x in range(1, w - 1):
             if g[y][x] != 'grama': continue
             if g[y-1][x] != 'copa': continue          # logo abaixo da mata
-            if random.random() > .32: continue
+            if random.random() > .18: continue
             plantar(random.choice(MIUDO), x, y + 1, random.uniform(.7, 1.05)); orla += 1
     print(f'  {orla} peças de orla')
 
@@ -187,10 +191,10 @@ def main():
     grama_em = lambda x, y: 0 <= x < w and 0 <= y < h and g[y][x] == 'grama'
 
     musicais = 0
-    for _ in range(400):
+    for _ in range(1400):
         x, y = random.randrange(w), random.randrange(h)
         if not copa_em(x, y) or not grama_em(x, y + 6): continue     # na beira da mata
-        if musicais >= 7: break
+        if musicais >= 22: break
         plantar(random.choice(ARVORES_MUSICAIS), x, y + 6, random.uniform(.9, 1.15))
         musicais += 1
 
@@ -201,10 +205,10 @@ def main():
         plantar('sagrado1_01', alvo['x'] + alvo['w'] * .5, alvo['y'] + alvo['h'] * .35, 1.15)
 
     notas = 0
-    for _ in range(600):
+    for _ in range(1600):
         x, y = random.randrange(w), random.randrange(h)
         if not grama_em(x, y) or copa_em(x, y - 3): continue          # pairando na clareira
-        if notas >= 14: break
+        if notas >= 26: break
         plantar(random.choice(NOTAS), x, y, random.uniform(.7, 1.1))
         notas += 1
     print(f'  {musicais} árvores de clave · {notas} notas douradas · Árvore-Mãe: {"sim" if alvo else "não"}')
