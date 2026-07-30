@@ -1889,6 +1889,8 @@ function mundoPropBounds(p) {
   const def = propDefs[p.prop] || {};
   const h = (def.altura || (spr ? spr.sh : 96)) * (p.escala || 1);
   const w = spr ? h * (spr.sw / spr.sh) : h * 0.8;
+  // Peça de chão é centrada no ponto onde você clicou; objeto é ancorado pelo pé.
+  if (def.plano === 'chao') return { x: p.x - w / 2, y: p.y - h / 2, w, h };
   return { x: p.x - w / 2, y: p.y - h * (def.pe ?? 0.9), w, h };
 }
 
@@ -1978,8 +1980,23 @@ function renderMundo(now) {
     ctx.restore();
   }
 
+  // Plano do chão primeiro: trilha, clareira de grama, canteiro. São peças de TERRENO,
+  // não objetos — pintam por baixo de todo mundo e ninguém passa atrás delas. Sem este
+  // plano, um pedaço de caminho apareceria na frente dos pés do jogador.
+  MUNDO.props.forEach(p => {
+    if ((propDefs[p.prop] || {}).plano !== 'chao') return;
+    const spr = propSprites[p.prop]; if (!spr) return;
+    const b = mundoPropBounds(p);
+    ctx.save();
+    if (p.flipX) { ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1); ctx.drawImage(spr.canvas, 0, 0, b.w, b.h); }
+    else ctx.drawImage(spr.canvas, b.x, b.y, b.w, b.h);
+    ctx.restore();
+  });
+
   // props e jogador, ordenados pelo pé: é isto que faz passar atrás da árvore
-  const desenhaveis = MUNDO.props.map(p => ({ tipo: 'prop', y: p.y, p }));
+  const desenhaveis = MUNDO.props
+    .filter(p => (propDefs[p.prop] || {}).plano !== 'chao')
+    .map(p => ({ tipo: 'prop', y: p.y, p }));
   if (mundoTeste) desenhaveis.push({ tipo: 'jogador', y: player.y });
   desenhaveis.sort((a, b) => a.y - b.y);
 
@@ -2222,6 +2239,7 @@ function objetoBounds(o) {
   const h = (def.altura || (spr ? spr.sh : 96)) * (o.escala || 1);
   const w = spr ? h * (spr.sw / spr.sh) : h * 0.8;
   const pe = def.pe ?? 0.9;
+  if (def.plano === 'chao') return { x: o.x - w / 2, y: o.y - h / 2, w, h, pe: 1 };
   // O pé fica a `pe` da altura: o que está abaixo dessa linha é a base do objeto.
   return { x: o.x - w / 2, y: o.y - h * pe, w, h, pe };
 }
@@ -2251,8 +2269,23 @@ function renderObjetos(now, lado) {
   const mapa = isPlayMode ? currentKey : (activeMapSelect?.value || currentKey);
   const lista = objetosDoMapa(mapa);
   if (!lista.length) return;
+
+  // Peças de terreno saem da ordenação: elas pertencem ao chão, e só aparecem na
+  // primeira passada do quadro.
+  const noChao = o => (propDef(o) || {}).plano === 'chao';
+  if (lado === 'atras' || lado === 'todos') {
+    lista.filter(noChao).forEach(o => {
+      const spr = propSprites[o.prop]; if (!spr) return;
+      const b = objetoBounds(o);
+      ctx.save();
+      if (o.flipX) { ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1); ctx.drawImage(spr.canvas, 0, 0, b.w, b.h); }
+      else ctx.drawImage(spr.canvas, b.x, b.y, b.w, b.h);
+      ctx.restore();
+    });
+  }
   const linhaDoJogador = player.y;
   lista
+    .filter(o => !noChao(o))
     // 'todos' é o modo do editor: sem personagem em cena, a divisão atrás/na frente não
     // significa nada e o que importa é ver tudo que está plantado.
     .filter(o => lado === 'todos' || (lado === 'atras' ? o.y <= linhaDoJogador : o.y > linhaDoJogador))
@@ -5780,6 +5813,10 @@ function renderPaletaDeProps() {
       '<code>assets/props/</code> e declare-os em <code>assets/objects.json</code>.</p>';
     return;
   }
+  // Ordena por categoria: com 37 props, uma lista solta é impossível de varrer.
+  const ordem = { caminho: 0, chao_grama: 1, arvore: 2, mato: 3, flor: 4, pedra: 5 };
+  ids.sort((a, b) => (ordem[propDefs[a].categoria] ?? 9) - (ordem[propDefs[b].categoria] ?? 9)
+                     || (propDefs[a].nome || a).localeCompare(propDefs[b].nome || b));
   ids.forEach(id => {
     const def = propDefs[id];
     const b = document.createElement('button');

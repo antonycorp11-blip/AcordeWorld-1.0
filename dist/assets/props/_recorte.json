@@ -1,0 +1,301 @@
+{
+  "folha": "2D_game_assets_sprite_sheet_202607291945.jpeg",
+  "sprites": [
+    {
+      "arquivo": "assets/props/f1_01.png",
+      "fileira": 1,
+      "x": 26,
+      "y": 14,
+      "w": 384,
+      "h": 496
+    },
+    {
+      "arquivo": "assets/props/f1_02.png",
+      "fileira": 1,
+      "x": 442,
+      "y": 26,
+      "w": 266,
+      "h": 460
+    },
+    {
+      "arquivo": "assets/props/f1_03.png",
+      "fileira": 1,
+      "x": 726,
+      "y": 74,
+      "w": 304,
+      "h": 409
+    },
+    {
+      "arquivo": "assets/props/f1_04.png",
+      "fileira": 1,
+      "x": 1046,
+      "y": 134,
+      "w": 236,
+      "h": 355
+    },
+    {
+      "arquivo": "assets/props/f1_05.png",
+      "fileira": 1,
+      "x": 1306,
+      "y": 170,
+      "w": 190,
+      "h": 312
+    },
+    {
+      "arquivo": "assets/props/f1_06.png",
+      "fileira": 1,
+      "x": 1502,
+      "y": 54,
+      "w": 354,
+      "h": 472
+    },
+    {
+      "arquivo": "assets/props/f1_07.png",
+      "fileira": 1,
+      "x": 1874,
+      "y": 162,
+      "w": 252,
+      "h": 317
+    },
+    {
+      "arquivo": "assets/props/f1_08.png",
+      "fileira": 1,
+      "x": 2150,
+      "y": 62,
+      "w": 275,
+      "h": 425
+    },
+    {
+      "arquivo": "assets/props/f1_09.png",
+      "fileira": 1,
+      "x": 2450,
+      "y": 82,
+      "w": 246,
+      "h": 404
+    },
+    {
+      "arquivo": "assets/props/f2_01.png",
+      "fileira": 2,
+      "x": 62,
+      "y": 562,
+      "w": 242,
+      "h": 217
+    },
+    {
+      "arquivo": "assets/props/f2_02.png",
+      "fileira": 2,
+      "x": 342,
+      "y": 562,
+      "w": 244,
+      "h": 213
+    },
+    {
+      "arquivo": "assets/props/f2_03.png",
+      "fileira": 2,
+      "x": 638,
+      "y": 590,
+      "w": 170,
+      "h": 174
+    },
+    {
+      "arquivo": "assets/props/f2_04.png",
+      "fileira": 2,
+      "x": 854,
+      "y": 582,
+      "w": 200,
+      "h": 184
+    },
+    {
+      "arquivo": "assets/props/f2_05.png",
+      "fileira": 2,
+      "x": 1102,
+      "y": 582,
+      "w": 161,
+      "h": 185
+    },
+    {
+      "arquivo": "assets/props/f2_06.png",
+      "fileira": 2,
+      "x": 1306,
+      "y": 562,
+      "w": 313,
+      "h": 206
+    },
+    {
+      "arquivo": "assets/props/f2_07.png",
+      "fileira": 2,
+      "x": 1666,
+      "y": 542,
+      "w": 304,
+      "h": 240
+    },
+    {
+      "arquivo": "assets/props/f2_08.png",
+      "fileira": 2,
+      "x": 2002,
+      "y": 550,
+      "w": 273,
+      "h": 233
+    },
+    {
+      "arquivo": "assets/props/f2_09.png",
+      "fileira": 2,
+      "x": 2342,
+      "y": 622,
+      "w": 82,
+      "h": 106
+    },
+    {
+      "arquivo": "assets/props/f2_10.png",
+      "fileira": 2,
+      "x": 2414,
+      "y": 674,
+      "w": 76,
+      "h": 75
+    },
+    {
+      "arquivo": "assets/props/f2_11.png",
+      "fileira": 2,
+      "x": 2538,
+      "y": 630,
+      "w": 129,
+      "h": 105
+    },
+    {
+      "arquivo": "assets/props/f3_01.png",
+      "fileira": 3,
+      "x": 58,
+      "y": 870,
+      "w": 541,
+      "h": 185
+    },
+    {
+      "arquivo": "assets/props/f3_02.png",
+      "fileira": 3,
+      "x": 662,
+      "y": 874,
+      "w": 408,
+      "h": 302
+    },
+    {
+      "arquivo": "assets/props/f3_03.png",
+      "fileira": 3,
+      "x": 1194,
+      "y": 866,
+      "w": 493,
+      "h": 311
+    },
+    {
+      "arquivo": "assets/props/f3_04.png",
+      "fileira": 3,
+      "x": 1782,
+      "y": 850,
+      "w": 449,
+      "h": 322
+    },
+    {
+      "arquivo": "assets/props/f3_05.png",
+      "fileira": 3,
+      "x": 2346,
+      "y": 838,
+      "w": 336,
+      "h": 334
+    },
+    {
+      "arquivo": "assets/props/f4_01.png",
+      "fileira": 4,
+      "x": 74,
+      "y": 1362,
+      "w": 138,
+      "h": 118
+    },
+    {
+      "arquivo": "assets/props/f4_02.png",
+      "fileira": 4,
+      "x": 102,
+      "y": 1194,
+      "w": 94,
+      "h": 104
+    },
+    {
+      "arquivo": "assets/props/f4_03.png",
+      "fileira": 4,
+      "x": 226,
+      "y": 1274,
+      "w": 110,
+      "h": 120
+    },
+    {
+      "arquivo": "assets/props/f4_04.png",
+      "fileira": 4,
+      "x": 346,
+      "y": 1190,
+      "w": 113,
+      "h": 126
+    },
+    {
+      "arquivo": "assets/props/f4_05.png",
+      "fileira": 4,
+      "x": 374,
+      "y": 1362,
+      "w": 115,
+      "h": 124
+    },
+    {
+      "arquivo": "assets/props/f4_06.png",
+      "fileira": 4,
+      "x": 482,
+      "y": 1266,
+      "w": 93,
+      "h": 82
+    },
+    {
+      "arquivo": "assets/props/f4_07.png",
+      "fileira": 4,
+      "x": 654,
+      "y": 1202,
+      "w": 480,
+      "h": 288
+    },
+    {
+      "arquivo": "assets/props/f4_08.png",
+      "fileira": 4,
+      "x": 1222,
+      "y": 1234,
+      "w": 481,
+      "h": 270
+    },
+    {
+      "arquivo": "assets/props/f4_09.png",
+      "fileira": 4,
+      "x": 1786,
+      "y": 1234,
+      "w": 482,
+      "h": 270
+    },
+    {
+      "arquivo": "assets/props/f4_10.png",
+      "fileira": 4,
+      "x": 2374,
+      "y": 1270,
+      "w": 85,
+      "h": 56
+    },
+    {
+      "arquivo": "assets/props/f4_11.png",
+      "fileira": 4,
+      "x": 2382,
+      "y": 1394,
+      "w": 92,
+      "h": 50
+    },
+    {
+      "arquivo": "assets/props/f4_12.png",
+      "fileira": 4,
+      "x": 2542,
+      "y": 1254,
+      "w": 105,
+      "h": 76
+    }
+  ]
+}

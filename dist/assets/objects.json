@@ -1,57 +1,367 @@
 {
   "props": {
-    "arvore_placeholder": {
-      "nome": "Árvore (teste)",
-      "sprite": "assets/props/arvore_placeholder.png",
+    "f1_01": {
+      "nome": "Carvalho Retorcido",
+      "sprite": "assets/props/f1_01.png",
       "categoria": "arvore",
+      "plano": "objeto",
+      "altura": 230,
+      "pe": 0.97,
+      "raio": 20,
+      "colide": true
+    },
+    "f1_02": {
+      "nome": "Pinheiro Alto",
+      "sprite": "assets/props/f1_02.png",
+      "categoria": "arvore",
+      "plano": "objeto",
+      "altura": 215,
+      "pe": 0.97,
+      "raio": 16,
+      "colide": true
+    },
+    "f1_03": {
+      "nome": "Pinheiro",
+      "sprite": "assets/props/f1_03.png",
+      "categoria": "arvore",
+      "plano": "objeto",
+      "altura": 200,
+      "pe": 0.97,
+      "raio": 16,
+      "colide": true
+    },
+    "f1_04": {
+      "nome": "Pinheiro Médio",
+      "sprite": "assets/props/f1_04.png",
+      "categoria": "arvore",
+      "plano": "objeto",
+      "altura": 175,
       "pe": 0.97,
       "raio": 14,
       "colide": true
     },
-    "pedra_placeholder": {
-      "nome": "Pedra (teste)",
-      "sprite": "assets/props/pedra_placeholder.png",
-      "categoria": "pedra",
-      "pe": 0.94,
+    "f1_05": {
+      "nome": "Pinheiro Novo",
+      "sprite": "assets/props/f1_05.png",
+      "categoria": "arvore",
+      "plano": "objeto",
+      "altura": 150,
+      "pe": 0.97,
+      "raio": 12,
+      "colide": true
+    },
+    "f1_06": {
+      "nome": "Árvore Frondosa",
+      "sprite": "assets/props/f1_06.png",
+      "categoria": "arvore",
+      "plano": "objeto",
+      "altura": 235,
+      "pe": 0.96,
       "raio": 22,
       "colide": true
     },
-    "arbusto_placeholder": {
-      "nome": "Arbusto (teste)",
-      "sprite": "assets/props/arbusto_placeholder.png",
-      "categoria": "arbusto",
+    "f1_07": {
+      "nome": "Árvore Copada",
+      "sprite": "assets/props/f1_07.png",
+      "categoria": "arvore",
+      "plano": "objeto",
+      "altura": 195,
+      "pe": 0.96,
+      "raio": 16,
+      "colide": true
+    },
+    "f1_08": {
+      "nome": "Bétula de Outono",
+      "sprite": "assets/props/f1_08.png",
+      "categoria": "arvore",
+      "plano": "objeto",
+      "altura": 215,
+      "pe": 0.97,
+      "raio": 13,
+      "colide": true
+    },
+    "f1_09": {
+      "nome": "Bétula",
+      "sprite": "assets/props/f1_09.png",
+      "categoria": "arvore",
+      "plano": "objeto",
+      "altura": 205,
+      "pe": 0.97,
+      "raio": 13,
+      "colide": true
+    },
+    "f2_01": {
+      "nome": "Samambaia",
+      "sprite": "assets/props/f2_01.png",
+      "categoria": "mato",
+      "plano": "objeto",
+      "altura": 62,
       "pe": 0.92,
       "raio": 0,
       "colide": false
+    },
+    "f2_02": {
+      "nome": "Samambaia Larga",
+      "sprite": "assets/props/f2_02.png",
+      "categoria": "mato",
+      "plano": "objeto",
+      "altura": 66,
+      "pe": 0.92,
+      "raio": 0,
+      "colide": false
+    },
+    "f2_03": {
+      "nome": "Moita Florida Rosa",
+      "sprite": "assets/props/f2_03.png",
+      "categoria": "mato",
+      "plano": "objeto",
+      "altura": 70,
+      "pe": 0.92,
+      "raio": 0,
+      "colide": false
+    },
+    "f2_04": {
+      "nome": "Moita Florida",
+      "sprite": "assets/props/f2_04.png",
+      "categoria": "mato",
+      "plano": "objeto",
+      "altura": 72,
+      "pe": 0.92,
+      "raio": 0,
+      "colide": false
+    },
+    "f2_05": {
+      "nome": "Moita de Lavanda",
+      "sprite": "assets/props/f2_05.png",
+      "categoria": "mato",
+      "plano": "objeto",
+      "altura": 74,
+      "pe": 0.92,
+      "raio": 0,
+      "colide": false
+    },
+    "f2_06": {
+      "nome": "Canteiro Silvestre",
+      "sprite": "assets/props/f2_06.png",
+      "categoria": "mato",
+      "plano": "objeto",
+      "altura": 60,
+      "pe": 0.94,
+      "raio": 0,
+      "colide": false
+    },
+    "f2_07": {
+      "nome": "Arbusto Redondo",
+      "sprite": "assets/props/f2_07.png",
+      "categoria": "mato",
+      "plano": "objeto",
+      "altura": 80,
+      "pe": 0.92,
+      "raio": 14,
+      "colide": true
+    },
+    "f2_08": {
+      "nome": "Arbusto Denso",
+      "sprite": "assets/props/f2_08.png",
+      "categoria": "mato",
+      "plano": "objeto",
+      "altura": 84,
+      "pe": 0.92,
+      "raio": 15,
+      "colide": true
+    },
+    "f2_09": {
+      "nome": "Capim Alto",
+      "sprite": "assets/props/f2_09.png",
+      "categoria": "mato",
+      "plano": "objeto",
+      "altura": 44,
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false
+    },
+    "f2_10": {
+      "nome": "Tufo Florido",
+      "sprite": "assets/props/f2_10.png",
+      "categoria": "mato",
+      "plano": "objeto",
+      "altura": 34,
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false
+    },
+    "f2_11": {
+      "nome": "Tufo de Capim",
+      "sprite": "assets/props/f2_11.png",
+      "categoria": "mato",
+      "plano": "objeto",
+      "altura": 30,
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false
+    },
+    "f3_01": {
+      "nome": "Caminho Reto",
+      "sprite": "assets/props/f3_01.png",
+      "categoria": "caminho",
+      "plano": "chao",
+      "pe": 1.0,
+      "raio": 0,
+      "colide": false
+    },
+    "f3_02": {
+      "nome": "Caminho em Curva",
+      "sprite": "assets/props/f3_02.png",
+      "categoria": "caminho",
+      "plano": "chao",
+      "pe": 1.0,
+      "raio": 0,
+      "colide": false
+    },
+    "f3_03": {
+      "nome": "Caminho em T",
+      "sprite": "assets/props/f3_03.png",
+      "categoria": "caminho",
+      "plano": "chao",
+      "pe": 1.0,
+      "raio": 0,
+      "colide": false
+    },
+    "f3_04": {
+      "nome": "Caminho Diagonal",
+      "sprite": "assets/props/f3_04.png",
+      "categoria": "caminho",
+      "plano": "chao",
+      "pe": 1.0,
+      "raio": 0,
+      "colide": false
+    },
+    "f3_05": {
+      "nome": "Trecho de Trilha",
+      "sprite": "assets/props/f3_05.png",
+      "categoria": "caminho",
+      "plano": "chao",
+      "pe": 1.0,
+      "raio": 0,
+      "colide": false
+    },
+    "f4_01": {
+      "nome": "Flores Brancas",
+      "sprite": "assets/props/f4_01.png",
+      "categoria": "flor",
+      "plano": "objeto",
+      "altura": 30,
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false
+    },
+    "f4_02": {
+      "nome": "Flores Azuis",
+      "sprite": "assets/props/f4_02.png",
+      "categoria": "flor",
+      "plano": "objeto",
+      "altura": 26,
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false
+    },
+    "f4_03": {
+      "nome": "Flores Amarelas",
+      "sprite": "assets/props/f4_03.png",
+      "categoria": "flor",
+      "plano": "objeto",
+      "altura": 30,
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false
+    },
+    "f4_04": {
+      "nome": "Flores Douradas",
+      "sprite": "assets/props/f4_04.png",
+      "categoria": "flor",
+      "plano": "objeto",
+      "altura": 32,
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false
+    },
+    "f4_05": {
+      "nome": "Flores Rosadas",
+      "sprite": "assets/props/f4_05.png",
+      "categoria": "flor",
+      "plano": "objeto",
+      "altura": 34,
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false
+    },
+    "f4_06": {
+      "nome": "Flores Vermelhas",
+      "sprite": "assets/props/f4_06.png",
+      "categoria": "flor",
+      "plano": "objeto",
+      "altura": 32,
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false
+    },
+    "f4_07": {
+      "nome": "Moita de Grama",
+      "sprite": "assets/props/f4_07.png",
+      "categoria": "chao_grama",
+      "plano": "chao",
+      "pe": 1.0,
+      "raio": 0,
+      "colide": false
+    },
+    "f4_08": {
+      "nome": "Clareira de Grama",
+      "sprite": "assets/props/f4_08.png",
+      "categoria": "chao_grama",
+      "plano": "chao",
+      "pe": 1.0,
+      "raio": 0,
+      "colide": false
+    },
+    "f4_09": {
+      "nome": "Grama Rasteira",
+      "sprite": "assets/props/f4_09.png",
+      "categoria": "chao_grama",
+      "plano": "chao",
+      "pe": 1.0,
+      "raio": 0,
+      "colide": false
+    },
+    "f4_10": {
+      "nome": "Pedra Grande",
+      "sprite": "assets/props/f4_10.png",
+      "categoria": "pedra",
+      "plano": "objeto",
+      "altura": 60,
+      "pe": 0.94,
+      "raio": 24,
+      "colide": true
+    },
+    "f4_11": {
+      "nome": "Pedras Pequenas",
+      "sprite": "assets/props/f4_11.png",
+      "categoria": "pedra",
+      "plano": "objeto",
+      "altura": 34,
+      "pe": 0.94,
+      "raio": 14,
+      "colide": true
+    },
+    "f4_12": {
+      "nome": "Pedras Empilhadas",
+      "sprite": "assets/props/f4_12.png",
+      "categoria": "pedra",
+      "plano": "objeto",
+      "altura": 66,
+      "pe": 0.94,
+      "raio": 26,
+      "colide": true
     }
   },
-  "objetos": [
-    {
-      "id": "pedra_placeholder_1785368050376",
-      "prop": "pedra_placeholder",
-      "mapKey": "0_1",
-      "x": 531,
-      "y": 361,
-      "escala": 1,
-      "flipX": false
-    },
-    {
-      "id": "pedra_placeholder_1785368052306",
-      "prop": "pedra_placeholder",
-      "mapKey": "0_1",
-      "x": 518,
-      "y": 347,
-      "escala": 1,
-      "flipX": false
-    },
-    {
-      "id": "pedra_placeholder_1785368092523",
-      "prop": "pedra_placeholder",
-      "mapKey": "0_1",
-      "x": 524,
-      "y": 360,
-      "escala": 1,
-      "flipX": false
-    }
-  ]
+  "objetos": []
 }
