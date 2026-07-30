@@ -1018,6 +1018,126 @@
       "raio": 6,
       "colide": true,
       "altura": 120
+    },
+    "cidade1_01": {
+      "nome": "Fonte dos Instrumentos",
+      "sprite": "assets/props/cidade1_01.png",
+      "categoria": "cidade",
+      "plano": "objeto",
+      "altura": 175,
+      "pe": 0.92,
+      "raio": 60,
+      "colide": true
+    },
+    "cidade1_02": {
+      "nome": "Portão de Acordelot",
+      "sprite": "assets/props/cidade1_02.png",
+      "categoria": "muralha",
+      "plano": "objeto",
+      "altura": 235,
+      "pe": 0.94,
+      "raio": 0,
+      "colide": false
+    },
+    "cidade1_03": {
+      "nome": "Muralha",
+      "sprite": "assets/props/cidade1_03.png",
+      "categoria": "muralha",
+      "plano": "objeto",
+      "altura": 150,
+      "pe": 0.94,
+      "raio": 90,
+      "colide": true
+    },
+    "cidade1_04": {
+      "nome": "Torre da Muralha",
+      "sprite": "assets/props/cidade1_04.png",
+      "categoria": "muralha",
+      "plano": "objeto",
+      "altura": 235,
+      "pe": 0.95,
+      "raio": 40,
+      "colide": true
+    },
+    "cidade2_01": {
+      "nome": "Loja da Praça",
+      "sprite": "assets/props/cidade2_01.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "altura": 265,
+      "pe": 0.95,
+      "raio": 80,
+      "colide": true
+    },
+    "cidade2_02": {
+      "nome": "Casa de Camponês",
+      "sprite": "assets/props/cidade2_02.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "altura": 185,
+      "pe": 0.95,
+      "raio": 64,
+      "colide": true
+    },
+    "cidade2_03": {
+      "nome": "Celeiro",
+      "sprite": "assets/props/cidade2_03.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "altura": 210,
+      "pe": 0.95,
+      "raio": 80,
+      "colide": true
+    },
+    "cidade2_04": {
+      "nome": "Barraca Verde",
+      "sprite": "assets/props/cidade2_04.png",
+      "categoria": "feira",
+      "plano": "objeto",
+      "altura": 150,
+      "pe": 0.96,
+      "raio": 40,
+      "colide": true
+    },
+    "cidade3_01": {
+      "nome": "Barraca Vermelha",
+      "sprite": "assets/props/cidade3_01.png",
+      "categoria": "feira",
+      "plano": "objeto",
+      "altura": 150,
+      "pe": 0.96,
+      "raio": 40,
+      "colide": true
+    },
+    "cidade3_02": {
+      "nome": "Poço da Praça",
+      "sprite": "assets/props/cidade3_02.png",
+      "categoria": "cidade",
+      "plano": "objeto",
+      "altura": 150,
+      "pe": 0.94,
+      "raio": 32,
+      "colide": true
+    },
+    "cidade3_03": {
+      "nome": "Carroça",
+      "sprite": "assets/props/cidade3_03.png",
+      "categoria": "cidade",
+      "plano": "objeto",
+      "altura": 105,
+      "pe": 0.95,
+      "raio": 44,
+      "colide": true
+    },
+    "cidade3_04": {
+      "nome": "Barris e Caixotes",
+      "sprite": "assets/props/cidade3_04.png",
+      "categoria": "cidade",
+      "plano": "objeto",
+      "altura": 95,
+      "pe": 0.95,
+      "raio": 36,
+      "colide": true
     }
   },
   "objetos": []

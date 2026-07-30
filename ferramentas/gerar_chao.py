@@ -88,9 +88,21 @@ def main():
     # A estrada passa a ser TERRENO, pintada no chão, e não uma fila de peças. Peça de
     # caminho traz a própria borda de grama e emenda com a vizinha — era a origem dos
     # retângulos visíveis ao longo do caminho.
+    # A textura de laje veio com pedras enormes: cada uma ficava do tamanho da fonte da
+    # praça. Reduzo a peça para a pedra cair na escala do personagem — como a textura
+    # fecha nas bordas, reduzir não reintroduz costura.
+    laje = Image.open('assets/texturas/laje_1.jpg').convert('RGB')
+    laje = laje.resize((laje.width // 4, laje.height // 4), Image.LANCZOS)
+
     ESTRADA_Y, ESTRADA_MEIA = 1180, 96
     topo = ruido_de_borda(COLS * BW, 11, 26, 190)
     base = ruido_de_borda(COLS * BW, 29, 26, 210)
+
+    # A cidade tem chão próprio: calçamento de pedra na praça e nas ruas, com a mesma
+    # beira irregular da estrada. Praça redonda em volta da fonte, ruas saindo dela.
+    PRACA = (1500, 1180, 620)          # centro x, centro y, raio
+    RUA_MEIA = 130
+    borda_praca = ruido_de_borda(3000, 47, 34, 150)
 
     # A mata ocupa os 380px de cima e de baixo; a transição leva mais 260px.
     MATA, PASSAGEM = 380, 260
@@ -129,6 +141,29 @@ def main():
                 for yl in range(max(0, int(y0)), min(BH, int(y1))):
                     pf[xl, yl] = 255
             bloco = Image.composite(chao_terra, bloco, faixa)
+
+            # calçamento: praça redonda mais a rua larga que a atravessa
+            if ox < 3400:
+                calc = tiled(laje, BW, BH, ox, oy)
+                mp = Image.new('L', (BW, BH), 0)
+                pm = mp.load()
+                cx, cy, rr = PRACA
+                for xl in range(BW):
+                    xg = ox + xl
+                    dx = xg - cx
+                    raio_aqui = rr + borda_praca(abs(xg) % 3000)
+                    if abs(dx) < raio_aqui:
+                        # altura da praça naquele x: círculo achatado
+                        meia = (1 - (dx / raio_aqui) ** 2) ** .5 * raio_aqui * .58
+                        y0, y1 = cy - meia - oy, cy + meia - oy
+                        for yl in range(max(0, int(y0)), min(BH, int(y1))):
+                            pm[xl, yl] = 255
+                    if xg < 3300:      # a rua principal segue para leste
+                        y0 = ESTRADA_Y - RUA_MEIA + topo(xg) - oy
+                        y1 = ESTRADA_Y + RUA_MEIA + base(xg) - oy
+                        for yl in range(max(0, int(y0)), min(BH, int(y1))):
+                            pm[xl, yl] = 255
+                bloco = Image.composite(calc, bloco, mp)
             caminho = f'{RAIZ}/{c}_{r}.jpg'
             bloco.save(caminho, quality=86)
             blocos[f'{c}_{r}'] = caminho

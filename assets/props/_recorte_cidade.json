@@ -1,0 +1,101 @@
+{
+  "folha": "Medieval_city_props_sprite_sheet_202607300039.jpeg",
+  "sprites": [
+    {
+      "arquivo": "assets/props/cidade1_01.png",
+      "fileira": 1,
+      "x": 154,
+      "y": 46,
+      "w": 424,
+      "h": 417
+    },
+    {
+      "arquivo": "assets/props/cidade1_02.png",
+      "fileira": 1,
+      "x": 806,
+      "y": 46,
+      "w": 493,
+      "h": 478
+    },
+    {
+      "arquivo": "assets/props/cidade1_03.png",
+      "fileira": 1,
+      "x": 1510,
+      "y": 70,
+      "w": 538,
+      "h": 454
+    },
+    {
+      "arquivo": "assets/props/cidade1_04.png",
+      "fileira": 1,
+      "x": 2290,
+      "y": 26,
+      "w": 230,
+      "h": 543
+    },
+    {
+      "arquivo": "assets/props/cidade2_01.png",
+      "fileira": 2,
+      "x": 102,
+      "y": 498,
+      "w": 553,
+      "h": 553
+    },
+    {
+      "arquivo": "assets/props/cidade2_02.png",
+      "fileira": 2,
+      "x": 846,
+      "y": 586,
+      "w": 426,
+      "h": 445
+    },
+    {
+      "arquivo": "assets/props/cidade2_03.png",
+      "fileira": 2,
+      "x": 1470,
+      "y": 550,
+      "w": 535,
+      "h": 515
+    },
+    {
+      "arquivo": "assets/props/cidade2_04.png",
+      "fileira": 2,
+      "x": 2214,
+      "y": 626,
+      "w": 399,
+      "h": 445
+    },
+    {
+      "arquivo": "assets/props/cidade3_01.png",
+      "fileira": 3,
+      "x": 194,
+      "y": 1082,
+      "w": 371,
+      "h": 428
+    },
+    {
+      "arquivo": "assets/props/cidade3_02.png",
+      "fileira": 3,
+      "x": 914,
+      "y": 1070,
+      "w": 293,
+      "h": 412
+    },
+    {
+      "arquivo": "assets/props/cidade3_03.png",
+      "fileira": 3,
+      "x": 1566,
+      "y": 1130,
+      "w": 502,
+      "h": 346
+    },
+    {
+      "arquivo": "assets/props/cidade3_04.png",
+      "fileira": 3,
+      "x": 2246,
+      "y": 1178,
+      "w": 334,
+      "h": 266
+    }
+  ]
+}
