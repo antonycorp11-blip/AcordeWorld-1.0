@@ -1991,12 +1991,16 @@ function inclinacaoDoVento(p, def, now) {
 // MUNDO — sem isso, cada carimbo começaria o desenho do zero e a estrada viraria uma
 // colcha de retalhos.
 const MATERIAIS = {
-  terra:        { nome: 'Terra',        arquivo: 'assets/texturas/terra_1.jpg',        div: 2 },
-  laje:         { nome: 'Calçada',      arquivo: 'assets/texturas/laje_1.jpg',         div: 4 },
-  areia:        { nome: 'Areia',        arquivo: 'assets/texturas/areia_1.jpg',        div: 2 },
-  folhas:       { nome: 'Folhas',       arquivo: 'assets/texturas/folhas_1.jpg',       div: 2 },
-  grama_clara:  { nome: 'Grama clara',  arquivo: 'assets/texturas/grama_campo_3.jpg',  div: 3 },
-  grama_escura: { nome: 'Grama escura', arquivo: 'assets/texturas/grama_escura_3.jpg', div: 3 },
+  terra:         { nome: 'Terra',                arquivo: 'assets/texturas/terra_1.jpg',        div: 2 },
+  // A rua padrão: calçamento de pedra que fecha nas quatro bordas. A `laje_1` continua
+  // disponível para pátio antigo, mas é grosseira demais para rua.
+  piso:          { nome: 'Rua de Pedra',         arquivo: 'assets/texturas/piso_calcada.jpg',  div: 3 },
+  laje:          { nome: 'Calçada Antiga',       arquivo: 'assets/texturas/laje_1.jpg',         div: 4 },
+  pedra_calcada: { nome: 'Pedras de Calçada HD', arquivo: 'assets/piso_calcada.jpg',          div: 2 },
+  areia:         { nome: 'Areia',                arquivo: 'assets/texturas/areia_1.jpg',        div: 2 },
+  folhas:        { nome: 'Folhas',               arquivo: 'assets/texturas/folhas_1.jpg',       div: 2 },
+  grama_clara:   { nome: 'Grama clara',          arquivo: 'assets/texturas/grama_campo_3.jpg',  div: 3 },
+  grama_escura:  { nome: 'Grama escura',         arquivo: 'assets/texturas/grama_escura_3.jpg', div: 3 },
 };
 const texturasDoPincel = {};      // id -> { img, padrao }
 let pincelMaterial = null;        // null = pincel desligado
@@ -2881,11 +2885,7 @@ function renderMarcaDoObjeto(o, b) {
     ctx.beginPath(); ctx.ellipse(o.x, o.y, r, r * 0.55, 0, 0, Math.PI * 2); ctx.stroke();
   }
   if (objetoSelecionado === o) {
-    ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
-    ctx.strokeRect(b.x, b.y, b.w, b.h);
-    ctx.setLineDash([]);
-    ctx.fillStyle = '#fde68a';
-    ctx.beginPath(); ctx.arc(o.x, o.y, 3.5, 0, Math.PI * 2); ctx.fill();
+    renderCaixaEAlcas(o);
   }
   ctx.restore();
 }
@@ -8812,9 +8812,24 @@ function initMegaWorldControls() {
     });
   }
 
-  // Mouse Wheel Zoom directly on canvas!
+  // Mouse Wheel Zoom / Sprite Scaling directly on canvas!
   if (canvas) {
     canvas.addEventListener('wheel', (e) => {
+      const targetObj = (engineMode === 'mundo' ? mundoPropSel : objetoSelecionado);
+      if (targetObj && !isPlayMode) {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.08 : 0.92;
+        if (engineMode === 'mundo') {
+          targetObj.ex = Math.max(0.1, Math.min(10, (targetObj.ex || targetObj.escala || 1) * factor));
+          targetObj.ey = Math.max(0.1, Math.min(10, (targetObj.ey || targetObj.escala || 1) * factor));
+          saveMundo();
+        } else {
+          targetObj.escala = Math.max(0.1, Math.min(10, (targetObj.escala || 1) * factor));
+          aplicarEscalaDoObjeto(targetObj.escala);
+          saveObjetos();
+        }
+        return;
+      }
       if (engineMode === 'mundo') { e.preventDefault(); mundoZoom(e.deltaY); return; }
       if (currentKey !== 'mega_world' && activeMapSelect?.value !== 'mega_world') return;
       e.preventDefault();

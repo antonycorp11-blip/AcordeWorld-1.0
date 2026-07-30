@@ -1102,7 +1102,433 @@
       "pe": 0.95,
       "raio": 0,
       "colide": false
+    },
+    "muralha_reta_curta": {
+      "nome": "Muralha Reta Curta",
+      "sprite": "assets/props/muralha_reta_curta.png",
+      "categoria": "muralhas",
+      "plano": "objeto",
+      "pe": 0.85,
+      "raio": 40,
+      "colide": true,
+      "altura": 110
+    },
+    "muralha_reta_longa": {
+      "nome": "Muralha Reta Longa",
+      "sprite": "assets/props/muralha_reta_longa.png",
+      "categoria": "muralhas",
+      "plano": "objeto",
+      "pe": 0.85,
+      "raio": 80,
+      "colide": true,
+      "altura": 110
+    },
+    "muralha_vertical": {
+      "nome": "Muralha Vertical",
+      "sprite": "assets/props/muralha_vertical.png",
+      "categoria": "muralhas",
+      "plano": "objeto",
+      "pe": 0.85,
+      "raio": 24,
+      "colide": true,
+      "altura": 250
+    },
+    "muralha_canto_l": {
+      "nome": "Muralha Canto L",
+      "sprite": "assets/props/muralha_canto_l.png",
+      "categoria": "muralhas",
+      "plano": "objeto",
+      "pe": 0.85,
+      "raio": 50,
+      "colide": true,
+      "altura": 180
+    },
+    "muralha_cruzamento": {
+      "nome": "Muralha Cruzamento (4 Vias)",
+      "sprite": "assets/props/muralha_cruzamento.png",
+      "categoria": "muralhas",
+      "plano": "objeto",
+      "pe": 0.85,
+      "raio": 60,
+      "colide": true,
+      "altura": 180
+    },
+    "muralha_juncao_t": {
+      "nome": "Muralha Junção T",
+      "sprite": "assets/props/muralha_juncao_t.png",
+      "categoria": "muralhas",
+      "plano": "objeto",
+      "pe": 0.85,
+      "raio": 50,
+      "colide": true,
+      "altura": 160
+    },
+    "muralha_reforco": {
+      "nome": "Muralha Reforçada",
+      "sprite": "assets/props/muralha_reforco.png",
+      "categoria": "muralhas",
+      "plano": "objeto",
+      "pe": 0.85,
+      "raio": 45,
+      "colide": true,
+      "altura": 115
+    },
+    "muralha_janela": {
+      "nome": "Muralha com Janela",
+      "sprite": "assets/props/muralha_janela.png",
+      "categoria": "muralhas",
+      "plano": "objeto",
+      "pe": 0.85,
+      "raio": 40,
+      "colide": true,
+      "altura": 110
+    },
+    "muralha_escada": {
+      "nome": "Muralha com Escadaria",
+      "sprite": "assets/props/muralha_escada.png",
+      "categoria": "muralhas",
+      "plano": "objeto",
+      "pe": 0.85,
+      "raio": 24,
+      "colide": true,
+      "altura": 150
+    },
+    "muralha_portao": {
+      "nome": "Muralha Portão Principal",
+      "sprite": "assets/props/muralha_portao.png",
+      "categoria": "muralhas",
+      "plano": "objeto",
+      "pe": 0.85,
+      "raio": 40,
+      "colide": false,
+      "altura": 110
+    },
+    "muralha_ruina": {
+      "nome": "Muralha Ruína",
+      "sprite": "assets/props/muralha_ruina.png",
+      "categoria": "muralhas",
+      "plano": "objeto",
+      "pe": 0.85,
+      "raio": 35,
+      "colide": true,
+      "altura": 105
     }
   },
-  "objetos": []
+  "objetos": [
+    {
+      "id": "m_portao_01",
+      "prop": "muralha_portao",
+      "mapKey": "vilarejo_precidade",
+      "x": 512,
+      "y": 120,
+      "escala": 1.2,
+      "flipX": false
+    },
+    {
+      "id": "m_reta_esq_01",
+      "prop": "muralha_reta_longa",
+      "mapKey": "vilarejo_precidade",
+      "x": 270,
+      "y": 120,
+      "escala": 1.1,
+      "flipX": false
+    },
+    {
+      "id": "m_reta_dir_01",
+      "prop": "muralha_reta_longa",
+      "mapKey": "vilarejo_precidade",
+      "x": 755,
+      "y": 120,
+      "escala": 1.1,
+      "flipX": false
+    },
+    {
+      "id": "m_canto_esq",
+      "prop": "muralha_canto_l",
+      "mapKey": "vilarejo_precidade",
+      "x": 80,
+      "y": 120,
+      "escala": 1.1,
+      "flipX": false
+    },
+    {
+      "id": "m_canto_dir",
+      "prop": "muralha_canto_l",
+      "mapKey": "vilarejo_precidade",
+      "x": 940,
+      "y": 120,
+      "escala": 1.1,
+      "flipX": true
+    },
+    {
+      "id": "m_vert_esq",
+      "prop": "muralha_vertical",
+      "mapKey": "vilarejo_precidade",
+      "x": 80,
+      "y": 240,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "m_vert_dir",
+      "prop": "muralha_vertical",
+      "mapKey": "vilarejo_precidade",
+      "x": 940,
+      "y": 240,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "cid_catedral",
+      "prop": "casa2_08",
+      "mapKey": "vilarejo_precidade",
+      "x": 220,
+      "y": 210,
+      "escala": 1.15,
+      "flipX": false
+    },
+    {
+      "id": "cid_arvore_sacra_1",
+      "prop": "f1_06",
+      "mapKey": "vilarejo_precidade",
+      "x": 110,
+      "y": 180,
+      "escala": 1.2,
+      "flipX": false
+    },
+    {
+      "id": "cid_arvore_sacra_2",
+      "prop": "f1_01",
+      "mapKey": "vilarejo_precidade",
+      "x": 320,
+      "y": 190,
+      "escala": 1.1,
+      "flipX": true
+    },
+    {
+      "id": "pra_fonte",
+      "prop": "vila2_01",
+      "mapKey": "vilarejo_precidade",
+      "x": 512,
+      "y": 340,
+      "escala": 1.25,
+      "flipX": false
+    },
+    {
+      "id": "pra_farol_1",
+      "prop": "vila3_01",
+      "mapKey": "vilarejo_precidade",
+      "x": 430,
+      "y": 300,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "pra_farol_2",
+      "prop": "vila3_01",
+      "mapKey": "vilarejo_precidade",
+      "x": 594,
+      "y": 300,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "pra_farol_3",
+      "prop": "vila3_01",
+      "mapKey": "vilarejo_precidade",
+      "x": 430,
+      "y": 380,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "pra_farol_4",
+      "prop": "vila3_01",
+      "mapKey": "vilarejo_precidade",
+      "x": 594,
+      "y": 380,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "pra_banco_1",
+      "prop": "vila2_04",
+      "mapKey": "vilarejo_precidade",
+      "x": 460,
+      "y": 385,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "pra_banco_2",
+      "prop": "vila2_04",
+      "mapKey": "vilarejo_precidade",
+      "x": 564,
+      "y": 385,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "mer_barraca_1",
+      "prop": "vila1_01",
+      "mapKey": "vilarejo_precidade",
+      "x": 350,
+      "y": 335,
+      "escala": 1.1,
+      "flipX": false
+    },
+    {
+      "id": "mer_barraca_2",
+      "prop": "vila1_02",
+      "mapKey": "vilarejo_precidade",
+      "x": 670,
+      "y": 335,
+      "escala": 1.1,
+      "flipX": true
+    },
+    {
+      "id": "mer_barril_1",
+      "prop": "vila2_03",
+      "mapKey": "vilarejo_precidade",
+      "x": 310,
+      "y": 355,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "mer_caixa_1",
+      "prop": "vila3_02",
+      "mapKey": "vilarejo_precidade",
+      "x": 710,
+      "y": 355,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "forja_casa",
+      "prop": "casa1_01",
+      "mapKey": "vilarejo_precidade",
+      "x": 200,
+      "y": 365,
+      "escala": 1.1,
+      "flipX": false
+    },
+    {
+      "id": "forja_ruina",
+      "prop": "muralha_ruina",
+      "mapKey": "vilarejo_precidade",
+      "x": 110,
+      "y": 375,
+      "escala": 0.9,
+      "flipX": false
+    },
+    {
+      "id": "res_casa_1",
+      "prop": "casa1_02",
+      "mapKey": "vilarejo_precidade",
+      "x": 180,
+      "y": 490,
+      "escala": 1.05,
+      "flipX": false
+    },
+    {
+      "id": "res_casa_2",
+      "prop": "casa2_01",
+      "mapKey": "vilarejo_precidade",
+      "x": 340,
+      "y": 495,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "res_casa_3",
+      "prop": "casa2_02",
+      "mapKey": "vilarejo_precidade",
+      "x": 680,
+      "y": 495,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "res_casa_4",
+      "prop": "casa2_05",
+      "mapKey": "vilarejo_precidade",
+      "x": 840,
+      "y": 490,
+      "escala": 1.05,
+      "flipX": true
+    },
+    {
+      "id": "res_cerca_1",
+      "prop": "vila2_02",
+      "mapKey": "vilarejo_precidade",
+      "x": 100,
+      "y": 525,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "res_cerca_2",
+      "prop": "vila2_02",
+      "mapKey": "vilarejo_precidade",
+      "x": 420,
+      "y": 525,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "res_cerca_3",
+      "prop": "vila2_02",
+      "mapKey": "vilarejo_precidade",
+      "x": 600,
+      "y": 525,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "res_cerca_4",
+      "prop": "vila2_02",
+      "mapKey": "vilarejo_precidade",
+      "x": 920,
+      "y": 525,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "arv_floresta_1",
+      "prop": "f1_02",
+      "mapKey": "vilarejo_precidade",
+      "x": 40,
+      "y": 440,
+      "escala": 1.1,
+      "flipX": false
+    },
+    {
+      "id": "arv_floresta_2",
+      "prop": "f1_04",
+      "mapKey": "vilarejo_precidade",
+      "x": 60,
+      "y": 500,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "arv_floresta_3",
+      "prop": "f1_03",
+      "mapKey": "vilarejo_precidade",
+      "x": 960,
+      "y": 440,
+      "escala": 1.1,
+      "flipX": true
+    },
+    {
+      "id": "arv_floresta_4",
+      "prop": "f1_05",
+      "mapKey": "vilarejo_precidade",
+      "x": 980,
+      "y": 500,
+      "escala": 1.0,
+      "flipX": false
+    }
+  ]
 }

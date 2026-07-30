@@ -1,0 +1,284 @@
+{
+  "vilarejo_precidade": [
+    {
+      "id": "m_portao_01",
+      "prop": "muralha_portao",
+      "x": 512,
+      "y": 120,
+      "escala": 1.2,
+      "flipX": false
+    },
+    {
+      "id": "m_reta_esq_01",
+      "prop": "muralha_reta_longa",
+      "x": 270,
+      "y": 120,
+      "escala": 1.1,
+      "flipX": false
+    },
+    {
+      "id": "m_reta_dir_01",
+      "prop": "muralha_reta_longa",
+      "x": 755,
+      "y": 120,
+      "escala": 1.1,
+      "flipX": false
+    },
+    {
+      "id": "m_canto_esq",
+      "prop": "muralha_canto_l",
+      "x": 80,
+      "y": 120,
+      "escala": 1.1,
+      "flipX": false
+    },
+    {
+      "id": "m_canto_dir",
+      "prop": "muralha_canto_l",
+      "x": 940,
+      "y": 120,
+      "escala": 1.1,
+      "flipX": true
+    },
+    {
+      "id": "m_vert_esq",
+      "prop": "muralha_vertical",
+      "x": 80,
+      "y": 240,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "m_vert_dir",
+      "prop": "muralha_vertical",
+      "x": 940,
+      "y": 240,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "cid_catedral",
+      "prop": "casa2_08",
+      "x": 220,
+      "y": 210,
+      "escala": 1.15,
+      "flipX": false
+    },
+    {
+      "id": "cid_arvore_sacra_1",
+      "prop": "f1_06",
+      "x": 110,
+      "y": 180,
+      "escala": 1.2,
+      "flipX": false
+    },
+    {
+      "id": "cid_arvore_sacra_2",
+      "prop": "f1_01",
+      "x": 320,
+      "y": 190,
+      "escala": 1.1,
+      "flipX": true
+    },
+    {
+      "id": "pra_fonte",
+      "prop": "vila2_01",
+      "x": 512,
+      "y": 340,
+      "escala": 1.25,
+      "flipX": false
+    },
+    {
+      "id": "pra_farol_1",
+      "prop": "vila3_01",
+      "x": 430,
+      "y": 300,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "pra_farol_2",
+      "prop": "vila3_01",
+      "x": 594,
+      "y": 300,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "pra_farol_3",
+      "prop": "vila3_01",
+      "x": 430,
+      "y": 380,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "pra_farol_4",
+      "prop": "vila3_01",
+      "x": 594,
+      "y": 380,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "pra_banco_1",
+      "prop": "vila2_04",
+      "x": 460,
+      "y": 385,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "pra_banco_2",
+      "prop": "vila2_04",
+      "x": 564,
+      "y": 385,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "mer_barraca_1",
+      "prop": "vila1_01",
+      "x": 350,
+      "y": 335,
+      "escala": 1.1,
+      "flipX": false
+    },
+    {
+      "id": "mer_barraca_2",
+      "prop": "vila1_02",
+      "x": 670,
+      "y": 335,
+      "escala": 1.1,
+      "flipX": true
+    },
+    {
+      "id": "mer_barril_1",
+      "prop": "vila2_03",
+      "x": 310,
+      "y": 355,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "mer_caixa_1",
+      "prop": "vila3_02",
+      "x": 710,
+      "y": 355,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "forja_casa",
+      "prop": "casa1_01",
+      "x": 200,
+      "y": 365,
+      "escala": 1.1,
+      "flipX": false
+    },
+    {
+      "id": "forja_ruina",
+      "prop": "muralha_ruina",
+      "x": 110,
+      "y": 375,
+      "escala": 0.9,
+      "flipX": false
+    },
+    {
+      "id": "res_casa_1",
+      "prop": "casa1_02",
+      "x": 180,
+      "y": 490,
+      "escala": 1.05,
+      "flipX": false
+    },
+    {
+      "id": "res_casa_2",
+      "prop": "casa2_01",
+      "x": 340,
+      "y": 495,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "res_casa_3",
+      "prop": "casa2_02",
+      "x": 680,
+      "y": 495,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "res_casa_4",
+      "prop": "casa2_05",
+      "x": 840,
+      "y": 490,
+      "escala": 1.05,
+      "flipX": true
+    },
+    {
+      "id": "res_cerca_1",
+      "prop": "vila2_02",
+      "x": 100,
+      "y": 525,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "res_cerca_2",
+      "prop": "vila2_02",
+      "x": 420,
+      "y": 525,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "res_cerca_3",
+      "prop": "vila2_02",
+      "x": 600,
+      "y": 525,
+      "escala": 1.0,
+      "flipX": false
+    },
+    {
+      "id": "res_cerca_4",
+      "prop": "vila2_02",
+      "x": 920,
+      "y": 525,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "arv_floresta_1",
+      "prop": "f1_02",
+      "x": 40,
+      "y": 440,
+      "escala": 1.1,
+      "flipX": false
+    },
+    {
+      "id": "arv_floresta_2",
+      "prop": "f1_04",
+      "x": 60,
+      "y": 500,
+      "escala": 1.0,
+      "flipX": true
+    },
+    {
+      "id": "arv_floresta_3",
+      "prop": "f1_03",
+      "x": 960,
+      "y": 440,
+      "escala": 1.1,
+      "flipX": true
+    },
+    {
+      "id": "arv_floresta_4",
+      "prop": "f1_05",
+      "x": 980,
+      "y": 500,
+      "escala": 1.0,
+      "flipX": false
+    }
+  ]
+}

@@ -102,8 +102,8 @@ def main():
     # A textura de laje veio com pedras enormes: cada uma ficava do tamanho da fonte da
     # praça. Reduzo a peça para a pedra cair na escala do personagem — como a textura
     # fecha nas bordas, reduzir não reintroduz costura.
-    laje = Image.open('assets/texturas/laje_1.jpg').convert('RGB')
-    laje = laje.resize((laje.width // 4, laje.height // 4), Image.LANCZOS)
+    laje = Image.open('assets/texturas/piso_calcada.jpg').convert('RGB')
+    laje = laje.resize((laje.width // 3, laje.height // 3), Image.LANCZOS)
 
     ESTRADA_Y, ESTRADA_MEIA = 1180, 96
     topo = ruido_de_borda(COLS * BW, 11, 26, 190)

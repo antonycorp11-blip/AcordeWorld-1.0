@@ -484,6 +484,75 @@
       "triggered": false,
       "flipX": false,
       "scale": 1
+    },
+    {
+      "id": "npc_guard_cidade",
+      "name": "Guarda Real Valerius",
+      "type": "guard",
+      "mapKey": "vilarejo_precidade",
+      "x": 480,
+      "y": 150,
+      "scale": 0.95,
+      "dialogue": "guard_intro",
+      "ambient": [
+        "A Citadela Real protege toda Acordelot.",
+        "Mantenha a ordem na praça!"
+      ]
+    },
+    {
+      "id": "npc_blacksmith_cidade",
+      "name": "Mestre Ferreiro Torin",
+      "type": "blacksmith",
+      "mapKey": "vilarejo_precidade",
+      "x": 240,
+      "y": 400,
+      "scale": 0.9,
+      "dialogue": "blacksmith_intro",
+      "ambient": [
+        "O martelo e o fogo moldam as ferramentas perfeitas.",
+        "Precisa de forja?"
+      ]
+    },
+    {
+      "id": "npc_merchant_cidade",
+      "name": "Mercador Balthazar",
+      "type": "merchant",
+      "mapKey": "vilarejo_precidade",
+      "x": 370,
+      "y": 360,
+      "scale": 0.9,
+      "dialogue": "merchant_intro",
+      "ambient": [
+        "As melhores relíquias e mantimentos de Acordelot!",
+        "Confira minhas ofertas!"
+      ]
+    },
+    {
+      "id": "npc_elder_cidade",
+      "name": "Ancião Aurelius",
+      "type": "elder",
+      "mapKey": "vilarejo_precidade",
+      "x": 200,
+      "y": 240,
+      "scale": 0.9,
+      "dialogue": "elder_intro",
+      "ambient": [
+        "Ouça os ecos da catedral ancestral.",
+        "A música cura todas as feridas."
+      ]
+    },
+    {
+      "id": "npc_child_cidade",
+      "name": "Pequeno Leo",
+      "type": "child",
+      "mapKey": "vilarejo_precidade",
+      "x": 540,
+      "y": 390,
+      "scale": 0.8,
+      "ambient": [
+        "Adoro brincar perto da fonte!",
+        "Você também ouve a melodia do vento?"
+      ]
     }
   ]
 }

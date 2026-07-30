@@ -7,7 +7,7 @@ from PIL import Image, ImageChops
 RAIZ = Path(__file__).resolve().parent.parent
 BW, BH = 1024, 571
 TEX = {'terra': ('assets/texturas/terra_1.jpg', 2),
-       'laje':  ('assets/texturas/laje_1.jpg', 4),
+       'laje':  ('assets/texturas/piso_calcada.jpg', 3),
        'areia': ('assets/texturas/areia_1.jpg', 2),
        'mar':   ('assets/texturas/areia_2.jpg', 2)}   # o mar é tingido de azul abaixo
 

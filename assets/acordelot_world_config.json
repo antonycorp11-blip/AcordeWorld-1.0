@@ -47,6 +47,14 @@
     "notas_sagradas": {
       "col": 3,
       "row": -1
+    },
+    "vilarejo_precidade": {
+      "col": 0,
+      "row": -1
+    },
+    "praia_mar": {
+      "col": 1,
+      "row": 4
     }
   },
   "spawns": {
@@ -97,6 +105,14 @@
     "notas_sagradas": {
       "x": 512,
       "y": 470
+    },
+    "vilarejo_precidade": {
+      "x": 482,
+      "y": 340
+    },
+    "praia_mar": {
+      "x": 180,
+      "y": 300
     }
   },
   "bgSources": {
@@ -110,7 +126,9 @@
     "3_0": "assets/forest_deep.jpg",
     "custom_1785173102424_996": "assets/bg_custom_1785173102424_996.jpg",
     "custom_1785254196551_992": "assets/bg_custom_1785254196551_992.jpg",
-    "custom_1785254692668_431": "assets/bg_custom_1785254692668_431.jpg"
+    "custom_1785254692668_431": "assets/bg_custom_1785254692668_431.jpg",
+    "vilarejo_precidade": "assets/bg_vilarejo_precidade.jpg",
+    "praia_mar": "assets/bg_praia_mar.jpg"
   },
   "sceneNames": {
     "0_0": "🏰 Vila Medieval",
@@ -124,7 +142,9 @@
     "custom_1785173102424_996": "🌑 Floresta Sombria",
     "custom_1785254196551_992": "🏰 Forest_Edge_Hunting_Ground_map_202607281154",
     "custom_1785254692668_431": "🌿 Clareira dos Ecos",
-    "notas_sagradas": "✦ Lugar das Notas Sagradas"
+    "notas_sagradas": "✦ Lugar das Notas Sagradas",
+    "vilarejo_precidade": "🏰 Cidade Real de Acordelot (Pré-Cidade)",
+    "praia_mar": "🏖️ Orla da Baía & Mar Aberto"
   },
   "startMap": "custom_1785173102424_996",
   "ambience": {
@@ -137,6 +157,16 @@
       "escuro": 0.82,
       "cor": "#070c16",
       "haloRaio": 215
+    },
+    "vilarejo_precidade": {
+      "escuro": 0.0,
+      "cor": "#ffffff",
+      "haloRaio": 300
+    },
+    "praia_mar": {
+      "escuro": 0.15,
+      "cor": "#0b2545",
+      "haloRaio": 300
     }
   },
   "videoSources": {
