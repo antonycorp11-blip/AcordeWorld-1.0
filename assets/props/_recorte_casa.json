@@ -1,0 +1,101 @@
+{
+  "folha": "Sprite_sheet_with_medieval_houses_202607291958.jpeg",
+  "sprites": [
+    {
+      "arquivo": "assets/props/casa1_01.png",
+      "fileira": 1,
+      "x": 386,
+      "y": 2,
+      "w": 217,
+      "h": 270
+    },
+    {
+      "arquivo": "assets/props/casa1_02.png",
+      "fileira": 1,
+      "x": 782,
+      "y": 18,
+      "w": 210,
+      "h": 231
+    },
+    {
+      "arquivo": "assets/props/casa2_01.png",
+      "fileira": 2,
+      "x": 10,
+      "y": 14,
+      "w": 76,
+      "h": 754
+    },
+    {
+      "arquivo": "assets/props/casa2_02.png",
+      "fileira": 2,
+      "x": 134,
+      "y": 602,
+      "w": 249,
+      "h": 140
+    },
+    {
+      "arquivo": "assets/props/casa2_03.png",
+      "fileira": 2,
+      "x": 158,
+      "y": 446,
+      "w": 241,
+      "h": 123
+    },
+    {
+      "arquivo": "assets/props/casa2_04.png",
+      "fileira": 2,
+      "x": 242,
+      "y": 282,
+      "w": 78,
+      "h": 124
+    },
+    {
+      "arquivo": "assets/props/casa2_05.png",
+      "fileira": 2,
+      "x": 522,
+      "y": 386,
+      "w": 236,
+      "h": 379
+    },
+    {
+      "arquivo": "assets/props/casa2_06.png",
+      "fileira": 2,
+      "x": 570,
+      "y": 430,
+      "w": 230,
+      "h": 145
+    },
+    {
+      "arquivo": "assets/props/casa2_07.png",
+      "fileira": 2,
+      "x": 630,
+      "y": 282,
+      "w": 59,
+      "h": 123
+    },
+    {
+      "arquivo": "assets/props/casa2_08.png",
+      "fileira": 2,
+      "x": 954,
+      "y": 590,
+      "w": 249,
+      "h": 160
+    },
+    {
+      "arquivo": "assets/props/casa2_09.png",
+      "fileira": 2,
+      "x": 982,
+      "y": 426,
+      "w": 186,
+      "h": 147
+    },
+    {
+      "arquivo": "assets/props/casa2_10.png",
+      "fileira": 2,
+      "x": 1022,
+      "y": 282,
+      "w": 55,
+      "h": 122
+    }
+  ]
+}

@@ -224,10 +224,20 @@ def sangrar_cor(rgba):
 
 
 def main():
+    global LIMITE_BRANCO
     if len(sys.argv) < 2:
         print(__doc__)
         return 1
     origem = Path(sys.argv[1])
+    # Prefixo: sem ele, a segunda folha sobrescreve os recortes da primeira.
+    prefixo = 'f'
+    if '--prefixo' in sys.argv:
+        prefixo = sys.argv[sys.argv.index('--prefixo') + 1]
+    # Limite ajustável: uma das folhas veio com grade de fundo em cinza 229, que sem
+    # isto conta como desenho e liga a imagem inteira num objeto só.
+    if '--branco' in sys.argv:
+        LIMITE_BRANCO = int(sys.argv[sys.argv.index('--branco') + 1])
+    print(f'limite de branco: {LIMITE_BRANCO} · prefixo: {prefixo}')
     im = Image.open(origem).convert('RGB')
     w, h = im.size
     print(f'folha: {origem.name}  {w}x{h}')
@@ -280,11 +290,11 @@ def main():
             if caixa:
                 recorte = recorte.crop(caixa)
             recorte = sangrar_cor(recorte)
-            nome = f'f{nf}_{ni:02d}.png'
+            nome = f'{prefixo}{nf}_{ni:02d}.png'
             recorte.save(DESTINO / nome)
             saida.append({'arquivo': f'assets/props/{nome}', 'fileira': nf,
                           'x': x0, 'y': y0, 'w': recorte.width, 'h': recorte.height})
-    rel = RAIZ / 'assets' / 'props' / '_recorte.json'
+    rel = RAIZ / 'assets' / 'props' / f'_recorte_{prefixo}.json'
     rel.write_text(json.dumps({'folha': origem.name, 'sprites': saida},
                               indent=2, ensure_ascii=False), encoding='utf-8')
     print(f'{len(saida)} PNGs em assets/props/ · relatório em {rel.name}')

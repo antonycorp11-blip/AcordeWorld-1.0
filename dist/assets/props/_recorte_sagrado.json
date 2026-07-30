@@ -1,0 +1,125 @@
+{
+  "folha": "Sprite_sheet_with_trees,_ponds,_202607291957.jpeg",
+  "sprites": [
+    {
+      "arquivo": "assets/props/sagrado1_01.png",
+      "fileira": 1,
+      "x": 2,
+      "y": 10,
+      "w": 339,
+      "h": 337
+    },
+    {
+      "arquivo": "assets/props/sagrado1_02.png",
+      "fileira": 1,
+      "x": 418,
+      "y": 42,
+      "w": 227,
+      "h": 302
+    },
+    {
+      "arquivo": "assets/props/sagrado1_03.png",
+      "fileira": 1,
+      "x": 730,
+      "y": 54,
+      "w": 235,
+      "h": 291
+    },
+    {
+      "arquivo": "assets/props/sagrado1_04.png",
+      "fileira": 1,
+      "x": 1046,
+      "y": 174,
+      "w": 166,
+      "h": 108
+    },
+    {
+      "arquivo": "assets/props/sagrado1_05.png",
+      "fileira": 1,
+      "x": 1234,
+      "y": 218,
+      "w": 88,
+      "h": 79
+    },
+    {
+      "arquivo": "assets/props/sagrado2_01.png",
+      "fileira": 2,
+      "x": 98,
+      "y": 402,
+      "w": 164,
+      "h": 117
+    },
+    {
+      "arquivo": "assets/props/sagrado2_02.png",
+      "fileira": 2,
+      "x": 438,
+      "y": 426,
+      "w": 155,
+      "h": 85
+    },
+    {
+      "arquivo": "assets/props/sagrado2_03.png",
+      "fileira": 2,
+      "x": 766,
+      "y": 426,
+      "w": 155,
+      "h": 106
+    },
+    {
+      "arquivo": "assets/props/sagrado2_04.png",
+      "fileira": 2,
+      "x": 1006,
+      "y": 406,
+      "w": 86,
+      "h": 110
+    },
+    {
+      "arquivo": "assets/props/sagrado2_05.png",
+      "fileira": 2,
+      "x": 1106,
+      "y": 426,
+      "w": 166,
+      "h": 94
+    },
+    {
+      "arquivo": "assets/props/sagrado3_01.png",
+      "fileira": 3,
+      "x": 94,
+      "y": 594,
+      "w": 159,
+      "h": 110
+    },
+    {
+      "arquivo": "assets/props/sagrado3_02.png",
+      "fileira": 3,
+      "x": 466,
+      "y": 594,
+      "w": 112,
+      "h": 130
+    },
+    {
+      "arquivo": "assets/props/sagrado3_03.png",
+      "fileira": 3,
+      "x": 734,
+      "y": 586,
+      "w": 106,
+      "h": 137
+    },
+    {
+      "arquivo": "assets/props/sagrado3_04.png",
+      "fileira": 3,
+      "x": 1018,
+      "y": 574,
+      "w": 116,
+      "h": 145
+    },
+    {
+      "arquivo": "assets/props/sagrado3_05.png",
+      "fileira": 3,
+      "x": 1206,
+      "y": 570,
+      "w": 112,
+      "h": 182
+    }
+  ]
+}

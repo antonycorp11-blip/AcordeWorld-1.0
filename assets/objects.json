@@ -5,234 +5,234 @@
       "sprite": "assets/props/f1_01.png",
       "categoria": "arvore",
       "plano": "objeto",
-      "altura": 230,
       "pe": 0.97,
       "raio": 20,
-      "colide": true
+      "colide": true,
+      "altura": 230
     },
     "f1_02": {
       "nome": "Pinheiro Alto",
       "sprite": "assets/props/f1_02.png",
       "categoria": "arvore",
       "plano": "objeto",
-      "altura": 215,
       "pe": 0.97,
       "raio": 16,
-      "colide": true
+      "colide": true,
+      "altura": 215
     },
     "f1_03": {
       "nome": "Pinheiro",
       "sprite": "assets/props/f1_03.png",
       "categoria": "arvore",
       "plano": "objeto",
-      "altura": 200,
       "pe": 0.97,
       "raio": 16,
-      "colide": true
+      "colide": true,
+      "altura": 200
     },
     "f1_04": {
       "nome": "Pinheiro Médio",
       "sprite": "assets/props/f1_04.png",
       "categoria": "arvore",
       "plano": "objeto",
-      "altura": 175,
       "pe": 0.97,
       "raio": 14,
-      "colide": true
+      "colide": true,
+      "altura": 175
     },
     "f1_05": {
       "nome": "Pinheiro Novo",
       "sprite": "assets/props/f1_05.png",
       "categoria": "arvore",
       "plano": "objeto",
-      "altura": 150,
       "pe": 0.97,
       "raio": 12,
-      "colide": true
+      "colide": true,
+      "altura": 150
     },
     "f1_06": {
       "nome": "Árvore Frondosa",
       "sprite": "assets/props/f1_06.png",
       "categoria": "arvore",
       "plano": "objeto",
-      "altura": 235,
       "pe": 0.96,
       "raio": 22,
-      "colide": true
+      "colide": true,
+      "altura": 235
     },
     "f1_07": {
       "nome": "Árvore Copada",
       "sprite": "assets/props/f1_07.png",
       "categoria": "arvore",
       "plano": "objeto",
-      "altura": 195,
       "pe": 0.96,
       "raio": 16,
-      "colide": true
+      "colide": true,
+      "altura": 195
     },
     "f1_08": {
       "nome": "Bétula de Outono",
       "sprite": "assets/props/f1_08.png",
       "categoria": "arvore",
       "plano": "objeto",
-      "altura": 215,
       "pe": 0.97,
       "raio": 13,
-      "colide": true
+      "colide": true,
+      "altura": 215
     },
     "f1_09": {
       "nome": "Bétula",
       "sprite": "assets/props/f1_09.png",
       "categoria": "arvore",
       "plano": "objeto",
-      "altura": 205,
       "pe": 0.97,
       "raio": 13,
-      "colide": true
+      "colide": true,
+      "altura": 205
     },
     "f2_01": {
       "nome": "Samambaia",
       "sprite": "assets/props/f2_01.png",
       "categoria": "mato",
       "plano": "objeto",
-      "altura": 62,
       "pe": 0.92,
       "raio": 0,
-      "colide": false
+      "colide": false,
+      "altura": 62
     },
     "f2_02": {
       "nome": "Samambaia Larga",
       "sprite": "assets/props/f2_02.png",
       "categoria": "mato",
       "plano": "objeto",
-      "altura": 66,
       "pe": 0.92,
       "raio": 0,
-      "colide": false
+      "colide": false,
+      "altura": 66
     },
     "f2_03": {
       "nome": "Moita Florida Rosa",
       "sprite": "assets/props/f2_03.png",
       "categoria": "mato",
       "plano": "objeto",
-      "altura": 70,
       "pe": 0.92,
       "raio": 0,
-      "colide": false
+      "colide": false,
+      "altura": 70
     },
     "f2_04": {
       "nome": "Moita Florida",
       "sprite": "assets/props/f2_04.png",
       "categoria": "mato",
       "plano": "objeto",
-      "altura": 72,
       "pe": 0.92,
       "raio": 0,
-      "colide": false
+      "colide": false,
+      "altura": 72
     },
     "f2_05": {
       "nome": "Moita de Lavanda",
       "sprite": "assets/props/f2_05.png",
       "categoria": "mato",
       "plano": "objeto",
-      "altura": 74,
       "pe": 0.92,
       "raio": 0,
-      "colide": false
+      "colide": false,
+      "altura": 74
     },
     "f2_06": {
       "nome": "Canteiro Silvestre",
       "sprite": "assets/props/f2_06.png",
       "categoria": "mato",
       "plano": "objeto",
-      "altura": 60,
       "pe": 0.94,
       "raio": 0,
-      "colide": false
+      "colide": false,
+      "altura": 60
     },
     "f2_07": {
       "nome": "Arbusto Redondo",
       "sprite": "assets/props/f2_07.png",
       "categoria": "mato",
       "plano": "objeto",
-      "altura": 80,
       "pe": 0.92,
       "raio": 14,
-      "colide": true
+      "colide": true,
+      "altura": 80
     },
     "f2_08": {
       "nome": "Arbusto Denso",
       "sprite": "assets/props/f2_08.png",
       "categoria": "mato",
       "plano": "objeto",
-      "altura": 84,
       "pe": 0.92,
       "raio": 15,
-      "colide": true
+      "colide": true,
+      "altura": 84
     },
     "f2_09": {
       "nome": "Capim Alto",
       "sprite": "assets/props/f2_09.png",
       "categoria": "mato",
       "plano": "objeto",
-      "altura": 44,
       "pe": 0.95,
       "raio": 0,
-      "colide": false
+      "colide": false,
+      "altura": 44
     },
     "f2_10": {
       "nome": "Tufo Florido",
       "sprite": "assets/props/f2_10.png",
       "categoria": "mato",
       "plano": "objeto",
-      "altura": 34,
       "pe": 0.95,
       "raio": 0,
-      "colide": false
+      "colide": false,
+      "altura": 34
     },
     "f2_11": {
       "nome": "Tufo de Capim",
       "sprite": "assets/props/f2_11.png",
       "categoria": "mato",
       "plano": "objeto",
-      "altura": 30,
       "pe": 0.95,
       "raio": 0,
-      "colide": false
+      "colide": false,
+      "altura": 30
     },
     "f3_01": {
-      "nome": "Caminho Reto",
+      "nome": "Trilha Reta",
       "sprite": "assets/props/f3_01.png",
       "categoria": "caminho",
       "plano": "chao",
-      "pe": 1.0,
+      "pe": 1,
       "raio": 0,
       "colide": false
     },
     "f3_02": {
-      "nome": "Caminho em Curva",
+      "nome": "Trilha em Curva",
       "sprite": "assets/props/f3_02.png",
       "categoria": "caminho",
       "plano": "chao",
-      "pe": 1.0,
+      "pe": 1,
       "raio": 0,
       "colide": false
     },
     "f3_03": {
-      "nome": "Caminho em T",
+      "nome": "Trilha em T",
       "sprite": "assets/props/f3_03.png",
       "categoria": "caminho",
       "plano": "chao",
-      "pe": 1.0,
+      "pe": 1,
       "raio": 0,
       "colide": false
     },
     "f3_04": {
-      "nome": "Caminho Diagonal",
+      "nome": "Trilha Diagonal",
       "sprite": "assets/props/f3_04.png",
       "categoria": "caminho",
       "plano": "chao",
-      "pe": 1.0,
+      "pe": 1,
       "raio": 0,
       "colide": false
     },
@@ -241,7 +241,7 @@
       "sprite": "assets/props/f3_05.png",
       "categoria": "caminho",
       "plano": "chao",
-      "pe": 1.0,
+      "pe": 1,
       "raio": 0,
       "colide": false
     },
@@ -250,67 +250,67 @@
       "sprite": "assets/props/f4_01.png",
       "categoria": "flor",
       "plano": "objeto",
-      "altura": 30,
       "pe": 0.95,
       "raio": 0,
-      "colide": false
+      "colide": false,
+      "altura": 30
     },
     "f4_02": {
       "nome": "Flores Azuis",
       "sprite": "assets/props/f4_02.png",
       "categoria": "flor",
       "plano": "objeto",
-      "altura": 26,
       "pe": 0.95,
       "raio": 0,
-      "colide": false
+      "colide": false,
+      "altura": 26
     },
     "f4_03": {
       "nome": "Flores Amarelas",
       "sprite": "assets/props/f4_03.png",
       "categoria": "flor",
       "plano": "objeto",
-      "altura": 30,
       "pe": 0.95,
       "raio": 0,
-      "colide": false
+      "colide": false,
+      "altura": 30
     },
     "f4_04": {
       "nome": "Flores Douradas",
       "sprite": "assets/props/f4_04.png",
       "categoria": "flor",
       "plano": "objeto",
-      "altura": 32,
       "pe": 0.95,
       "raio": 0,
-      "colide": false
+      "colide": false,
+      "altura": 32
     },
     "f4_05": {
       "nome": "Flores Rosadas",
       "sprite": "assets/props/f4_05.png",
       "categoria": "flor",
       "plano": "objeto",
-      "altura": 34,
       "pe": 0.95,
       "raio": 0,
-      "colide": false
+      "colide": false,
+      "altura": 34
     },
     "f4_06": {
       "nome": "Flores Vermelhas",
       "sprite": "assets/props/f4_06.png",
       "categoria": "flor",
       "plano": "objeto",
-      "altura": 32,
       "pe": 0.95,
       "raio": 0,
-      "colide": false
+      "colide": false,
+      "altura": 32
     },
     "f4_07": {
       "nome": "Moita de Grama",
       "sprite": "assets/props/f4_07.png",
       "categoria": "chao_grama",
       "plano": "chao",
-      "pe": 1.0,
+      "pe": 1,
       "raio": 0,
       "colide": false
     },
@@ -319,7 +319,7 @@
       "sprite": "assets/props/f4_08.png",
       "categoria": "chao_grama",
       "plano": "chao",
-      "pe": 1.0,
+      "pe": 1,
       "raio": 0,
       "colide": false
     },
@@ -328,7 +328,7 @@
       "sprite": "assets/props/f4_09.png",
       "categoria": "chao_grama",
       "plano": "chao",
-      "pe": 1.0,
+      "pe": 1,
       "raio": 0,
       "colide": false
     },
@@ -337,30 +337,687 @@
       "sprite": "assets/props/f4_10.png",
       "categoria": "pedra",
       "plano": "objeto",
-      "altura": 60,
       "pe": 0.94,
       "raio": 24,
-      "colide": true
+      "colide": true,
+      "altura": 60
     },
     "f4_11": {
       "nome": "Pedras Pequenas",
       "sprite": "assets/props/f4_11.png",
       "categoria": "pedra",
       "plano": "objeto",
-      "altura": 34,
       "pe": 0.94,
       "raio": 14,
-      "colide": true
+      "colide": true,
+      "altura": 34
     },
     "f4_12": {
       "nome": "Pedras Empilhadas",
       "sprite": "assets/props/f4_12.png",
       "categoria": "pedra",
       "plano": "objeto",
-      "altura": 66,
       "pe": 0.94,
       "raio": 26,
-      "colide": true
+      "colide": true,
+      "altura": 66
+    },
+    "sagrado1_01": {
+      "nome": "Árvore-Mãe da Música",
+      "sprite": "assets/props/sagrado1_01.png",
+      "categoria": "sagrado",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 34,
+      "colide": true,
+      "altura": 330
+    },
+    "sagrado1_02": {
+      "nome": "Árvore das Claves",
+      "sprite": "assets/props/sagrado1_02.png",
+      "categoria": "sagrado",
+      "plano": "objeto",
+      "pe": 0.96,
+      "raio": 18,
+      "colide": true,
+      "altura": 260
+    },
+    "sagrado1_03": {
+      "nome": "Árvore da Semínima",
+      "sprite": "assets/props/sagrado1_03.png",
+      "categoria": "sagrado",
+      "plano": "objeto",
+      "pe": 0.96,
+      "raio": 20,
+      "colide": true,
+      "altura": 270
+    },
+    "sagrado1_04": {
+      "nome": "Lago das Vitórias-régias",
+      "sprite": "assets/props/sagrado1_04.png",
+      "categoria": "agua",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "sagrado1_05": {
+      "nome": "Vitórias-régias",
+      "sprite": "assets/props/sagrado1_05.png",
+      "categoria": "agua",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "sagrado2_01": {
+      "nome": "Lago Sereno",
+      "sprite": "assets/props/sagrado2_01.png",
+      "categoria": "agua",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "sagrado2_02": {
+      "nome": "Muro de Pedra",
+      "sprite": "assets/props/sagrado2_02.png",
+      "categoria": "muro",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 30,
+      "colide": true,
+      "altura": 96
+    },
+    "sagrado2_03": {
+      "nome": "Muro em Canto",
+      "sprite": "assets/props/sagrado2_03.png",
+      "categoria": "muro",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 34,
+      "colide": true,
+      "altura": 110
+    },
+    "sagrado2_05": {
+      "nome": "Muro Baixo",
+      "sprite": "assets/props/sagrado2_05.png",
+      "categoria": "muro",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 28,
+      "colide": true,
+      "altura": 70
+    },
+    "sagrado2_04": {
+      "nome": "Estela da Clave",
+      "sprite": "assets/props/sagrado2_04.png",
+      "categoria": "lapide",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 18,
+      "colide": true,
+      "altura": 120
+    },
+    "sagrado3_01": {
+      "nome": "Lago das Flores",
+      "sprite": "assets/props/sagrado3_01.png",
+      "categoria": "agua",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "sagrado3_02": {
+      "nome": "Estela de Fá",
+      "sprite": "assets/props/sagrado3_02.png",
+      "categoria": "lapide",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 18,
+      "colide": true,
+      "altura": 115
+    },
+    "sagrado3_03": {
+      "nome": "Estela de Sol",
+      "sprite": "assets/props/sagrado3_03.png",
+      "categoria": "lapide",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 18,
+      "colide": true,
+      "altura": 115
+    },
+    "sagrado3_04": {
+      "nome": "Altar da Clave",
+      "sprite": "assets/props/sagrado3_04.png",
+      "categoria": "lapide",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 24,
+      "colide": true,
+      "altura": 130
+    },
+    "sagrado3_05": {
+      "nome": "Altar de Sol",
+      "sprite": "assets/props/sagrado3_05.png",
+      "categoria": "lapide",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 24,
+      "colide": true,
+      "altura": 130
+    },
+    "mata1_01": {
+      "nome": "Árvore Larga",
+      "sprite": "assets/props/mata1_01.png",
+      "categoria": "arvore",
+      "plano": "objeto",
+      "pe": 0.96,
+      "raio": 20,
+      "colide": true,
+      "altura": 215
+    },
+    "mata1_02": {
+      "nome": "Árvore Antiga",
+      "sprite": "assets/props/mata1_02.png",
+      "categoria": "arvore",
+      "plano": "objeto",
+      "pe": 0.96,
+      "raio": 22,
+      "colide": true,
+      "altura": 225
+    },
+    "mata1_03": {
+      "nome": "Árvore de Outono",
+      "sprite": "assets/props/mata1_03.png",
+      "categoria": "arvore",
+      "plano": "objeto",
+      "pe": 0.96,
+      "raio": 18,
+      "colide": true,
+      "altura": 210
+    },
+    "mata2_01": {
+      "nome": "Rocha Musgosa",
+      "sprite": "assets/props/mata2_01.png",
+      "categoria": "pedra",
+      "plano": "objeto",
+      "pe": 0.94,
+      "raio": 30,
+      "colide": true,
+      "altura": 72
+    },
+    "mata2_02": {
+      "nome": "Rocha Lisa",
+      "sprite": "assets/props/mata2_02.png",
+      "categoria": "pedra",
+      "plano": "objeto",
+      "pe": 0.94,
+      "raio": 28,
+      "colide": true,
+      "altura": 66
+    },
+    "mata2_03": {
+      "nome": "Rocha com Mato",
+      "sprite": "assets/props/mata2_03.png",
+      "categoria": "pedra",
+      "plano": "objeto",
+      "pe": 0.94,
+      "raio": 30,
+      "colide": true,
+      "altura": 78
+    },
+    "mata3_01": {
+      "nome": "Faixa de Terra",
+      "sprite": "assets/props/mata3_01.png",
+      "categoria": "caminho",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "mata3_02": {
+      "nome": "Flores do Campo",
+      "sprite": "assets/props/mata3_02.png",
+      "categoria": "flor",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false,
+      "altura": 36
+    },
+    "mata3_03": {
+      "nome": "Terra com Vereda",
+      "sprite": "assets/props/mata3_03.png",
+      "categoria": "caminho",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "mata3_04": {
+      "nome": "Chão de Terra",
+      "sprite": "assets/props/mata3_04.png",
+      "categoria": "caminho",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "mata3_05": {
+      "nome": "Flores Miúdas",
+      "sprite": "assets/props/mata3_05.png",
+      "categoria": "flor",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false,
+      "altura": 30
+    },
+    "mata3_06": {
+      "nome": "Jacintos",
+      "sprite": "assets/props/mata3_06.png",
+      "categoria": "flor",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false,
+      "altura": 40
+    },
+    "mata3_07": {
+      "nome": "Flores do Bosque",
+      "sprite": "assets/props/mata3_07.png",
+      "categoria": "flor",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false,
+      "altura": 36
+    },
+    "lapide1_01": {
+      "nome": "Cruz Celta",
+      "sprite": "assets/props/lapide1_01.png",
+      "categoria": "lapide",
+      "plano": "objeto",
+      "pe": 0.96,
+      "raio": 14,
+      "colide": true,
+      "altura": 110
+    },
+    "lapide1_02": {
+      "nome": "Obelisco de Sol",
+      "sprite": "assets/props/lapide1_02.png",
+      "categoria": "lapide",
+      "plano": "objeto",
+      "pe": 0.96,
+      "raio": 14,
+      "colide": true,
+      "altura": 120
+    },
+    "lapide1_03": {
+      "nome": "Obelisco de Fá",
+      "sprite": "assets/props/lapide1_03.png",
+      "categoria": "lapide",
+      "plano": "objeto",
+      "pe": 0.96,
+      "raio": 14,
+      "colide": true,
+      "altura": 120
+    },
+    "lapide1_04": {
+      "nome": "Lápide do Sustenido",
+      "sprite": "assets/props/lapide1_04.png",
+      "categoria": "lapide",
+      "plano": "objeto",
+      "pe": 0.96,
+      "raio": 14,
+      "colide": true,
+      "altura": 108
+    },
+    "lapide2_01": {
+      "nome": "Rocha da Partitura",
+      "sprite": "assets/props/lapide2_01.png",
+      "categoria": "pedra",
+      "plano": "objeto",
+      "pe": 0.94,
+      "raio": 34,
+      "colide": true,
+      "altura": 130
+    },
+    "lapide2_02": {
+      "nome": "Pedra Cantante",
+      "sprite": "assets/props/lapide2_02.png",
+      "categoria": "pedra",
+      "plano": "objeto",
+      "pe": 0.94,
+      "raio": 34,
+      "colide": true,
+      "altura": 96
+    },
+    "lapide2_03": {
+      "nome": "Rochedo da Pauta",
+      "sprite": "assets/props/lapide2_03.png",
+      "categoria": "pedra",
+      "plano": "objeto",
+      "pe": 0.94,
+      "raio": 36,
+      "colide": true,
+      "altura": 120
+    },
+    "lapide3_01": {
+      "nome": "Cogumelos Azuis",
+      "sprite": "assets/props/lapide3_01.png",
+      "categoria": "magico",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false,
+      "altura": 44
+    },
+    "lapide3_02": {
+      "nome": "Cogumelos Cintilantes",
+      "sprite": "assets/props/lapide3_02.png",
+      "categoria": "magico",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 0,
+      "colide": false,
+      "altura": 52
+    },
+    "lapide3_03": {
+      "nome": "Cogumelo Lunar",
+      "sprite": "assets/props/lapide3_03.png",
+      "categoria": "magico",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 10,
+      "colide": true,
+      "altura": 70
+    },
+    "magico2_01": {
+      "nome": "Poça Dourada",
+      "sprite": "assets/props/magico2_01.png",
+      "categoria": "agua",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "magico2_02": {
+      "nome": "Fonte Dourada",
+      "sprite": "assets/props/magico2_02.png",
+      "categoria": "agua",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "magico2_03": {
+      "nome": "Fonte de Pedra",
+      "sprite": "assets/props/magico2_03.png",
+      "categoria": "agua",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "magico3_01": {
+      "nome": "Cachoeira",
+      "sprite": "assets/props/magico3_01.png",
+      "categoria": "agua_alta",
+      "plano": "objeto",
+      "pe": 0.92,
+      "raio": 44,
+      "colide": true,
+      "altura": 150
+    },
+    "magico3_02": {
+      "nome": "Cachoeira Dupla",
+      "sprite": "assets/props/magico3_02.png",
+      "categoria": "agua_alta",
+      "plano": "objeto",
+      "pe": 0.92,
+      "raio": 54,
+      "colide": true,
+      "altura": 170
+    },
+    "magico3_03": {
+      "nome": "Cachoeira do Vale",
+      "sprite": "assets/props/magico3_03.png",
+      "categoria": "agua_alta",
+      "plano": "objeto",
+      "pe": 0.92,
+      "raio": 50,
+      "colide": true,
+      "altura": 160
+    },
+    "casa1_01": {
+      "nome": "Casa da Praça",
+      "sprite": "assets/props/casa1_01.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.96,
+      "raio": 60,
+      "colide": true,
+      "altura": 250
+    },
+    "casa1_02": {
+      "nome": "Casa de Telhado Azul",
+      "sprite": "assets/props/casa1_02.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.96,
+      "raio": 56,
+      "colide": true,
+      "altura": 215
+    },
+    "casa2_02": {
+      "nome": "Bandeirinhas",
+      "sprite": "assets/props/casa2_02.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.97,
+      "raio": 0,
+      "colide": false,
+      "altura": 110
+    },
+    "casa2_05": {
+      "nome": "Bandeirolas Vermelhas",
+      "sprite": "assets/props/casa2_05.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.97,
+      "raio": 0,
+      "colide": false,
+      "altura": 115
+    },
+    "casa2_08": {
+      "nome": "Bandeirolas Roxas",
+      "sprite": "assets/props/casa2_08.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.97,
+      "raio": 0,
+      "colide": false,
+      "altura": 115
+    },
+    "casa2_03": {
+      "nome": "Calçada de Pedra",
+      "sprite": "assets/props/casa2_03.png",
+      "categoria": "calcada",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "casa2_06": {
+      "nome": "Calçada em Curva",
+      "sprite": "assets/props/casa2_06.png",
+      "categoria": "calcada",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "casa2_09": {
+      "nome": "Calçada Serpente",
+      "sprite": "assets/props/casa2_09.png",
+      "categoria": "calcada",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "casa2_04": {
+      "nome": "Poste Duplo",
+      "sprite": "assets/props/casa2_04.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.97,
+      "raio": 8,
+      "colide": true,
+      "altura": 120
+    },
+    "casa2_07": {
+      "nome": "Poste de Rua",
+      "sprite": "assets/props/casa2_07.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.97,
+      "raio": 8,
+      "colide": true,
+      "altura": 115
+    },
+    "casa2_10": {
+      "nome": "Lampião",
+      "sprite": "assets/props/casa2_10.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.97,
+      "raio": 8,
+      "colide": true,
+      "altura": 112
+    },
+    "vila1_01": {
+      "nome": "Banco Entalhado",
+      "sprite": "assets/props/vila1_01.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 26,
+      "colide": true,
+      "altura": 68
+    },
+    "vila1_02": {
+      "nome": "Banco de Praça",
+      "sprite": "assets/props/vila1_02.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 26,
+      "colide": true,
+      "altura": 66
+    },
+    "vila1_03": {
+      "nome": "Banco Vazado",
+      "sprite": "assets/props/vila1_03.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 26,
+      "colide": true,
+      "altura": 64
+    },
+    "vila1_04": {
+      "nome": "Banco Simples",
+      "sprite": "assets/props/vila1_04.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 26,
+      "colide": true,
+      "altura": 62
+    },
+    "vila2_01": {
+      "nome": "Leão Sentado",
+      "sprite": "assets/props/vila2_01.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.96,
+      "raio": 20,
+      "colide": true,
+      "altura": 110
+    },
+    "vila2_02": {
+      "nome": "Leão de Guarda",
+      "sprite": "assets/props/vila2_02.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.96,
+      "raio": 22,
+      "colide": true,
+      "altura": 112
+    },
+    "vila2_03": {
+      "nome": "Cerca de Tábuas",
+      "sprite": "assets/props/vila2_03.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 34,
+      "colide": true,
+      "altura": 72
+    },
+    "vila3_01": {
+      "nome": "Cerca Alta",
+      "sprite": "assets/props/vila3_01.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 34,
+      "colide": true,
+      "altura": 76
+    },
+    "vila2_04": {
+      "nome": "Ponte de Madeira",
+      "sprite": "assets/props/vila2_04.png",
+      "categoria": "ponte",
+      "plano": "objeto",
+      "pe": 0.98,
+      "raio": 0,
+      "colide": false,
+      "altura": 96
+    },
+    "vila3_02": {
+      "nome": "Pontezinha",
+      "sprite": "assets/props/vila3_02.png",
+      "categoria": "ponte",
+      "plano": "objeto",
+      "pe": 0.98,
+      "raio": 0,
+      "colide": false,
+      "altura": 82
+    },
+    "vila3_03": {
+      "nome": "Estandarte de Fá",
+      "sprite": "assets/props/vila3_03.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.97,
+      "raio": 6,
+      "colide": true,
+      "altura": 120
+    },
+    "vila3_04": {
+      "nome": "Estandarte de Sol",
+      "sprite": "assets/props/vila3_04.png",
+      "categoria": "vila",
+      "plano": "objeto",
+      "pe": 0.97,
+      "raio": 6,
+      "colide": true,
+      "altura": 120
     }
   },
   "objetos": []

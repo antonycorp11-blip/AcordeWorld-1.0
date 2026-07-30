@@ -1,0 +1,101 @@
+{
+  "folha": "Sprite_sheet_medieval_assets_grid_202607291958.jpeg",
+  "sprites": [
+    {
+      "arquivo": "assets/props/vila1_01.png",
+      "fileira": 1,
+      "x": 82,
+      "y": 26,
+      "w": 180,
+      "h": 132
+    },
+    {
+      "arquivo": "assets/props/vila1_02.png",
+      "fileira": 1,
+      "x": 426,
+      "y": 34,
+      "w": 177,
+      "h": 124
+    },
+    {
+      "arquivo": "assets/props/vila1_03.png",
+      "fileira": 1,
+      "x": 770,
+      "y": 30,
+      "w": 172,
+      "h": 124
+    },
+    {
+      "arquivo": "assets/props/vila1_04.png",
+      "fileira": 1,
+      "x": 1114,
+      "y": 42,
+      "w": 172,
+      "h": 115
+    },
+    {
+      "arquivo": "assets/props/vila2_01.png",
+      "fileira": 2,
+      "x": 122,
+      "y": 214,
+      "w": 104,
+      "h": 191
+    },
+    {
+      "arquivo": "assets/props/vila2_02.png",
+      "fileira": 2,
+      "x": 458,
+      "y": 222,
+      "w": 119,
+      "h": 187
+    },
+    {
+      "arquivo": "assets/props/vila2_03.png",
+      "fileira": 2,
+      "x": 750,
+      "y": 230,
+      "w": 220,
+      "h": 194
+    },
+    {
+      "arquivo": "assets/props/vila2_04.png",
+      "fileira": 2,
+      "x": 1078,
+      "y": 234,
+      "w": 243,
+      "h": 171
+    },
+    {
+      "arquivo": "assets/props/vila3_01.png",
+      "fileira": 3,
+      "x": 70,
+      "y": 478,
+      "w": 210,
+      "h": 219
+    },
+    {
+      "arquivo": "assets/props/vila3_02.png",
+      "fileira": 3,
+      "x": 394,
+      "y": 530,
+      "w": 246,
+      "h": 117
+    },
+    {
+      "arquivo": "assets/props/vila3_03.png",
+      "fileira": 3,
+      "x": 794,
+      "y": 534,
+      "w": 126,
+      "h": 174
+    },
+    {
+      "arquivo": "assets/props/vila3_04.png",
+      "fileira": 3,
+      "x": 1138,
+      "y": 538,
+      "w": 125,
+      "h": 167
+    }
+  ]
+}
