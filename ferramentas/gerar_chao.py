@@ -24,7 +24,10 @@ ESCURA = 'assets/texturas/grama_escura_1.jpg'
 # A folha nova veio em verde-limão (203,209,82) e os props vivem entre (49,76,48) e
 # (121,142,57): lado a lado, o chão gritava. Reequilibro por multiplicação de canal, que
 # preserva o desenho da textura e só reposiciona a cor.
-ALVO = (138, 158, 70)
+# Medido na Vila Medieval que já está no jogo: a grama de lá vai de (138,163,65) nos
+# claros a (56,90,32) nas sombras, com média perto de (100,130,45). Eu tinha calibrado
+# pelo tom MAIS CLARO, e por isso o chão saía verde-limão ao lado dos props.
+ALVO = (104, 132, 48)
 
 def equilibrar(im, alvo=ALVO):
     from PIL import ImageStat
@@ -79,7 +82,7 @@ def main():
     H = ROWS * BH
 
     clara = equilibrar(Image.open(CLARA).convert('RGB'))
-    escura = equilibrar(Image.open(ESCURA).convert('RGB'), (96, 116, 56))
+    escura = equilibrar(Image.open(ESCURA).convert('RGB'), (68, 96, 38))
     terra = Image.open('assets/texturas/terra_1.jpg').convert('RGB')
 
     # A estrada passa a ser TERRENO, pintada no chão, e não uma fila de peças. Peça de
