@@ -4209,7 +4209,25 @@ body.mobile-play #gameCanvas {
 .prop-paleta {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
   margin-bottom: 8px;
+  /* Rolagem própria: uma regra mais abaixo no arquivo força `overflow: visible
+     !important` em .btab-content, então a aba inteira não rola e os últimos props
+     ficavam fora de alcance. Aqui o scroll é da grade, e não depende daquilo. */
+  max-height: 42vh; overflow-y: auto; overscroll-behavior: contain;
+  padding-right: 2px;
 }
+.prop-paleta::-webkit-scrollbar { width: 7px; }
+.prop-paleta::-webkit-scrollbar-thumb { background: #4a3a22; border-radius: 4px; }
+.prop-paleta::-webkit-scrollbar-track { background: #171310; }
+
+/* filtros por categoria: 116 itens numa grade só é impossível de varrer */
+.prop-cats { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.prop-cat {
+  padding: 3px 8px; cursor: pointer; font-size: 9.5px; letter-spacing: .04em;
+  color: #b9a888; background: #1a1410;
+  border: 1px solid #3b2d1c; border-radius: 999px;
+}
+.prop-cat:hover { border-color: #7c5a2a; color: #e8d7b4; }
+.prop-cat.ativo { background: #2c2110; border-color: #fbbf24; color: #fde68a; }
 .prop-btn {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   padding: 6px 3px 4px; cursor: pointer;

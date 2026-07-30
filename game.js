@@ -5978,10 +5978,38 @@ function mostrarInspetorDeObjeto(o) {
 
 // A paleta: um botão por prop do catálogo. Tocar arma o modo de plantar; tocar de novo
 // desarma, para não sair plantando árvore sem querer ao tentar mover a câmera.
+let propCategoria = 'tudo';
+
+const NOME_DA_CATEGORIA = {
+  tudo: 'Tudo', arvore: 'Árvores', mato: 'Mato', flor: 'Flores', pedra: 'Pedras',
+  caminho: 'Chão', chao_grama: 'Grama', agua: 'Água', agua_alta: 'Cachoeira',
+  sagrado: 'Sagrado', lapide: 'Lápides', magico: 'Mágico', muro: 'Muros',
+  muralha: 'Muralha', construcao: 'Casas', feira: 'Feira', cidade: 'Cidade',
+  vila: 'Vila', calcada: 'Calçada', ponte: 'Pontes',
+};
+
 function renderPaletaDeProps() {
   const grade = document.getElementById('propPaleta');
   if (!grade) return;
-  const ids = Object.keys(propDefs);
+
+  // Filtro por categoria: 116 itens numa grade só não se varre com o olho.
+  const cats = document.getElementById('propCats');
+  if (cats) {
+    const usadas = [...new Set(Object.values(propDefs).map(d => d.categoria))].sort();
+    cats.innerHTML = '';
+    ['tudo', ...usadas].forEach(c => {
+      const b = document.createElement('button');
+      b.className = 'prop-cat' + (propCategoria === c ? ' ativo' : '');
+      const n = c === 'tudo' ? Object.keys(propDefs).length
+                             : Object.values(propDefs).filter(d => d.categoria === c).length;
+      b.textContent = `${NOME_DA_CATEGORIA[c] || c} ${n}`;
+      b.addEventListener('click', () => { propCategoria = c; renderPaletaDeProps(); });
+      cats.appendChild(b);
+    });
+  }
+
+  const ids = Object.keys(propDefs)
+    .filter(id => propCategoria === 'tudo' || propDefs[id].categoria === propCategoria);
   grade.innerHTML = '';
   if (!ids.length) {
     grade.innerHTML = '<p class="hint">Nenhum prop no catálogo. Coloque os PNGs em ' +
