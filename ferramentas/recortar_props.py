@@ -34,6 +34,13 @@ RAIZ = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ / 'assets' / 'props'
 
 LIMITE_BRANCO = 238      # a partir daqui o pixel conta como fundo
+# No anel colado ao fundo o limite é bem mais frouxo: medindo a silhueta da pedra, os
+# pixels de franja que sobravam estavam entre 150 e 199 — claros demais para serem a
+# arte (cujo contorno fica em 70-100) e escuros demais para o limite do fundo.
+LIMITE_FRANJA = 150
+# Duas passadas, não mais: com um limite tão frouxo, cada passada extra começaria a
+# comer pétala clara de flor branca na beirada do desenho.
+PASSADAS_DE_FRANJA = 2
 AREA_MINIMA = 120        # em pixels da máscara reduzida
 MARGEM = 2               # folga em volta do recorte
 ESCALA = 4               # a busca de ilhas roda nesta redução
@@ -191,6 +198,31 @@ def fileiras(caixas, tolerancia=0.55):
     return grupos
 
 
+def sangrar_cor(rgba):
+    from PIL import ImageChops
+    """Pinta a cor média do sprite POR BAIXO da parte transparente.
+
+    Pixel transparente continua guardando um RGB, e no recorte esse RGB é o branco do
+    fundo. Quando o jogo desenha o sprite em outro tamanho, a interpolação mistura os
+    vizinhos SEM olhar o alpha e puxa esse branco de volta — é daí que vem o contorno
+    leitoso em volta de cada objeto, mesmo com o recorte perfeito.
+
+    Trocar o branco escondido pela cor média da arte faz o halo, quando aparece, ser da
+    cor do próprio desenho: verde numa árvore, cinza numa pedra. Deixa de ser defeito e
+    vira sombra.
+    """
+    r, g, b, a = rgba.split()
+    opacos = a.point(lambda v: 255 if v > 8 else 0)
+    n = sum(opacos.point(lambda v: 1 if v else 0).getdata())
+    if not n:
+        return rgba
+    med = tuple(sum(ImageChops.multiply(c, opacos).getdata()) // n for c in (r, g, b))
+    fundo = Image.new('RGB', rgba.size, med)
+    fundo.paste(rgba.convert('RGB'), (0, 0), opacos)
+    fundo.putalpha(a)
+    return fundo
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -216,6 +248,23 @@ def main():
     # de dentro do desenho (casca da bétula, brilho na pedra) fica opaco.
     peq = Image.frombytes('L', (pw, ph), bytes(bytearray(255 if v else 0 for v in fundo_p)))
     fundo_cheio = ImageChops.multiply(branca, peq.resize((w, h), Image.NEAREST))
+
+    # Franja: entre o desenho e o fundo o JPEG deixa uma orla de pixels quase brancos,
+    # claros demais para serem arte e escuros demais para o limite do fundo. Sozinhos
+    # eles viram aquele contorno leitoso em volta de cada sprite.
+    #
+    # A limpeza é dirigida, não geral: dilato o fundo para achar só o ANEL que encosta
+    # nele, e dentro desse anel aceito um limite bem mais frouxo de branco. Assim a orla
+    # some sem comer o contorno escuro do desenho, e nenhum pixel claro do meio da arte
+    # é tocado — ele não faz parte de anel nenhum.
+    from PIL import ImageFilter
+    r, g, b = im.split()
+    minimo = ImageChops.darker(ImageChops.darker(r, g), b)
+    quase = minimo.point(lambda v: 255 if v >= LIMITE_FRANJA else 0)
+    for _ in range(PASSADAS_DE_FRANJA):
+        anel = ImageChops.subtract(fundo_cheio.filter(ImageFilter.MaxFilter(3)), fundo_cheio)
+        fundo_cheio = ImageChops.lighter(fundo_cheio, ImageChops.multiply(anel, quase))
+
     alpha = ImageChops.invert(fundo_cheio)
     rgba = im.convert('RGBA')
     rgba.putalpha(alpha)
@@ -230,6 +279,7 @@ def main():
             caixa = recorte.getbbox()          # apara a folga que sobrou
             if caixa:
                 recorte = recorte.crop(caixa)
+            recorte = sangrar_cor(recorte)
             nome = f'f{nf}_{ni:02d}.png'
             recorte.save(DESTINO / nome)
             saida.append({'arquivo': f'assets/props/{nome}', 'fileira': nf,
