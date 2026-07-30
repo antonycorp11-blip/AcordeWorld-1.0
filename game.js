@@ -2104,9 +2104,62 @@ function desenharProp(spr, p, b) {
   ctx.restore();
 }
 
+// ── Colisão pelo desenho ────────────────────────────────────────────────────────
+// Uma elipse não descreve um rio: ele serpenteia, tem margem irregular e o jogador
+// precisa poder andar na terra ao lado da água. Para essas peças a colisão vem do
+// próprio sprite — leio os pixels uma vez, guardo uma grade reduzida de bloqueado/livre
+// e consulto essa grade. Fica com um oitavo da resolução, que é fino o bastante para o
+// pé do personagem e barato o bastante para rodar a cada quadro.
+const MASCARAS = {};
+const MASCARA_DIV = 8;
+
+function mascaraDoProp(id) {
+  if (MASCARAS[id]) return MASCARAS[id];
+  const spr = propSprites[id];
+  const def = propDefs[id] || {};
+  if (!spr) return null;
+  const w = Math.max(1, Math.round(spr.sw / MASCARA_DIV));
+  const h = Math.max(1, Math.round(spr.sh / MASCARA_DIV));
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const cx = cv.getContext('2d');
+  cx.drawImage(spr.canvas, 0, 0, w, h);
+  const d = cx.getImageData(0, 0, w, h).data;
+  const grade = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    const r = d[i*4], g = d[i*4+1], b = d[i*4+2], a = d[i*4+3];
+    if (a < 120) continue;
+    // 'agua' bloqueia só o azul: a margem de terra continua andável, que é o que
+    // torna a beira do rio um lugar e não uma parede.
+    if (def.mascara === 'agua') { if (b > r + 24 && b > 110) grade[i] = 1; }
+    else grade[i] = 1;                       // 'cheia': tudo que for opaco bloqueia
+  }
+  MASCARAS[id] = { grade, w, h };
+  return MASCARAS[id];
+}
+
 function mundoBloqueia(x, y) {
   for (const p of MUNDO.props) {
     const def = propDefs[p.prop] || {};
+
+    if (def.mascara) {                        // colisão desenhada, não elíptica
+      const m = mascaraDoProp(p.prop);
+      if (!m) continue;
+      const b = mundoPropBounds(p);
+      let px = x, py = y;
+      if (p.rot) {
+        const c = Math.cos(-p.rot), sn = Math.sin(-p.rot);
+        const dx = x - p.x, dy = y - p.y;
+        px = p.x + dx * c - dy * sn; py = p.y + dx * sn + dy * c;
+      }
+      if (px < b.x || px > b.x + b.w || py < b.y || py > b.y + b.h) continue;
+      let u = Math.floor((px - b.x) / b.w * m.w);
+      const v = Math.floor((py - b.y) / b.h * m.h);
+      if (p.flipX) u = m.w - 1 - u;
+      if (m.grade[v * m.w + u]) return true;
+      continue;
+    }
+
     if (!def.colide || !def.raio) continue;
     // A elipse de colisão acompanha o que você fez com o objeto: estica com a escala
     // de cada eixo e gira junto. Uma muralha esticada bloqueia o comprimento inteiro.

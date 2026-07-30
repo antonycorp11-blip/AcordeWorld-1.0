@@ -1,0 +1,53 @@
+{
+  "folha": "2D_top-down_river_tiles_202607301105.jpeg",
+  "sprites": [
+    {
+      "arquivo": "assets/props/rio1_01.png",
+      "fileira": 1,
+      "x": 58,
+      "y": 0,
+      "w": 276,
+      "h": 714
+    },
+    {
+      "arquivo": "assets/props/rio1_02.png",
+      "fileira": 1,
+      "x": 346,
+      "y": 62,
+      "w": 336,
+      "h": 252
+    },
+    {
+      "arquivo": "assets/props/rio1_03.png",
+      "fileira": 1,
+      "x": 346,
+      "y": 382,
+      "w": 278,
+      "h": 328
+    },
+    {
+      "arquivo": "assets/props/rio1_04.png",
+      "fileira": 1,
+      "x": 730,
+      "y": 390,
+      "w": 244,
+      "h": 375
+    },
+    {
+      "arquivo": "assets/props/rio1_05.png",
+      "fileira": 1,
+      "x": 746,
+      "y": 62,
+      "w": 277,
+      "h": 316
+    },
+    {
+      "arquivo": "assets/props/rio1_06.png",
+      "fileira": 1,
+      "x": 1030,
+      "y": 62,
+      "w": 334,
+      "h": 699
+    }
+  ]
+}

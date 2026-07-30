@@ -12,6 +12,14 @@ def render(destino_geral, recortes=()):
     for k,cam in mundo['blocos'].items():
         c,r=map(int,k.split('_'))
         tela.paste(Image.open(cam).convert('RGB'),(c*BW,r*BH))
+    # camada de pintura por cima do chão, como no jogo
+    from pathlib import Path
+    for k in mundo['blocos']:
+        p = Path('assets/mundo/pintura')/f'{k}.png'
+        if p.exists():
+            c,r=map(int,k.split('_'))
+            pin=Image.open(p).convert('RGBA')
+            tela.paste(pin,(c*BW,r*BH),pin)
     cache={}
     def spr(p):
         if p not in cache: cache[p]=Image.open(cat[p]['sprite']).convert('RGBA')
