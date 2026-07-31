@@ -1812,7 +1812,7 @@ let MUNDO = {
 };
 let mundoCam = { x: 0, y: 0, zoom: 1 };
 let mundoTeste = false;         // andando pelo mundo em vez de editando
-let mundoFerramenta = 'mover';  // 'mover' | 'plantar' | 'selecionar'
+let mundoFerramenta = 'selecionar';  // 'plantar' | 'selecionar' | 'partida'
 let mundoPropSel = null, mundoArrastando = null, mundoPan = null, mundoAlca = null;
 const mundoBlocos = {};         // "col_row" -> { img, ultimoUso }
 
@@ -3151,7 +3151,8 @@ function mundoPointerDown(m) {
     mundoPropsSelecionados = [];
     atualizarBarraSelecaoMultipla();
   }
-  // Nada sob o dedo: arrasta a câmera — mas só parado. Andando, a câmera segue o
+  // Nada sob o dedo: arrasta a câmera — mas só parado. É o que aposenta a ferramenta
+  // "Mover": mover a câmera nunca precisou de um modo próprio. Andando, a câmera segue o
   // personagem, e arrastá-la brigaria com ele a cada quadro.
   if (!mundoTeste) mundoPan = { telaX: m.x, telaY: m.y, camX: mundoCam.x, camY: mundoCam.y };
   if (!p) mundoPropSel = null;
@@ -7012,9 +7013,8 @@ function renderPaletaDeProps() {
           document.getElementById('pincelTamanhoBox').style.display = 'none';
           document.querySelectorAll('#pincelMateriais .prop-cat').forEach(x => x.classList.remove('ativo'));
         }
-        mundoFerramenta = propParaColocar ? 'plantar' : 'mover';
+        mundoFerramenta = propParaColocar ? 'plantar' : 'selecionar';
         document.getElementById('mundoFerrPlantar')?.classList.toggle('ativo', !!propParaColocar);
-        document.getElementById('mundoFerrMover')?.classList.toggle('ativo', !propParaColocar);
       }
       renderPaletaDeProps();
       showToast(propParaColocar
@@ -10951,7 +10951,10 @@ function initForgeUI() {
     const barraX = document.getElementById('mbAcoes');
     if (!barraF) return;
 
-    ['mundoFerrMover','mundoFerrPlantar','mundoFerrSel','mundoFerrPartida']
+    // Sem "Mover": arrastar o vazio já move a câmera, então ele era um modo que não
+    // fazia nada além de desligar os outros.
+    document.getElementById('mundoFerrMover')?.remove();
+    ['mundoFerrPlantar','mundoFerrSel','mundoFerrPartida']
       .forEach(id => { const el = document.getElementById(id); if (el) barraF.appendChild(el); });
     ['pincelMateriais','pincelModoBox','pincelTamanhoBox']
       .forEach(id => { const el = document.getElementById(id); if (el) barraP.appendChild(el); });
@@ -11141,7 +11144,8 @@ function initForgeUI() {
         document.getElementById('pincelModoBox').style.display = pincelMaterial ? '' : 'none';
         if (!pincelMaterial) { estradaDe = null; estradaAte = null; }
         renderMateriais();
-        showToast(pincelMaterial ? `🖌️ Pintando ${rotulo}` : '🖌️ Pincel desligado');
+        if (!pincelMaterial) mundoFerramenta = 'selecionar';
+      showToast(pincelMaterial ? `🖌️ Pintando ${rotulo}` : '🖌️ Pincel desligado');
       });
       box.appendChild(b);
     };
@@ -11185,7 +11189,6 @@ function initForgeUI() {
     else if (f === 'multiselecao')
       showToast('📦 Arraste o mouse/dedo sobre a tela para selecionar vários objetos de uma vez');
   };
-  document.getElementById('mundoFerrMover')?.addEventListener('click', () => usarFerramenta('mover'));
   document.getElementById('mundoFerrPlantar')?.addEventListener('click', () => usarFerramenta('plantar'));
   document.getElementById('mundoFerrSel')?.addEventListener('click', () => usarFerramenta('selecionar'));
   document.getElementById('mundoFerrMulti')?.addEventListener('click', () => usarFerramenta('multiselecao'));

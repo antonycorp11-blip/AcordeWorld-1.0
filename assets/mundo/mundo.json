@@ -5,7 +5,7 @@
     "h": 571
   },
   "cols": 10,
-  "rows": 7,
+  "rows": 8,
   "blocos": {
     "0_0": "assets/mundo/chunks/0_0.jpg",
     "0_1": "assets/mundo/chunks/0_1.jpg",
@@ -7883,9 +7883,5 @@
       "rot": 0,
       "flipX": false
     }
-  ],
-  "chao": {
-    "textura": "grama_campo_3",
-    "brilho": 0.9
-  }
+  ]
 }

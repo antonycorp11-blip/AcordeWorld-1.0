@@ -4650,3 +4650,56 @@ body.modo-mundo #viewport-area { padding-right: 320px; padding-top: 42px; }
   font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
   color: #8b7a5c; margin-bottom: 5px;
 }
+
+/* ══ EDITOR: ajustes de espaço e lado ════════════════════════════════════════════
+   A doca vai para a ESQUERDA (é de lá que vem o material, e o olho lê da esquerda
+   para a direita), a barra encolhe para uma faixa só, e no modo mundo somem os
+   controles do jogo antigo — eles não fazem nada aqui e só ocupavam o topo. */
+body.modo-mundo #assetDock { left: 0; right: auto; border-left: none; border-right: 1px solid #2e2418; }
+body.modo-mundo #mundoBarra { left: 320px; right: 0; }
+/* 44px = a altura da barra numa faixa só. Menos que isso e o topo do mapa entra por
+   baixo dela, o que só se percebe quando a câmera está colada na borda norte. */
+body.modo-mundo #viewport-area { padding-right: 0; padding-left: 320px; padding-top: 44px; }
+@media (max-width: 1100px) {
+  body.modo-mundo #mundoBarra { left: 260px; }
+  body.modo-mundo #viewport-area { padding-left: 260px; }
+}
+
+/* fora de cena no editor: nada disso opera o mundo */
+body.modo-mundo .mode-tabs,
+body.modo-mundo .header-center,
+body.modo-mundo #saveProjectBtn { display: none !important; }
+/* o cabeçalho fica só com o nome e o FPS — o resto opera o jogo antigo, não o mundo */
+body.modo-mundo #engine-header { height: 38px; }
+body.modo-mundo #mundoBarra { top: 38px; }
+body.modo-mundo #assetDock { top: 38px; }
+
+/* barra numa faixa só: 34px em vez de duas linhas de 40 */
+body.modo-mundo #mundoBarra {
+  padding: 4px 10px; gap: 8px; flex-wrap: nowrap; overflow-x: auto;
+  scrollbar-width: none;
+}
+body.modo-mundo #mundoBarra::-webkit-scrollbar { display: none; }
+body.modo-mundo #mundoBarra .tool-pill { padding: 4px 9px; font-size: 10px; }
+body.modo-mundo #mundoBarra .prop-cat { padding: 2px 7px; font-size: 9px; }
+body.modo-mundo .ambiente-box {
+  flex-direction: row; align-items: center; gap: 8px;
+  padding: 3px 7px; margin: 0; background: none; border: none;
+}
+body.modo-mundo .ambiente-box .amb-titulo { display: none; }
+body.modo-mundo .ambiente-box .prop-cats { flex-wrap: nowrap; gap: 3px; }
+body.modo-mundo .amb-slider { font-size: 9px; gap: 4px; }
+body.modo-mundo .amb-slider input { width: 74px; }
+body.modo-mundo #pincelTamanhoBox { margin: 0; }
+body.modo-mundo #pincelTamanhoBox label { font-size: 9px; }
+body.modo-mundo #pincelTamanhoBox .scale-slider { width: 90px; }
+
+/* a grade de assets se ajusta à largura da doca: sem rolagem lateral nunca */
+#assetDock .prop-paleta {
+  grid-template-columns: repeat(auto-fill, minmax(66px, 1fr));
+  overflow-x: hidden; gap: 4px;
+}
+#assetDock .prop-btn { min-width: 0; padding: 5px 2px 3px; }
+#assetDock .prop-btn i { font-size: 8px; }
+#assetDock .prop-cats { gap: 3px; }
+#assetDock .prop-cat { padding: 2px 6px; font-size: 9px; }
