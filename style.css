@@ -448,6 +448,38 @@ body.mobile-play #engine-shell {
   padding: 0;
   background: #000;
 }
+/* Floating Mobile / Tablet Editor & Play Mode Toggle Button */
+.mobile-editor-toggle-btn {
+  position: fixed;
+  top: 10px;
+  right: 14px;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.88);
+  color: #fde68a;
+  border: 1px solid rgba(253, 230, 138, 0.45);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+.mobile-editor-toggle-btn:active {
+  transform: scale(0.94);
+}
+.mobile-editor-toggle-btn.in-editor {
+  background: rgba(16, 185, 129, 0.9);
+  color: #ffffff;
+  border-color: rgba(52, 211, 153, 0.8);
+}
+
 body.mobile-play #engine-header,
 body.mobile-play #left-sidebar,
 body.mobile-play #bottom-panel,

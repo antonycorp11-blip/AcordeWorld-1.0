@@ -6151,7 +6151,53 @@ function wantsMobilePlay() {
   const q = new URLSearchParams(location.search);
   if (q.has('edit')) return false;
   if (q.has('play')) return true;
-  return matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window) || matchMedia('(max-width: 1024px)').matches;
+  const saved = localStorage.getItem('acordelot_mobile_mode');
+  if (saved === 'play') return true;
+  if (saved === 'edit') return false;
+  return false; // Permitir modo editor em mobile e tablet por padrão
+}
+
+function initMobileEditorToggle() {
+  const toggleBtn = document.getElementById('mobileEditorToggleBtn');
+  const icon = document.getElementById('mobileEditorToggleIcon');
+  const text = document.getElementById('mobileEditorToggleText');
+  if (!toggleBtn) return;
+
+  const updateToggleUI = () => {
+    const isMobilePlay = document.body.classList.contains('mobile-play');
+    if (isMobilePlay) {
+      if (icon) icon.textContent = '✏️';
+      if (text) text.textContent = 'Modo Editor';
+      toggleBtn.classList.remove('in-play');
+      toggleBtn.classList.add('in-editor');
+    } else {
+      if (icon) icon.textContent = '🎮';
+      if (text) text.textContent = 'Modo Jogo';
+      toggleBtn.classList.remove('in-editor');
+      toggleBtn.classList.add('in-play');
+    }
+  };
+
+  toggleBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    initAudio();
+    
+    if (document.body.classList.contains('mobile-play')) {
+      document.body.classList.remove('mobile-play');
+      document.getElementById('left-sidebar')?.classList.remove('hidden');
+      document.getElementById('engine-header')?.classList.remove('hidden');
+      localStorage.setItem('acordelot_mobile_mode', 'edit');
+      showToast('✏️ Modo Editor ativado');
+    } else {
+      enterMobilePlay();
+      localStorage.setItem('acordelot_mobile_mode', 'play');
+      showToast('🎮 Modo Jogo ativado');
+    }
+    updateToggleUI();
+  });
+
+  updateToggleUI();
 }
 
 function bindTouchControls() {
@@ -8729,6 +8775,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   rebuildGrid();refreshMapSelect();updateMapStatus();
   weBind();
   bindTouchControls();
+  initMobileEditorToggle();
   bindStoreUI();
   bindCharUI();
   initDialogueEditor();
