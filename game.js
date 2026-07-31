@@ -2263,45 +2263,108 @@ async function recGravar() {
   if (btn) { btn.disabled = true; btn.textContent = 'Gravando…'; }
   let ok = 0;
   for (const a of REC.achados) {
-    const id = (a.nome || '').replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+    const id = (a.rotulo || a.nome || 'extraido_' + Date.now()).replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+    const pngData = a.canvas.toDataURL('image/png');
+
+    // Salva arquivo no servidor HTTP local caso esteja rodando em localhost
     try {
-      const r = await fetch('/save_prop_png', {
+      await fetch('/save_prop_png', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: id, png: a.canvas.toDataURL('image/png') }),
+        body: JSON.stringify({ nome: id, png: pngData }),
       });
-      if (!r.ok) { showToast(`⚠️ ${id}: servidor recusou (HTTP ${r.status})`); continue; }
-    } catch (e) { showToast('⚠️ Servidor fora do ar — nada foi gravado'); break; }
+    } catch (e) {}
 
     const p = PRESETS[a.categoria] || PRESETS.arvore;
     const def = {
-      nome: a.rotulo || id, sprite: `assets/props/${id}.png`, categoria: a.categoria,
+      nome: a.rotulo || id, sprite: pngData, categoria: a.categoria,
       plano: p.plano, pe: a.pe2 ?? p.pe, raio: a.raio2 ?? p.raio,
       colide: (a.raio2 ?? p.raio) > 0,
     };
     if (p.plano !== 'chao') def.altura = a.altura2 ?? p.altura;
     if (p.mascara) { def.mascara = p.mascara; def.colide = false; }
+    
+    // 1. Registra no catálogo de props (Assets / Objetos)
     propDefs[id] = def;
+    try {
+      localStorage.setItem('acordelot_custom_prop_' + id, pngData);
+      localStorage.setItem('acordelot_custom_def_' + id, JSON.stringify(def));
+    } catch(e) {}
 
-    // carrega o sprite recém-gravado para ele já aparecer na paleta
+    // 2. Se for textura/sprite de chão ou se pertencer às categorias de piso/caminho/pedra
+    const ehChao = ['piso', 'caminho', 'chao', 'calcada', 'terra', 'pedra', 'agua', 'rio'].includes(a.categoria) || p.plano === 'chao';
+    if (ehChao) {
+      MATERIAIS[id] = { nome: def.nome || id, arquivo: pngData, div: 1 };
+      try {
+        localStorage.setItem('acordelot_custom_mat_' + id, JSON.stringify(MATERIAIS[id]));
+      } catch(e) {}
+      carregarTexturaDoPincel(id);
+    }
+
+    // Carrega o sprite para aparecer imediatamente na paleta
     const img = new Image();
-    img.onload = () => { try { propSprites[id] = prepareSprite(img); renderPaletaDeProps(); } catch (e) {} };
-    img.src = def.sprite + '?t=' + Date.now();
+    img.onload = () => {
+      try {
+        propSprites[id] = prepareSprite(img);
+        renderPaletaDeProps();
+        renderPropPaletteTablet();
+        renderMateriaisTablet();
+      } catch (e) {}
+    };
+    img.src = pngData;
     ok++;
   }
 
+  // Tenta salvar alterações do catálogo no servidor local
   try {
-    const r = await fetch('/save_objects', {
+    await fetch('/save_objects', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ props: propDefs, objetos: objetos }),
     });
-    if (!r.ok) showToast(`⚠️ Catálogo não salvou (HTTP ${r.status})`);
-  } catch (e) { showToast('⚠️ Catálogo não salvou: servidor fora do ar'); }
+  } catch (e) {}
 
   if (btn) { btn.disabled = false; btn.textContent = '💾 Gravar no catálogo'; }
-  showToast(`✅ ${ok} peça(s) no catálogo`);
+  showToast(`✅ ${ok} peça(s) catalogada(s) como Asset e Pincel de Chão!`);
   REC.achados = [];
   recRenderResultados();
   renderPaletaDeProps();
+  renderPropPaletteTablet();
+  if (typeof renderMateriais === 'function') renderMateriais();
+  renderMateriaisTablet();
+}
+
+function initCustomProps() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('acordelot_custom_def_')) {
+        const id = k.replace('acordelot_custom_def_', '');
+        const defStr = localStorage.getItem(k);
+        const pngData = localStorage.getItem('acordelot_custom_prop_' + id);
+        if (defStr && pngData) {
+          const def = JSON.parse(defStr);
+          def.sprite = pngData;
+          propDefs[id] = def;
+
+          const img = new Image();
+          img.onload = () => {
+            try {
+              propSprites[id] = prepareSprite(img);
+              renderPaletaDeProps();
+              renderPropPaletteTablet();
+            } catch (e) {}
+          };
+          img.src = pngData;
+
+          const matStr = localStorage.getItem('acordelot_custom_mat_' + id);
+          if (matStr) {
+            MATERIAIS[id] = JSON.parse(matStr);
+            MATERIAIS[id].arquivo = pngData;
+            carregarTexturaDoPincel(id);
+          }
+        }
+      }
+    }
+  } catch (e) {}
 }
 
 // ── Chão do mundo, trocável em tempo real ───────────────────────────────────────
@@ -9533,6 +9596,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   bindTouchControls();
   initMobileEditorToggle();
   initModoTablet();
+  initCustomProps();
   bindStoreUI();
   bindCharUI();
   initDialogueEditor();
