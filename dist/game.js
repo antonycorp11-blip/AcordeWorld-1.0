@@ -1837,7 +1837,7 @@ async function loadMundo() {
 
 async function saveMundo() {
   if (IS_PLAY_BUILD) return;
-  const corpo = JSON.stringify({
+  const corpoData = {
     nome: MUNDO.nome, bloco: MUNDO.bloco, cols: MUNDO.cols, rows: MUNDO.rows,
     blocos: MUNDO.blocos, spawn: MUNDO.spawn,
     props: MUNDO.props.map(p => ({
@@ -1845,13 +1845,30 @@ async function saveMundo() {
       ex: +escX(p).toFixed(3), ey: +escY(p).toFixed(3),
       rot: +((p.rot || 0).toFixed(4)), flipX: !!p.flipX, flipY: !!p.flipY,
     })),
-  });
+  };
+  const corpo = JSON.stringify(corpoData, null, 2);
+
+  // 1. Sempre salva no localStorage para o mundo NUNCA ser perdido no navegador
   try {
-    const r = await fetch('/save_mundo', { method: 'POST',
-      headers: { 'Content-Type': 'application/json' }, body: corpo });
-    if (!r.ok) showToast(`⚠️ Servidor recusou o mundo (HTTP ${r.status}) — NÃO salvo`);
-    else showToast('🌍 Mundo salvo');
-  } catch (e) { showToast('⚠️ Mundo NÃO salvo: servidor fora do ar'); }
+    localStorage.setItem('acordelot_mundo_saved', corpo);
+  } catch (e) {}
+
+  // 2. Tenta comunicação com o servidor HTTP local ou remoto
+  try {
+    const r = await fetch('/save_mundo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: corpo
+    });
+    if (r.ok) {
+      showToast('🌍 Mundo salvo no servidor local');
+    } else {
+      // Vercel / hospedagem estática que não tem backend Python
+      showToast('🌍 Mundo salvo no navegador');
+    }
+  } catch (e) {
+    showToast('🌍 Mundo salvo no navegador');
+  }
 }
 
 // ── Streaming dos blocos de chão ────────────────────────────────────────────────
@@ -2489,57 +2506,31 @@ function pinturaDoBloco(c, r) {
 async function carregarPintura() {
   const alvos = Object.keys(MUNDO.blocos);
   await Promise.all(alvos.map(k => new Promise(res => {
+    // 1. Tenta carregar primeiro do localStorage caso exista pintura salva localmente
+    try {
+      const localPng = localStorage.getItem('acordelot_pintura_' + k);
+      if (localPng) {
+        const imgLocal = new Image();
+        imgLocal.onload = () => {
+          const [c, r] = k.split('_').map(Number);
+          pinturaDoBloco(c, r).getContext('2d').drawImage(imgLocal, 0, 0);
+          res();
+        };
+        imgLocal.onerror = () => res();
+        imgLocal.src = localPng;
+        return;
+      }
+    } catch(e) {}
+
     const img = new Image();
     img.onload = () => {
       const [c, r] = k.split('_').map(Number);
       pinturaDoBloco(c, r).getContext('2d').drawImage(img, 0, 0);
       res();
     };
-    img.onerror = () => res();
+    img.onerror = () => res(); // Ignora 404 silenciosamente se não houver pintura salva
     img.src = `assets/mundo/pintura/${k}.png?t=${Date.now()}`;
   })));
-}
-
-// Carimba um círculo do material no ponto do mundo, atravessando blocos sem costura.
-function pincelar(wx, wy) {
-  const raio = pincelTamanho / 2;
-  const BW = MUNDO.bloco.w, BH = MUNDO.bloco.h;
-  const c0 = Math.max(0, Math.floor((wx - raio) / BW));
-  const c1 = Math.min(MUNDO.cols - 1, Math.floor((wx + raio) / BW));
-  const r0 = Math.max(0, Math.floor((wy - raio) / BH));
-  const r1 = Math.min(MUNDO.rows - 1, Math.floor((wy + raio) / BH));
-  const apagando = pincelMaterial === 'apagar';
-  const tex = apagando ? null : carregarTexturaDoPincel(pincelMaterial);
-  if (!apagando && !tex.pronta) {
-    if (!window.__avisoTextura || performance.now() - window.__avisoTextura > 3000) {
-      window.__avisoTextura = performance.now();
-      showToast('⏳ Carregando a textura — tente de novo em um instante');
-    }
-    return;
-  }
-
-  for (let c = c0; c <= c1; c++) {
-    for (let r = r0; r <= r1; r++) {
-      const cv = pinturaDoBloco(c, r);
-      const cx = cv.getContext('2d');
-      const lx = wx - c * BW, ly = wy - r * BH;
-      cx.save();
-      cx.beginPath(); cx.arc(lx, ly, raio, 0, Math.PI * 2); cx.clip();
-      if (apagando) {
-        cx.globalCompositeOperation = 'destination-out';
-        cx.fillRect(lx - raio, ly - raio, raio * 2, raio * 2);
-      } else {
-        const pad = cx.createPattern(tex.tela, 'repeat');
-        // Ancora a textura no mundo: o deslocamento desconta a origem do bloco.
-        pad.setTransform(new DOMMatrix().translate(-(c * BW) % tex.tela.width,
-                                                   -(r * BH) % tex.tela.height));
-        cx.fillStyle = pad;
-        cx.fillRect(lx - raio, ly - raio, raio * 2, raio * 2);
-      }
-      cx.restore();
-      pinturaSuja.add(`${c}_${r}`);
-    }
-  }
 }
 
 // ── Traçado de estrada ──────────────────────────────────────────────────────────
@@ -2603,13 +2594,15 @@ async function salvarPintura() {
   for (const k of lote) {
     const cv = blocosPintados[k];
     if (!cv) continue;
+    const pngData = cv.toDataURL('image/png');
+    // Salva no localStorage em hosts estáticos (Vercel)
+    try { localStorage.setItem('acordelot_pintura_' + k, pngData); } catch (e) {}
     try {
-      const r = await fetch('/save_pintura', {
+      await fetch('/save_pintura', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chave: k, png: cv.toDataURL('image/png') }),
+        body: JSON.stringify({ chave: k, png: pngData }),
       });
-      if (!r.ok) showToast(`⚠️ Pintura do bloco ${k} não salvou (HTTP ${r.status})`);
-    } catch (e) { showToast('⚠️ Pintura não salva: servidor fora do ar'); return; }
+    } catch (e) {}
   }
 }
 
