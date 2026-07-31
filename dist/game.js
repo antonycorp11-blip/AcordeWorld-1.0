@@ -11070,17 +11070,20 @@ let tabletZoomInicial = 1;
 
 function initModoTablet() {
   const modoTabletBtn = document.getElementById('modoTabletBtn');
+  const modoTabletHeaderBtn = document.getElementById('modoTabletHeaderBtn');
+  const menuTabletEditorBtn = document.getElementById('menuTabletEditorBtn');
   const drawer = document.getElementById('tabletTopDrawer');
   const drawerHandle = document.getElementById('tabletDrawerHandle');
   const toggleChevron = document.getElementById('tabletDrawerToggleBtn');
   const exitBtn = document.getElementById('tabFerrSair');
   const saveBtn = document.getElementById('tabFerrSalvar');
 
-  if (modoTabletBtn) {
-    modoTabletBtn.addEventListener('click', () => {
+  [modoTabletBtn, modoTabletHeaderBtn, menuTabletEditorBtn].forEach(btn => {
+    btn?.addEventListener('click', () => {
+      document.getElementById('mainMenuOverlay')?.classList.add('hidden');
       ativarModoTablet(true);
     });
-  }
+  });
 
   if (drawerHandle) {
     drawerHandle.addEventListener('click', () => {

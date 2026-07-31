@@ -20,9 +20,15 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
         print(f"[{self.address_string()}] {format % args}")
 
+    def end_headers(self):
+        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        super().end_headers()
+
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
