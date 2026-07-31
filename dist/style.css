@@ -4681,6 +4681,13 @@ body.modo-mundo #mundoBarra {
 }
 body.modo-mundo #mundoBarra::-webkit-scrollbar { display: none; }
 body.modo-mundo #mundoBarra .tool-pill { padding: 4px 9px; font-size: 10px; }
+body.modo-mundo #mundoBarra #mundoSalvarBtn {
+  background: linear-gradient(135deg, #059669, #047857) !important;
+  color: #ffffff !important;
+  border: 1px solid #34d399 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.4) !important;
+}
 body.modo-mundo #mundoBarra .prop-cat { padding: 2px 7px; font-size: 9px; }
 body.modo-mundo .ambiente-box {
   flex-direction: row; align-items: center; gap: 8px;
@@ -4757,6 +4764,21 @@ body.modo-mundo #viewport-area { padding-top: var(--barra-h, 44px); }
 .pincel-menu .tools-row { display: flex !important; gap: 4px !important; }
 .pincel-menu label { display: flex !important; flex-direction: column !important; gap: 3px !important; }
 .pincel-menu input[type=range] { width: 100% !important; }
+
+/* menu suspenso do clima & horário: fora da barra, aberto só quando se pede */
+.ambiente-menu {
+  position: fixed; z-index: 90; min-width: 250px;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 10px; border-radius: 8px;
+  background: #16110c; border: 1px solid #3b2d1c;
+  box-shadow: 0 10px 26px rgba(0,0,0,.65);
+}
+.ambiente-menu.hidden { display: none; }
+.ambiente-menu .ambiente-box { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; background: transparent; border: none; }
+.ambiente-menu .amb-titulo { display: none; }
+.ambiente-menu .prop-cats { display: flex !important; flex-wrap: wrap !important; gap: 4px !important; }
+.ambiente-menu label { display: flex !important; flex-direction: column !important; gap: 3px !important; color: #fbbf24; font-size: 11px; font-weight: bold; }
+.ambiente-menu input[type=range] { width: 100% !important; }
 
 /* ── Lupa do asset ─────────────────────────────────────────────────────────────
    Segurar sobre a peça abre ela grande. O xadrez por baixo é proposital: metade do

@@ -11140,8 +11140,23 @@ function initForgeUI() {
       if (menu.contains(ev.target) || btnPincel.contains(ev.target)) return;
       menu.classList.add('hidden'); btnPincel.classList.remove('ativo');
     }, true);
+    // Controles de Clima & Horário viram menu suspenso assim como o Pincel de Chão
+    const menuAmb = document.getElementById('ambienteMenu');
+    const btnAmb = document.getElementById('ambienteMenuBtn');
     const amb = document.querySelector('.ambiente-box');
-    if (amb) barraA.appendChild(amb);
+    if (amb && menuAmb) menuAmb.appendChild(amb);
+    btnAmb?.addEventListener('click', () => {
+      const r = btnAmb.getBoundingClientRect();
+      menuAmb.style.left = Math.round(r.left) + 'px';
+      menuAmb.style.top = Math.round(r.bottom + 6) + 'px';
+      menuAmb.classList.toggle('hidden');
+      btnAmb.classList.toggle('ativo', !menuAmb.classList.contains('hidden'));
+    });
+    document.addEventListener('pointerdown', ev => {
+      if (!menuAmb || menuAmb.classList.contains('hidden')) return;
+      if (menuAmb.contains(ev.target) || btnAmb.contains(ev.target)) return;
+      menuAmb.classList.add('hidden'); btnAmb?.classList.remove('ativo');
+    }, true);
     ['mundoTestarBtn','mundoSalvarBtn']
       .forEach(id => { const el = document.getElementById(id); if (el) barraX.appendChild(el); });
 
