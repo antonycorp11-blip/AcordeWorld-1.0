@@ -4549,3 +4549,37 @@ body.mobile-play #gameCanvas {
 }
 .amb-slider input { flex: 1; accent-color: #fbbf24; }
 .amb-slider b { color: #fde68a; min-width: 42px; text-align: right; font-size: 10px; }
+
+/* ── Recortador de assets ──────────────────────────────────────────────────────
+   Cartão por peça: miniatura à esquerda, campos à direita. A miniatura vem sobre
+   xadrez porque o que mais interessa conferir é justamente a transparência. */
+.rec-ctrls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 6px 0; }
+.rec-ctrls label, .rec-linha label { display: flex; flex-direction: column; gap: 2px; }
+.rec-ctrls span, .rec-linha span { font-size: 9px; color: #8b7a5c; letter-spacing: .08em; }
+
+.rec-grade {
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 44vh; overflow-y: auto; overscroll-behavior: contain;
+}
+.rec-card {
+  position: relative; display: flex; gap: 8px; padding: 6px;
+  background: #1a1410; border: 1px solid #3b2d1c; border-radius: 6px;
+}
+.rec-mini {
+  width: 68px; height: 68px; flex: none; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  background-color: #4a4a52;
+  background-image: linear-gradient(45deg, #6a6a74 25%, transparent 25%, transparent 75%, #6a6a74 75%),
+                    linear-gradient(45deg, #6a6a74 25%, transparent 25%, transparent 75%, #6a6a74 75%);
+  background-size: 12px 12px; background-position: 0 0, 6px 6px;
+}
+.rec-mini canvas { image-rendering: pixelated; }
+.rec-campos { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.rec-linha { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.rec-linha input { padding: 2px 4px; font-size: 10px; }
+.rec-tam { font-size: 9px; color: #7e7059; }
+.rec-x {
+  position: absolute; top: 3px; right: 4px; cursor: pointer;
+  background: none; border: none; color: #7e6a4a; font-size: 12px;
+}
+.rec-x:hover { color: #fca5a5; }

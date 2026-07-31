@@ -72,6 +72,7 @@
         <button class="bottom-tab sidebar-tab" data-btab="elements" id="elementsGalleryTab">🗺️ Objetos</button>
         <button class="bottom-tab sidebar-tab" data-btab="hierarchy">👾 Lista</button>
         <button class="bottom-tab sidebar-tab" data-btab="inspector">⚙️ Inspetor</button>
+        <button class="bottom-tab sidebar-tab" data-btab="recortar" id="recortarTab">✂️ Assets</button>
         <button class="bottom-tab sidebar-tab" data-btab="worldmaptools" id="worldMapTab" style="display:none">🗺️ Grid</button>
       </div>
 
@@ -307,6 +308,33 @@
             Os blocos de chão vão em <code>assets/mundo/chunks/</code> com o nome
             <code>coluna_linha.jpg</code>.
           </p>
+        </div>
+
+        <div id="btab-recortar" class="btab-content hidden">
+          <div class="npc-gallery-header"><span>✂️ Recortar folha de sprites</span></div>
+          <p class="hint">
+            Escolha uma folha de fundo branco. O recorte, a limpeza da franja e a
+            gravação acontecem aqui — nada sai do app.
+          </p>
+          <input type="file" id="recArquivo" accept="image/*" class="insp-input">
+          <div class="rec-ctrls">
+            <label><span>Limite de branco</span>
+              <input type="number" id="recBranco" class="insp-input" value="238" min="150" max="255"></label>
+            <label><span>Área mínima</span>
+              <input type="number" id="recArea" class="insp-input" value="400" min="20" max="20000"></label>
+          </div>
+          <p class="hint" style="margin:2px 0 6px">
+            Folha com grade de fundo cinza pede limite mais baixo (uns 218), senão a
+            grade conta como desenho e liga a imagem inteira num objeto só.
+          </p>
+          <button class="tool-pill save" id="recAnalisar" style="width:100%">🔍 Analisar folha</button>
+          <p class="hint" style="margin:6px 0 0">
+            Folha grande (2700×1500) leva uns 30 segundos e a tela fica parada durante
+            a conta — é normal, não travou.
+          </p>
+          <div id="recResumo" class="hint" style="margin:8px 0 4px"></div>
+          <div id="recResultados" class="rec-grade"></div>
+          <button class="tool-pill save" id="recGravar" style="width:100%;margin-top:8px">💾 Gravar no catálogo</button>
         </div>
 
         <div id="btab-elements" class="btab-content hidden">

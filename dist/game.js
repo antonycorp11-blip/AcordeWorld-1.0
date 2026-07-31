@@ -1893,6 +1893,343 @@ function mundoAtualizarBlocos(now) {
   }
 }
 
+// ── Recortador de folhas de sprite ──────────────────────────────────────────────
+// O mesmo algoritmo que rodava por fora, agora dentro do editor. É a mesma sequência,
+// e cada passo existe por um defeito que apareceu na prática:
+//
+//   1. fundo = branco CONECTADO À BORDA. Apagar todo pixel branco esburacaria a casca
+//      da bétula e o brilho da pedra.
+//   2. bolsões internos grandes também são fundo — o vão entre o tronco e a copa
+//      ficava ilhado e virava barra branca no meio da árvore.
+//   3. ilhas do que sobrou = os sprites.
+//   4. franja: a orla que o JPEG deixa entre o desenho e o fundo é clara demais para
+//      ser arte e escura demais para o limite do fundo. Limpo só o ANEL colado ao
+//      fundo, com limite frouxo, para não comer o contorno escuro do desenho.
+//   5. cor média por baixo da transparência: pixel transparente guarda RGB, e no
+//      recorte esse RGB era o branco do fundo — a interpolação o trazia de volta como
+//      halo leitoso ao desenhar em outro tamanho.
+//
+// Em JS com tipos binários isso roda em segundos, contra minutos em Python.
+const REC = {
+  img: null, nome: '', achados: [], limiteBranco: 238, areaMinima: 400,
+  limiteFranja: 150, passadasFranja: 2, limiteBuraco: 160,
+};
+
+function recAnalisar(img, aoTerminar) {
+  const w = img.naturalWidth, h = img.naturalHeight;
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const cx = cv.getContext('2d', { willReadFrequently: true });
+  cx.drawImage(img, 0, 0);
+  const dados = cx.getImageData(0, 0, w, h);
+  const d = dados.data;
+
+  const branco = new Uint8Array(w * h);
+  for (let i = 0, p = 0; i < w * h; i++, p += 4) {
+    if (d[p] >= REC.limiteBranco && d[p+1] >= REC.limiteBranco && d[p+2] >= REC.limiteBranco)
+      branco[i] = 1;
+  }
+
+  // preenchimento por linhas de varredura, a partir das quatro bordas
+  const fundo = new Uint8Array(w * h);
+  const pilha = new Int32Array(w * h);
+  let topo = 0;
+  const semear = i => { if (branco[i] && !fundo[i]) { fundo[i] = 1; pilha[topo++] = i; } };
+  for (let x = 0; x < w; x++) { semear(x); semear((h - 1) * w + x); }
+  for (let y = 0; y < h; y++) { semear(y * w); semear(y * w + w - 1); }
+  while (topo > 0) {
+    const i = pilha[--topo], y = (i / w) | 0;
+    let e = i, dd = i;
+    while (e % w > 0 && branco[e - 1]) { e--; fundo[e] = 1; }
+    while (dd % w < w - 1 && branco[dd + 1]) { dd++; fundo[dd] = 1; }
+    for (const vy of [y - 1, y + 1]) {
+      if (vy < 0 || vy >= h) continue;
+      const base = vy * w;
+      for (let x = e % w; x <= dd % w; x++) {
+        const j = base + x;
+        if (branco[j] && !fundo[j]) { fundo[j] = 1; pilha[topo++] = j; }
+      }
+    }
+  }
+
+  // bolsões de branco cercados pelo desenho, grandes o bastante para serem fundo
+  const visto = new Uint8Array(w * h);
+  for (let i0 = 0; i0 < w * h; i0++) {
+    if (!branco[i0] || fundo[i0] || visto[i0]) continue;
+    const ilha = [];
+    topo = 0; pilha[topo++] = i0; visto[i0] = 1;
+    while (topo > 0) {
+      const i = pilha[--topo]; ilha.push(i);
+      const x = i % w, y = (i / w) | 0;
+      const viz = [x > 0 ? i-1 : -1, x < w-1 ? i+1 : -1, y > 0 ? i-w : -1, y < h-1 ? i+w : -1];
+      for (const j of viz) if (j >= 0 && branco[j] && !fundo[j] && !visto[j]) { visto[j] = 1; pilha[topo++] = j; }
+    }
+    if (ilha.length >= REC.limiteBuraco) for (const j of ilha) fundo[j] = 1;
+  }
+
+  // ilhas do que não é fundo = os objetos
+  const marcado = new Uint8Array(w * h);
+  const caixas = [];
+  for (let y0 = 0; y0 < h; y0++) {
+    for (let x0 = 0; x0 < w; x0++) {
+      const i0 = y0 * w + x0;
+      if (fundo[i0] || marcado[i0]) continue;
+      let minx = x0, maxx = x0, miny = y0, maxy = y0, area = 0;
+      topo = 0; pilha[topo++] = i0; marcado[i0] = 1;
+      while (topo > 0) {
+        const i = pilha[--topo]; area++;
+        const x = i % w, y = (i / w) | 0;
+        if (x < minx) minx = x; if (x > maxx) maxx = x;
+        if (y < miny) miny = y; if (y > maxy) maxy = y;
+        for (let dy = -1; dy <= 1; dy++) {
+          const ny = y + dy; if (ny < 0 || ny >= h) continue;
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx; if (nx < 0 || nx >= w) continue;
+            const j = ny * w + nx;
+            if (!fundo[j] && !marcado[j]) { marcado[j] = 1; pilha[topo++] = j; }
+          }
+        }
+      }
+      if (area >= REC.areaMinima) caixas.push({ x: minx, y: miny, w: maxx-minx+1, h: maxy-miny+1, area });
+    }
+  }
+
+  // recorta cada ilha com alpha, limpa a franja e sangra a cor por baixo
+  const achados = caixas.map((c, n) => {
+    const m = 2;
+    const x0 = Math.max(0, c.x - m), y0 = Math.max(0, c.y - m);
+    const x1 = Math.min(w, c.x + c.w + m), y1 = Math.min(h, c.y + c.h + m);
+    const cw = x1 - x0, ch = y1 - y0;
+    const rec = document.createElement('canvas');
+    rec.width = cw; rec.height = ch;
+    const rx = rec.getContext('2d', { willReadFrequently: true });
+    const saida = rx.createImageData(cw, ch);
+    const sd = saida.data;
+    for (let y = 0; y < ch; y++) {
+      for (let x = 0; x < cw; x++) {
+        const src = ((y0 + y) * w + (x0 + x)) * 4, dst = (y * cw + x) * 4;
+        const iFundo = (y0 + y) * w + (x0 + x);
+        sd[dst] = d[src]; sd[dst+1] = d[src+1]; sd[dst+2] = d[src+2];
+        sd[dst+3] = fundo[iFundo] ? 0 : 255;
+      }
+    }
+    recLimparFranja(sd, cw, ch);
+    recSangrarCor(sd, cw, ch);
+    rx.putImageData(saida, 0, 0);
+    const apar = recAparar(rec);
+    return { canvas: apar, nome: `${REC.nome}_${String(n+1).padStart(2,'0')}`,
+             largura: apar.width, altura: apar.height, area: c.area };
+  }).sort((a, b) => b.area - a.area);
+
+  aoTerminar(achados);
+}
+
+// Anel colado ao fundo, com limite frouxo: some a orla sem comer o contorno do desenho.
+function recLimparFranja(sd, w, h) {
+  for (let passada = 0; passada < REC.passadasFranja; passada++) {
+    const marcar = [];
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        if (sd[i+3] === 0) continue;
+        const min = Math.min(sd[i], sd[i+1], sd[i+2]);
+        if (min < REC.limiteFranja) continue;
+        let encosta = false;
+        for (let dy = -1; dy <= 1 && !encosta; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h) { encosta = true; break; }
+            if (sd[(ny * w + nx) * 4 + 3] === 0) { encosta = true; break; }
+          }
+        }
+        if (encosta) marcar.push(i);
+      }
+    }
+    for (const i of marcar) sd[i+3] = 0;
+  }
+}
+
+function recSangrarCor(sd, w, h) {
+  let r = 0, g = 0, b = 0, n = 0;
+  for (let i = 0; i < w * h * 4; i += 4) {
+    if (sd[i+3] < 8) continue;
+    r += sd[i]; g += sd[i+1]; b += sd[i+2]; n++;
+  }
+  if (!n) return;
+  r = (r / n) | 0; g = (g / n) | 0; b = (b / n) | 0;
+  for (let i = 0; i < w * h * 4; i += 4) {
+    if (sd[i+3] >= 8) continue;
+    sd[i] = r; sd[i+1] = g; sd[i+2] = b;
+  }
+}
+
+function recAparar(cv) {
+  const cx = cv.getContext('2d', { willReadFrequently: true });
+  const d = cx.getImageData(0, 0, cv.width, cv.height).data;
+  let minx = cv.width, miny = cv.height, maxx = -1, maxy = -1;
+  for (let y = 0; y < cv.height; y++) {
+    for (let x = 0; x < cv.width; x++) {
+      if (d[(y * cv.width + x) * 4 + 3] > 8) {
+        if (x < minx) minx = x; if (x > maxx) maxx = x;
+        if (y < miny) miny = y; if (y > maxy) maxy = y;
+      }
+    }
+  }
+  if (maxx < 0) return cv;
+  const out = document.createElement('canvas');
+  out.width = maxx - minx + 1; out.height = maxy - miny + 1;
+  out.getContext('2d').drawImage(cv, minx, miny, out.width, out.height, 0, 0, out.width, out.height);
+  return out;
+}
+
+// ── Catalogação e gravação dos recortes ─────────────────────────────────────────
+// Cada categoria traz o preset de física que ela pede: árvore tem pé quase no fim do
+// sprite e tronco fino, pedra tem base larga, flor não bloqueia nada. Assim o trabalho
+// por sprite vira escolher a categoria — o resto já vem certo, e só se ajusta o que
+// destoar.
+const PRESETS = {
+  arvore:     { altura: 210, pe: .96, raio: 18, plano: 'objeto' },
+  mato:       { altura:  70, pe: .92, raio: 0,  plano: 'objeto' },
+  flor:       { altura:  32, pe: .95, raio: 0,  plano: 'objeto' },
+  pedra:      { altura:  60, pe: .94, raio: 24, plano: 'objeto' },
+  construcao: { altura: 200, pe: .95, raio: 62, plano: 'objeto' },
+  muralha:    { altura: 150, pe: .92, raio: 60, plano: 'objeto' },
+  vila:       { altura: 100, pe: .95, raio: 12, plano: 'objeto' },
+  feira:      { altura: 150, pe: .96, raio: 40, plano: 'objeto' },
+  cidade:     { altura: 140, pe: .94, raio: 40, plano: 'objeto' },
+  sagrado:    { altura: 260, pe: .96, raio: 20, plano: 'objeto' },
+  lapide:     { altura: 115, pe: .95, raio: 16, plano: 'objeto' },
+  musical:    { altura:  85, pe: .95, raio: 0,  plano: 'objeto' },
+  magico:     { altura:  50, pe: .95, raio: 0,  plano: 'objeto' },
+  agua:       { altura: null, pe: 1,  raio: 0,  plano: 'chao', mascara: 'agua' },
+  rio:        { altura: null, pe: 1,  raio: 0,  plano: 'chao', mascara: 'agua' },
+  ponte:      { altura:  95, pe: .98, raio: 0,  plano: 'objeto' },
+  caminho:    { altura: null, pe: 1,  raio: 0,  plano: 'chao' },
+};
+
+function recRenderResultados() {
+  const grade = document.getElementById('recResultados');
+  const resumo = document.getElementById('recResumo');
+  if (!grade) return;
+  grade.innerHTML = '';
+  if (resumo) resumo.textContent = REC.achados.length
+    ? `${REC.achados.length} peças encontradas — nomeie, escolha a categoria e grave`
+    : 'Nenhuma peça encontrada. Tente baixar a Área mínima ou subir o Limite de branco.';
+
+  REC.achados.forEach((a, i) => {
+    const card = document.createElement('div');
+    card.className = 'rec-card';
+
+    const mini = document.createElement('div');
+    mini.className = 'rec-mini';
+    const c = document.createElement('canvas');
+    const k = Math.min(64 / a.canvas.width, 64 / a.canvas.height, 1);
+    c.width = Math.max(1, Math.round(a.canvas.width * k));
+    c.height = Math.max(1, Math.round(a.canvas.height * k));
+    c.getContext('2d').drawImage(a.canvas, 0, 0, c.width, c.height);
+    mini.appendChild(c);
+    card.appendChild(mini);
+
+    const campos = document.createElement('div');
+    campos.className = 'rec-campos';
+
+    const nome = document.createElement('input');
+    nome.className = 'insp-input'; nome.value = a.rotulo || '';
+    nome.placeholder = 'Nome no jogo';
+    nome.addEventListener('input', e => { a.rotulo = e.target.value; });
+    campos.appendChild(nome);
+
+    const cat = document.createElement('select');
+    cat.className = 'insp-input';
+    Object.keys(PRESETS).forEach(k2 => {
+      const o = document.createElement('option');
+      o.value = k2; o.textContent = NOME_DA_CATEGORIA[k2] || k2;
+      cat.appendChild(o);
+    });
+    cat.value = a.categoria || 'arvore';
+    a.categoria = cat.value;
+    cat.addEventListener('change', e => { a.categoria = e.target.value; delete a.altura2; recRenderResultados(); });
+    campos.appendChild(cat);
+
+    const p = PRESETS[a.categoria];
+    const linha = document.createElement('div');
+    linha.className = 'rec-linha';
+    const num = (rot, val, aplica) => {
+      const w = document.createElement('label');
+      w.innerHTML = `<span>${rot}</span>`;
+      const inp = document.createElement('input');
+      inp.type = 'number'; inp.className = 'insp-input'; inp.value = val;
+      inp.addEventListener('change', e => aplica(parseFloat(e.target.value)));
+      w.appendChild(inp); linha.appendChild(w);
+    };
+    if (p.plano !== 'chao') num('altura', a.altura2 ?? p.altura, v => { a.altura2 = v; });
+    num('pé', a.pe2 ?? p.pe, v => { a.pe2 = v; });
+    num('raio', a.raio2 ?? p.raio, v => { a.raio2 = v; });
+    campos.appendChild(linha);
+
+    const tam = document.createElement('div');
+    tam.className = 'rec-tam';
+    tam.textContent = `${a.canvas.width}×${a.canvas.height}px`;
+    campos.appendChild(tam);
+
+    card.appendChild(campos);
+
+    const x = document.createElement('button');
+    x.className = 'rec-x'; x.textContent = '✕'; x.title = 'Descartar esta peça';
+    x.addEventListener('click', () => { REC.achados.splice(i, 1); recRenderResultados(); });
+    card.appendChild(x);
+
+    grade.appendChild(card);
+  });
+}
+
+async function recGravar() {
+  if (!REC.achados.length) { showToast('⚠️ Nada para gravar'); return; }
+  const btn = document.getElementById('recGravar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Gravando…'; }
+  let ok = 0;
+  for (const a of REC.achados) {
+    const id = (a.nome || '').replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+    try {
+      const r = await fetch('/save_prop_png', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: id, png: a.canvas.toDataURL('image/png') }),
+      });
+      if (!r.ok) { showToast(`⚠️ ${id}: servidor recusou (HTTP ${r.status})`); continue; }
+    } catch (e) { showToast('⚠️ Servidor fora do ar — nada foi gravado'); break; }
+
+    const p = PRESETS[a.categoria] || PRESETS.arvore;
+    const def = {
+      nome: a.rotulo || id, sprite: `assets/props/${id}.png`, categoria: a.categoria,
+      plano: p.plano, pe: a.pe2 ?? p.pe, raio: a.raio2 ?? p.raio,
+      colide: (a.raio2 ?? p.raio) > 0,
+    };
+    if (p.plano !== 'chao') def.altura = a.altura2 ?? p.altura;
+    if (p.mascara) { def.mascara = p.mascara; def.colide = false; }
+    propDefs[id] = def;
+
+    // carrega o sprite recém-gravado para ele já aparecer na paleta
+    const img = new Image();
+    img.onload = () => { try { propSprites[id] = prepareSprite(img); renderPaletaDeProps(); } catch (e) {} };
+    img.src = def.sprite + '?t=' + Date.now();
+    ok++;
+  }
+
+  try {
+    const r = await fetch('/save_objects', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ props: propDefs, objetos: objetos }),
+    });
+    if (!r.ok) showToast(`⚠️ Catálogo não salvou (HTTP ${r.status})`);
+  } catch (e) { showToast('⚠️ Catálogo não salvou: servidor fora do ar'); }
+
+  if (btn) { btn.disabled = false; btn.textContent = '💾 Gravar no catálogo'; }
+  showToast(`✅ ${ok} peça(s) no catálogo`);
+  REC.achados = [];
+  recRenderResultados();
+  renderPaletaDeProps();
+}
+
 // ── Ambiente: hora, vento e chuva ───────────────────────────────────────────────
 // Um punhado de números manda em tudo. O vento é o principal: ele inclina as copas,
 // deita a chuva e arrasta as folhas — e como é UM valor só, tudo se move no mesmo
@@ -10457,6 +10794,46 @@ function initForgeUI() {
   });
   document.getElementById('pecaTom')?.addEventListener('click', () => colocarIntervalo('T'));
   document.getElementById('pecaSemitom')?.addEventListener('click', () => colocarIntervalo('S'));
+
+  // ── Recortador de assets ──────────────────────────────────────────────────────
+  document.getElementById('recArquivo')?.addEventListener('change', e => {
+    const arq = e.target.files?.[0];
+    if (!arq) return;
+    const img = new Image();
+    img.onload = () => {
+      REC.img = img;
+      // O nome do arquivo vira o prefixo dos recortes, limpo do que não serve em
+      // caminho: é o que o artista reconhece depois na paleta.
+      REC.nome = arq.name.replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/gi, '_')
+                          .toLowerCase().slice(0, 18) || 'folha';
+      showToast(`🖼️ ${img.naturalWidth}x${img.naturalHeight} — toque em Analisar`);
+    };
+    img.src = URL.createObjectURL(arq);
+  });
+
+  document.getElementById('recAnalisar')?.addEventListener('click', () => {
+    if (!REC.img) { showToast('⚠️ Escolha uma folha primeiro'); return; }
+    REC.limiteBranco = parseInt(document.getElementById('recBranco')?.value, 10) || 238;
+    REC.areaMinima = parseInt(document.getElementById('recArea')?.value, 10) || 400;
+    const btn = document.getElementById('recAnalisar');
+    btn.disabled = true; btn.textContent = 'Analisando…';
+    // Um quadro de folga antes de começar: sem isto o botão nunca chega a mostrar que
+    // está trabalhando, e a tela parece travada durante a conta.
+    setTimeout(() => {
+      try {
+        recAnalisar(REC.img, achados => {
+          REC.achados = achados;
+          recRenderResultados();
+          showToast(`✂️ ${achados.length} peça(s) encontrada(s)`);
+        });
+      } catch (err) {
+        console.error(err); showToast('⚠️ Falhou ao analisar — veja o console');
+      }
+      btn.disabled = false; btn.textContent = '🔍 Analisar folha';
+    }, 60);
+  });
+
+  document.getElementById('recGravar')?.addEventListener('click', recGravar);
 
   // ── Ambiente ──────────────────────────────────────────────────────────────────
   const HORAS = [['🌅 Manhã', 8], ['☀️ Meio-dia', 12], ['🌇 Tarde', 17],

@@ -55,6 +55,8 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
             self._save_mundo(data)
         elif self.path == '/save_pintura':
             self._save_pintura(data)
+        elif self.path == '/save_prop_png':
+            self._save_prop_png(data)
         elif self.path == '/save_dialogue':
             self._save_dialogue(data)
         elif self.path == '/upload_image':
@@ -229,6 +231,27 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
             self._ok({'status': 'ok'})
         except Exception as e:
             print(f"[Server] Error saving pintura: {e}")
+            self.send_error(500, str(e))
+
+    def _save_prop_png(self, data):
+        """Um sprite recortado pelo editor. O nome é higienizado antes de virar caminho:
+        o campo vem de um input de texto, e nome com barra escaparia da pasta."""
+        try:
+            import base64, re
+            nome = re.sub(r'[^a-z0-9_]', '', str(data.get('nome', '')).lower())
+            png = data.get('png', '')
+            if not nome or not png.startswith('data:image/png;base64,'):
+                self.send_error(400, 'sprite invalido'); return
+            pasta = os.path.join(DIRECTORY, 'assets', 'props')
+            os.makedirs(pasta, exist_ok=True)
+            caminho = os.path.join(pasta, f'{nome}.png')
+            self._backup(caminho)
+            with open(caminho, 'wb') as f:
+                f.write(base64.b64decode(png.split(',', 1)[1]))
+            print(f"[Server] Sprite salvo: {nome}.png")
+            self._ok({'status': 'ok', 'nome': nome})
+        except Exception as e:
+            print(f"[Server] Error saving sprite: {e}")
             self.send_error(500, str(e))
 
     def _save_dialogue(self, data):

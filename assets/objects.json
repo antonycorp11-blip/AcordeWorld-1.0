@@ -1406,7 +1406,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 80,
       "y": 240,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": false
     },
     {
@@ -1415,7 +1415,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 940,
       "y": 240,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": true
     },
     {
@@ -1460,7 +1460,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 430,
       "y": 300,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": false
     },
     {
@@ -1469,7 +1469,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 594,
       "y": 300,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": true
     },
     {
@@ -1478,7 +1478,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 430,
       "y": 380,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": false
     },
     {
@@ -1487,7 +1487,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 594,
       "y": 380,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": true
     },
     {
@@ -1496,7 +1496,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 460,
       "y": 385,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": false
     },
     {
@@ -1505,7 +1505,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 564,
       "y": 385,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": true
     },
     {
@@ -1532,7 +1532,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 310,
       "y": 355,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": false
     },
     {
@@ -1541,7 +1541,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 710,
       "y": 355,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": false
     },
     {
@@ -1577,7 +1577,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 340,
       "y": 495,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": true
     },
     {
@@ -1586,7 +1586,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 680,
       "y": 495,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": false
     },
     {
@@ -1604,7 +1604,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 100,
       "y": 525,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": false
     },
     {
@@ -1613,7 +1613,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 420,
       "y": 525,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": true
     },
     {
@@ -1622,7 +1622,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 600,
       "y": 525,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": false
     },
     {
@@ -1631,7 +1631,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 920,
       "y": 525,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": true
     },
     {
@@ -1649,7 +1649,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 60,
       "y": 500,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": true
     },
     {
@@ -1667,7 +1667,7 @@
       "mapKey": "vilarejo_precidade",
       "x": 980,
       "y": 500,
-      "escala": 1.0,
+      "escala": 1,
       "flipX": false
     }
   ]
