@@ -9817,7 +9817,11 @@ async function finishInit(){
   // /edit entra direto no Criador de Mundo: é o app principal agora, e ninguém quer
   // atravessar o editor de cenários antigo para chegar no mapa.
   if (/^\/(edit|editor)\/?$/.test(location.pathname)) {
-    setTimeout(() => document.querySelector('[data-mode="mundo"]')?.click(), 300);
+    // Três tentativas: a aba do modo só existe depois que o cabeçalho é montado, e uma
+    // única chamada às vezes chegava antes disso — a página abria no editor antigo.
+    [200, 700, 1500].forEach(t => setTimeout(() => {
+      if (engineMode !== 'mundo') document.querySelector('[data-mode="mundo"]')?.click();
+    }, t));
   }
   // A paleta de props precisa de duas passadas: uma agora, com o catálogo já lido, e
   // outra quando os PNGs terminarem de decodificar — só então há miniatura para mostrar.
@@ -10974,6 +10978,18 @@ function initForgeUI() {
       document.getElementById('doca-recorte')?.classList.toggle('hidden', b.dataset.doca !== 'recorte');
     }));
   })();
+
+  // A barra e a doca começam onde o cabeçalho termina — medido, não chutado. E a
+  // folga do mapa acompanha a altura real da barra, que muda com a largura da tela.
+  const medirTopo = () => {
+    const h = document.getElementById('engine-header')?.offsetHeight || 46;
+    const b = document.getElementById('mundoBarra')?.offsetHeight || 44;
+    document.documentElement.style.setProperty('--topo', h + 'px');
+    document.documentElement.style.setProperty('--barra-h', b + 'px');
+  };
+  window.addEventListener('resize', medirTopo);
+  setTimeout(medirTopo, 300);
+  setTimeout(medirTopo, 1200);
 
   // ── Chão global ───────────────────────────────────────────────────────────────
   const selChao = document.getElementById('chaoTextura');

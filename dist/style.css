@@ -4703,3 +4703,43 @@ body.modo-mundo #pincelTamanhoBox .scale-slider { width: 90px; }
 #assetDock .prop-btn i { font-size: 8px; }
 #assetDock .prop-cats { gap: 3px; }
 #assetDock .prop-cat { padding: 2px 6px; font-size: 9px; }
+
+/* ══ BARRA DO MUNDO: uma linha, sem exceção ══════════════════════════════════════
+   Os controles foram MOVIDOS para cá e trouxeram o estilo do painel lateral, onde
+   tudo era coluna de largura cheia. Dentro da barra isso vira torre. Estas regras
+   desfazem herança: tudo é linha, nada quebra, nada estica. */
+body.modo-mundo #mundoBarra {
+  height: var(--barra-h, 44px);
+  align-items: center; flex-wrap: nowrap !important; overflow-x: auto; overflow-y: hidden;
+}
+body.modo-mundo #mundoBarra * { flex-wrap: nowrap !important; }
+body.modo-mundo #mundoBarra .mb-grupo,
+body.modo-mundo #mundoBarra .tools-row,
+body.modo-mundo #mundoBarra .prop-cats,
+body.modo-mundo #mundoBarra .ambiente-box,
+body.modo-mundo #mundoBarra .insp-field,
+body.modo-mundo #mundoBarra .scale-field-full,
+body.modo-mundo #mundoBarra label {
+  display: flex !important; flex-direction: row !important; align-items: center !important;
+  gap: 4px !important; margin: 0 !important; padding: 0 !important;
+  flex: none !important; width: auto !important; max-width: none !important;
+}
+body.modo-mundo #mundoBarra button,
+body.modo-mundo #mundoBarra .tool-pill,
+body.modo-mundo #mundoBarra .prop-cat,
+body.modo-mundo #mundoBarra select,
+body.modo-mundo #mundoBarra input {
+  white-space: nowrap !important; flex: none !important;
+  width: auto !important; min-width: 0 !important; margin: 0 !important;
+}
+body.modo-mundo #mundoBarra .tool-pill { padding: 4px 10px !important; font-size: 10px !important; }
+body.modo-mundo #mundoBarra .prop-cat { padding: 3px 8px !important; font-size: 9.5px !important; }
+body.modo-mundo #mundoBarra input[type=range] { width: 78px !important; }
+body.modo-mundo #mundoBarra label > span,
+body.modo-mundo #mundoBarra .amb-slider { font-size: 9px !important; }
+
+/* o topo dos dois painéis acompanha a altura real do cabeçalho, medida em tempo de
+   execução — chutar 38px deixava a barra por cima ou com folga */
+body.modo-mundo #mundoBarra { top: var(--topo, 46px); }
+body.modo-mundo #assetDock { top: var(--topo, 46px); }
+body.modo-mundo #viewport-area { padding-top: var(--barra-h, 44px); }
