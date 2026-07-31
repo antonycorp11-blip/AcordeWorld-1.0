@@ -8776,6 +8776,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   weBind();
   bindTouchControls();
   initMobileEditorToggle();
+  initModoTablet();
   bindStoreUI();
   bindCharUI();
   initDialogueEditor();
@@ -11158,13 +11159,22 @@ function initModoTablet() {
 
 function ativarModoTablet(ativar) {
   const drawer = document.getElementById('tabletTopDrawer');
+  const mainMenuOverlay = document.getElementById('mainMenuOverlay');
+  const loadingOverlay = document.getElementById('loadingOverlay');
+
   if (ativar) {
     document.body.classList.add('tablet-editor-active');
+    document.body.classList.remove('mobile-play');
+    if (mainMenuOverlay) mainMenuOverlay.classList.add('hidden');
+    if (loadingOverlay) loadingOverlay.classList.add('hidden');
+
     if (drawer) {
       drawer.classList.remove('hidden');
       drawer.classList.remove('collapsed');
     }
     engineMode = 'mundo';
+    if (typeof renderMateriaisTablet === 'function') renderMateriaisTablet();
+    if (typeof renderPropPaletteTablet === 'function') renderPropPaletteTablet();
     showToast('📱 Modo Tablet ativado! Abra a gaveta superior para escolher materiais e sprites.');
   } else {
     document.body.classList.remove('tablet-editor-active');
