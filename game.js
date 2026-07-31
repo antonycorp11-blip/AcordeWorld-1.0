@@ -6998,6 +6998,74 @@ const NOME_DA_CATEGORIA = {
   vila: 'Vila', calcada: 'Calçada', ponte: 'Pontes',
 };
 
+// ── Lupa: segurar sobre a peça para vê-la grande ────────────────────────────────
+// A miniatura de 34px serve para achar a peça, não para julgá-la: não dá para ver se o
+// recorte comeu uma folha, se sobrou franja ou onde fica a base. Segurando, a peça
+// aparece no maior tamanho que a tela comporta, sobre xadrez.
+let lupaTimer = null, lupaAberta = false;
+const LUPA_ESPERA = 200;      // ms de pressão antes de abrir
+
+function abrirLupa(id, alvoEl) {
+  const spr = propSprites[id];
+  const def = propDefs[id] || {};
+  const caixa = document.getElementById('lupaAsset');
+  const tela = document.getElementById('lupaTela');
+  if (!spr || !caixa || !tela) return;
+
+  const maxL = Math.min(430, window.innerWidth * 0.42);
+  const maxA = Math.min(430, window.innerHeight * 0.62);
+  const k = Math.min(maxL / spr.sw, maxA / spr.sh, 6);   // até 6x para peça miúda
+  tela.width = Math.max(1, Math.round(spr.sw * k));
+  tela.height = Math.max(1, Math.round(spr.sh * k));
+  const cx = tela.getContext('2d');
+  cx.imageSmoothingEnabled = false;
+  cx.clearRect(0, 0, tela.width, tela.height);
+  cx.drawImage(spr.canvas, 0, 0, tela.width, tela.height);
+
+  document.getElementById('lupaNome').textContent = def.nome || id;
+  const partes = [`${spr.sw}×${spr.sh}px`, NOME_DA_CATEGORIA[def.categoria] || def.categoria];
+  if (def.plano === 'chao') partes.push('plano de chão');
+  else partes.push(`pé ${(def.pe ?? .9).toFixed(2)}`,
+                   def.colide ? `bloqueia ${def.raio}px` : 'atravessa');
+  document.getElementById('lupaFicha').textContent = partes.join('  ·  ');
+
+  caixa.classList.remove('hidden');
+  // Encosta na borda EXTERNA da doca, não no botão: ancorada no botão ela cobria as
+  // colunas vizinhas da própria lista, que é o que se está comparando.
+  const r = alvoEl.getBoundingClientRect();
+  const lc = caixa.getBoundingClientRect();
+  const doca = document.getElementById('assetDock')?.getBoundingClientRect();
+  let x = (doca ? doca.right : r.right) + 16;
+  if (x + lc.width > window.innerWidth - 10) x = Math.max(10, (doca ? doca.left : r.left) - lc.width - 16);
+  let y = r.top + r.height / 2 - lc.height / 2;
+  y = Math.max(10, Math.min(window.innerHeight - lc.height - 10, y));
+  caixa.style.left = Math.round(x) + 'px';
+  caixa.style.top = Math.round(y) + 'px';
+  lupaAberta = true;
+}
+
+function fecharLupa() {
+  clearTimeout(lupaTimer); lupaTimer = null;
+  document.getElementById('lupaAsset')?.classList.add('hidden');
+}
+
+function ligarLupa(botao, id) {
+  const abrir = e => {
+    clearTimeout(lupaTimer);
+    lupaAberta = false;
+    lupaTimer = setTimeout(() => abrirLupa(id, botao), LUPA_ESPERA);
+  };
+  botao.addEventListener('pointerdown', abrir);
+  botao.addEventListener('pointerup', fecharLupa);
+  botao.addEventListener('pointerleave', fecharLupa);
+  botao.addEventListener('pointercancel', fecharLupa);
+  // Segurou para olhar? Então não era para armar o plantar. O clique só vale quando
+  // a lupa não chegou a abrir.
+  botao.addEventListener('click', e => {
+    if (lupaAberta) { e.stopImmediatePropagation(); e.preventDefault(); lupaAberta = false; }
+  }, true);
+}
+
 function renderPaletaDeProps() {
   const grade = document.getElementById('propPaleta');
   if (!grade) return;
@@ -7041,6 +7109,7 @@ function renderPaletaDeProps() {
     const t = document.createElement('i');
     t.textContent = def.nome || id;
     b.appendChild(t);
+    ligarLupa(b, id);
     b.addEventListener('click', () => {
       propParaColocar = (propParaColocar === id) ? null : id;
       // Escolher na paleta JÁ arma o plantar. Exigir um segundo clique na ferramenta

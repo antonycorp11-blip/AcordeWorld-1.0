@@ -4757,3 +4757,28 @@ body.modo-mundo #viewport-area { padding-top: var(--barra-h, 44px); }
 .pincel-menu .tools-row { display: flex !important; gap: 4px !important; }
 .pincel-menu label { display: flex !important; flex-direction: column !important; gap: 3px !important; }
 .pincel-menu input[type=range] { width: 100% !important; }
+
+/* ── Lupa do asset ─────────────────────────────────────────────────────────────
+   Segurar sobre a peça abre ela grande. O xadrez por baixo é proposital: metade do
+   que se precisa julgar num recorte é onde ele está transparente. */
+.lupa {
+  position: fixed; z-index: 200; pointer-events: none;
+  padding: 10px; border-radius: 10px;
+  background: #14100c; border: 1px solid #4a3a22;
+  box-shadow: 0 16px 44px rgba(0,0,0,.7);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  animation: lupaEntra .12s ease-out;
+}
+.lupa.hidden { display: none; }
+@keyframes lupaEntra { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+.lupa canvas {
+  image-rendering: pixelated; border-radius: 6px;
+  background-color: #4a4a52;
+  background-image: linear-gradient(45deg, #6a6a74 25%, transparent 25%, transparent 75%, #6a6a74 75%),
+                    linear-gradient(45deg, #6a6a74 25%, transparent 25%, transparent 75%, #6a6a74 75%);
+  background-size: 18px 18px; background-position: 0 0, 9px 9px;
+}
+.lupa-nome {
+  font-family: 'Cinzel', serif; font-size: 13px; color: #fde68a; letter-spacing: .04em;
+}
+.lupa-ficha { font-size: 10px; color: #9b8a6a; letter-spacing: .05em; }
