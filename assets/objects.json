@@ -1537,6 +1537,156 @@
       "raio": 62,
       "colide": true,
       "altura": 200
+    },
+    "merchant_shop_four_17": {
+      "nome": "merchant_shop_four_17",
+      "sprite": "assets/props/merchant_shop_four_17.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_16": {
+      "nome": "merchant_shop_four_16",
+      "sprite": "assets/props/merchant_shop_four_16.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_18": {
+      "nome": "merchant_shop_four_18",
+      "sprite": "assets/props/merchant_shop_four_18.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_19": {
+      "nome": "merchant_shop_four_19",
+      "sprite": "assets/props/merchant_shop_four_19.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_06": {
+      "nome": "merchant_shop_four_06",
+      "sprite": "assets/props/merchant_shop_four_06.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_20": {
+      "nome": "merchant_shop_four_20",
+      "sprite": "assets/props/merchant_shop_four_20.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_07": {
+      "nome": "merchant_shop_four_07",
+      "sprite": "assets/props/merchant_shop_four_07.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_08": {
+      "nome": "merchant_shop_four_08",
+      "sprite": "assets/props/merchant_shop_four_08.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_10": {
+      "nome": "merchant_shop_four_10",
+      "sprite": "assets/props/merchant_shop_four_10.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_09": {
+      "nome": "merchant_shop_four_09",
+      "sprite": "assets/props/merchant_shop_four_09.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_11": {
+      "nome": "merchant_shop_four_11",
+      "sprite": "assets/props/merchant_shop_four_11.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_14": {
+      "nome": "merchant_shop_four_14",
+      "sprite": "assets/props/merchant_shop_four_14.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_13": {
+      "nome": "merchant_shop_four_13",
+      "sprite": "assets/props/merchant_shop_four_13.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_12": {
+      "nome": "merchant_shop_four_12",
+      "sprite": "assets/props/merchant_shop_four_12.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_15": {
+      "nome": "merchant_shop_four_15",
+      "sprite": "assets/props/merchant_shop_four_15.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
     }
   },
   "objetos": [

@@ -91,7 +91,8 @@
       "ex": 1.2,
       "ey": 1.2,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_03_0061",
@@ -101,7 +102,8 @@
       "ex": 1.2,
       "ey": 1.2,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0004",
@@ -111,7 +113,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0006",
@@ -121,7 +124,8 @@
       "ex": 0.88,
       "ey": 0.88,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_02_0010",
@@ -131,7 +135,8 @@
       "ex": 0.97,
       "ey": 0.97,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_03_0011",
@@ -141,7 +146,8 @@
       "ex": 1.11,
       "ey": 1.11,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0013",
@@ -151,7 +157,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0014",
@@ -161,7 +168,8 @@
       "ex": 1.07,
       "ey": 1.07,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0015",
@@ -171,7 +179,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_06_0016",
@@ -181,7 +190,8 @@
       "ex": 0.96,
       "ey": 0.96,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0018",
@@ -191,7 +201,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_02_0019",
@@ -201,7 +212,8 @@
       "ex": 1.09,
       "ey": 1.09,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_02_0021",
@@ -211,7 +223,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_03_0022",
@@ -221,7 +234,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_03_0023",
@@ -231,7 +245,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0024",
@@ -241,7 +256,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_02_0025",
@@ -251,7 +267,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_03_0026",
@@ -261,7 +278,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_02_0027",
@@ -271,7 +289,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_02_0028",
@@ -281,7 +300,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0029",
@@ -291,7 +311,8 @@
       "ex": 1.09,
       "ey": 1.09,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0030",
@@ -301,7 +322,8 @@
       "ex": 1.09,
       "ey": 1.09,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0031",
@@ -311,7 +333,8 @@
       "ex": 1.09,
       "ey": 1.09,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0032",
@@ -321,7 +344,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0079",
@@ -331,7 +355,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_03_0092",
@@ -341,7 +366,8 @@
       "ex": 1.12,
       "ey": 1.12,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0103",
@@ -351,7 +377,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_03_0106",
@@ -361,7 +388,8 @@
       "ex": 1.08,
       "ey": 1.08,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0107",
@@ -371,7 +399,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0108",
@@ -381,7 +410,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0109",
@@ -391,7 +421,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0110",
@@ -401,7 +432,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0111",
@@ -411,7 +443,8 @@
       "ex": 0.96,
       "ey": 0.96,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_03_0115",
@@ -421,7 +454,8 @@
       "ex": 0.97,
       "ey": 0.97,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0116",
@@ -431,7 +465,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_03_0117",
@@ -441,7 +476,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0118",
@@ -451,7 +487,8 @@
       "ex": 0.99,
       "ey": 0.99,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0119",
@@ -461,7 +498,8 @@
       "ex": 1.12,
       "ey": 1.12,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_06_0120",
@@ -471,7 +509,8 @@
       "ex": 1.07,
       "ey": 1.07,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0121",
@@ -481,7 +520,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_02_0122",
@@ -491,7 +531,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_02_0126",
@@ -501,7 +542,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_03_0127",
@@ -511,7 +553,8 @@
       "ex": 1.06,
       "ey": 1.06,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_03_0128",
@@ -521,7 +564,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_03_0129",
@@ -531,7 +575,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_06_0130",
@@ -541,7 +586,8 @@
       "ex": 1.07,
       "ey": 1.07,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0131",
@@ -551,7 +597,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0132",
@@ -561,7 +608,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0134",
@@ -571,7 +619,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0135",
@@ -581,7 +630,8 @@
       "ex": 1.08,
       "ey": 1.08,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_02_0136",
@@ -591,7 +641,8 @@
       "ex": 1.1,
       "ey": 1.1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0137",
@@ -601,7 +652,8 @@
       "ex": 1.05,
       "ey": 1.05,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0138",
@@ -611,7 +663,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0139",
@@ -621,7 +674,8 @@
       "ex": 0.97,
       "ey": 0.97,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0140",
@@ -631,7 +685,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0141",
@@ -641,7 +696,8 @@
       "ex": 0.96,
       "ey": 0.96,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0142",
@@ -651,7 +707,8 @@
       "ex": 0.97,
       "ey": 0.97,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0146",
@@ -661,7 +718,8 @@
       "ex": 1.1,
       "ey": 1.1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0147",
@@ -671,7 +729,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_03_0148",
@@ -681,7 +740,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_03_0149",
@@ -691,7 +751,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_02_0150",
@@ -701,7 +762,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0151",
@@ -711,7 +773,8 @@
       "ex": 1.06,
       "ey": 1.06,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0152",
@@ -721,7 +784,8 @@
       "ex": 1.09,
       "ey": 1.09,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0153",
@@ -731,7 +795,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_03_0154",
@@ -741,7 +806,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_06_0155",
@@ -751,7 +817,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_06_0156",
@@ -761,7 +828,8 @@
       "ex": 1.09,
       "ey": 1.09,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0157",
@@ -771,7 +839,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0158",
@@ -781,7 +850,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0159",
@@ -791,7 +861,8 @@
       "ex": 1.09,
       "ey": 1.09,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_02_0160",
@@ -801,7 +872,8 @@
       "ex": 1.1,
       "ey": 1.1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_06_0161",
@@ -811,7 +883,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0162",
@@ -821,7 +894,8 @@
       "ex": 1.12,
       "ey": 1.12,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0163",
@@ -831,7 +905,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0164",
@@ -841,7 +916,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0165",
@@ -851,7 +927,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0166",
@@ -861,7 +938,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_06_0167",
@@ -871,7 +949,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0168",
@@ -881,7 +960,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0169",
@@ -891,7 +971,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_06_0170",
@@ -901,7 +982,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0171",
@@ -911,7 +993,8 @@
       "ex": 1.09,
       "ey": 1.09,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_06_0172",
@@ -921,7 +1004,8 @@
       "ex": 0.88,
       "ey": 0.88,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0173",
@@ -931,7 +1015,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_03_0174",
@@ -941,7 +1026,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0175",
@@ -951,7 +1037,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_03_0176",
@@ -961,7 +1048,8 @@
       "ex": 1.06,
       "ey": 1.06,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_06_0177",
@@ -971,7 +1059,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0178",
@@ -981,7 +1070,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0179",
@@ -991,7 +1081,8 @@
       "ex": 1.1,
       "ey": 1.1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_06_0180",
@@ -1001,7 +1092,8 @@
       "ex": 1.07,
       "ey": 1.07,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_06_0181",
@@ -1011,7 +1103,8 @@
       "ex": 1.08,
       "ey": 1.08,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_06_0182",
@@ -1021,7 +1114,8 @@
       "ex": 1.05,
       "ey": 1.05,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_03_0183",
@@ -1031,7 +1125,8 @@
       "ex": 0.97,
       "ey": 0.97,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0184",
@@ -1041,7 +1136,8 @@
       "ex": 1.07,
       "ey": 1.07,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_02_0185",
@@ -1051,7 +1147,8 @@
       "ex": 0.99,
       "ey": 0.99,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_03_0186",
@@ -1061,7 +1158,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_02_0187",
@@ -1071,7 +1169,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0188",
@@ -1081,7 +1180,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_03_0189",
@@ -1091,7 +1191,8 @@
       "ex": 1.11,
       "ey": 1.11,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_03_0190",
@@ -1101,7 +1202,8 @@
       "ex": 1.09,
       "ey": 1.09,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_02_0191",
@@ -1111,7 +1213,8 @@
       "ex": 1.07,
       "ey": 1.07,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_03_0192",
@@ -1121,7 +1224,8 @@
       "ex": 0.96,
       "ey": 0.96,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_02_0193",
@@ -1131,7 +1235,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_02_0194",
@@ -1141,7 +1246,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_02_0195",
@@ -1151,7 +1257,8 @@
       "ex": 1.08,
       "ey": 1.08,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0196",
@@ -1161,7 +1268,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_02_0197",
@@ -1171,7 +1279,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_03_0198",
@@ -1181,7 +1290,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_02_0199",
@@ -1191,7 +1301,8 @@
       "ex": 1.08,
       "ey": 1.08,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_06_0200",
@@ -1201,7 +1312,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_02_0201",
@@ -1211,7 +1323,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_02_0202",
@@ -1221,7 +1334,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_02_0203",
@@ -1231,7 +1345,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_02_0204",
@@ -1241,7 +1356,8 @@
       "ex": 1.07,
       "ey": 1.07,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_02_0205",
@@ -1251,7 +1367,8 @@
       "ex": 1.08,
       "ey": 1.08,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_02_0206",
@@ -1261,7 +1378,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_04_0220",
@@ -1271,7 +1389,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_03_0221",
@@ -1281,7 +1400,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0223",
@@ -1291,7 +1411,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_03_0224",
@@ -1301,7 +1422,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0225",
@@ -1311,7 +1433,8 @@
       "ex": 1.07,
       "ey": 1.07,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0226",
@@ -1321,7 +1444,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0227",
@@ -1331,7 +1455,8 @@
       "ex": 0.96,
       "ey": 0.96,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0228",
@@ -1341,7 +1466,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0229",
@@ -1351,7 +1477,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0230",
@@ -1361,7 +1488,8 @@
       "ex": 1.05,
       "ey": 1.05,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f1_05_0231",
@@ -1371,7 +1499,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0232",
@@ -1381,7 +1510,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0233",
@@ -1391,7 +1521,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0234",
@@ -1401,7 +1532,8 @@
       "ex": 1.05,
       "ey": 1.05,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_05_0235",
@@ -1411,7 +1543,8 @@
       "ex": 1.06,
       "ey": 1.06,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_11_0236",
@@ -1421,7 +1554,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_11_0241",
@@ -1431,7 +1565,8 @@
       "ex": 1.1,
       "ey": 1.1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "mata2_03_0242",
@@ -1441,7 +1576,8 @@
       "ex": 0.99,
       "ey": 0.99,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_11_0243",
@@ -1451,7 +1587,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0365",
@@ -1461,7 +1598,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0392",
@@ -1471,7 +1609,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0422",
@@ -1481,7 +1620,8 @@
       "ex": 0.75,
       "ey": 0.75,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0438",
@@ -1491,7 +1631,8 @@
       "ex": 0.99,
       "ey": 0.99,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0473",
@@ -1501,7 +1642,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0499",
@@ -1511,7 +1653,8 @@
       "ex": 0.81,
       "ey": 0.81,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0500",
@@ -1521,7 +1664,8 @@
       "ex": 0.8,
       "ey": 0.8,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0544",
@@ -1531,7 +1675,8 @@
       "ex": 0.77,
       "ey": 0.77,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0545",
@@ -1541,7 +1686,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0546",
@@ -1551,7 +1697,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0550",
@@ -1561,7 +1708,8 @@
       "ex": 0.97,
       "ey": 0.97,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0551",
@@ -1571,7 +1719,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0556",
@@ -1581,7 +1730,8 @@
       "ex": 0.73,
       "ey": 0.73,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0557",
@@ -1591,7 +1741,8 @@
       "ex": 0.83,
       "ey": 0.83,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_0562",
@@ -1601,7 +1752,8 @@
       "ex": 0.76,
       "ey": 0.76,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0563",
@@ -1611,7 +1763,8 @@
       "ex": 0.99,
       "ey": 0.99,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0564",
@@ -1621,7 +1774,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0565",
@@ -1631,7 +1785,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0566",
@@ -1641,7 +1796,8 @@
       "ex": 0.76,
       "ey": 0.76,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0567",
@@ -1651,7 +1807,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_0568",
@@ -1661,7 +1818,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0577",
@@ -1671,7 +1829,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0582",
@@ -1681,7 +1840,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_0583",
@@ -1691,7 +1851,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_0584",
@@ -1701,7 +1862,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0588",
@@ -1711,7 +1873,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0589",
@@ -1721,7 +1884,8 @@
       "ex": 0.81,
       "ey": 0.81,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0590",
@@ -1731,7 +1895,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0591",
@@ -1741,7 +1906,8 @@
       "ex": 0.78,
       "ey": 0.78,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0592",
@@ -1751,7 +1917,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_0593",
@@ -1761,7 +1928,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0594",
@@ -1771,7 +1939,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0599",
@@ -1781,7 +1950,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_02_0600",
@@ -1791,7 +1961,8 @@
       "ex": 0.73,
       "ey": 0.73,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0601",
@@ -1801,7 +1972,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0609",
@@ -1811,7 +1983,8 @@
       "ex": 0.77,
       "ey": 0.77,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0610",
@@ -1821,7 +1994,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0611",
@@ -1831,7 +2005,8 @@
       "ex": 0.75,
       "ey": 0.75,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0613",
@@ -1841,7 +2016,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_0614",
@@ -1851,7 +2027,8 @@
       "ex": 0.99,
       "ey": 0.99,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_0617",
@@ -1861,7 +2038,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_0618",
@@ -1871,7 +2049,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0619",
@@ -1881,7 +2060,8 @@
       "ex": 0.99,
       "ey": 0.99,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0620",
@@ -1891,7 +2071,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0623",
@@ -1901,7 +2082,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0624",
@@ -1911,7 +2093,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0625",
@@ -1921,7 +2104,8 @@
       "ex": 0.74,
       "ey": 0.74,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0626",
@@ -1931,7 +2115,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0627",
@@ -1941,7 +2126,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0631",
@@ -1951,7 +2137,8 @@
       "ex": 0.8,
       "ey": 0.8,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0632",
@@ -1961,7 +2148,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0633",
@@ -1971,7 +2159,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0634",
@@ -1981,7 +2170,8 @@
       "ex": 0.8,
       "ey": 0.8,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0639",
@@ -1991,7 +2181,8 @@
       "ex": 0.76,
       "ey": 0.76,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0640",
@@ -2001,7 +2192,8 @@
       "ex": 0.7,
       "ey": 0.7,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0641",
@@ -2011,7 +2203,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_02_0642",
@@ -2021,7 +2214,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0643",
@@ -2031,7 +2225,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0645",
@@ -2041,7 +2236,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_0646",
@@ -2051,7 +2247,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0649",
@@ -2061,7 +2258,8 @@
       "ex": 0.79,
       "ey": 0.79,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0650",
@@ -2071,7 +2269,8 @@
       "ex": 0.78,
       "ey": 0.78,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0651",
@@ -2081,7 +2280,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0652",
@@ -2091,7 +2291,8 @@
       "ex": 0.99,
       "ey": 0.99,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_0653",
@@ -2101,7 +2302,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_0655",
@@ -2111,7 +2313,8 @@
       "ex": 0.73,
       "ey": 0.73,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0656",
@@ -2121,7 +2324,8 @@
       "ex": 0.75,
       "ey": 0.75,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0657",
@@ -2131,7 +2335,8 @@
       "ex": 0.99,
       "ey": 0.99,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0658",
@@ -2141,7 +2346,8 @@
       "ex": 0.78,
       "ey": 0.78,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0662",
@@ -2151,7 +2357,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0663",
@@ -2161,7 +2368,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0664",
@@ -2171,7 +2379,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0676",
@@ -2181,7 +2390,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0680",
@@ -2191,7 +2401,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_0681",
@@ -2201,7 +2412,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0683",
@@ -2211,7 +2423,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0684",
@@ -2221,7 +2434,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0685",
@@ -2231,7 +2445,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0686",
@@ -2241,7 +2456,8 @@
       "ex": 0.97,
       "ey": 0.97,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0689",
@@ -2251,7 +2467,8 @@
       "ex": 0.79,
       "ey": 0.79,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0690",
@@ -2261,7 +2478,8 @@
       "ex": 0.88,
       "ey": 0.88,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0691",
@@ -2271,7 +2489,8 @@
       "ex": 0.88,
       "ey": 0.88,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0692",
@@ -2281,7 +2500,8 @@
       "ex": 0.71,
       "ey": 0.71,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0693",
@@ -2291,7 +2511,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0696",
@@ -2301,7 +2522,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0701",
@@ -2311,7 +2533,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0702",
@@ -2321,7 +2544,8 @@
       "ex": 0.71,
       "ey": 0.71,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0703",
@@ -2331,7 +2555,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_0704",
@@ -2341,7 +2566,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0711",
@@ -2351,7 +2577,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0712",
@@ -2361,7 +2588,8 @@
       "ex": 0.71,
       "ey": 0.71,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0713",
@@ -2371,7 +2599,8 @@
       "ex": 1.05,
       "ey": 1.05,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0714",
@@ -2381,7 +2610,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0716",
@@ -2391,7 +2621,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0718",
@@ -2401,7 +2632,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0719",
@@ -2411,7 +2643,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0720",
@@ -2421,7 +2654,8 @@
       "ex": 0.74,
       "ey": 0.74,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0726",
@@ -2431,7 +2665,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0727",
@@ -2441,7 +2676,8 @@
       "ex": 0.73,
       "ey": 0.73,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0728",
@@ -2451,7 +2687,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0729",
@@ -2461,7 +2698,8 @@
       "ex": 0.99,
       "ey": 0.99,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0732",
@@ -2471,7 +2709,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0733",
@@ -2481,7 +2720,8 @@
       "ex": 0.96,
       "ey": 0.96,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0734",
@@ -2491,7 +2731,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0735",
@@ -2501,7 +2742,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0736",
@@ -2511,7 +2753,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0737",
@@ -2521,7 +2764,8 @@
       "ex": 0.81,
       "ey": 0.81,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0741",
@@ -2531,7 +2775,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0742",
@@ -2541,7 +2786,8 @@
       "ex": 0.8,
       "ey": 0.8,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0745",
@@ -2551,7 +2797,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0746",
@@ -2561,7 +2808,8 @@
       "ex": 0.81,
       "ey": 0.81,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0747",
@@ -2571,7 +2819,8 @@
       "ex": 0.76,
       "ey": 0.76,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0748",
@@ -2581,7 +2830,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0749",
@@ -2591,7 +2841,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0752",
@@ -2601,7 +2852,8 @@
       "ex": 0.76,
       "ey": 0.76,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_0754",
@@ -2611,7 +2863,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0755",
@@ -2621,7 +2874,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0756",
@@ -2631,7 +2885,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_0758",
@@ -2641,7 +2896,8 @@
       "ex": 0.76,
       "ey": 0.76,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_0761",
@@ -2651,7 +2907,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_0762",
@@ -2661,7 +2918,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0763",
@@ -2671,7 +2929,8 @@
       "ex": 1.05,
       "ey": 1.05,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0764",
@@ -2681,7 +2940,8 @@
       "ex": 0.74,
       "ey": 0.74,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0765",
@@ -2691,7 +2951,8 @@
       "ex": 0.77,
       "ey": 0.77,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0766",
@@ -2701,7 +2962,8 @@
       "ex": 1.05,
       "ey": 1.05,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0770",
@@ -2711,7 +2973,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0771",
@@ -2721,7 +2984,8 @@
       "ex": 0.7,
       "ey": 0.7,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_0772",
@@ -2731,7 +2995,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0774",
@@ -2741,7 +3006,8 @@
       "ex": 0.75,
       "ey": 0.75,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_0775",
@@ -2751,7 +3017,8 @@
       "ex": 0.75,
       "ey": 0.75,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_0776",
@@ -2761,7 +3028,8 @@
       "ex": 0.81,
       "ey": 0.81,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0777",
@@ -2771,7 +3039,8 @@
       "ex": 0.97,
       "ey": 0.97,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0778",
@@ -2781,7 +3050,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0783",
@@ -2791,7 +3061,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0784",
@@ -2801,7 +3072,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0785",
@@ -2811,7 +3083,8 @@
       "ex": 0.83,
       "ey": 0.83,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_0786",
@@ -2821,7 +3094,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0787",
@@ -2831,7 +3105,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0788",
@@ -2841,7 +3116,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0789",
@@ -2851,7 +3127,8 @@
       "ex": 0.78,
       "ey": 0.78,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0791",
@@ -2861,7 +3138,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0792",
@@ -2871,7 +3149,8 @@
       "ex": 0.78,
       "ey": 0.78,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0793",
@@ -2881,7 +3160,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0794",
@@ -2891,7 +3171,8 @@
       "ex": 0.79,
       "ey": 0.79,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0795",
@@ -2901,7 +3182,8 @@
       "ex": 0.76,
       "ey": 0.76,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0796",
@@ -2911,7 +3193,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0797",
@@ -2921,7 +3204,8 @@
       "ex": 0.71,
       "ey": 0.71,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0800",
@@ -2931,7 +3215,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0801",
@@ -2941,7 +3226,8 @@
       "ex": 0.74,
       "ey": 0.74,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0802",
@@ -2951,7 +3237,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0803",
@@ -2961,7 +3248,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0805",
@@ -2971,7 +3259,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0806",
@@ -2981,7 +3270,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0807",
@@ -2991,7 +3281,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0808",
@@ -3001,7 +3292,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0811",
@@ -3011,7 +3303,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0812",
@@ -3021,7 +3314,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0813",
@@ -3031,7 +3325,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0814",
@@ -3041,7 +3336,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0815",
@@ -3051,7 +3347,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0816",
@@ -3061,7 +3358,8 @@
       "ex": 0.81,
       "ey": 0.81,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0818",
@@ -3071,7 +3369,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_0819",
@@ -3081,7 +3380,8 @@
       "ex": 0.88,
       "ey": 0.88,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0822",
@@ -3091,7 +3391,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0823",
@@ -3101,7 +3402,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_0826",
@@ -3111,7 +3413,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0827",
@@ -3121,7 +3424,8 @@
       "ex": 0.75,
       "ey": 0.75,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0828",
@@ -3131,7 +3435,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_0829",
@@ -3141,7 +3446,8 @@
       "ex": 0.75,
       "ey": 0.75,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0830",
@@ -3151,7 +3457,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0831",
@@ -3161,7 +3468,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_02_0832",
@@ -3171,7 +3479,8 @@
       "ex": 0.73,
       "ey": 0.73,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0833",
@@ -3181,7 +3490,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0834",
@@ -3191,7 +3501,8 @@
       "ex": 0.8,
       "ey": 0.8,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0835",
@@ -3201,7 +3512,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0836",
@@ -3211,7 +3523,8 @@
       "ex": 0.8,
       "ey": 0.8,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_0837",
@@ -3221,7 +3534,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0838",
@@ -3231,7 +3545,8 @@
       "ex": 0.79,
       "ey": 0.79,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0839",
@@ -3241,7 +3556,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0840",
@@ -3251,7 +3567,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0841",
@@ -3261,7 +3578,8 @@
       "ex": 0.96,
       "ey": 0.96,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0842",
@@ -3271,7 +3589,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0843",
@@ -3281,7 +3600,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_0844",
@@ -3291,7 +3611,8 @@
       "ex": 0.79,
       "ey": 0.79,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0845",
@@ -3301,7 +3622,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0846",
@@ -3311,7 +3633,8 @@
       "ex": 0.99,
       "ey": 0.99,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_0847",
@@ -3321,7 +3644,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_02_0848",
@@ -3331,7 +3655,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0849",
@@ -3341,7 +3666,8 @@
       "ex": 0.8,
       "ey": 0.8,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0850",
@@ -3351,7 +3677,8 @@
       "ex": 0.81,
       "ey": 0.81,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0851",
@@ -3361,7 +3688,8 @@
       "ex": 0.76,
       "ey": 0.76,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_0852",
@@ -3371,7 +3699,8 @@
       "ex": 0.71,
       "ey": 0.71,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0853",
@@ -3381,7 +3710,8 @@
       "ex": 0.96,
       "ey": 0.96,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_0854",
@@ -3391,7 +3721,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0855",
@@ -3401,7 +3732,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0856",
@@ -3411,7 +3743,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0857",
@@ -3421,7 +3754,8 @@
       "ex": 0.79,
       "ey": 0.79,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0858",
@@ -3431,7 +3765,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_0859",
@@ -3441,7 +3776,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0860",
@@ -3451,7 +3787,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_0861",
@@ -3461,7 +3798,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_0862",
@@ -3471,7 +3809,8 @@
       "ex": 0.8,
       "ey": 0.8,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0863",
@@ -3481,7 +3820,8 @@
       "ex": 1.05,
       "ey": 1.05,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0864",
@@ -3491,7 +3831,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_0865",
@@ -3501,7 +3842,8 @@
       "ex": 0.7,
       "ey": 0.7,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_0866",
@@ -3511,7 +3853,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0867",
@@ -3521,7 +3864,8 @@
       "ex": 0.76,
       "ey": 0.76,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0868",
@@ -3531,7 +3875,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0869",
@@ -3541,7 +3886,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0870",
@@ -3551,7 +3897,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0871",
@@ -3561,7 +3908,8 @@
       "ex": 0.97,
       "ey": 0.97,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0872",
@@ -3571,7 +3919,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0873",
@@ -3581,7 +3930,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0874",
@@ -3591,7 +3941,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0875",
@@ -3601,7 +3952,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0876",
@@ -3611,7 +3963,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0877",
@@ -3621,7 +3974,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0878",
@@ -3631,7 +3985,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0879",
@@ -3641,7 +3996,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0880",
@@ -3651,7 +4007,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0881",
@@ -3661,7 +4018,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0882",
@@ -3671,7 +4029,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0883",
@@ -3681,7 +4040,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0884",
@@ -3691,7 +4051,8 @@
       "ex": 1.05,
       "ey": 1.05,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0885",
@@ -3701,7 +4062,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0886",
@@ -3711,7 +4073,8 @@
       "ex": 0.83,
       "ey": 0.83,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0887",
@@ -3721,7 +4084,8 @@
       "ex": 0.83,
       "ey": 0.83,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0888",
@@ -3731,7 +4095,8 @@
       "ex": 0.79,
       "ey": 0.79,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0889",
@@ -3741,7 +4106,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0890",
@@ -3751,7 +4117,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_0891",
@@ -3761,7 +4128,8 @@
       "ex": 0.96,
       "ey": 0.96,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0892",
@@ -3771,7 +4139,8 @@
       "ex": 0.79,
       "ey": 0.79,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0893",
@@ -3781,7 +4150,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0894",
@@ -3791,7 +4161,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0895",
@@ -3801,7 +4172,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0896",
@@ -3811,7 +4183,8 @@
       "ex": 0.71,
       "ey": 0.71,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0897",
@@ -3821,7 +4194,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0898",
@@ -3831,7 +4205,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0899",
@@ -3841,7 +4216,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0900",
@@ -3851,7 +4227,8 @@
       "ex": 0.77,
       "ey": 0.77,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0901",
@@ -3861,7 +4238,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0902",
@@ -3871,7 +4249,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0903",
@@ -3881,7 +4260,8 @@
       "ex": 0.74,
       "ey": 0.74,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0904",
@@ -3891,7 +4271,8 @@
       "ex": 0.75,
       "ey": 0.75,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0905",
@@ -3901,7 +4282,8 @@
       "ex": 0.74,
       "ey": 0.74,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0906",
@@ -3911,7 +4293,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0907",
@@ -3921,7 +4304,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0908",
@@ -3931,7 +4315,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0909",
@@ -3941,7 +4326,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0910",
@@ -3951,7 +4337,8 @@
       "ex": 0.88,
       "ey": 0.88,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0911",
@@ -3961,7 +4348,8 @@
       "ex": 0.8,
       "ey": 0.8,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0912",
@@ -3971,7 +4359,8 @@
       "ex": 0.99,
       "ey": 0.99,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0913",
@@ -3981,7 +4370,8 @@
       "ex": 0.81,
       "ey": 0.81,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_02_0914",
@@ -3991,7 +4381,8 @@
       "ex": 0.71,
       "ey": 0.71,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0915",
@@ -4001,7 +4392,8 @@
       "ex": 0.79,
       "ey": 0.79,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0916",
@@ -4011,7 +4403,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0917",
@@ -4021,7 +4414,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_0918",
@@ -4031,7 +4425,8 @@
       "ex": 0.83,
       "ey": 0.83,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0919",
@@ -4041,7 +4436,8 @@
       "ex": 0.77,
       "ey": 0.77,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_0920",
@@ -4051,7 +4447,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0921",
@@ -4061,7 +4458,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0922",
@@ -4071,7 +4469,8 @@
       "ex": 0.7,
       "ey": 0.7,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0923",
@@ -4081,7 +4480,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0924",
@@ -4091,7 +4491,8 @@
       "ex": 1.05,
       "ey": 1.05,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0925",
@@ -4101,7 +4502,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0926",
@@ -4111,7 +4513,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0927",
@@ -4121,7 +4524,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0928",
@@ -4131,7 +4535,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0929",
@@ -4141,7 +4546,8 @@
       "ex": 0.8,
       "ey": 0.8,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_0930",
@@ -4151,7 +4557,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_0931",
@@ -4161,7 +4568,8 @@
       "ex": 0.7,
       "ey": 0.7,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_02_0932",
@@ -4171,7 +4579,8 @@
       "ex": 0.77,
       "ey": 0.77,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0933",
@@ -4181,7 +4590,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0934",
@@ -4191,7 +4601,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0935",
@@ -4201,7 +4612,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_0936",
@@ -4211,7 +4623,8 @@
       "ex": 0.76,
       "ey": 0.76,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_0937",
@@ -4221,7 +4634,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0938",
@@ -4231,7 +4645,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0939",
@@ -4241,7 +4656,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0940",
@@ -4251,7 +4667,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0941",
@@ -4261,7 +4678,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0942",
@@ -4271,7 +4689,8 @@
       "ex": 0.75,
       "ey": 0.75,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0943",
@@ -4281,7 +4700,8 @@
       "ex": 0.71,
       "ey": 0.71,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0944",
@@ -4291,7 +4711,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0945",
@@ -4301,7 +4722,8 @@
       "ex": 0.97,
       "ey": 0.97,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0946",
@@ -4311,7 +4733,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0947",
@@ -4321,7 +4744,8 @@
       "ex": 0.88,
       "ey": 0.88,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0948",
@@ -4331,7 +4755,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0949",
@@ -4341,7 +4766,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0950",
@@ -4351,7 +4777,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0951",
@@ -4361,7 +4788,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0952",
@@ -4371,7 +4799,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0953",
@@ -4381,7 +4810,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0954",
@@ -4391,7 +4821,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0955",
@@ -4401,7 +4832,8 @@
       "ex": 0.97,
       "ey": 0.97,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0956",
@@ -4411,7 +4843,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0957",
@@ -4421,7 +4854,8 @@
       "ex": 0.78,
       "ey": 0.78,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_0958",
@@ -4431,7 +4865,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0959",
@@ -4441,7 +4876,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0960",
@@ -4451,7 +4887,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_0961",
@@ -4461,7 +4898,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0962",
@@ -4471,7 +4909,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0963",
@@ -4481,7 +4920,8 @@
       "ex": 0.79,
       "ey": 0.79,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0964",
@@ -4491,7 +4931,8 @@
       "ex": 0.74,
       "ey": 0.74,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_0965",
@@ -4501,7 +4942,8 @@
       "ex": 0.7,
       "ey": 0.7,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0966",
@@ -4511,7 +4953,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_02_0967",
@@ -4521,7 +4964,8 @@
       "ex": 0.77,
       "ey": 0.77,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_0968",
@@ -4531,7 +4975,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0969",
@@ -4541,7 +4986,8 @@
       "ex": 0.78,
       "ey": 0.78,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_0970",
@@ -4551,7 +4997,8 @@
       "ex": 0.73,
       "ey": 0.73,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_0971",
@@ -4561,7 +5008,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_0972",
@@ -4571,7 +5019,8 @@
       "ex": 0.78,
       "ey": 0.78,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_0973",
@@ -4581,7 +5030,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0974",
@@ -4591,7 +5041,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0975",
@@ -4601,7 +5052,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_0976",
@@ -4611,7 +5063,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_0977",
@@ -4621,7 +5074,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_0978",
@@ -4631,7 +5085,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_0979",
@@ -4641,7 +5096,8 @@
       "ex": 0.74,
       "ey": 0.74,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0980",
@@ -4651,7 +5107,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0981",
@@ -4661,7 +5118,8 @@
       "ex": 0.73,
       "ey": 0.73,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0982",
@@ -4671,7 +5129,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_0983",
@@ -4681,7 +5140,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0984",
@@ -4691,7 +5151,8 @@
       "ex": 0.76,
       "ey": 0.76,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_0985",
@@ -4701,7 +5162,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0986",
@@ -4711,7 +5173,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_0987",
@@ -4721,7 +5184,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0988",
@@ -4731,7 +5195,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0989",
@@ -4741,7 +5206,8 @@
       "ex": 0.88,
       "ey": 0.88,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_0990",
@@ -4751,7 +5217,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_0991",
@@ -4761,7 +5228,8 @@
       "ex": 0.75,
       "ey": 0.75,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_0992",
@@ -4771,7 +5239,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_0993",
@@ -4781,7 +5250,8 @@
       "ex": 0.73,
       "ey": 0.73,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_0994",
@@ -4791,7 +5261,8 @@
       "ex": 0.73,
       "ey": 0.73,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_0995",
@@ -4801,7 +5272,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_0996",
@@ -4811,7 +5283,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_0997",
@@ -4821,7 +5294,8 @@
       "ex": 0.71,
       "ey": 0.71,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_02_0998",
@@ -4831,7 +5305,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_0999",
@@ -4841,7 +5316,8 @@
       "ex": 0.88,
       "ey": 0.88,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_1000",
@@ -4851,7 +5327,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_1001",
@@ -4861,7 +5338,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_1002",
@@ -4871,7 +5349,8 @@
       "ex": 0.83,
       "ey": 0.83,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_1003",
@@ -4881,7 +5360,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_1004",
@@ -4891,7 +5371,8 @@
       "ex": 0.74,
       "ey": 0.74,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_1005",
@@ -4901,7 +5382,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_1006",
@@ -4911,7 +5393,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_1007",
@@ -4921,7 +5404,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_1008",
@@ -4931,7 +5415,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_1009",
@@ -4941,7 +5426,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_1010",
@@ -4951,7 +5437,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_1011",
@@ -4961,7 +5448,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_1012",
@@ -4971,7 +5459,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_1013",
@@ -4981,7 +5470,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_1014",
@@ -4991,7 +5481,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_1015",
@@ -5001,7 +5492,8 @@
       "ex": 0.81,
       "ey": 0.81,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_1016",
@@ -5011,7 +5503,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_1017",
@@ -5021,7 +5514,8 @@
       "ex": 0.7,
       "ey": 0.7,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_1018",
@@ -5031,7 +5525,8 @@
       "ex": 0.96,
       "ey": 0.96,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_1019",
@@ -5041,7 +5536,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_1020",
@@ -5051,7 +5547,8 @@
       "ex": 1.05,
       "ey": 1.05,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_1021",
@@ -5061,7 +5558,8 @@
       "ex": 0.99,
       "ey": 0.99,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_1022",
@@ -5071,7 +5569,8 @@
       "ex": 0.71,
       "ey": 0.71,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_1023",
@@ -5081,7 +5580,8 @@
       "ex": 0.88,
       "ey": 0.88,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_1024",
@@ -5091,7 +5591,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_1025",
@@ -5101,7 +5602,8 @@
       "ex": 0.71,
       "ey": 0.71,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_1026",
@@ -5111,7 +5613,8 @@
       "ex": 0.7,
       "ey": 0.7,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_1027",
@@ -5121,7 +5624,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_1028",
@@ -5131,7 +5635,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_1029",
@@ -5141,7 +5646,8 @@
       "ex": 0.79,
       "ey": 0.79,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_1030",
@@ -5151,7 +5657,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_1031",
@@ -5161,7 +5668,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_1032",
@@ -5171,7 +5679,8 @@
       "ex": 0.81,
       "ey": 0.81,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_1033",
@@ -5181,7 +5690,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_1034",
@@ -5191,7 +5701,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_1035",
@@ -5201,7 +5712,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_1036",
@@ -5211,7 +5723,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_1037",
@@ -5221,7 +5734,8 @@
       "ex": 0.77,
       "ey": 0.77,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_1038",
@@ -5231,7 +5745,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_1039",
@@ -5241,7 +5756,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_1040",
@@ -5251,7 +5767,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_1041",
@@ -5261,7 +5778,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_1042",
@@ -5271,7 +5789,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_1043",
@@ -5281,7 +5800,8 @@
       "ex": 0.81,
       "ey": 0.81,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_1044",
@@ -5291,7 +5811,8 @@
       "ex": 0.75,
       "ey": 0.75,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_1045",
@@ -5301,7 +5822,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_1046",
@@ -5311,7 +5833,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_1047",
@@ -5321,7 +5844,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_1048",
@@ -5331,7 +5855,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_02_1049",
@@ -5341,7 +5866,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_1050",
@@ -5351,7 +5877,8 @@
       "ex": 0.96,
       "ey": 0.96,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_1051",
@@ -5361,7 +5888,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_1052",
@@ -5371,7 +5899,8 @@
       "ex": 0.97,
       "ey": 0.97,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_1053",
@@ -5381,7 +5910,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_1054",
@@ -5391,7 +5921,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_1055",
@@ -5401,7 +5932,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_1056",
@@ -5411,7 +5943,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_1057",
@@ -5421,7 +5954,8 @@
       "ex": 0.96,
       "ey": 0.96,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_1058",
@@ -5431,7 +5965,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_1059",
@@ -5441,7 +5976,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_1060",
@@ -5451,7 +5987,8 @@
       "ex": 0.71,
       "ey": 0.71,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_1061",
@@ -5461,7 +5998,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_1062",
@@ -5471,7 +6009,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_1063",
@@ -5481,7 +6020,8 @@
       "ex": 0.73,
       "ey": 0.73,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_1064",
@@ -5491,7 +6031,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_1065",
@@ -5501,7 +6042,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_1066",
@@ -5511,7 +6053,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_1067",
@@ -5521,7 +6064,8 @@
       "ex": 0.78,
       "ey": 0.78,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_1068",
@@ -5531,7 +6075,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_1069",
@@ -5541,7 +6086,8 @@
       "ex": 0.79,
       "ey": 0.79,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_1070",
@@ -5551,7 +6097,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_1071",
@@ -5561,7 +6108,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_1072",
@@ -5571,7 +6119,8 @@
       "ex": 0.75,
       "ey": 0.75,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_1073",
@@ -5581,7 +6130,8 @@
       "ex": 0.8,
       "ey": 0.8,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_1074",
@@ -5591,7 +6141,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_1075",
@@ -5601,7 +6152,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_1076",
@@ -5611,7 +6163,8 @@
       "ex": 1.03,
       "ey": 1.03,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_02_1077",
@@ -5621,7 +6174,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_1078",
@@ -5631,7 +6185,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_1079",
@@ -5641,7 +6196,8 @@
       "ex": 0.7,
       "ey": 0.7,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_1080",
@@ -5651,7 +6207,8 @@
       "ex": 0.96,
       "ey": 0.96,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_1081",
@@ -5661,7 +6218,8 @@
       "ex": 0.71,
       "ey": 0.71,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_1082",
@@ -5671,7 +6229,8 @@
       "ex": 0.77,
       "ey": 0.77,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_02_1083",
@@ -5681,7 +6240,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_1084",
@@ -5691,7 +6251,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_1085",
@@ -5701,7 +6262,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_1086",
@@ -5711,7 +6273,8 @@
       "ex": 0.83,
       "ey": 0.83,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_1087",
@@ -5721,7 +6284,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_08_1088",
@@ -5731,7 +6295,8 @@
       "ex": 0.88,
       "ey": 0.88,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_1089",
@@ -5741,7 +6306,8 @@
       "ex": 1.05,
       "ey": 1.05,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_1090",
@@ -5751,7 +6317,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_1091",
@@ -5761,7 +6328,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_1092",
@@ -5771,7 +6339,8 @@
       "ex": 0.99,
       "ey": 0.99,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_1093",
@@ -5781,7 +6350,8 @@
       "ex": 0.78,
       "ey": 0.78,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_01_1094",
@@ -5791,7 +6361,8 @@
       "ex": 0.88,
       "ey": 0.88,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_1095",
@@ -5801,7 +6372,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_1096",
@@ -5811,7 +6383,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_1097",
@@ -5821,7 +6394,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_1098",
@@ -5831,7 +6405,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_1099",
@@ -5841,7 +6416,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_1100",
@@ -5851,7 +6427,8 @@
       "ex": 0.88,
       "ey": 0.88,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_1101",
@@ -5861,7 +6438,8 @@
       "ex": 0.77,
       "ey": 0.77,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_02_1102",
@@ -5871,7 +6449,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_1103",
@@ -5881,7 +6460,8 @@
       "ex": 0.8,
       "ey": 0.8,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_1104",
@@ -5891,7 +6471,8 @@
       "ex": 0.75,
       "ey": 0.75,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_1105",
@@ -5901,7 +6482,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_1106",
@@ -5911,7 +6493,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_1107",
@@ -5921,7 +6504,8 @@
       "ex": 0.71,
       "ey": 0.71,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_05_1108",
@@ -5931,7 +6515,8 @@
       "ex": 1.02,
       "ey": 1.02,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_1109",
@@ -5941,7 +6526,8 @@
       "ex": 0.74,
       "ey": 0.74,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_1110",
@@ -5951,7 +6537,8 @@
       "ex": 0.76,
       "ey": 0.76,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_1111",
@@ -5961,7 +6548,8 @@
       "ex": 0.98,
       "ey": 0.98,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_03_1112",
@@ -5971,7 +6559,8 @@
       "ex": 0.76,
       "ey": 0.76,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_1113",
@@ -5981,7 +6570,8 @@
       "ex": 0.8,
       "ey": 0.8,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_02_1114",
@@ -5991,7 +6581,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_1115",
@@ -6001,7 +6592,8 @@
       "ex": 0.81,
       "ey": 0.81,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_03_1116",
@@ -6011,7 +6603,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_08_1117",
@@ -6021,7 +6614,8 @@
       "ex": 0.99,
       "ey": 0.99,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_1118",
@@ -6031,7 +6625,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_1119",
@@ -6041,7 +6636,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_1120",
@@ -6051,7 +6647,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_1121",
@@ -6061,7 +6658,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_1122",
@@ -6071,7 +6669,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_03_1123",
@@ -6081,7 +6680,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_1124",
@@ -6091,7 +6691,8 @@
       "ex": 1.01,
       "ey": 1.01,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_05_1125",
@@ -6101,7 +6702,8 @@
       "ex": 0.74,
       "ey": 0.74,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_1126",
@@ -6111,7 +6713,8 @@
       "ex": 0.75,
       "ey": 0.75,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_03_1127",
@@ -6121,7 +6724,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_01_1128",
@@ -6131,7 +6735,8 @@
       "ex": 0.97,
       "ey": 0.97,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_02_1129",
@@ -6141,7 +6746,8 @@
       "ex": 1.04,
       "ey": 1.04,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_1130",
@@ -6151,7 +6757,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_07_1131",
@@ -6161,7 +6768,8 @@
       "ex": 0.78,
       "ey": 0.78,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_11_1240",
@@ -6171,7 +6779,8 @@
       "ex": 0.77,
       "ey": 0.77,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_12_1242",
@@ -6181,7 +6790,8 @@
       "ex": 0.94,
       "ey": 0.94,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "mata2_02_1245",
@@ -6191,7 +6801,8 @@
       "ex": 0.62,
       "ey": 0.62,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_10_1248",
@@ -6201,7 +6812,8 @@
       "ex": 0.73,
       "ey": 0.73,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "mata2_02_1250",
@@ -6211,7 +6823,8 @@
       "ex": 0.75,
       "ey": 0.75,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_12_1252",
@@ -6221,7 +6834,8 @@
       "ex": 0.62,
       "ey": 0.62,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_11_1254",
@@ -6231,7 +6845,8 @@
       "ex": 0.9,
       "ey": 0.9,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_12_1255",
@@ -6241,7 +6856,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_11_1256",
@@ -6251,7 +6867,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_12_1257",
@@ -6261,7 +6878,8 @@
       "ex": 0.53,
       "ey": 0.53,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "mata2_02_1259",
@@ -6271,7 +6889,8 @@
       "ex": 0.74,
       "ey": 0.74,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "mata2_02_1260",
@@ -6281,7 +6900,8 @@
       "ex": 0.79,
       "ey": 0.79,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "mata2_02_1261",
@@ -6291,7 +6911,8 @@
       "ex": 0.8,
       "ey": 0.8,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_10_1262",
@@ -6301,7 +6922,8 @@
       "ex": 0.83,
       "ey": 0.83,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_10_1263",
@@ -6311,7 +6933,8 @@
       "ex": 0.89,
       "ey": 0.89,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_10_1266",
@@ -6321,7 +6944,8 @@
       "ex": 0.69,
       "ey": 0.69,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_12_1267",
@@ -6331,7 +6955,8 @@
       "ex": 0.68,
       "ey": 0.68,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_11_1269",
@@ -6341,7 +6966,8 @@
       "ex": 0.59,
       "ey": 0.59,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_10_1270",
@@ -6351,7 +6977,8 @@
       "ex": 0.53,
       "ey": 0.53,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_10_1272",
@@ -6361,7 +6988,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_10_1273",
@@ -6371,7 +6999,8 @@
       "ex": 0.8,
       "ey": 0.8,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_12_1274",
@@ -6381,7 +7010,8 @@
       "ex": 0.81,
       "ey": 0.81,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_10_1275",
@@ -6391,7 +7021,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "mata2_02_1276",
@@ -6401,7 +7032,8 @@
       "ex": 0.93,
       "ey": 0.93,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "mata2_02_1278",
@@ -6411,7 +7043,8 @@
       "ex": 0.58,
       "ey": 0.58,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_10_1279",
@@ -6421,7 +7054,8 @@
       "ex": 0.77,
       "ey": 0.77,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_12_1280",
@@ -6431,7 +7065,8 @@
       "ex": 0.64,
       "ey": 0.64,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_11_1281",
@@ -6441,7 +7076,8 @@
       "ex": 0.78,
       "ey": 0.78,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_11_1283",
@@ -6451,7 +7087,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "mata2_02_1286",
@@ -6461,7 +7098,8 @@
       "ex": 0.82,
       "ey": 0.82,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "mata2_02_1288",
@@ -6471,7 +7109,8 @@
       "ex": 0.76,
       "ey": 0.76,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_10_1291",
@@ -6481,7 +7120,8 @@
       "ex": 0.63,
       "ey": 0.63,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "mata2_02_1292",
@@ -6491,7 +7131,8 @@
       "ex": 0.63,
       "ey": 0.63,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_11_1293",
@@ -6501,7 +7142,8 @@
       "ex": 0.88,
       "ey": 0.88,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_10_1294",
@@ -6511,7 +7153,8 @@
       "ex": 0.59,
       "ey": 0.59,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "mata2_02_1297",
@@ -6521,7 +7164,8 @@
       "ex": 0.51,
       "ey": 0.51,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_11_1299",
@@ -6531,7 +7175,8 @@
       "ex": 0.67,
       "ey": 0.67,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f4_12_1300",
@@ -6541,7 +7186,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "mata2_02_1301",
@@ -6551,7 +7197,8 @@
       "ex": 0.77,
       "ey": 0.77,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_11_1302",
@@ -6561,7 +7208,8 @@
       "ex": 0.65,
       "ey": 0.65,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f4_11_1303",
@@ -6571,7 +7219,8 @@
       "ex": 0.57,
       "ey": 0.57,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_1309",
@@ -6581,7 +7230,8 @@
       "ex": 0.96,
       "ey": 0.96,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_1311",
@@ -6591,7 +7241,8 @@
       "ex": 0.69,
       "ey": 0.69,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_1312",
@@ -6601,7 +7252,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_1313",
@@ -6611,7 +7263,8 @@
       "ex": 0.73,
       "ey": 0.73,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_1314",
@@ -6621,7 +7274,8 @@
       "ex": 0.84,
       "ey": 0.84,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_11_1315",
@@ -6631,7 +7285,8 @@
       "ex": 0.95,
       "ey": 0.95,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_1316",
@@ -6641,7 +7296,8 @@
       "ex": 0.7,
       "ey": 0.7,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_1317",
@@ -6651,7 +7307,8 @@
       "ex": 0.77,
       "ey": 0.77,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_1321",
@@ -6661,7 +7318,8 @@
       "ex": 0.96,
       "ey": 0.96,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_1325",
@@ -6671,7 +7329,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_11_1326",
@@ -6681,7 +7340,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_1327",
@@ -6691,7 +7351,8 @@
       "ex": 0.85,
       "ey": 0.85,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_1328",
@@ -6701,7 +7362,8 @@
       "ex": 0.72,
       "ey": 0.72,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_1331",
@@ -6711,7 +7373,8 @@
       "ex": 0.91,
       "ey": 0.91,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_01_1335",
@@ -6721,7 +7384,8 @@
       "ex": 0.79,
       "ey": 0.79,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_1338",
@@ -6731,7 +7395,8 @@
       "ex": 0.61,
       "ey": 0.61,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_09_1340",
@@ -6741,7 +7406,8 @@
       "ex": 0.87,
       "ey": 0.87,
       "rot": 0,
-      "flipX": true
+      "flipX": true,
+      "flipY": false
     },
     {
       "id": "f2_01_1341",
@@ -6751,7 +7417,8 @@
       "ex": 0.86,
       "ey": 0.86,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_09_1343",
@@ -6761,7 +7428,8 @@
       "ex": 0.92,
       "ey": 0.92,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "cidade2_01_1785467877077",
@@ -6771,7 +7439,8 @@
       "ex": 0.925,
       "ey": 0.925,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "cidade2_02_1785467923546",
@@ -6781,7 +7450,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "lapide2_02_1785467983122",
@@ -6791,7 +7461,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "mata2_01_1785467990090",
@@ -6801,7 +7472,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "cidade3_03_1785468082003",
@@ -6811,7 +7483,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "cidade3_01_1785468135134",
@@ -6821,7 +7494,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f1_09_1785514676036",
@@ -6831,7 +7505,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_05_1785514682153",
@@ -6841,7 +7516,8 @@
       "ex": 0.674,
       "ey": 0.674,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_04_1785514700700",
@@ -6851,7 +7527,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "vila1_02_1785514731021",
@@ -6861,7 +7538,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "cidade3_04_1785514759930",
@@ -6871,7 +7549,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "lapide3_01_1785514771679",
@@ -6881,7 +7560,8 @@
       "ex": 1.218,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "sagrado3_01_1785514816797",
@@ -6891,7 +7571,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "sagrado3_01_1785514822427",
@@ -6901,7 +7582,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "sagrado1_04_1785514826185",
@@ -6911,7 +7593,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "casa2_10_1785514838643",
@@ -6921,17 +7604,19 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "cidade3_02_1785514858081",
       "prop": "cidade3_02",
-      "x": 1681,
-      "y": 1265,
+      "x": 1383,
+      "y": 1380,
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "merchant_shop_four_01_1785515175928",
@@ -6941,7 +7626,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "merchant_shop_four_04_1785515210897",
@@ -6951,7 +7637,8 @@
       "ex": 1,
       "ey": 1,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
     },
     {
       "id": "f2_07_1785531292156",
@@ -6961,7 +7648,19 @@
       "ex": 0.964,
       "ey": 0.964,
       "rot": 0,
-      "flipX": false
+      "flipX": false,
+      "flipY": false
+    },
+    {
+      "id": "merchant_shop_four_10_1785535571426",
+      "prop": "merchant_shop_four_10",
+      "x": 1774,
+      "y": 1241,
+      "ex": 1,
+      "ey": 1,
+      "rot": 0,
+      "flipX": false,
+      "flipY": false
     }
   ]
 }
