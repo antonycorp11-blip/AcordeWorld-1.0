@@ -2298,6 +2298,7 @@ function mundoGhostEm(wx, wy) {
 }
 
 function mundoExpandir(g) {
+  registrarDesfazer();
   const BW = MUNDO.bloco.w, BH = MUNDO.bloco.h;
   if (g.c >= MUNDO.cols) MUNDO.cols++;
   else if (g.l >= MUNDO.rows) MUNDO.rows++;
@@ -2935,6 +2936,55 @@ function renderHudDoMundo() {
   ctx.restore();
 }
 
+// ── Desfazer e refazer ──────────────────────────────────────────────────────────
+// Guardo o estado INTEIRO do mundo antes de cada ação, em vez de descrever cada ação
+// como um par fazer/desfazer. Com 700 props o retrato sai em ~80KB de JSON, e vinte e
+// cinco deles cabem folgados na memória — é barato o bastante para não valer a
+// complexidade de inverter operação por operação, onde cada tipo novo de edição vira
+// mais uma chance de bug silencioso.
+const DESFAZER_MAX = 25;
+let pilhaDesfazer = [], pilhaRefazer = [], ultimoRetrato = 0;
+
+function retratoDoMundo() {
+  return JSON.stringify({ props: MUNDO.props, spawn: MUNDO.spawn,
+                          cols: MUNDO.cols, rows: MUNDO.rows, chao: MUNDO.chao });
+}
+
+// `agrupar` junta ações contínuas — segurar a seta move de pixel em pixel, e cada
+// pixel virando um passo de desfazer tornaria o Cmd+Z inútil.
+function registrarDesfazer(agrupar = false) {
+  const agora = performance.now();
+  if (agrupar && agora - ultimoRetrato < 400) return;
+  ultimoRetrato = agora;
+  pilhaDesfazer.push(retratoDoMundo());
+  if (pilhaDesfazer.length > DESFAZER_MAX) pilhaDesfazer.shift();
+  pilhaRefazer.length = 0;      // ramo novo: o que era refazer deixou de existir
+}
+
+function aplicarRetrato(txt) {
+  const d = JSON.parse(txt);
+  MUNDO.props = d.props;
+  MUNDO.spawn = d.spawn; MUNDO.cols = d.cols; MUNDO.rows = d.rows;
+  if (d.chao) MUNDO.chao = d.chao;
+  mundoPropSel = null; mundoArrastando = null; mundoAlca = null;
+  if (typeof mundoPropsSelecionados !== 'undefined') mundoPropsSelecionados = [];
+  saveMundo();
+}
+
+function desfazer() {
+  if (!pilhaDesfazer.length) { showToast('↶ Nada para desfazer'); return; }
+  pilhaRefazer.push(retratoDoMundo());
+  aplicarRetrato(pilhaDesfazer.pop());
+  showToast(`↶ Desfeito (${pilhaDesfazer.length} restantes)`);
+}
+
+function refazer() {
+  if (!pilhaRefazer.length) { showToast('↷ Nada para refazer'); return; }
+  pilhaDesfazer.push(retratoDoMundo());
+  aplicarRetrato(pilhaRefazer.pop());
+  showToast('↷ Refeito');
+}
+
 // ── Área de transferência do editor ─────────────────────────────────────────────
 // Copiar e colar valem para o objeto selecionado e para a seleção em lote. A cola cai
 // onde o ponteiro está, mantendo o arranjo interno do que foi copiado: um bosque de
@@ -2954,6 +3004,7 @@ function copiarSelecao() {
 function colarSelecao() {
   if (!areaDeTransferencia.length) { showToast('⚠️ Nada copiado ainda'); return; }
   const alvo = mundoDoPonteiro({ x: mouseCanvasX, y: mouseCanvasY });
+  registrarDesfazer();
   const novos = areaDeTransferencia.map((p, i) => {
     const n = { ...p, id: `${p.prop}_${Date.now()}_${i}`,
                 x: Math.round(alvo.x + p._dx), y: Math.round(alvo.y + p._dy) };
@@ -3144,10 +3195,11 @@ function mundoPointerDown(m) {
   // selecionado, e o motivo era invisível.
   if (!pincelMaterial && mundoPropSel) {
     const k = alcaEm(mundoPropSel, w.x, w.y);
-    if (k) { mundoAlca = k; return; }
+    if (k) { registrarDesfazer(); mundoAlca = k; return; }
   }
 
   if (propParaColocar && !pincelMaterial && mundoFerramenta !== 'partida') {
+    registrarDesfazer();
     const novo = { id: `${propParaColocar}_${Date.now()}`, prop: propParaColocar,
                    x: Math.round(w.x), y: Math.round(w.y), ex: 1, ey: 1, rot: 0, flipX: false };
     MUNDO.props.push(novo);
@@ -3163,6 +3215,7 @@ function mundoPointerDown(m) {
     return;
   }
   if (mundoFerramenta === 'partida') {
+    registrarDesfazer();
     MUNDO.spawn = { x: Math.round(w.x), y: Math.round(w.y) };
     saveMundo(); showToast('🚩 Ponto de partida movido');
     return;
@@ -3181,6 +3234,7 @@ function mundoPointerDown(m) {
   // Selecionar e arrastar valem em qualquer ferramenta menos a de mover câmera: exigir
   // trocar de ferramenta para mexer num objeto que você acabou de plantar é atrito puro.
   if (p && mundoFerramenta !== 'mover') {
+    registrarDesfazer();
     mundoPropSel = p; mundoArrastando = p;
     dragOffX = w.x - p.x; dragOffY = w.y - p.y;
     return;
@@ -11374,7 +11428,9 @@ function initForgeUI() {
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;
     if (!(e.metaKey || e.ctrlKey)) return;
     const k = e.key.toLowerCase();
-    if (k === 'c') { e.preventDefault(); copiarSelecao(); }
+    if (k === 'z') { e.preventDefault(); e.shiftKey ? refazer() : desfazer(); }
+    else if (k === 'y') { e.preventDefault(); refazer(); }
+    else if (k === 'c') { e.preventDefault(); copiarSelecao(); }
     else if (k === 'v') { e.preventDefault(); colarSelecao(); }
     else if (k === 'd') { e.preventDefault(); copiarSelecao(); colarSelecao(); }
   });
@@ -11387,6 +11443,7 @@ function initForgeUI() {
     // Se há múltiplos objetos selecionados, Delete apaga todos!
     if ((e.key === 'Delete' || e.key === 'Backspace') && mundoPropsSelecionados && mundoPropsSelecionados.length > 0) {
       e.preventDefault();
+      registrarDesfazer();
       deletarPropsSelecionadosEmLote();
       return;
     }
@@ -11397,20 +11454,21 @@ function initForgeUI() {
     const p = mundoPropSel;
     const passo = e.shiftKey ? 10 : 1;
     if (e.key === 'Delete' || e.key === 'Backspace') {
-      e.preventDefault();
+      e.preventDefault(); registrarDesfazer();
       MUNDO.props = MUNDO.props.filter(x => x !== p);
       mundoPropSel = null; saveMundo(); showToast('🗑️ Objeto removido');
-    } else if (e.key === 'ArrowLeft')  { e.preventDefault(); p.x -= passo; }
-    else if (e.key === 'ArrowRight') { e.preventDefault(); p.x += passo; }
-    else if (e.key === 'ArrowUp')    { e.preventDefault(); p.y -= passo; }
-    else if (e.key === 'ArrowDown')  { e.preventDefault(); p.y += passo; }
+    } else if (e.key === 'ArrowLeft')  { e.preventDefault(); registrarDesfazer(true); p.x -= passo; }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); registrarDesfazer(true); p.x += passo; }
+    else if (e.key === 'ArrowUp')    { e.preventDefault(); registrarDesfazer(true); p.y -= passo; }
+    else if (e.key === 'ArrowDown')  { e.preventDefault(); registrarDesfazer(true); p.y += passo; }
     else if (e.key === 'd' || e.key === 'D') {
+      registrarDesfazer();
       const novo = { ...p, id: `${p.prop}_${Date.now()}`, x: p.x + 40, y: p.y + 10 };
       MUNDO.props.push(novo); mundoPropSel = novo; saveMundo();
       showToast('⧉ Duplicado');
-    } else if (e.key === 'f' || e.key === 'F') { p.flipX = !p.flipX; saveMundo(); }
+    } else if (e.key === 'f' || e.key === 'F') { registrarDesfazer(); p.flipX = !p.flipX; saveMundo(); }
     else if ((e.key === 'v' || e.key === 'V') && !e.metaKey && !e.ctrlKey) {
-      p.flipY = !p.flipY; saveMundo(); showToast('⇅ Espelhado na vertical');
+      registrarDesfazer(); p.flipY = !p.flipY; saveMundo(); showToast('⇅ Espelhado na vertical');
     }
     else if (e.key === 'r' || e.key === 'R') { p.rot = 0; saveMundo(); showToast('↺ Giro zerado'); }
     else return;
