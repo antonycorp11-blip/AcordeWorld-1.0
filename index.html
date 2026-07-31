@@ -298,6 +298,7 @@
           </div>
           <button class="tool-pill save" id="mundoTestarBtn" style="width:100%;margin-top:6px">▶ Andar no mundo</button>
           <button class="tool-pill" id="mundoSalvarBtn" style="width:100%;margin-top:4px">💾 Salvar mundo</button>
+          <button class="tool-pill modo-tablet-btn" id="modoTabletBtn" style="width:100%;margin-top:6px;background:linear-gradient(135deg, #0284c7, #0369a1);color:#fff;font-weight:700;padding:8px">📱 Modo Tablet</button>
           <p class="hint" style="margin-top:8px">
             Roda do mouse dá zoom · arrastar move a câmera · ESC sai do modo andar.
             Os blocos de chão vão em <code>assets/mundo/chunks/</code> com o nome
@@ -1070,6 +1071,57 @@
     </p>
     <button class="wizard-cancel" id="wizardCancelBtn">✕ Cancelar</button>
   </div>
+</div>
+
+<!-- ═══ TABLET / MOBILE MAP EDITOR TOP DRAWER ═══ -->
+<div id="tabletTopDrawer" class="tablet-top-drawer hidden collapsed">
+  <!-- Drawer Handle Bar -->
+  <div id="tabletDrawerHandle" class="tablet-drawer-handle">
+    <span id="tabletDrawerTitle">📱 Criar Mundo (Modo Tablet & Touch)</span>
+    <button id="tabletDrawerToggleBtn" class="tablet-drawer-toggle-btn">▼</button>
+  </div>
+
+  <!-- Drawer Inner Content -->
+  <div id="tabletDrawerContent" class="tablet-drawer-content">
+    <!-- Section 1: Quick Action Tools -->
+    <div class="tablet-section">
+      <div class="tablet-section-title">🔧 Ferramentas</div>
+      <div class="tablet-tools-grid">
+        <button class="tablet-btn active" id="tabFerrPan">✋ Mover Câmera</button>
+        <button class="tablet-btn" id="tabFerrSel">⚙️ Seleção</button>
+        <button class="tablet-btn" id="tabFerrMulti">📦 Seleção Múltipla</button>
+        <button class="tablet-btn" id="tabFerrPartida">🚩 Ponto Spawn</button>
+        <button class="tablet-btn save" id="tabFerrSalvar">💾 Salvar Mundo</button>
+        <button class="tablet-btn exit" id="tabFerrSair">❌ Sair do Tablet</button>
+      </div>
+    </div>
+
+    <!-- Section 2: Pincel de Terreno / Ruas -->
+    <div class="tablet-section">
+      <div class="tablet-section-title">🛣️ Pincel de Ruas com o Dedo</div>
+      <div id="tabletMaterialsBox" class="tablet-materials-box"></div>
+      <div class="tablet-slider-row" style="margin-top:6px;display:flex;align-items:center;gap:10px">
+        <label style="font-size:12px;color:#94a3b8">Tamanho: <b id="tabPincelVal" style="color:#fbbf24">90px</b></label>
+        <input type="range" id="tabPincelSlider" min="30" max="250" value="90" style="flex:1">
+      </div>
+    </div>
+
+    <!-- Section 3: Sprites & Props Palette -->
+    <div class="tablet-section">
+      <div class="tablet-section-title">🌲 Sprites & Objetos para Plantar</div>
+      <div id="tabletPropCats" class="tablet-prop-cats"></div>
+      <div id="tabletPropPalette" class="tablet-prop-palette"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Floating Action Bar for Multi-Selection -->
+<div id="tabletMultiSelectBar" class="tablet-multi-bar hidden">
+  <span id="tabletMultiCount">0 selecionados</span>
+  <button id="tabMultiScaleUp" class="tab-action-btn">🔍+ Aumentar</button>
+  <button id="tabMultiScaleDown" class="tab-action-btn">🔍- Diminuir</button>
+  <button id="tabMultiDelete" class="tab-action-btn delete">🗑️ Apagar Todos</button>
+  <button id="tabMultiClear" class="tab-action-btn cancel">✕ Limpar</button>
 </div>
 
 <script src="game.js"></script>

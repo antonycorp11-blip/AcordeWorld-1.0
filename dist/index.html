@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
-  <link rel="stylesheet" href="style.css?v=20260730213710">
+  <link rel="stylesheet" href="style.css?v=20260730214744">
 </head>
 <body>
 
@@ -453,7 +453,58 @@
 <!-- ═══ SIGNPOST LINKING WIZARD OVERLAY ═══ -->
 
 
-<script src="config.js?v=20260730213710"></script>
-<script src="game.js?v=20260730213710"></script>
+<!-- ═══ TABLET / MOBILE MAP EDITOR TOP DRAWER ═══ -->
+<div id="tabletTopDrawer" class="tablet-top-drawer hidden collapsed">
+  <!-- Drawer Handle Bar -->
+  <div id="tabletDrawerHandle" class="tablet-drawer-handle">
+    <span id="tabletDrawerTitle">📱 Criar Mundo (Modo Tablet & Touch)</span>
+    <button id="tabletDrawerToggleBtn" class="tablet-drawer-toggle-btn">▼</button>
+  </div>
+
+  <!-- Drawer Inner Content -->
+  <div id="tabletDrawerContent" class="tablet-drawer-content">
+    <!-- Section 1: Quick Action Tools -->
+    <div class="tablet-section">
+      <div class="tablet-section-title">🔧 Ferramentas</div>
+      <div class="tablet-tools-grid">
+        <button class="tablet-btn active" id="tabFerrPan">✋ Mover Câmera</button>
+        <button class="tablet-btn" id="tabFerrSel">⚙️ Seleção</button>
+        <button class="tablet-btn" id="tabFerrMulti">📦 Seleção Múltipla</button>
+        <button class="tablet-btn" id="tabFerrPartida">🚩 Ponto Spawn</button>
+        <button class="tablet-btn save" id="tabFerrSalvar">💾 Salvar Mundo</button>
+        <button class="tablet-btn exit" id="tabFerrSair">❌ Sair do Tablet</button>
+      </div>
+    </div>
+
+    <!-- Section 2: Pincel de Terreno / Ruas -->
+    <div class="tablet-section">
+      <div class="tablet-section-title">🛣️ Pincel de Ruas com o Dedo</div>
+      <div id="tabletMaterialsBox" class="tablet-materials-box"></div>
+      <div class="tablet-slider-row" style="margin-top:6px;display:flex;align-items:center;gap:10px">
+        <label style="font-size:12px;color:#94a3b8">Tamanho: <b id="tabPincelVal" style="color:#fbbf24">90px</b></label>
+        <input type="range" id="tabPincelSlider" min="30" max="250" value="90" style="flex:1">
+      </div>
+    </div>
+
+    <!-- Section 3: Sprites & Props Palette -->
+    <div class="tablet-section">
+      <div class="tablet-section-title">🌲 Sprites & Objetos para Plantar</div>
+      <div id="tabletPropCats" class="tablet-prop-cats"></div>
+      <div id="tabletPropPalette" class="tablet-prop-palette"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Floating Action Bar for Multi-Selection -->
+<div id="tabletMultiSelectBar" class="tablet-multi-bar hidden">
+  <span id="tabletMultiCount">0 selecionados</span>
+  <button id="tabMultiScaleUp" class="tab-action-btn">🔍+ Aumentar</button>
+  <button id="tabMultiScaleDown" class="tab-action-btn">🔍- Diminuir</button>
+  <button id="tabMultiDelete" class="tab-action-btn delete">🗑️ Apagar Todos</button>
+  <button id="tabMultiClear" class="tab-action-btn cancel">✕ Limpar</button>
+</div>
+
+<script src="config.js?v=20260730214744"></script>
+<script src="game.js?v=20260730214744"></script>
 </body>
 </html>

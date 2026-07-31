@@ -11061,3 +11061,253 @@ function updateHotbarUI() {
   if (txt) txt.textContent = batalha ? 'Batalha' : 'Coleta';
   if (ico) ico.textContent = batalha ? '⚔️' : '⛏️';
 }
+
+// ── MODALIDADE TABLET EDITOR / TOUCH MAP BUILDER ──────────────────────────────
+let mundoPropsSelecionados = []; // Array de props selecionados em lote
+let caixaSelecaoMultipla = null; // { x1, y1, x2, y2 } em coordenadas do mundo
+let tabletPinchDistInicial = 0;
+let tabletZoomInicial = 1;
+
+function initModoTablet() {
+  const modoTabletBtn = document.getElementById('modoTabletBtn');
+  const drawer = document.getElementById('tabletTopDrawer');
+  const drawerHandle = document.getElementById('tabletDrawerHandle');
+  const toggleChevron = document.getElementById('tabletDrawerToggleBtn');
+  const exitBtn = document.getElementById('tabFerrSair');
+  const saveBtn = document.getElementById('tabFerrSalvar');
+
+  if (modoTabletBtn) {
+    modoTabletBtn.addEventListener('click', () => {
+      ativarModoTablet(true);
+    });
+  }
+
+  if (drawerHandle) {
+    drawerHandle.addEventListener('click', () => {
+      if (drawer) {
+        drawer.classList.toggle('collapsed');
+        if (toggleChevron) toggleChevron.textContent = drawer.classList.contains('collapsed') ? '▼' : '▲';
+      }
+    });
+  }
+
+  if (exitBtn) {
+    exitBtn.addEventListener('click', () => {
+      ativarModoTablet(false);
+    });
+  }
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      saveMundo();
+      showToast('💾 Mundo salvo com sucesso!');
+    });
+  }
+
+  // Ferramentas do Tablet Drawer
+  const bindTabBtn = (id, ferramenta) => {
+    document.getElementById(id)?.addEventListener('click', () => {
+      document.querySelectorAll('.tablet-tools-grid .tablet-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(id)?.classList.add('active');
+      mundoFerramenta = ferramenta;
+      pincelMaterial = null;
+      if (ferramenta !== 'multiselecao') {
+        caixaSelecaoMultipla = null;
+        mundoPropsSelecionados = [];
+        atualizarBarraSelecaoMultipla();
+      }
+      showToast(`Ferramenta: ${ferramenta}`);
+    });
+  };
+
+  bindTabBtn('tabFerrPan', 'mover');
+  bindTabBtn('tabFerrSel', 'selecionar');
+  bindTabBtn('tabFerrMulti', 'multiselecao');
+  bindTabBtn('tabFerrPartida', 'partida');
+
+  renderMateriaisTablet();
+  renderPropPaletteTablet();
+  initTabletMultiSelectEvents();
+
+  // Multi-Touch Pinch Zoom no Tablet
+  if (canvas) {
+    canvas.addEventListener('touchstart', (e) => {
+      if (document.body.classList.contains('tablet-editor-active') && e.touches.length === 2) {
+        const t1 = e.touches[0], t2 = e.touches[1];
+        tabletPinchDistInicial = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        tabletZoomInicial = mundoCam.zoom;
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if (document.body.classList.contains('tablet-editor-active') && e.touches.length === 2) {
+        e.preventDefault();
+        const t1 = e.touches[0], t2 = e.touches[1];
+        const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        if (tabletPinchDistInicial > 0) {
+          const fator = dist / tabletPinchDistInicial;
+          mundoCam.zoom = Math.max(0.25, Math.min(3.5, tabletZoomInicial * fator));
+        }
+      }
+    }, { passive: false });
+  }
+}
+
+function ativarModoTablet(ativar) {
+  const drawer = document.getElementById('tabletTopDrawer');
+  if (ativar) {
+    document.body.classList.add('tablet-editor-active');
+    if (drawer) {
+      drawer.classList.remove('hidden');
+      drawer.classList.remove('collapsed');
+    }
+    engineMode = 'mundo';
+    showToast('📱 Modo Tablet ativado! Abra a gaveta superior para escolher materiais e sprites.');
+  } else {
+    document.body.classList.remove('tablet-editor-active');
+    if (drawer) drawer.classList.add('hidden');
+    showToast('❌ Modo Tablet desativado.');
+  }
+}
+
+function renderMateriaisTablet() {
+  const box = document.getElementById('tabletMaterialsBox');
+  if (!box) return;
+  box.innerHTML = '';
+
+  const semMaterial = document.createElement('button');
+  semMaterial.className = 'tablet-mat-chip' + (!pincelMaterial ? ' active' : '');
+  semMaterial.textContent = '🚫 Sem Pincel';
+  semMaterial.addEventListener('click', () => {
+    pincelMaterial = null;
+    document.querySelectorAll('.tablet-mat-chip').forEach(c => c.classList.remove('active'));
+    semMaterial.classList.add('active');
+    showToast('Pincel desligado');
+  });
+  box.appendChild(semMaterial);
+
+  Object.entries(MATERIAIS).forEach(([id, d]) => {
+    const chip = document.createElement('button');
+    chip.className = 'tablet-mat-chip' + (pincelMaterial === id ? ' active' : '');
+    chip.textContent = `🛣️ ${d.nome}`;
+    chip.addEventListener('click', () => {
+      pincelMaterial = id;
+      carregarTexturaDoPincel(id);
+      document.querySelectorAll('.tablet-mat-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      showToast(`Pincel ativado: ${d.nome}`);
+    });
+    box.appendChild(chip);
+  });
+
+  const slider = document.getElementById('tabPincelSlider');
+  const val = document.getElementById('tabPincelVal');
+  if (slider) {
+    slider.value = pincelTamanho;
+    slider.addEventListener('input', (e) => {
+      pincelTamanho = parseInt(e.target.value, 10) || 90;
+      if (val) val.textContent = pincelTamanho + 'px';
+    });
+  }
+}
+
+function renderPropPaletteTablet() {
+  const catBox = document.getElementById('tabletPropCats');
+  const paletaBox = document.getElementById('tabletPropPalette');
+  if (!catBox || !paletaBox) return;
+
+  const categorias = ['tudo', 'muralhas', 'arvore', 'construcao', 'vila', 'rio', 'sagrado', 'musical'];
+  catBox.innerHTML = '';
+  
+  let catSel = 'muralhas';
+
+  const carregarPaleta = (cat) => {
+    catSel = cat;
+    catBox.querySelectorAll('.tablet-prop-cat').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+    paletaBox.innerHTML = '';
+
+    const ids = Object.keys(propDefs).filter(id => cat === 'tudo' || propDefs[id].categoria === cat);
+    ids.forEach(id => {
+      const def = propDefs[id];
+      const item = document.createElement('div');
+      item.className = 'tablet-prop-item' + (propParaColocar === id ? ' selected' : '');
+      
+      const img = document.createElement('img');
+      img.src = def.sprite || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"/>';
+      
+      const span = document.createElement('span');
+      span.textContent = def.nome || id;
+
+      item.appendChild(img);
+      item.appendChild(span);
+
+      item.addEventListener('click', () => {
+        propParaColocar = id;
+        pincelMaterial = null;
+        mundoFerramenta = 'plantar';
+        paletaBox.querySelectorAll('.tablet-prop-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+        showToast(`🌲 Prop selecionado: ${def.nome || id}`);
+      });
+
+      paletaBox.appendChild(item);
+    });
+  };
+
+  categorias.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'tablet-prop-cat' + (cat === catSel ? ' active' : '');
+    btn.dataset.cat = cat;
+    btn.textContent = cat === 'muralhas' ? '🏰 Muralhas' : (cat.charAt(0).toUpperCase() + cat.slice(1));
+    btn.addEventListener('click', () => carregarPaleta(cat));
+    catBox.appendChild(btn);
+  });
+
+  carregarPaleta('muralhas');
+}
+
+function initTabletMultiSelectEvents() {
+  const scaleUp = document.getElementById('tabMultiScaleUp');
+  const scaleDown = document.getElementById('tabMultiScaleDown');
+  const delBtn = document.getElementById('tabMultiDelete');
+  const clearBtn = document.getElementById('tabMultiClear');
+
+  scaleUp?.addEventListener('click', () => {
+    mundoPropsSelecionados.forEach(p => { p.ex = +( (p.ex || 1) * 1.1 ).toFixed(2); p.ey = +( (p.ey || 1) * 1.1 ).toFixed(2); });
+    saveMundo(); showToast('🔍+ Escala aumentada em lote');
+  });
+
+  scaleDown?.addEventListener('click', () => {
+    mundoPropsSelecionados.forEach(p => { p.ex = +( (p.ex || 1) * 0.9 ).toFixed(2); p.ey = +( (p.ey || 1) * 0.9 ).toFixed(2); });
+    saveMundo(); showToast('🔍- Escala reduzida em lote');
+  });
+
+  delBtn?.addEventListener('click', () => {
+    const removidos = mundoPropsSelecionados.length;
+    MUNDO.props = MUNDO.props.filter(p => !mundoPropsSelecionados.includes(p));
+    mundoPropsSelecionados = [];
+    caixaSelecaoMultipla = null;
+    atualizarBarraSelecaoMultipla();
+    saveMundo();
+    showToast(`🗑️ ${removidos} objetos removidos em lote!`);
+  });
+
+  clearBtn?.addEventListener('click', () => {
+    mundoPropsSelecionados = [];
+    caixaSelecaoMultipla = null;
+    atualizarBarraSelecaoMultipla();
+  });
+}
+
+function atualizarBarraSelecaoMultipla() {
+  const bar = document.getElementById('tabletMultiSelectBar');
+  const count = document.getElementById('tabletMultiCount');
+  if (!bar || !count) return;
+
+  if (mundoPropsSelecionados.length > 0) {
+    bar.classList.remove('hidden');
+    count.textContent = `${mundoPropsSelecionados.length} objetos selecionados`;
+  } else {
+    bar.classList.add('hidden');
+  }
+}
