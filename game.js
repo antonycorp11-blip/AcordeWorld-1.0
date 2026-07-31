@@ -1819,20 +1819,70 @@ const mundoBlocos = {};         // "col_row" -> { img, ultimoUso }
 function mundoLargura() { return MUNDO.cols * MUNDO.bloco.w; }
 function mundoAltura()  { return MUNDO.rows * MUNDO.bloco.h; }
 
-async function loadMundo() {
+const SUPABASE_URL = 'https://saojbwipdxebibjmtxqc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhb2pid2lwZHhlYmliam10eHFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1NzcxODMsImV4cCI6MjA4NDE1MzE4M30.X9FmXtsbqGg1N-2z6UVSW7PoZmC7vK2K-HNsLLbRpNA';
+
+async function saveMundoCloud(corpoData) {
   try {
-    const r = await fetch(`assets/mundo/mundo.json?t=${Date.now()}`);
-    if (r.ok) {
-      const d = await r.json();
-      MUNDO = { ...MUNDO, ...d };
-      // Aceita o formato antigo (escala única) e o novo (escala por eixo mais giro).
-      MUNDO.props = (d.props || []).map(p => ({
-        ...p, ex: p.ex ?? p.escala ?? 1, ey: p.ey ?? p.escala ?? 1, rot: p.rot || 0,
-        flipY: !!p.flipY,
-      }));
-      carregarPintura();
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/acordelot_worlds`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ id: 'main', data: corpoData, updated_at: new Date().toISOString() })
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function loadMundoCloud() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/acordelot_worlds?id=eq.main&select=data,updated_at`, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      if (rows && rows.length > 0 && rows[0].data) {
+        return rows[0].data;
+      }
     }
   } catch (e) {}
+  return null;
+}
+
+async function loadMundo() {
+  let loadedData = null;
+
+  // 1. Tenta carregar primeiro da nuvem Supabase Online (sincroniza entre todos os dispositivos/Vercel)
+  const cloudData = await loadMundoCloud();
+  if (cloudData) {
+    loadedData = cloudData;
+  }
+
+  // 2. Se não houver dados na nuvem, carrega do arquivo estático assets/mundo/mundo.json
+  if (!loadedData) {
+    try {
+      const r = await fetch(`assets/mundo/mundo.json?t=${Date.now()}`);
+      if (r.ok) loadedData = await r.json();
+    } catch (e) {}
+  }
+
+  if (loadedData) {
+    MUNDO = { ...MUNDO, ...loadedData };
+    MUNDO.props = (loadedData.props || []).map(p => ({
+      ...p, ex: p.ex ?? p.escala ?? 1, ey: p.ey ?? p.escala ?? 1, rot: p.rot || 0,
+      flipY: !!p.flipY,
+    }));
+    carregarPintura();
+  }
 }
 
 async function saveMundo() {
@@ -1848,26 +1898,31 @@ async function saveMundo() {
   };
   const corpo = JSON.stringify(corpoData, null, 2);
 
-  // 1. Sempre salva no localStorage para o mundo NUNCA ser perdido no navegador
-  try {
-    localStorage.setItem('acordelot_mundo_saved', corpo);
-  } catch (e) {}
+  // 1. Salva no localStorage para nunca perder o progresso no navegador
+  try { localStorage.setItem('acordelot_mundo_saved', corpo); } catch (e) {}
 
-  // 2. Tenta comunicação com o servidor HTTP local ou remoto
+  // 2. Salva ONLINE na nuvem Supabase (Vercel, Celular, Mac)
+  const cloudOk = await saveMundoCloud(corpoData);
+
+  // 3. Salva no servidor local Python se estiver rodando em localhost
+  let serverOk = false;
   try {
     const r = await fetch('/save_mundo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: corpo
     });
-    if (r.ok) {
-      showToast('🌍 Mundo salvo no servidor local');
-    } else {
-      // Vercel / hospedagem estática que não tem backend Python
-      showToast('🌍 Mundo salvo no navegador');
-    }
-  } catch (e) {
-    showToast('🌍 Mundo salvo no navegador');
+    if (r.ok) serverOk = true;
+  } catch (e) {}
+
+  if (cloudOk && serverOk) {
+    showToast('☁️ Mundo salvo ONLINE na nuvem e em disco!');
+  } else if (cloudOk) {
+    showToast('☁️ Mundo salvo ONLINE na nuvem!');
+  } else if (serverOk) {
+    showToast('🌍 Mundo salvo no servidor local');
+  } else {
+    showToast('💾 Mundo salvo no navegador');
   }
 }
 
