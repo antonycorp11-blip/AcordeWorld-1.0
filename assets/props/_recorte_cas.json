@@ -1,0 +1,37 @@
+{
+  "folha": "Medieval_cottage_sprite_sheet_202607301924.jpeg",
+  "sprites": [
+    {
+      "arquivo": "assets/props/cas1_01.png",
+      "fileira": 1,
+      "x": 226,
+      "y": 26,
+      "w": 308,
+      "h": 327
+    },
+    {
+      "arquivo": "assets/props/cas1_02.png",
+      "fileira": 1,
+      "x": 846,
+      "y": 22,
+      "w": 331,
+      "h": 332
+    },
+    {
+      "arquivo": "assets/props/cas2_01.png",
+      "fileira": 2,
+      "x": 210,
+      "y": 406,
+      "w": 322,
+      "h": 330
+    },
+    {
+      "arquivo": "assets/props/cas2_02.png",
+      "fileira": 2,
+      "x": 830,
+      "y": 406,
+      "w": 347,
+      "h": 339
+    }
+  ]
+}

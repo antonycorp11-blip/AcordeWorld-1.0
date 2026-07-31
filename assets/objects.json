@@ -1212,6 +1212,146 @@
       "raio": 35,
       "colide": true,
       "altura": 105
+    },
+    "mur1_01": {
+      "nome": "Muralha ⟷",
+      "sprite": "assets/props/mur1_01.png",
+      "categoria": "muralha",
+      "plano": "objeto",
+      "altura": 92,
+      "pe": 0.92,
+      "raio": 90,
+      "colide": true
+    },
+    "mur1_02": {
+      "nome": "Muralha ↕",
+      "sprite": "assets/props/mur1_02.png",
+      "categoria": "muralha",
+      "plano": "objeto",
+      "altura": 158,
+      "pe": 0.92,
+      "raio": 30,
+      "colide": true
+    },
+    "mur1_03": {
+      "nome": "Muralha ⌐ canto",
+      "sprite": "assets/props/mur1_03.png",
+      "categoria": "muralha",
+      "plano": "objeto",
+      "altura": 131,
+      "pe": 0.92,
+      "raio": 60,
+      "colide": true
+    },
+    "mur1_04": {
+      "nome": "Muralha ¬ canto",
+      "sprite": "assets/props/mur1_04.png",
+      "categoria": "muralha",
+      "plano": "objeto",
+      "altura": 131,
+      "pe": 0.92,
+      "raio": 60,
+      "colide": true
+    },
+    "mur2_01": {
+      "nome": "Muralha L canto",
+      "sprite": "assets/props/mur2_01.png",
+      "categoria": "muralha",
+      "plano": "objeto",
+      "altura": 124,
+      "pe": 0.92,
+      "raio": 60,
+      "colide": true
+    },
+    "mur2_02": {
+      "nome": "Muralha ⌐ canto 2",
+      "sprite": "assets/props/mur2_02.png",
+      "categoria": "muralha",
+      "plano": "objeto",
+      "altura": 124,
+      "pe": 0.92,
+      "raio": 60,
+      "colide": true
+    },
+    "mur2_03": {
+      "nome": "Muralha ¬ canto 2",
+      "sprite": "assets/props/mur2_03.png",
+      "categoria": "muralha",
+      "plano": "objeto",
+      "altura": 124,
+      "pe": 0.92,
+      "raio": 60,
+      "colide": true
+    },
+    "mur3_01": {
+      "nome": "Muralha ✛ cruzamento",
+      "sprite": "assets/props/mur3_01.png",
+      "categoria": "muralha",
+      "plano": "objeto",
+      "altura": 143,
+      "pe": 0.92,
+      "raio": 70,
+      "colide": true
+    },
+    "mur3_02": {
+      "nome": "Portão da Muralha",
+      "sprite": "assets/props/mur3_02.png",
+      "categoria": "muralha",
+      "plano": "objeto",
+      "altura": 101,
+      "pe": 0.94,
+      "raio": 0,
+      "colide": false
+    },
+    "mur3_03": {
+      "nome": "Torre da Muralha",
+      "sprite": "assets/props/mur3_03.png",
+      "categoria": "muralha",
+      "plano": "objeto",
+      "altura": 96,
+      "pe": 0.94,
+      "raio": 44,
+      "colide": true
+    },
+    "cas1_01": {
+      "nome": "Casa (frente-esquerda)",
+      "sprite": "assets/props/cas1_01.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "altura": 196,
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true
+    },
+    "cas1_02": {
+      "nome": "Casa (frente-direita)",
+      "sprite": "assets/props/cas1_02.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "altura": 199,
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true
+    },
+    "cas2_01": {
+      "nome": "Casa (fundo-esquerda)",
+      "sprite": "assets/props/cas2_01.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "altura": 198,
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true
+    },
+    "cas2_02": {
+      "nome": "Casa (fundo-direita)",
+      "sprite": "assets/props/cas2_02.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "altura": 203,
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true
     }
   },
   "objetos": [
