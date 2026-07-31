@@ -2365,6 +2365,7 @@ function initCustomProps() {
       }
     }
   } catch (e) {}
+  sincronizarMateriaisComPropDefs();
 }
 
 // ── Chão do mundo, trocável em tempo real ───────────────────────────────────────
@@ -7088,13 +7089,38 @@ function bindCanvasEvents(){
   canvas.addEventListener('mouseleave', ()=>{hoveredNPC=null;canvas.className='';});
   window.addEventListener('mouseup', onPointerUp);
 
-  // Touch: the game ships for phones in landscape, so every canvas interaction —
-  // dialogue choices, collision painting, dragging NPCs — has to work by finger.
-  // preventDefault stops the browser turning a drag into a scroll or a page zoom.
-  canvas.addEventListener('touchstart', e=>{e.preventDefault();initAudio();onPointerDown(track(getM(e)));},{passive:false});
-  canvas.addEventListener('touchmove', e=>{e.preventDefault();onPointerMove(track(getM(e)));},{passive:false});
-  window.addEventListener('touchend', onPointerUp);
-  window.addEventListener('touchcancel', onPointerUp);
+  // Touch & Multi-Touch Pinch Zoom no Celular / Tablet
+  canvas.addEventListener('touchstart', e=>{
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const t1 = e.touches[0], t2 = e.touches[1];
+      tabletPinchDistInicial = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+      tabletZoomInicial = mundoCam.zoom || 1;
+      return;
+    }
+    e.preventDefault();initAudio();onPointerDown(track(getM(e)));
+  },{passive:false});
+
+  canvas.addEventListener('touchmove', e=>{
+    if (e.touches.length === 2 && tabletPinchDistInicial > 0) {
+      e.preventDefault();
+      const t1 = e.touches[0], t2 = e.touches[1];
+      const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+      const fator = dist / tabletPinchDistInicial;
+      mundoCam.zoom = Math.max(0.15, Math.min(4.0, tabletZoomInicial * fator));
+      return;
+    }
+    e.preventDefault();onPointerMove(track(getM(e)));
+  },{passive:false});
+
+  window.addEventListener('touchend', e => {
+    if (e.touches.length < 2) tabletPinchDistInicial = 0;
+    onPointerUp();
+  });
+  window.addEventListener('touchcancel', e => {
+    tabletPinchDistInicial = 0;
+    onPointerUp();
+  });
 }
 
 // ============================================================
@@ -7156,12 +7182,40 @@ function mostrarInspetorDeObjeto(o) {
 let propCategoria = 'tudo';
 
 const NOME_DA_CATEGORIA = {
-  tudo: 'Tudo', piso: 'Piso', arvore: 'Árvores', mato: 'Mato', flor: 'Flores', pedra: 'Pedras',
-  caminho: 'Chão', chao_grama: 'Grama', agua: 'Água', agua_alta: 'Cachoeira',
+  tudo: 'Tudo', piso: 'Pisos & Ruas', arvore: 'Árvores', mato: 'Mato', flor: 'Flores', pedra: 'Pedras',
+  caminho: 'Caminhos', chao_grama: 'Grama', agua: 'Água', agua_alta: 'Cachoeira',
   sagrado: 'Sagrado', lapide: 'Lápides', magico: 'Mágico', muro: 'Muros',
   muralha: 'Muralha', construcao: 'Casas', feira: 'Feira', cidade: 'Cidade',
   vila: 'Vila', calcada: 'Calçada', ponte: 'Pontes',
 };
+
+function sincronizarMateriaisComPropDefs() {
+  if (typeof MATERIAIS === 'undefined') return;
+  Object.entries(MATERIAIS).forEach(([matId, mDef]) => {
+    if (!propDefs[matId]) {
+      propDefs[matId] = {
+        nome: mDef.nome,
+        sprite: mDef.arquivo,
+        categoria: 'piso',
+        plano: 'chao',
+        pe: 1,
+        raio: 0,
+        colide: false
+      };
+    }
+    if (!propSprites[matId]) {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          propSprites[matId] = prepareSprite(img);
+          renderPaletaDeProps();
+          renderPropPaletteTablet();
+        } catch (e) {}
+      };
+      img.src = mDef.arquivo;
+    }
+  });
+}
 
 // ── Lupa: segurar sobre a peça para vê-la grande ────────────────────────────────
 // A miniatura de 34px serve para achar a peça, não para julgá-la: não dá para ver se o
