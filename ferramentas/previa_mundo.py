@@ -46,7 +46,9 @@ def render(destino_geral, recortes=()):
             ny=ax*sn+ay*c + grande.height/2
             im2=grande; ancora=(nx,ny)
         tela.paste(im2,(int(p['x']-ancora[0]), int(p['y']-ancora[1])), im2)
-    ps=mundo['props']
+    # Props órfãos (removidos do catálogo depois de plantados) não podem derrubar a
+    # prévia: some com eles em silêncio, como o jogo já faz.
+    ps=[p for p in mundo['props'] if p['prop'] in cat]
     for p in ps:
         if cat[p['prop']].get('plano')=='chao': desenha(p)
     for p in sorted([q for q in ps if cat[q['prop']].get('plano')!='chao'], key=lambda q:q['y']):
