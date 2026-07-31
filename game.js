@@ -2399,9 +2399,27 @@ function renderMundo(now) {
         ctx.stroke();
       }
       ctx.restore();
-      if (mundoPropSel === p) renderCaixaDeSelecao(p, b);
+      if (mundoPropSel === p || (mundoPropsSelecionados && mundoPropsSelecionados.includes(p))) {
+        renderCaixaDeSelecao(p, b);
+      }
     }
   });
+
+  // Render da Caixa de Drag de Seleção Múltipla
+  if (caixaSelecaoMultipla) {
+    ctx.save();
+    const x = Math.min(caixaSelecaoMultipla.x1, caixaSelecaoMultipla.x2);
+    const y = Math.min(caixaSelecaoMultipla.y1, caixaSelecaoMultipla.y2);
+    const w = Math.abs(caixaSelecaoMultipla.x2 - caixaSelecaoMultipla.x1);
+    const h = Math.abs(caixaSelecaoMultipla.y2 - caixaSelecaoMultipla.y1);
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.18)';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2 / (mundoCam.zoom || 1);
+    ctx.setLineDash([6 / (mundoCam.zoom || 1), 4 / (mundoCam.zoom || 1)]);
+    ctx.strokeRect(x, y, w, h);
+    ctx.restore();
+  }
 
   renderTracadoDeEstrada();
 
@@ -2642,6 +2660,16 @@ function mundoPointerDown(m) {
     saveMundo(); showToast('🚩 Ponto de partida movido');
     return;
   }
+
+  // Seleção Múltipla via Caixa de Seleção (Mouse ou Touch)
+  if (mundoFerramenta === 'multiselecao' || (keys.shift && !pincelMaterial && !propParaColocar)) {
+    caixaSelecaoMultipla = { x1: w.x, y1: w.y, x2: w.x, y2: w.y };
+    arrastandoCaixaSelecao = true;
+    mundoPropsSelecionados = [];
+    atualizarBarraSelecaoMultipla();
+    return;
+  }
+
   const p = mundoPropEm(w.x, w.y);
   // Selecionar e arrastar valem em qualquer ferramenta menos a de mover câmera: exigir
   // trocar de ferramenta para mexer num objeto que você acabou de plantar é atrito puro.
@@ -2650,13 +2678,26 @@ function mundoPointerDown(m) {
     dragOffX = w.x - p.x; dragOffY = w.y - p.y;
     return;
   }
+  // Se clicou na área vazia sem ferramenta de multiseleção, limpa seleção anterior
+  if (!p && mundoFerramenta !== 'multiselecao') {
+    mundoPropsSelecionados = [];
+    atualizarBarraSelecaoMultipla();
+  }
   // Nada sob o dedo: arrasta a câmera — mas só parado. Andando, a câmera segue o
   // personagem, e arrastá-la brigaria com ele a cada quadro.
   if (!mundoTeste) mundoPan = { telaX: m.x, telaY: m.y, camX: mundoCam.x, camY: mundoCam.y };
   if (!p) mundoPropSel = null;
 }
 
+let arrastandoCaixaSelecao = false;
+
 function mundoPointerMove(m) {
+  if (arrastandoCaixaSelecao && caixaSelecaoMultipla) {
+    const w = mundoDoPonteiro(m);
+    caixaSelecaoMultipla.x2 = w.x;
+    caixaSelecaoMultipla.y2 = w.y;
+    return;
+  }
   if (pinturaAtiva && pincelModo === 'estrada') {
     const w = mundoDoPonteiro(m);
     estradaAte = travarAngulo(estradaDe.x, estradaDe.y, w.x, w.y, keys.shift);
@@ -2670,8 +2711,21 @@ function mundoPointerMove(m) {
   }
   if (mundoArrastando) {
     const w = mundoDoPonteiro(m);
-    mundoArrastando.x = Math.round(w.x - dragOffX);
-    mundoArrastando.y = Math.round(w.y - dragOffY);
+    const newX = Math.round(w.x - dragOffX);
+    const newY = Math.round(w.y - dragOffY);
+    
+    // Se o objeto arrastado faz parte de uma seleção múltipla, move todos juntos!
+    if (mundoPropsSelecionados.includes(mundoArrastando)) {
+      const dx = newX - mundoArrastando.x;
+      const dy = newY - mundoArrastando.y;
+      mundoPropsSelecionados.forEach(item => {
+        item.x += dx;
+        item.y += dy;
+      });
+    } else {
+      mundoArrastando.x = newX;
+      mundoArrastando.y = newY;
+    }
     return;
   }
   if (mundoPan) {
@@ -2684,6 +2738,26 @@ function mundoPointerMove(m) {
 }
 
 function mundoPointerUp() {
+  if (arrastandoCaixaSelecao && caixaSelecaoMultipla) {
+    arrastandoCaixaSelecao = false;
+    const xMin = Math.min(caixaSelecaoMultipla.x1, caixaSelecaoMultipla.x2);
+    const xMax = Math.max(caixaSelecaoMultipla.x1, caixaSelecaoMultipla.x2);
+    const yMin = Math.min(caixaSelecaoMultipla.y1, caixaSelecaoMultipla.y2);
+    const yMax = Math.max(caixaSelecaoMultipla.y1, caixaSelecaoMultipla.y2);
+
+    if (xMax - xMin > 5 || yMax - yMin > 5) {
+      mundoPropsSelecionados = MUNDO.props.filter(p => {
+        const b = mundoPropBounds(p);
+        return b.x < xMax && (b.x + b.w) > xMin && b.y < yMax && (b.y + b.h) > yMin;
+      });
+      showToast(`📦 ${mundoPropsSelecionados.length} objetos selecionados`);
+    } else {
+      mundoPropsSelecionados = [];
+    }
+    caixaSelecaoMultipla = null;
+    atualizarBarraSelecaoMultipla();
+    return;
+  }
   if (pinturaAtiva && pincelModo === 'estrada') {
     pinturaAtiva = false;
     if (estradaDe && estradaAte) {
@@ -10483,7 +10557,7 @@ function initForgeUI() {
   // ── Criador de mundo ──────────────────────────────────────────────────────────
   const marcarFerramenta = () => {
     const mapa = { mover:'mundoFerrMover', plantar:'mundoFerrPlantar',
-                   selecionar:'mundoFerrSel', partida:'mundoFerrPartida' };
+                   selecionar:'mundoFerrSel', multiselecao:'mundoFerrMulti', partida:'mundoFerrPartida' };
     Object.entries(mapa).forEach(([f, id]) =>
       document.getElementById(id)?.classList.toggle('ativo', mundoFerramenta === f));
   };
@@ -10491,10 +10565,14 @@ function initForgeUI() {
     mundoFerramenta = f; marcarFerramenta();
     if (f === 'plantar' && !propParaColocar)
       showToast('🌲 Escolha um prop na aba Objetos primeiro');
+    else if (f === 'multiselecao')
+      showToast('📦 Arraste o mouse/dedo sobre a tela para selecionar vários objetos de uma vez');
   };
   document.getElementById('mundoFerrMover')?.addEventListener('click', () => usarFerramenta('mover'));
   document.getElementById('mundoFerrPlantar')?.addEventListener('click', () => usarFerramenta('plantar'));
   document.getElementById('mundoFerrSel')?.addEventListener('click', () => usarFerramenta('selecionar'));
+  document.getElementById('mundoFerrMulti')?.addEventListener('click', () => usarFerramenta('multiselecao'));
+  document.getElementById('mundoFerrDeletarMulti')?.addEventListener('click', () => deletarPropsSelecionadosEmLote());
   document.getElementById('mundoFerrPartida')?.addEventListener('click', () => usarFerramenta('partida'));
   document.getElementById('mundoTestarBtn')?.addEventListener('click', () => mundoTestar(!mundoTeste));
   document.getElementById('mundoSalvarBtn')?.addEventListener('click', saveMundo);
@@ -10522,8 +10600,17 @@ function initForgeUI() {
 
   // Apagar objeto do mundo com Delete, que é o gesto de todo editor.
   window.addEventListener('keydown', e => {
-    if (engineMode !== 'mundo' || !mundoPropSel) return;
+    if (engineMode !== 'mundo') return;
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;
+    
+    // Se há múltiplos objetos selecionados, Delete apaga todos!
+    if ((e.key === 'Delete' || e.key === 'Backspace') && mundoPropsSelecionados && mundoPropsSelecionados.length > 0) {
+      e.preventDefault();
+      deletarPropsSelecionadosEmLote();
+      return;
+    }
+
+    if (!mundoPropSel) return;
     // Andando, D é "ir para a direita" e as setas também andam: só Delete sobrevive.
     if (mundoTeste && !['Delete', 'Backspace'].includes(e.key)) return;
     const p = mundoPropSel;
@@ -11312,15 +11399,33 @@ function initTabletMultiSelectEvents() {
   });
 }
 
+function deletarPropsSelecionadosEmLote() {
+  if (!mundoPropsSelecionados || !mundoPropsSelecionados.length) return;
+  const qtd = mundoPropsSelecionados.length;
+  MUNDO.props = MUNDO.props.filter(p => !mundoPropsSelecionados.includes(p));
+  mundoPropsSelecionados = [];
+  caixaSelecaoMultipla = null;
+  atualizarBarraSelecaoMultipla();
+  saveMundo();
+  showToast(`🗑️ ${qtd} objetos excluídos em lote!`);
+}
+
 function atualizarBarraSelecaoMultipla() {
+  const countSpan = document.getElementById('countSelMulti');
+  const btnDeletar = document.getElementById('mundoFerrDeletarMulti');
+  if (countSpan) countSpan.textContent = mundoPropsSelecionados.length;
+  if (btnDeletar) {
+    btnDeletar.style.display = mundoPropsSelecionados.length > 0 ? 'block' : 'none';
+  }
+
   const bar = document.getElementById('tabletMultiSelectBar');
   const count = document.getElementById('tabletMultiCount');
-  if (!bar || !count) return;
-
-  if (mundoPropsSelecionados.length > 0) {
-    bar.classList.remove('hidden');
-    count.textContent = `${mundoPropsSelecionados.length} objetos selecionados`;
-  } else {
-    bar.classList.add('hidden');
+  if (bar && count) {
+    if (mundoPropsSelecionados.length > 0) {
+      bar.classList.remove('hidden');
+      count.textContent = `${mundoPropsSelecionados.length} objetos selecionados`;
+    } else {
+      bar.classList.add('hidden');
+    }
   }
 }
