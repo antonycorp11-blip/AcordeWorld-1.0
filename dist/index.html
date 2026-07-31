@@ -25,6 +25,39 @@
   
 
   <!-- ═══ MAIN WORKSPACE (LEFT SIDEBAR EDITOR + RIGHT GAME CANVAS) ═══ -->
+  <!-- ═══ BARRA DE FERRAMENTAS DO CRIADOR DE MUNDO ═══
+       Fica no topo, sobre o mapa: ferramentas, pincéis, ambiente e chão. O mapa não sai
+       do lugar — quem se move em volta dele são os controles. -->
+  <div id="mundoBarra">
+    <div class="mb-grupo" id="mbFerramentas"></div>
+    <div class="mb-sep"></div>
+    <div class="mb-grupo" id="mbPinceis"></div>
+    <div class="mb-sep"></div>
+    <div class="mb-grupo" id="mbAmbiente"></div>
+    <div class="mb-sep"></div>
+    <div class="mb-grupo" id="mbChao">
+      <label class="mb-campo">Chão
+        <select id="chaoTextura" class="mb-select"></select>
+      </label>
+      <label class="mb-campo">Brilho
+        <input type="range" id="chaoBrilho" min="40" max="180" value="100" class="mb-range">
+        <b id="chaoBrilhoVal">100%</b>
+      </label>
+    </div>
+    <div class="mb-espaco"></div>
+    <div class="mb-grupo" id="mbAcoes"></div>
+  </div>
+
+  <!-- ═══ DOCA DE ASSETS (DIREITA) ═══ -->
+  <aside id="assetDock">
+    <div class="dock-abas">
+      <button class="dock-aba ativa" data-doca="props">🌲 Assets</button>
+      <button class="dock-aba" data-doca="recorte">✂️ Extrair</button>
+    </div>
+    <div id="doca-props" class="dock-corpo"></div>
+    <div id="doca-recorte" class="dock-corpo hidden"></div>
+  </aside>
+
   <div id="main-editor-layout">
 
   <!-- ═══ LEFT SIDEBAR (EDITOR PANEL) ═══ -->

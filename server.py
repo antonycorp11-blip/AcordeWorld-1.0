@@ -33,6 +33,13 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
 
+    def do_GET(self):
+        """/edit abre o editor direto. É o app principal agora — o jogo antigo continua
+        em / como base, mas quem trabalha no mundo entra por aqui."""
+        if self.path.rstrip('/') in ('/edit', '/editor'):
+            self.path = '/index.html'
+        return super().do_GET()
+
     def do_POST(self):
         content_length = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(content_length)

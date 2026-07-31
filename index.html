@@ -53,6 +53,39 @@
   </header>
 
   <!-- ═══ MAIN WORKSPACE (LEFT SIDEBAR EDITOR + RIGHT GAME CANVAS) ═══ -->
+  <!-- ═══ BARRA DE FERRAMENTAS DO CRIADOR DE MUNDO ═══
+       Fica no topo, sobre o mapa: ferramentas, pincéis, ambiente e chão. O mapa não sai
+       do lugar — quem se move em volta dele são os controles. -->
+  <div id="mundoBarra">
+    <div class="mb-grupo" id="mbFerramentas"></div>
+    <div class="mb-sep"></div>
+    <div class="mb-grupo" id="mbPinceis"></div>
+    <div class="mb-sep"></div>
+    <div class="mb-grupo" id="mbAmbiente"></div>
+    <div class="mb-sep"></div>
+    <div class="mb-grupo" id="mbChao">
+      <label class="mb-campo">Chão
+        <select id="chaoTextura" class="mb-select"></select>
+      </label>
+      <label class="mb-campo">Brilho
+        <input type="range" id="chaoBrilho" min="40" max="180" value="100" class="mb-range">
+        <b id="chaoBrilhoVal">100%</b>
+      </label>
+    </div>
+    <div class="mb-espaco"></div>
+    <div class="mb-grupo" id="mbAcoes"></div>
+  </div>
+
+  <!-- ═══ DOCA DE ASSETS (DIREITA) ═══ -->
+  <aside id="assetDock">
+    <div class="dock-abas">
+      <button class="dock-aba ativa" data-doca="props">🌲 Assets</button>
+      <button class="dock-aba" data-doca="recorte">✂️ Extrair</button>
+    </div>
+    <div id="doca-props" class="dock-corpo"></div>
+    <div id="doca-recorte" class="dock-corpo hidden"></div>
+  </aside>
+
   <div id="main-editor-layout">
 
   <!-- ═══ LEFT SIDEBAR (EDITOR PANEL) ═══ -->
@@ -332,6 +365,18 @@
             Folha grande (2700×1500) leva uns 30 segundos e a tela fica parada durante
             a conta — é normal, não travou.
           </p>
+          <div class="rec-lote">
+            <div class="rec-lote-tit">Aplicar a todas de uma vez</div>
+            <div class="rec-ctrls">
+              <label><span>Prefixo do nome</span>
+                <input type="text" id="recPrefixo" class="insp-input" placeholder="ex: arvore"></label>
+              <label><span>Categoria</span>
+                <select id="recCatTodos" class="insp-input"></select></label>
+            </div>
+            <button class="tool-pill" id="recAplicarTodos" style="width:100%;margin-top:5px">
+              ⇊ Aplicar a todas
+            </button>
+          </div>
           <div id="recResumo" class="hint" style="margin:8px 0 4px"></div>
           <div id="recResultados" class="rec-grade"></div>
           <button class="tool-pill save" id="recGravar" style="width:100%;margin-top:8px">💾 Gravar no catálogo</button>

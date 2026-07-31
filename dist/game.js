@@ -2231,6 +2231,114 @@ async function recGravar() {
   renderPaletaDeProps();
 }
 
+// ── Chão do mundo, trocável em tempo real ───────────────────────────────────────
+// Antes o chão era um JPEG por bloco, gerado por script: trocar a grama exigia rodar
+// ferramenta por fora e regravar 70 arquivos. Agora é UMA textura ladrilhada na hora,
+// alinhada ao mundo, com brilho ajustável. Trocar a grama do mapa inteiro passa a ser
+// escolher no menu.
+const TEXTURAS_DE_CHAO = [
+  ['grama_campo_3',  'Grama clara'],
+  ['grama_campo_1',  'Grama de campo'],
+  ['grama_escura_3', 'Grama de mata'],
+  ['grama_escura_1', 'Mato fechado'],
+  ['terra_1',        'Terra'],
+  ['areia_1',        'Areia'],
+  ['folhas_1',       'Folhas secas'],
+  ['piso_calcada',   'Pedra'],
+  ['laje_1',         'Laje antiga'],
+];
+const chaoCache = {};
+
+function texturaDoChao(id) {
+  if (chaoCache[id]) return chaoCache[id];
+  const reg = { pronta: false };
+  const img = new Image();
+  img.onload = () => {
+    const div = 3;
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(img.width / div));
+    c.height = Math.max(1, Math.round(img.height / div));
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    reg.tela = c; reg.pronta = true;
+  };
+  img.src = `assets/texturas/${id}.jpg`;
+  chaoCache[id] = reg;
+  return reg;
+}
+
+function renderChaoDoMundo(f) {
+  const cfg = MUNDO.chao;
+  if (!cfg || !cfg.textura) return false;
+  const tex = texturaDoChao(cfg.textura);
+  if (!tex.pronta) return false;
+  const pad = ctx.createPattern(tex.tela, 'repeat');
+  // Ancorado no mundo, não na câmera: sem isto o chão escorregaria junto com o olhar.
+  pad.setTransform(new DOMMatrix().translate(0, 0));
+  ctx.save();
+  if (cfg.brilho && Math.abs(cfg.brilho - 1) > 0.01) ctx.filter = `brightness(${cfg.brilho})`;
+  ctx.fillStyle = pad;
+  ctx.fillRect(0, 0, mundoLargura(), mundoAltura());
+  ctx.restore();
+  return true;
+}
+
+// ── Blocos fantasma: o mundo cresce onde você mandar ────────────────────────────
+// Afastando o zoom aparece o vazio em volta e, nele, as células que ainda não existem.
+// Clicar numa delas estende o mundo naquela direção. É o gesto que faltava para o mapa
+// deixar de ter tamanho fixo decidido no início.
+function mundoGhostEm(wx, wy) {
+  const BW = MUNDO.bloco.w, BH = MUNDO.bloco.h;
+  const c = Math.floor(wx / BW), l = Math.floor(wy / BH);
+  const dentro = c >= 0 && l >= 0 && c < MUNDO.cols && l < MUNDO.rows;
+  if (dentro) return null;
+  // só o anel imediato: crescer aos pulos deixaria buracos no meio
+  if (c < -1 || l < -1 || c > MUNDO.cols || l > MUNDO.rows) return null;
+  return { c, l };
+}
+
+function mundoExpandir(g) {
+  const BW = MUNDO.bloco.w, BH = MUNDO.bloco.h;
+  if (g.c >= MUNDO.cols) MUNDO.cols++;
+  else if (g.l >= MUNDO.rows) MUNDO.rows++;
+  else if (g.c < 0) {
+    // crescer para o oeste move a origem: todo o conteúdo anda um bloco para a direita
+    MUNDO.cols++;
+    MUNDO.props.forEach(p => { p.x += BW; });
+    if (MUNDO.spawn) MUNDO.spawn.x += BW;
+    mundoCam.x += BW;
+  } else if (g.l < 0) {
+    MUNDO.rows++;
+    MUNDO.props.forEach(p => { p.y += BH; });
+    if (MUNDO.spawn) MUNDO.spawn.y += BH;
+    mundoCam.y += BH;
+  }
+  saveMundo();
+  showToast(`🧱 Mundo agora tem ${MUNDO.cols}x${MUNDO.rows} blocos`);
+}
+
+function renderGhosts() {
+  const BW = MUNDO.bloco.w, BH = MUNDO.bloco.h;
+  const z = mundoCam.zoom || 1;
+  ctx.save();
+  ctx.lineWidth = 2 / z;
+  ctx.font = `bold ${Math.round(46 / z)}px Outfit, sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let c = -1; c <= MUNDO.cols; c++) {
+    for (let l = -1; l <= MUNDO.rows; l++) {
+      if (c >= 0 && l >= 0 && c < MUNDO.cols && l < MUNDO.rows) continue;
+      if ((c < 0 || c >= MUNDO.cols) && (l < 0 || l >= MUNDO.rows)) continue;  // só ortogonais
+      const x = c * BW, y = l * BH;
+      ctx.setLineDash([12 / z, 9 / z]);
+      ctx.strokeStyle = 'rgba(125,211,252,.45)';
+      ctx.strokeRect(x + 6 / z, y + 6 / z, BW - 12 / z, BH - 12 / z);
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(125,211,252,.30)';
+      ctx.fillText('+', x + BW / 2, y + BH / 2);
+    }
+  }
+  ctx.restore();
+}
+
 // ── Ambiente: hora, vento e chuva ───────────────────────────────────────────────
 // Um punhado de números manda em tudo. O vento é o principal: ele inclina as copas,
 // deita a chuva e arrasta as folhas — e como é UM valor só, tudo se move no mesmo
@@ -2634,10 +2742,16 @@ function mundoDoPonteiro(m) {
   return { x: mundoCam.x + m.x / mundoCam.zoom, y: mundoCam.y + m.y / mundoCam.zoom };
 }
 
+// Folga em volta do mundo: no editor a câmera pode passar da borda para você ver o
+// vazio e os blocos que dá para acrescentar. Andando, ela continua presa ao mapa.
+function folgaDaCamera() {
+  return mundoTeste ? 0 : Math.max(MUNDO.bloco.w, MUNDO.bloco.h) * 1.2;
+}
 function mundoCentralizarEm(x, y) {
   const vw = SCREEN_W / mundoCam.zoom, vh = SCREEN_H / mundoCam.zoom;
-  mundoCam.x = Math.max(0, Math.min(mundoLargura() - vw, x - vw / 2));
-  mundoCam.y = Math.max(0, Math.min(mundoAltura() - vh, y - vh / 2));
+  const m = folgaDaCamera();
+  mundoCam.x = Math.max(-m, Math.min(Math.max(-m, mundoLargura() - vw + m), x - vw / 2));
+  mundoCam.y = Math.max(-m, Math.min(Math.max(-m, mundoAltura() - vh + m), y - vh / 2));
 }
 
 // ── Desenho ─────────────────────────────────────────────────────────────────────
@@ -2652,12 +2766,19 @@ function renderMundo(now) {
   ctx.scale(mundoCam.zoom, mundoCam.zoom);
   ctx.translate(-mundoCam.x, -mundoCam.y);
 
-  // chão
+  // chão: a textura global primeiro; os blocos JPEG ficam de reserva para mundos
+  // antigos que ainda dependem deles
+  const chaoGlobal = renderChaoDoMundo();
   const f = mundoFaixaVisivel();
   for (let c = f.c0; c <= f.c1; c++) {
     for (let r = f.r0; r <= f.r1; r++) {
       const k = `${c}_${r}`, bl = mundoBlocos[k];
       const x = c * MUNDO.bloco.w, y = r * MUNDO.bloco.h;
+      if (chaoGlobal) {
+        const pin = blocosPintados[k];
+        if (pin) ctx.drawImage(pin, x, y);
+        continue;
+      }
       if (bl?.img.complete && bl.img.naturalWidth) {
         try { ctx.drawImage(bl.img, x, y, MUNDO.bloco.w, MUNDO.bloco.h); } catch (e) {}
         const pin = blocosPintados[k];
@@ -2704,6 +2825,8 @@ function renderMundo(now) {
     const spr = propSprites[p.prop]; if (!spr) return;
     desenharProp(spr, p, mundoPropBounds(p), now);
   });
+
+  if (!mundoTeste) renderGhosts();
 
   // props e jogador, ordenados pelo pé: é isto que faz passar atrás da árvore
   const desenhaveis = MUNDO.props
@@ -2970,6 +3093,13 @@ function mundoPointerDown(m) {
     pinturaAtiva = true; pincelar(w.x, w.y); return;
   }
 
+  // Fora do mapa: se for uma célula de expansão, cresce ali. Vem antes de tudo porque
+  // ali não existe prop nem pintura para disputar o clique.
+  if (!mundoTeste) {
+    const g = mundoGhostEm(w.x, w.y);
+    if (g) { mundoExpandir(g); return; }
+  }
+
   // Com o pincel ligado, ele ganha de tudo — inclusive das alças do objeto que estiver
   // selecionado. Testar a alça primeiro fazia o traço morrer perto de qualquer objeto
   // selecionado, e o motivo era invisível.
@@ -3068,9 +3198,10 @@ function mundoPointerMove(m) {
   }
   if (mundoPan) {
     const vw = SCREEN_W / mundoCam.zoom, vh = SCREEN_H / mundoCam.zoom;
-    mundoCam.x = Math.max(0, Math.min(mundoLargura() - vw,
+    const mg = folgaDaCamera();
+    mundoCam.x = Math.max(-mg, Math.min(Math.max(-mg, mundoLargura() - vw + mg),
       mundoPan.camX - (m.x - mundoPan.telaX) / mundoCam.zoom));
-    mundoCam.y = Math.max(0, Math.min(mundoAltura() - vh,
+    mundoCam.y = Math.max(-mg, Math.min(Math.max(-mg, mundoAltura() - vh + mg),
       mundoPan.camY - (m.y - mundoPan.telaY) / mundoCam.zoom));
   }
 }
@@ -3114,7 +3245,7 @@ function mundoPointerUp() {
 
 function mundoZoom(delta) {
   const antes = mundoCam.zoom;
-  mundoCam.zoom = Math.max(0.25, Math.min(3, mundoCam.zoom * (delta > 0 ? 0.9 : 1.1)));
+  mundoCam.zoom = Math.max(0.12, Math.min(3, mundoCam.zoom * (delta > 0 ? 0.9 : 1.1)));
   // Mantém o centro da tela olhando para o mesmo ponto do mundo.
   const vwA = SCREEN_W / antes, vhA = SCREEN_H / antes;
   const vwD = SCREEN_W / mundoCam.zoom, vhD = SCREEN_H / mundoCam.zoom;
@@ -8533,6 +8664,9 @@ function setMode(mode){
   // de desenhar por cima dele.
   weMostrar(mode==='worldmap');
   document.getElementById('mundoToolsGroup')?.style.setProperty('display',mode==='mundo'?'':'none');
+  // A classe no body é o que troca o layout inteiro: barra em cima, doca à direita,
+  // barra lateral antiga fora de cena.
+  document.body.classList.toggle('modo-mundo', mode === 'mundo');
   if(mode==='mundo'){ mundoTeste=false; renderPaletaDeProps(); }
   // Show/hide tool groups
   document.getElementById('sceneToolsGroup')?.style.setProperty('display',mode==='scene'?'':'none');
@@ -9680,6 +9814,11 @@ async function finishInit(){
   await loadWorldConfig();await loadLayers();await loadNPCs();await loadQuests();await loadShopCatalog();await loadMonsters();await loadObjetos();await loadMundo();await loadSkillTree();
   refreshMapSelect();
   renderQuestBuilderList();
+  // /edit entra direto no Criador de Mundo: é o app principal agora, e ninguém quer
+  // atravessar o editor de cenários antigo para chegar no mapa.
+  if (/^\/(edit|editor)\/?$/.test(location.pathname)) {
+    setTimeout(() => document.querySelector('[data-mode="mundo"]')?.click(), 300);
+  }
   // A paleta de props precisa de duas passadas: uma agora, com o catálogo já lido, e
   // outra quando os PNGs terminarem de decodificar — só então há miniatura para mostrar.
   renderPaletaDeProps();
@@ -10796,6 +10935,78 @@ function initForgeUI() {
   document.getElementById('pecaTom')?.addEventListener('click', () => colocarIntervalo('T'));
   document.getElementById('pecaSemitom')?.addEventListener('click', () => colocarIntervalo('S'));
 
+  // ── Reorganização da tela do Criador de Mundo ─────────────────────────────────
+  // MOVO os elementos que já existem em vez de recriá-los: assim todos os eventos já
+  // ligados continuam valendo, e não há risco de dois controles disputando o mesmo
+  // estado. Ferramentas e ambiente sobem para a barra; assets e extração vão para a
+  // doca da direita; o mapa não sai do lugar.
+  const mover = (de, para) => {
+    const a = document.getElementById(de), b = document.getElementById(para);
+    if (a && b) b.appendChild(a);
+  };
+  (() => {
+    const barraF = document.getElementById('mbFerramentas');
+    const barraP = document.getElementById('mbPinceis');
+    const barraA = document.getElementById('mbAmbiente');
+    const barraX = document.getElementById('mbAcoes');
+    if (!barraF) return;
+
+    ['mundoFerrMover','mundoFerrPlantar','mundoFerrSel','mundoFerrPartida']
+      .forEach(id => { const el = document.getElementById(id); if (el) barraF.appendChild(el); });
+    ['pincelMateriais','pincelModoBox','pincelTamanhoBox']
+      .forEach(id => { const el = document.getElementById(id); if (el) barraP.appendChild(el); });
+    const amb = document.querySelector('.ambiente-box');
+    if (amb) barraA.appendChild(amb);
+    ['mundoTestarBtn','mundoSalvarBtn']
+      .forEach(id => { const el = document.getElementById(id); if (el) barraX.appendChild(el); });
+
+    // doca: paleta de props e o extrator
+    ['propCats','propPaleta','propContagem'].forEach(id => mover(id, 'doca-props'));
+    const rec = document.getElementById('btab-recortar');
+    if (rec) { rec.classList.remove('hidden', 'btab-content'); document.getElementById('doca-recorte')?.appendChild(rec); }
+
+    document.querySelectorAll('.dock-aba').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('.dock-aba').forEach(x => x.classList.toggle('ativa', x === b));
+      document.getElementById('doca-props')?.classList.toggle('hidden', b.dataset.doca !== 'props');
+      document.getElementById('doca-recorte')?.classList.toggle('hidden', b.dataset.doca !== 'recorte');
+    }));
+  })();
+
+  // ── Chão global ───────────────────────────────────────────────────────────────
+  const selChao = document.getElementById('chaoTextura');
+  if (selChao) {
+    TEXTURAS_DE_CHAO.forEach(([id, rot]) => {
+      const o = document.createElement('option'); o.value = id; o.textContent = rot;
+      selChao.appendChild(o);
+    });
+    const aplicarChao = () => {
+      MUNDO.chao = MUNDO.chao || {};
+      MUNDO.chao.textura = selChao.value;
+      MUNDO.chao.brilho = (parseInt(document.getElementById('chaoBrilho').value, 10) || 100) / 100;
+      const v = document.getElementById('chaoBrilhoVal');
+      if (v) v.textContent = Math.round(MUNDO.chao.brilho * 100) + '%';
+      texturaDoChao(MUNDO.chao.textura);
+      saveMundo();
+    };
+    selChao.addEventListener('change', aplicarChao);
+    document.getElementById('chaoBrilho')?.addEventListener('input', () => {
+      MUNDO.chao = MUNDO.chao || { textura: selChao.value };
+      MUNDO.chao.brilho = (parseInt(document.getElementById('chaoBrilho').value, 10) || 100) / 100;
+      const v = document.getElementById('chaoBrilhoVal');
+      if (v) v.textContent = Math.round(MUNDO.chao.brilho * 100) + '%';
+    });
+    document.getElementById('chaoBrilho')?.addEventListener('change', aplicarChao);
+    setTimeout(() => {
+      if (MUNDO.chao?.textura) {
+        selChao.value = MUNDO.chao.textura;
+        const b = document.getElementById('chaoBrilho');
+        if (b) { b.value = Math.round((MUNDO.chao.brilho ?? 1) * 100);
+                 document.getElementById('chaoBrilhoVal').textContent = b.value + '%'; }
+        texturaDoChao(MUNDO.chao.textura);
+      }
+    }, 1500);
+  }
+
   // ── Recortador de assets ──────────────────────────────────────────────────────
   document.getElementById('recArquivo')?.addEventListener('change', e => {
     const arq = e.target.files?.[0];
@@ -10832,6 +11043,34 @@ function initForgeUI() {
       }
       btn.disabled = false; btn.textContent = '🔍 Analisar folha';
     }, 60);
+  });
+
+  // Categoria e nome para TODAS de uma vez: com 40 recortes por folha, digitar peça
+  // por peça é o que fazia o recortador não compensar.
+  const selTodos = document.getElementById('recCatTodos');
+  if (selTodos) {
+    Object.keys(PRESETS).forEach(k => {
+      const o = document.createElement('option');
+      o.value = k; o.textContent = NOME_DA_CATEGORIA[k] || k;
+      selTodos.appendChild(o);
+    });
+  }
+  document.getElementById('recAplicarTodos')?.addEventListener('click', () => {
+    if (!REC.achados.length) { showToast('⚠️ Analise uma folha primeiro'); return; }
+    const cat = selTodos?.value || 'arvore';
+    const pre = (document.getElementById('recPrefixo')?.value || '').trim();
+    REC.achados.forEach((a, i) => {
+      a.categoria = cat;
+      if (pre) {
+        const base = pre.replace(/[^a-z0-9_]+/gi, '_').toLowerCase();
+        a.nome = `${base}_${String(i + 1).padStart(2, '0')}`;
+        a.rotulo = `${pre} ${i + 1}`;
+      }
+      // os números de física voltam ao preset da categoria escolhida
+      delete a.altura2; delete a.pe2; delete a.raio2;
+    });
+    recRenderResultados();
+    showToast(`⇊ ${REC.achados.length} peça(s) como ${NOME_DA_CATEGORIA[cat] || cat}`);
   });
 
   document.getElementById('recGravar')?.addEventListener('click', recGravar);

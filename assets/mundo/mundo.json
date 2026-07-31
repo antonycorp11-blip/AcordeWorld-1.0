@@ -7883,5 +7883,9 @@
       "rot": 0,
       "flipX": false
     }
-  ]
+  ],
+  "chao": {
+    "textura": "grama_campo_3",
+    "brilho": 0.9
+  }
 }

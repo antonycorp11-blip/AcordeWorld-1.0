@@ -4583,3 +4583,70 @@ body.mobile-play #gameCanvas {
   background: none; border: none; color: #7e6a4a; font-size: 12px;
 }
 .rec-x:hover { color: #fca5a5; }
+
+/* ══ CRIADOR DE MUNDO: barra superior e doca de assets ═══════════════════════════
+   O mapa fica onde sempre esteve; ferramentas sobem para a barra e os assets vão
+   para a direita. Assim o olho separa "o que eu faço" de "com o que eu faço". */
+#mundoBarra, #assetDock { display: none; }
+body.modo-mundo #mundoBarra { display: flex; }
+body.modo-mundo #assetDock { display: flex; }
+body.modo-mundo #left-sidebar { display: none; }
+
+#mundoBarra {
+  position: fixed; top: 46px; left: 0; right: 320px; z-index: 60;
+  align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 6px 12px;
+  background: linear-gradient(180deg, #14110d, #100d0a);
+  border-bottom: 1px solid #2e2418;
+  box-shadow: 0 4px 14px rgba(0,0,0,.45);
+}
+.mb-grupo { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.mb-sep { width: 1px; height: 22px; background: #2e2418; }
+.mb-espaco { flex: 1; }
+.mb-campo {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 9.5px; letter-spacing: .06em; color: #8b7a5c; text-transform: uppercase;
+}
+.mb-campo b { color: #fde68a; font-size: 10px; min-width: 34px; text-align: right; }
+.mb-select, .mb-range { accent-color: #fbbf24; }
+.mb-select {
+  background: #1a1410; color: #e8d7b4; border: 1px solid #3b2d1c;
+  border-radius: 5px; padding: 3px 6px; font-size: 10px;
+}
+.mb-range { width: 92px; }
+
+#assetDock {
+  position: fixed; top: 46px; right: 0; bottom: 0; width: 320px; z-index: 61;
+  flex-direction: column;
+  background: #100d0a; border-left: 1px solid #2e2418;
+}
+.dock-abas { display: flex; border-bottom: 1px solid #2e2418; }
+.dock-aba {
+  flex: 1; padding: 9px 6px; cursor: pointer;
+  background: #14110d; color: #8b7a5c; border: none;
+  font-size: 11px; letter-spacing: .06em;
+}
+.dock-aba.ativa { background: #1d1712; color: #fde68a; box-shadow: inset 0 -2px 0 #fbbf24; }
+.dock-corpo { flex: 1; overflow-y: auto; padding: 8px 10px; }
+.dock-corpo.hidden { display: none; }
+/* dentro da doca a paleta ocupa o espaço todo, sem teto próprio */
+#assetDock .prop-paleta { max-height: none; grid-template-columns: repeat(4, 1fr); }
+#assetDock .rec-grade { max-height: none; }
+
+body.modo-mundo #viewport-area { padding-right: 320px; padding-top: 42px; }
+@media (max-width: 1100px) {
+  #assetDock { width: 260px; }
+  #mundoBarra { right: 260px; }
+  body.modo-mundo #viewport-area { padding-right: 260px; }
+}
+
+/* aplicar categoria e nome a todas as peças de uma vez: com 40 recortes por folha,
+   digitar um a um é o que fazia o recortador não valer a pena */
+.rec-lote {
+  background: #16110c; border: 1px solid #3b2d1c; border-radius: 6px;
+  padding: 7px 8px; margin-top: 8px;
+}
+.rec-lote-tit {
+  font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+  color: #8b7a5c; margin-bottom: 5px;
+}
