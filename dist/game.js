@@ -2105,6 +2105,7 @@ const PRESETS = {
   rio:        { altura: null, pe: 1,  raio: 0,  plano: 'chao', mascara: 'agua' },
   ponte:      { altura:  95, pe: .98, raio: 0,  plano: 'objeto' },
   caminho:    { altura: null, pe: 1,  raio: 0,  plano: 'chao' },
+  piso:       { altura: null, pe: 1,  raio: 0,  plano: 'chao' },
 };
 
 function recRenderResultados() {
@@ -6819,7 +6820,7 @@ function mostrarInspetorDeObjeto(o) {
 let propCategoria = 'tudo';
 
 const NOME_DA_CATEGORIA = {
-  tudo: 'Tudo', arvore: 'Árvores', mato: 'Mato', flor: 'Flores', pedra: 'Pedras',
+  tudo: 'Tudo', piso: 'Piso', arvore: 'Árvores', mato: 'Mato', flor: 'Flores', pedra: 'Pedras',
   caminho: 'Chão', chao_grama: 'Grama', agua: 'Água', agua_alta: 'Cachoeira',
   sagrado: 'Sagrado', lapide: 'Lápides', magico: 'Mágico', muro: 'Muros',
   muralha: 'Muralha', construcao: 'Casas', feira: 'Feira', cidade: 'Cidade',

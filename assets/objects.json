@@ -1352,6 +1352,191 @@
       "pe": 0.95,
       "raio": 62,
       "colide": true
+    },
+    "game_tileset_on_wh_08": {
+      "nome": "Piso 08 · rua vertical",
+      "sprite": "assets/props/game_tileset_on_wh_08.png",
+      "categoria": "piso",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "game_tileset_on_wh_10": {
+      "nome": "Piso 10 · preenchimento",
+      "sprite": "assets/props/game_tileset_on_wh_10.png",
+      "categoria": "piso",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "game_tileset_on_wh_06": {
+      "nome": "Piso 06 · preenchimento",
+      "sprite": "assets/props/game_tileset_on_wh_06.png",
+      "categoria": "piso",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "game_tileset_on_wh_07": {
+      "nome": "Piso 07 · meio-fio",
+      "sprite": "assets/props/game_tileset_on_wh_07.png",
+      "categoria": "piso",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "game_tileset_on_wh_09": {
+      "nome": "Piso 09 · esquina",
+      "sprite": "assets/props/game_tileset_on_wh_09.png",
+      "categoria": "piso",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "game_tileset_on_wh_11": {
+      "nome": "Piso 11 · esquina 2",
+      "sprite": "assets/props/game_tileset_on_wh_11.png",
+      "categoria": "piso",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "game_tileset_on_wh_15": {
+      "nome": "Piso 15 · esquina 3",
+      "sprite": "assets/props/game_tileset_on_wh_15.png",
+      "categoria": "piso",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "game_tileset_on_wh_03": {
+      "nome": "Piso 03 · preenchimento",
+      "sprite": "assets/props/game_tileset_on_wh_03.png",
+      "categoria": "piso",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "game_tileset_on_wh_05": {
+      "nome": "Piso 05 · preenchimento",
+      "sprite": "assets/props/game_tileset_on_wh_05.png",
+      "categoria": "piso",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "game_tileset_on_wh_14": {
+      "nome": "Piso 14 · preenchimento",
+      "sprite": "assets/props/game_tileset_on_wh_14.png",
+      "categoria": "piso",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "game_tileset_on_wh_12": {
+      "nome": "Piso 12 · preenchimento",
+      "sprite": "assets/props/game_tileset_on_wh_12.png",
+      "categoria": "piso",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "game_tileset_on_wh_01": {
+      "nome": "Piso 01 · preenchimento",
+      "sprite": "assets/props/game_tileset_on_wh_01.png",
+      "categoria": "piso",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "game_tileset_on_wh_13": {
+      "nome": "Piso 13 · cotovelo",
+      "sprite": "assets/props/game_tileset_on_wh_13.png",
+      "categoria": "piso",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "game_tileset_on_wh_02": {
+      "nome": "Piso 02 · preenchimento",
+      "sprite": "assets/props/game_tileset_on_wh_02.png",
+      "categoria": "piso",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "game_tileset_on_wh_04": {
+      "nome": "Piso 04 · preenchimento",
+      "sprite": "assets/props/game_tileset_on_wh_04.png",
+      "categoria": "piso",
+      "plano": "chao",
+      "pe": 1,
+      "raio": 0,
+      "colide": false
+    },
+    "merchant_shop_four_04": {
+      "nome": "merchant_shop_four_04",
+      "sprite": "assets/props/merchant_shop_four_04.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_05": {
+      "nome": "merchant_shop_four_05",
+      "sprite": "assets/props/merchant_shop_four_05.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_01": {
+      "nome": "merchant_shop_four_01",
+      "sprite": "assets/props/merchant_shop_four_01.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_02": {
+      "nome": "merchant_shop_four_02",
+      "sprite": "assets/props/merchant_shop_four_02.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
+    },
+    "merchant_shop_four_03": {
+      "nome": "merchant_shop_four_03",
+      "sprite": "assets/props/merchant_shop_four_03.png",
+      "categoria": "construcao",
+      "plano": "objeto",
+      "pe": 0.95,
+      "raio": 62,
+      "colide": true,
+      "altura": 200
     }
   },
   "objetos": [
