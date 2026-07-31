@@ -31,7 +31,12 @@
   <div id="mundoBarra">
     <div class="mb-grupo" id="mbFerramentas"></div>
     <div class="mb-sep"></div>
-    <div class="mb-grupo" id="mbPinceis"></div>
+    <div class="mb-grupo" id="mbPinceis">
+      <!-- O pincel de terreno vira menu: as ruas passam a ser tiles, então pintar chão
+           é exceção e não precisa ocupar a barra inteira com nove chips. -->
+      <button class="tool-pill" id="pincelMenuBtn">🖌️ Pintar chão</button>
+      <div id="pincelMenu" class="pincel-menu hidden"></div>
+    </div>
     <div class="mb-sep"></div>
     <div class="mb-grupo" id="mbAmbiente"></div>
     <div class="mb-sep"></div>

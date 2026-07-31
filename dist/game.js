@@ -1828,6 +1828,7 @@ async function loadMundo() {
       // Aceita o formato antigo (escala única) e o novo (escala por eixo mais giro).
       MUNDO.props = (d.props || []).map(p => ({
         ...p, ex: p.ex ?? p.escala ?? 1, ey: p.ey ?? p.escala ?? 1, rot: p.rot || 0,
+        flipY: !!p.flipY,
       }));
       carregarPintura();
     }
@@ -1842,7 +1843,7 @@ async function saveMundo() {
     props: MUNDO.props.map(p => ({
       id: p.id, prop: p.prop, x: Math.round(p.x), y: Math.round(p.y),
       ex: +escX(p).toFixed(3), ey: +escY(p).toFixed(3),
-      rot: +((p.rot || 0).toFixed(4)), flipX: !!p.flipX,
+      rot: +((p.rot || 0).toFixed(4)), flipX: !!p.flipX, flipY: !!p.flipY,
     })),
   });
   try {
@@ -2635,6 +2636,10 @@ function desenharProp(spr, p, b, now) {
   const rot = p.rot || 0;
   const def = propDefs[p.prop] || {};
   ctx.save();
+  // Espelho vertical: a arte é 3/4, não 3D, mas virar a peça de cabeça para baixo muda
+  // de que lado cai a sombra e para onde aponta o telhado — na montagem isso resolve
+  // muita esquina que não fechava.
+  if (p.flipY) { ctx.translate(0, p.y); ctx.scale(1, -1); ctx.translate(0, -p.y); }
   if (rot) { ctx.translate(p.x, p.y); ctx.rotate(rot); ctx.translate(-p.x, -p.y); }
 
   // Balanço: cisalhamento horizontal preso ao pé — nada na base, o máximo na copa. É
@@ -2930,11 +2935,45 @@ function renderHudDoMundo() {
   ctx.restore();
 }
 
+// ── Área de transferência do editor ─────────────────────────────────────────────
+// Copiar e colar valem para o objeto selecionado e para a seleção em lote. A cola cai
+// onde o ponteiro está, mantendo o arranjo interno do que foi copiado: um bosque de
+// nove árvores colado continua sendo aquele bosque, não nove árvores empilhadas.
+let areaDeTransferencia = [];
+
+function copiarSelecao() {
+  const lote = (typeof mundoPropsSelecionados !== 'undefined' && mundoPropsSelecionados.length)
+    ? mundoPropsSelecionados : (mundoPropSel ? [mundoPropSel] : []);
+  if (!lote.length) { showToast('⚠️ Nada selecionado'); return; }
+  const cx = lote.reduce((a, p) => a + p.x, 0) / lote.length;
+  const cy = lote.reduce((a, p) => a + p.y, 0) / lote.length;
+  areaDeTransferencia = lote.map(p => ({ ...p, _dx: p.x - cx, _dy: p.y - cy }));
+  showToast(`⧉ ${lote.length} objeto(s) copiado(s)`);
+}
+
+function colarSelecao() {
+  if (!areaDeTransferencia.length) { showToast('⚠️ Nada copiado ainda'); return; }
+  const alvo = mundoDoPonteiro({ x: mouseCanvasX, y: mouseCanvasY });
+  const novos = areaDeTransferencia.map((p, i) => {
+    const n = { ...p, id: `${p.prop}_${Date.now()}_${i}`,
+                x: Math.round(alvo.x + p._dx), y: Math.round(alvo.y + p._dy) };
+    delete n._dx; delete n._dy;
+    return n;
+  });
+  MUNDO.props.push(...novos);
+  mundoPropSel = novos[novos.length - 1];
+  if (typeof mundoPropsSelecionados !== 'undefined') mundoPropsSelecionados = novos.slice();
+  saveMundo();
+  showToast(`📋 ${novos.length} colado(s)`);
+}
+
 // ── Caixa de seleção ────────────────────────────────────────────────────────────
 // Oito alças e um cabo de giro, como em editor de imagem: canto escala junto, lado
 // estica num eixo só (é assim que muralha e cerca encostam na vizinha), e o cabo de
 // cima gira. Tudo em torno do PÉ do objeto, para ele nunca sair do chão.
-const ALCA = 9;          // meio-lado da alça, em pixels de mundo (dividido pelo zoom)
+// Meio-lado da alça, em pixels de TELA. Estava em 9 (quadrados de 18px) e tapava o
+// próprio objeto quando ele era pequeno — a alça existe para pegar, não para esconder.
+const ALCA = 4.5;
 const CABO_GIRO = 42;
 
 function cantosDaCaixa(p) {
@@ -2959,9 +2998,9 @@ function renderCaixaDeSelecao(p, b) {
   const { pts } = cantosDaCaixa(p);
   const z = mundoCam.zoom || 1;
   ctx.save();
-  ctx.lineWidth = 1.5 / z;
+  ctx.lineWidth = 1 / z;
   ctx.strokeStyle = '#fde68a';
-  ctx.setLineDash([6 / z, 4 / z]);
+  ctx.setLineDash([5 / z, 4 / z]);
   ctx.beginPath();
   ctx.moveTo(...pts.no); ctx.lineTo(...pts.ne); ctx.lineTo(...pts.se);
   ctx.lineTo(...pts.so); ctx.closePath(); ctx.stroke();
@@ -2972,7 +3011,7 @@ function renderCaixaDeSelecao(p, b) {
 
   const meia = ALCA / z;
   const alca = (xy, cor) => {
-    ctx.fillStyle = cor; ctx.strokeStyle = '#1c1408'; ctx.lineWidth = 1.5 / z;
+    ctx.fillStyle = cor; ctx.strokeStyle = '#1c1408'; ctx.lineWidth = 1 / z;
     ctx.beginPath(); ctx.rect(xy[0] - meia, xy[1] - meia, meia * 2, meia * 2);
     ctx.fill(); ctx.stroke();
   };
@@ -3002,7 +3041,7 @@ function renderCaixaDeSelecao(p, b) {
 // Qual alça está sob o dedo, se alguma.
 function alcaEm(p, wx, wy) {
   const { pts } = cantosDaCaixa(p);
-  const meia = (ALCA + 3) / (mundoCam.zoom || 1);
+  const meia = (ALCA + 4) / (mundoCam.zoom || 1);   // área de toque maior que o desenho
   for (const k of ['giro','no','ne','so','se','n','s','o','e']) {
     const [x, y] = pts[k];
     if (Math.abs(wx - x) <= meia && Math.abs(wy - y) <= meia) return k;
@@ -10960,8 +10999,24 @@ function initForgeUI() {
     document.getElementById('mundoFerrMover')?.remove();
     ['mundoFerrPlantar','mundoFerrSel','mundoFerrPartida']
       .forEach(id => { const el = document.getElementById(id); if (el) barraF.appendChild(el); });
+    // Os controles do pincel vão para o menu suspenso, não para a barra.
+    const menu = document.getElementById('pincelMenu');
     ['pincelMateriais','pincelModoBox','pincelTamanhoBox']
-      .forEach(id => { const el = document.getElementById(id); if (el) barraP.appendChild(el); });
+      .forEach(id => { const el = document.getElementById(id); if (el && menu) menu.appendChild(el); });
+    const btnPincel = document.getElementById('pincelMenuBtn');
+    btnPincel?.addEventListener('click', () => {
+      const r = btnPincel.getBoundingClientRect();
+      menu.style.left = Math.round(r.left) + 'px';
+      menu.style.top = Math.round(r.bottom + 6) + 'px';
+      menu.classList.toggle('hidden');
+      btnPincel.classList.toggle('ativo', !menu.classList.contains('hidden'));
+    });
+    // Fechar clicando fora: menu que só fecha no próprio botão vira estorvo.
+    document.addEventListener('pointerdown', ev => {
+      if (menu.classList.contains('hidden')) return;
+      if (menu.contains(ev.target) || btnPincel.contains(ev.target)) return;
+      menu.classList.add('hidden'); btnPincel.classList.remove('ativo');
+    }, true);
     const amb = document.querySelector('.ambiente-box');
     if (amb) barraA.appendChild(amb);
     ['mundoTestarBtn','mundoSalvarBtn']
@@ -10971,6 +11026,16 @@ function initForgeUI() {
     ['propCats','propPaleta','propContagem'].forEach(id => mover(id, 'doca-props'));
     const rec = document.getElementById('btab-recortar');
     if (rec) { rec.classList.remove('hidden', 'btab-content'); document.getElementById('doca-recorte')?.appendChild(rec); }
+
+    // A roda do mouse sobre a doca rola a doca, sempre. Alguma coisa no caminho estava
+    // engolindo o evento, e lista de assets que não rola é lista inútil.
+    ['doca-props','doca-recorte'].forEach(id => {
+      const el = document.getElementById(id);
+      el?.addEventListener('wheel', ev => {
+        el.scrollTop += ev.deltaY;
+        ev.preventDefault(); ev.stopPropagation();
+      }, { passive: false });
+    });
 
     document.querySelectorAll('.dock-aba').forEach(b => b.addEventListener('click', () => {
       document.querySelectorAll('.dock-aba').forEach(x => x.classList.toggle('ativa', x === b));
@@ -11234,6 +11299,17 @@ function initForgeUI() {
   setTimeout(sincronizarPainelDoMundo, 500);
   setTimeout(sincronizarPainelDoMundo, 1800);
 
+  // Copiar e colar. Vem antes do resto porque colar funciona sem nada selecionado.
+  window.addEventListener('keydown', e => {
+    if (engineMode !== 'mundo' || mundoTeste) return;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;
+    if (!(e.metaKey || e.ctrlKey)) return;
+    const k = e.key.toLowerCase();
+    if (k === 'c') { e.preventDefault(); copiarSelecao(); }
+    else if (k === 'v') { e.preventDefault(); colarSelecao(); }
+    else if (k === 'd') { e.preventDefault(); copiarSelecao(); colarSelecao(); }
+  });
+
   // Apagar objeto do mundo com Delete, que é o gesto de todo editor.
   window.addEventListener('keydown', e => {
     if (engineMode !== 'mundo') return;
@@ -11264,6 +11340,9 @@ function initForgeUI() {
       MUNDO.props.push(novo); mundoPropSel = novo; saveMundo();
       showToast('⧉ Duplicado');
     } else if (e.key === 'f' || e.key === 'F') { p.flipX = !p.flipX; saveMundo(); }
+    else if ((e.key === 'v' || e.key === 'V') && !e.metaKey && !e.ctrlKey) {
+      p.flipY = !p.flipY; saveMundo(); showToast('⇅ Espelhado na vertical');
+    }
     else if (e.key === 'r' || e.key === 'R') { p.rot = 0; saveMundo(); showToast('↺ Giro zerado'); }
     else return;
   });

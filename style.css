@@ -4743,3 +4743,17 @@ body.modo-mundo #mundoBarra .amb-slider { font-size: 9px !important; }
 body.modo-mundo #mundoBarra { top: var(--topo, 46px); }
 body.modo-mundo #assetDock { top: var(--topo, 46px); }
 body.modo-mundo #viewport-area { padding-top: var(--barra-h, 44px); }
+
+/* menu suspenso do pincel de terreno: fora da barra, aberto só quando se pede */
+.pincel-menu {
+  position: fixed; z-index: 80; min-width: 210px;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px; border-radius: 8px;
+  background: #16110c; border: 1px solid #3b2d1c;
+  box-shadow: 0 10px 26px rgba(0,0,0,.6);
+}
+.pincel-menu.hidden { display: none; }
+.pincel-menu .prop-cats { display: flex !important; flex-wrap: wrap !important; gap: 4px !important; }
+.pincel-menu .tools-row { display: flex !important; gap: 4px !important; }
+.pincel-menu label { display: flex !important; flex-direction: column !important; gap: 3px !important; }
+.pincel-menu input[type=range] { width: 100% !important; }
