@@ -2695,10 +2695,11 @@ function pincelar(wx, wy) {
       const cx = cv.getContext('2d');
       const lx = wx - c * BW, ly = wy - r * BH;
       cx.save();
-      cx.beginPath(); cx.arc(lx, ly, raio, 0, Math.PI * 2); cx.clip();
+      // O raio estendido em 0.5px faz o arco encostar totalmente na borda dos blocos sem deixar frestas
+      cx.beginPath(); cx.arc(lx, ly, raio + 0.5, 0, Math.PI * 2); cx.clip();
       if (apagando) {
         cx.globalCompositeOperation = 'destination-out';
-        cx.fillRect(lx - raio, ly - raio, raio * 2, raio * 2);
+        cx.fillRect(lx - raio - 1, ly - raio - 1, (raio + 1) * 2, (raio + 1) * 2);
       } else {
         const pad = cx.createPattern(tex.tela, 'repeat');
         const offX = -(c * BW) % tex.tela.width;
@@ -2707,7 +2708,7 @@ function pincelar(wx, wy) {
           pad.setTransform(new DOMMatrix().translate(offX, offY));
         }
         cx.fillStyle = pad;
-        cx.fillRect(lx - raio, ly - raio, raio * 2, raio * 2);
+        cx.fillRect(lx - raio - 1, ly - raio - 1, (raio + 1) * 2, (raio + 1) * 2);
       }
       cx.restore();
       pinturaSuja.add(`${c}_${r}`);
@@ -2955,15 +2956,16 @@ function renderMundo(now) {
     for (let r = f.r0; r <= f.r1; r++) {
       const k = `${c}_${r}`, bl = mundoBlocos[k];
       const x = c * MUNDO.bloco.w, y = r * MUNDO.bloco.h;
+      const bleed = 0.5 / (mundoCam.zoom || 1);
       if (chaoGlobal) {
         const pin = blocosPintados[k];
-        if (pin) ctx.drawImage(pin, x, y);
+        if (pin) ctx.drawImage(pin, x, y, MUNDO.bloco.w + bleed, MUNDO.bloco.h + bleed);
         continue;
       }
       if (bl?.img.complete && bl.img.naturalWidth) {
-        try { ctx.drawImage(bl.img, x, y, MUNDO.bloco.w, MUNDO.bloco.h); } catch (e) {}
+        try { ctx.drawImage(bl.img, x, y, MUNDO.bloco.w + bleed, MUNDO.bloco.h + bleed); } catch (e) {}
         const pin = blocosPintados[k];
-        if (pin) ctx.drawImage(pin, x, y);
+        if (pin) ctx.drawImage(pin, x, y, MUNDO.bloco.w + bleed, MUNDO.bloco.h + bleed);
       } else if (!mundoTeste) {
         // Bloco vazio ou ainda carregando: no editor mostra a moldura, para você saber
         // que o espaço existe e onde ele começa.
