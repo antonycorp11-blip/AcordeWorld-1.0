@@ -1876,14 +1876,15 @@ async function savePinturaCloud(k, pngData) {
   } catch (e) {}
 }
 
-async function syncAllLocalPinturasToCloud() {
+function syncAllLocalPinturasToCloud(force = false) {
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith('acordelot_pintura_')) {
         const k = key.replace('acordelot_pintura_', '');
         const png = localStorage.getItem(key);
-        if (png && !sessionStorage.getItem('synced_pin_' + k)) {
+        // Só sobe pra nuvem se for uma pintura real (> 22KB), nunca um canvas vazio em branco (~18.4KB)
+        if (png && png.length > 22000 && (force || !sessionStorage.getItem('synced_pin_' + k))) {
           savePinturaCloud(k, png);
           sessionStorage.setItem('synced_pin_' + k, '1');
         }
@@ -1902,10 +1903,11 @@ async function loadPinturasCloud() {
       let count = 0;
       if (Array.isArray(rows)) {
         for (const r of rows) {
-          if (r && r.id && r.data && r.data.png) {
+          if (r && r.id && r.data && r.data.png && r.data.png.length > 22000) {
             const k = r.id.replace('pintura_', '');
             const existing = localStorage.getItem('acordelot_pintura_' + k);
-            if (existing !== r.data.png) {
+            // Se o arquivo na nuvem for diferente e de tamanho válido, carrega na hora
+            if (existing !== r.data.png && (!existing || existing.length <= r.data.png.length || existing.length < 22000)) {
               localStorage.setItem('acordelot_pintura_' + k, r.data.png);
               const img = new Image();
               img.onload = () => {
@@ -1990,8 +1992,10 @@ async function loadAssetsCloud() {
 
 async function sincronizarComNuvemAgora(manual = false) {
   if (IS_PLAY_BUILD) return;
-  if (manual) showToast('☁️ Sincronizando em tempo real com o Supabase...');
-  syncAllLocalPinturasToCloud();
+  if (manual) {
+    showToast('☁️ Sincronizando em tempo real com o Supabase...');
+    syncAllLocalPinturasToCloud(true);
+  }
   const novasPinturas = await loadPinturasCloud();
   await loadAssetsCloud();
   const cloudData = await loadMundoCloud();
@@ -2008,7 +2012,7 @@ async function sincronizarComNuvemAgora(manual = false) {
   }
   if (manual || novosProps > 0 || novasPinturas > 0) {
     if (novosProps > 0 || novasPinturas > 0) {
-      showToast(`⚡ Sincronizado em tempo real: +${novosProps} objeto(s), +${novasPinturas} rua(s) do seu amigo!`);
+      showToast(`⚡ Sincronizando: +${novosProps} objeto(s), +${novasPinturas} rua(s) de outro dispositivo!`);
     } else if (manual) {
       showToast('✨ Tudo sincronizado e em ordem com o Supabase!');
     }
@@ -2038,6 +2042,30 @@ async function loadMundo() {
       if (r.ok) loadedData = await r.json();
     } catch (e) {}
   }
+
+  // 3. RECUPERA E MESCLA IMEDIATAMENTE as edições salvas no localStorage de cada dispositivo/tablet!
+  try {
+    const localSaveStr = localStorage.getItem('acordelot_mundo_saved');
+    if (localSaveStr) {
+      const localSave = JSON.parse(localSaveStr);
+      if (!loadedData) loadedData = localSave;
+      else if (localSave && Array.isArray(localSave.props) && loadedData.props) {
+        const idsCloud = new Set(loadedData.props.map(p => p.id));
+        let adicionouLocal = false;
+        for (const pLoc of localSave.props) {
+          if (!idsCloud.has(pLoc.id) && !window._propsDeletadosNestaSessao?.has(pLoc.id)) {
+            loadedData.props.push(pLoc);
+            idsCloud.add(pLoc.id);
+            adicionouLocal = true;
+          }
+        }
+        // Se o tablet tinha objetos novos no localStorage, já envia o mapa unificado de volta pra nuvem!
+        if (adicionouLocal && typeof saveMundoCloud === 'function') {
+          setTimeout(() => saveMundoCloud(loadedData), 2500);
+        }
+      }
+    }
+  } catch (e) {}
 
   if (loadedData) {
     MUNDO = { ...MUNDO, ...loadedData };
@@ -2932,13 +2960,21 @@ function pinturaDoBloco(c, r) {
 }
 
 async function carregarPintura() {
-  if (typeof syncAllLocalPinturasToCloud === 'function') syncAllLocalPinturasToCloud();
   if (typeof loadPinturasCloud === 'function') await loadPinturasCloud();
-  const alvos = Object.keys(MUNDO.blocos || {});
+  const alvosSet = new Set(Object.keys(MUNDO.blocos || {}));
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('acordelot_pintura_')) {
+        alvosSet.add(key.replace('acordelot_pintura_', ''));
+      }
+    }
+  } catch (e) {}
+  const alvos = Array.from(alvosSet);
   await Promise.all(alvos.map(k => new Promise(res => {
     try {
       const localPng = localStorage.getItem('acordelot_pintura_' + k);
-      if (localPng) {
+      if (localPng && localPng.length > 22000) {
         const imgLocal = new Image();
         imgLocal.onload = () => {
           const [c, r] = k.split('_').map(Number);
