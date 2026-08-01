@@ -212,11 +212,15 @@ function serialisableNPC(n) {
   return out;
 }
 
+function podeSalvarLocalPython() {
+  return !IS_PLAY_BUILD && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+}
+
 async function saveNPCs() {
   if (IS_PLAY_BUILD) return;
   const payload = { npcs: npcData.map(serialisableNPC) };
   try { localStorage.setItem('wasd_npcs_v2', JSON.stringify(payload)); } catch(e) {}
-  try { await fetch('/save_npcs', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }); } catch(e) {}
+  if (podeSalvarLocalPython()) try { await fetch('/save_npcs', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }); } catch(e) {}
 }
 
 // ...
@@ -240,7 +244,7 @@ async function saveMonsters() {
   //
   // E o resultado tem que APARECER. Um `catch(e){}` mudo já custou uma sessão inteira
   // de edição de monstros: o jogo dizia "salvo" e o arquivo continuava intacto.
-  if (!IS_PLAY_BUILD) try {
+  if (podeSalvarLocalPython()) try {
     const r = await fetch('/save_monsters', { method:'POST',
       headers:{'Content-Type':'application/json'}, body:corpo });
     if (!r.ok && window.__logSaveMonstros) console.warn('[monstros] servidor recusou:', r.status);
@@ -297,8 +301,10 @@ async function saveAllLayers(notify=false) {
     payload[`road_${k}`]=rd; payload[`fg_${k}`]=fg; payload[`door_${k}`]=dr;
     try { localStorage.setItem(`wasd_road_${k}_v17`,rd); localStorage.setItem(`wasd_fg_${k}_v17`,fg); localStorage.setItem(`wasd_door_${k}_v17`,dr); localStorage.setItem('wasd_world_config_v17',JSON.stringify(wc)); } catch(e) {}
   }
-  try { await fetch('/save_layers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); if(notify)showToast('💾 Projeto salvo em disco!'); }
-  catch(e) { if(notify)showToast('💾 Salvo no navegador!'); }
+  if (podeSalvarLocalPython()) {
+    try { await fetch('/save_layers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); if(notify)showToast('💾 Projeto salvo em disco!'); }
+    catch(e) { if(notify)showToast('💾 Salvo no navegador!'); }
+  } else if(notify) showToast('💾 Salvo no navegador!');
 }
 async function loadWorldConfig() {
   try {
@@ -2007,8 +2013,8 @@ async function loadPinturasCloud() {
           if (r && r.id && r.data && r.data.png && r.data.png.length > 22000) {
             const k = r.id.replace('pintura_', '');
             const existing = localStorage.getItem('acordelot_pintura_' + k);
-            // Se o arquivo na nuvem for diferente e de tamanho válido, carrega na hora
-            if (existing !== r.data.png && (!existing || existing.length <= r.data.png.length || existing.length < 22000)) {
+            // Se o arquivo na nuvem for diferente e de tamanho válido, carrega na hora (Supabase é a fonte da verdade)
+            if (existing !== r.data.png) {
               localStorage.setItem('acordelot_pintura_' + k, r.data.png);
               const img = new Image();
               img.onload = () => {
@@ -2230,7 +2236,7 @@ async function saveMundo() {
   const cloudOk = await saveMundoCloud(corpoData);
   syncAllLocalPinturasToCloud();
 
-  if (!IS_PLAY_BUILD) try {
+  if (podeSalvarLocalPython()) try {
     const r = await fetch('/save_mundo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: corpo });
     if (r.ok && cloudOk) { showToast('☁️ Mundo salvo ONLINE no Supabase e em disco!'); return; }
   } catch (e) {}
@@ -2580,7 +2586,7 @@ async function recGravar() {
     const pngData = a.canvas.toDataURL('image/png');
 
     // Salva arquivo no servidor HTTP local caso esteja rodando em localhost (nunca no Vercel)
-    if (!IS_PLAY_BUILD) try {
+    if (podeSalvarLocalPython()) try {
       await fetch('/save_prop_png', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome: id, png: pngData }),
@@ -2634,7 +2640,7 @@ async function recGravar() {
   }
 
   // Tenta salvar alterações do catálogo no servidor local (nunca no Vercel)
-  if (!IS_PLAY_BUILD) try {
+  if (podeSalvarLocalPython()) try {
     await fetch('/save_objects', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ props: propDefs, objetos: objetos }),
@@ -3066,7 +3072,7 @@ function pinturaDoBloco(c, r) {
 
 async function carregarPintura() {
   if (typeof loadPinturasCloud === 'function') await loadPinturasCloud();
-  const alvosSet = new Set(Object.keys(MUNDO.blocos || {}));
+  const alvosSet = new Set();
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -3091,15 +3097,7 @@ async function carregarPintura() {
         return;
       }
     } catch(e) {}
-
-    const img = new Image();
-    img.onload = () => {
-      const [c, r] = k.split('_').map(Number);
-      pinturaDoBloco(c, r).getContext('2d').drawImage(img, 0, 0);
-      res();
-    };
-    img.onerror = () => res();
-    img.src = `assets/mundo/pintura/${k}.png?t=${Date.now()}`;
+    res();
   })));
 }
 
@@ -3278,7 +3276,7 @@ async function salvarPintura() {
     // 3. Sincroniza em tempo real direto na nuvem do Supabase
     try { if (typeof savePinturaCloud === 'function') savePinturaCloud(k, pngData); } catch (e) {}
     // 4. Salva no servidor local Python se estiver no localhost (nunca no Vercel)
-    if (!IS_PLAY_BUILD) try {
+    if (podeSalvarLocalPython()) try {
       await fetch('/save_pintura', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chave: k, png: pngData }),
@@ -4155,7 +4153,7 @@ async function saveObjetos() {
       escala: +(o.escala || 1).toFixed(2), flipX: !!o.flipX,
     })),
   });
-  if (!IS_PLAY_BUILD) try {
+  if (podeSalvarLocalPython()) try {
     const r = await fetch('/save_objects', { method: 'POST',
       headers: { 'Content-Type': 'application/json' }, body: corpo });
     if (!r.ok && window.__logSaveObjetos) console.warn('[objetos] servidor recusou:', r.status);
@@ -10914,8 +10912,8 @@ async function saveDialogueFromEditor() {
   // Cache in memory
   dialogueCache[dlgId] = dialogueJson;
 
-  // Save to disk via server API
-  try {
+  // Save to disk via server API (somente no ambiente local Python)
+  if (podeSalvarLocalPython()) try {
     await fetch('/save_dialogue', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
