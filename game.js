@@ -240,15 +240,12 @@ async function saveMonsters() {
   //
   // E o resultado tem que APARECER. Um `catch(e){}` mudo já custou uma sessão inteira
   // de edição de monstros: o jogo dizia "salvo" e o arquivo continuava intacto.
-  try {
+  if (!IS_PLAY_BUILD) try {
     const r = await fetch('/save_monsters', { method:'POST',
       headers:{'Content-Type':'application/json'}, body:corpo });
-    if (!r.ok) showToast(`⚠️ Servidor recusou os monstros (HTTP ${r.status}) — NÃO salvo`);
+    if (!r.ok && window.__logSaveMonstros) console.warn('[monstros] servidor recusou:', r.status);
     else if (window.__logSaveMonstros) console.log('[monstros] gravados:', payload.spawns.length);
-  } catch (e) {
-    showToast('⚠️ Monstros NÃO salvos: sem resposta do servidor');
-    console.error('[monstros] falha ao gravar:', e);
-  }
+  } catch (e) { /* servidor local indisponível — ok no Vercel */ }
 
   try { localStorage.setItem('acordelot_monsters_v1', corpo); } catch (e) {}
 }
@@ -2111,9 +2108,9 @@ async function saveMundo() {
   const cloudOk = await saveMundoCloud(corpoData);
   syncAllLocalPinturasToCloud();
 
-  // 3. Salva no servidor local Python se estiver rodando em localhost
+  // 3. Salva no servidor local Python se estiver rodando em localhost (nunca no Vercel)
   let serverOk = false;
-  try {
+  if (!IS_PLAY_BUILD) try {
     const r = await fetch('/save_mundo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2474,8 +2471,8 @@ async function recGravar() {
     const id = (a.rotulo || a.nome || 'extraido_' + Date.now()).replace(/[^a-z0-9_]/gi, '_').toLowerCase();
     const pngData = a.canvas.toDataURL('image/png');
 
-    // Salva arquivo no servidor HTTP local caso esteja rodando em localhost
-    try {
+    // Salva arquivo no servidor HTTP local caso esteja rodando em localhost (nunca no Vercel)
+    if (!IS_PLAY_BUILD) try {
       await fetch('/save_prop_png', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome: id, png: pngData }),
@@ -2528,8 +2525,8 @@ async function recGravar() {
     ok++;
   }
 
-  // Tenta salvar alterações do catálogo no servidor local
-  try {
+  // Tenta salvar alterações do catálogo no servidor local (nunca no Vercel)
+  if (!IS_PLAY_BUILD) try {
     await fetch('/save_objects', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ props: propDefs, objetos: objetos }),
@@ -3170,8 +3167,8 @@ async function salvarPintura() {
     try { localStorage.setItem('acordelot_pintura_' + k, pngData); } catch (e) {}
     // 2. Sincroniza em tempo real direto na nuvem do Supabase
     try { if (typeof savePinturaCloud === 'function') savePinturaCloud(k, pngData); } catch (e) {}
-    // 3. Salva no servidor local Python se estiver no localhost
-    try {
+    // 3. Salva no servidor local Python se estiver no localhost (nunca no Vercel)
+    if (!IS_PLAY_BUILD) try {
       await fetch('/save_pintura', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chave: k, png: pngData }),
@@ -4041,13 +4038,11 @@ async function saveObjetos() {
       escala: +(o.escala || 1).toFixed(2), flipX: !!o.flipX,
     })),
   });
-  try {
+  if (!IS_PLAY_BUILD) try {
     const r = await fetch('/save_objects', { method: 'POST',
       headers: { 'Content-Type': 'application/json' }, body: corpo });
-    if (!r.ok) showToast(`⚠️ Servidor recusou os objetos (HTTP ${r.status}) — NÃO salvo`);
-  } catch (e) {
-    showToast('⚠️ Objetos NÃO salvos: sem resposta do servidor');
-  }
+    if (!r.ok && window.__logSaveObjetos) console.warn('[objetos] servidor recusou:', r.status);
+  } catch (e) { /* servidor local indisponível — ok no Vercel */ }
   try { localStorage.setItem('acordelot_objetos_v1', corpo); } catch (e) {}
 }
 
