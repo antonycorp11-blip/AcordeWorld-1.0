@@ -2652,6 +2652,52 @@ async function carregarPintura() {
   })));
 }
 
+// Carimba um círculo do material no ponto do mundo, atravessando blocos sem costura.
+function pincelar(wx, wy) {
+  if (!pincelMaterial) return;
+  const raio = pincelTamanho / 2;
+  const BW = MUNDO.bloco.w, BH = MUNDO.bloco.h;
+  const c0 = Math.max(0, Math.floor((wx - raio) / BW));
+  const c1 = Math.min(MUNDO.cols - 1, Math.floor((wx + raio) / BW));
+  const r0 = Math.max(0, Math.floor((wy - raio) / BH));
+  const r1 = Math.min(MUNDO.rows - 1, Math.floor((wy + raio) / BH));
+  const apagando = pincelMaterial === 'apagar';
+  const tex = apagando ? null : carregarTexturaDoPincel(pincelMaterial);
+
+  if (!apagando && (!tex || !tex.pronta)) {
+    if (!window.__avisoTextura || performance.now() - window.__avisoTextura > 3000) {
+      window.__avisoTextura = performance.now();
+      showToast('⏳ Carregando a textura do pincel — tente de novo em um instante');
+    }
+    return;
+  }
+
+  for (let c = c0; c <= c1; c++) {
+    for (let r = r0; r <= r1; r++) {
+      const cv = pinturaDoBloco(c, r);
+      const cx = cv.getContext('2d');
+      const lx = wx - c * BW, ly = wy - r * BH;
+      cx.save();
+      cx.beginPath(); cx.arc(lx, ly, raio, 0, Math.PI * 2); cx.clip();
+      if (apagando) {
+        cx.globalCompositeOperation = 'destination-out';
+        cx.fillRect(lx - raio, ly - raio, raio * 2, raio * 2);
+      } else {
+        const pad = cx.createPattern(tex.tela, 'repeat');
+        const offX = -(c * BW) % tex.tela.width;
+        const offY = -(r * BH) % tex.tela.height;
+        if (typeof DOMMatrix !== 'undefined' && pad.setTransform) {
+          pad.setTransform(new DOMMatrix().translate(offX, offY));
+        }
+        cx.fillStyle = pad;
+        cx.fillRect(lx - raio, ly - raio, raio * 2, raio * 2);
+      }
+      cx.restore();
+      pinturaSuja.add(`${c}_${r}`);
+    }
+  }
+}
+
 // ── Traçado de estrada ──────────────────────────────────────────────────────────
 // O jeito SimCity: clica onde a rua começa, arrasta até onde ela termina, solta. O
 // traço sai reto, com o ângulo travado de 45 em 45 graus, e o ponto final vira o começo
