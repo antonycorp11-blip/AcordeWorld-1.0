@@ -2016,6 +2016,28 @@ async function sincronizarComNuvemAgora(manual = false) {
   }
 }
 
+// ─── RECUPERAÇÃO DE EMERGÊNCIA: força upload de TODA pintura real do localStorage para Supabase ───
+async function forcarUploadPinturasTablet() {
+  let total = 0, enviados = 0;
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith('acordelot_pintura_')) continue;
+    const png = localStorage.getItem(key);
+    if (!png || png.length <= 22000) continue; // ignora canvases em branco
+    total++;
+    const k = key.replace('acordelot_pintura_', '');
+    sessionStorage.removeItem('synced_pin_' + k); // limpa cache de sincronizacao
+    try {
+      await savePinturaCloud(k, png);
+      enviados++;
+    } catch(e) {}
+  }
+  showToast(enviados > 0
+    ? `✅ ${enviados} bloco(s) de ruas enviados para a nuvem! Recarregue o desktop.`
+    : '⚠️ Nenhuma pintura encontrada neste dispositivo.');
+  return enviados;
+}
+
 // Sincroniza cooperativamente em segundo plano a cada 6 segundos no modo editor
 setInterval(() => {
   if (typeof engineMode !== 'undefined' && engineMode === 'mundo' && !IS_PLAY_BUILD) {
@@ -12840,11 +12862,16 @@ function ativarModoTablet(ativar) {
       drawer.classList.remove('collapsed');
     }
     engineMode = 'mundo';
+    // Mostra o botão de recuperação de pinturas no tablet
+    const recBtn = document.getElementById('tabRecuperarPinturas');
+    if (recBtn) recBtn.style.display = 'block';
     if (typeof renderMateriaisTablet === 'function') renderMateriaisTablet();
     if (typeof renderPropPaletteTablet === 'function') renderPropPaletteTablet();
     showToast('📱 Modo Tablet ativado! Abra a gaveta superior para escolher materiais e sprites.');
   } else {
     document.body.classList.remove('tablet-editor-active');
+    const recBtn = document.getElementById('tabRecuperarPinturas');
+    if (recBtn) recBtn.style.display = 'none';
     if (drawer) drawer.classList.add('hidden');
     showToast('❌ Modo Tablet desativado.');
   }
@@ -12998,6 +13025,16 @@ function initTabletMultiSelectEvents() {
     mundoPropSel = null;
     caixaSelecaoMultipla = null;
     atualizarBarraSelecaoMultipla();
+  });
+
+  // Botão de recuperação de pinturas do tablet
+  const recoveryBtn = document.getElementById('tabRecuperarPinturas');
+  recoveryBtn?.addEventListener('click', async () => {
+    recoveryBtn.disabled = true;
+    recoveryBtn.textContent = '⏳ Enviando...';
+    await forcarUploadPinturasTablet();
+    recoveryBtn.disabled = false;
+    recoveryBtn.textContent = '🔄 Enviar minhas ruas';
   });
 }
 
