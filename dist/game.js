@@ -1819,6 +1819,98 @@ function mundoAltura()  { return MUNDO.rows * MUNDO.bloco.h; }
 const SUPABASE_URL = 'https://saojbwipdxebibjmtxqc.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhb2pid2lwZHhlYmliam10eHFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1NzcxODMsImV4cCI6MjA4NDE1MzE4M30.X9FmXtsbqGg1N-2z6UVSW7PoZmC7vK2K-HNsLLbRpNA';
 
+// ── CO-EDIÇÃO EM TEMPO REAL (WebSocket Supabase Realtime) ──────────────────────────
+// Funciona igual ao Google Sheets: cada ação aparece instantaneamente no outro dispositivo.
+let _rtChannel = null;
+let _rtClientId = Math.random().toString(36).slice(2); // ID único desta aba/dispositivo
+
+function _iniciarRealtime() {
+  if (IS_PLAY_BUILD) return;
+  if (!window.supabase) return; // lib não carregou (offline)
+  try {
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    _rtChannel = client.channel('acordelot-editor', {
+      config: { broadcast: { self: false } } // não recebe próprias mensagens
+    });
+
+    _rtChannel
+      // ── Prop adicionado pelo parceiro ─────────────────────────────────────
+      .on('broadcast', { event: 'prop_add' }, ({ payload }) => {
+        if (!MUNDO?.props || !payload?.prop) return;
+        const { prop } = payload;
+        if (MUNDO.props.find(p => p.id === prop.id)) return; // já existe
+        if (window._propsDeletadosNestaSessao?.has(prop.id)) return; // eu deletei
+        MUNDO.props.push({ ...prop, ex: prop.ex ?? 1, ey: prop.ey ?? 1, rot: prop.rot || 0 });
+        showToast(`⚡ Parceiro adicionou: ${prop.prop}`);
+      })
+
+      // ── Prop(s) deletado(s) pelo parceiro ─────────────────────────────────
+      .on('broadcast', { event: 'prop_delete' }, ({ payload }) => {
+        if (!MUNDO?.props || !payload?.ids) return;
+        const ids = new Set(payload.ids);
+        const antes = MUNDO.props.length;
+        MUNDO.props = MUNDO.props.filter(p => !ids.has(p.id));
+        if (MUNDO.props.length < antes) showToast(`🗑️ Parceiro removeu ${antes - MUNDO.props.length} objeto(s)`);
+      })
+
+      // ── Prop movido/redimensionado pelo parceiro ───────────────────────────
+      .on('broadcast', { event: 'prop_move' }, ({ payload }) => {
+        if (!MUNDO?.props || !payload?.id) return;
+        const p = MUNDO.props.find(p => p.id === payload.id);
+        if (!p) return;
+        if (payload.x !== undefined) p.x = payload.x;
+        if (payload.y !== undefined) p.y = payload.y;
+        if (payload.ex !== undefined) p.ex = payload.ex;
+        if (payload.ey !== undefined) p.ey = payload.ey;
+        if (payload.rot !== undefined) p.rot = payload.rot;
+      })
+
+      // ── Pincelada de chão do parceiro ─────────────────────────────────────
+      .on('broadcast', { event: 'pintura_stroke' }, ({ payload }) => {
+        if (!payload?.k || !payload?.png) return;
+        const [col, row] = payload.k.split('_').map(Number);
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const cv = pinturaDoBloco(col, row);
+            cv.getContext('2d').drawImage(img, 0, 0);
+            localStorage.setItem('acordelot_pintura_' + payload.k, payload.png);
+          } catch(e) {}
+        };
+        img.src = payload.png;
+      })
+
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[RT] Conectado ao canal de co-edição em tempo real ✅');
+        }
+      });
+  } catch(e) {
+    console.warn('[RT] Realtime indisponível:', e);
+  }
+}
+
+// Funções de broadcast — chamadas pelas ações do editor
+function rtBroadcastPropAdd(prop) {
+  _rtChannel?.send({ type: 'broadcast', event: 'prop_add',
+    payload: { clientId: _rtClientId, prop } });
+}
+function rtBroadcastPropDelete(ids) {
+  _rtChannel?.send({ type: 'broadcast', event: 'prop_delete',
+    payload: { clientId: _rtClientId, ids } });
+}
+function rtBroadcastPropMove(p) {
+  _rtChannel?.send({ type: 'broadcast', event: 'prop_move',
+    payload: { clientId: _rtClientId, id: p.id, x: p.x, y: p.y, ex: p.ex, ey: p.ey, rot: p.rot } });
+}
+function rtBroadcastPintura(k, png) {
+  // Só transmite se for pintura real (não canvas vazio)
+  if (!png || png.length <= 22000) return;
+  _rtChannel?.send({ type: 'broadcast', event: 'pintura_stroke',
+    payload: { clientId: _rtClientId, k, png } });
+}
+
+
 async function saveMundoCloud(corpoData) {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/acordelot_worlds`, {
@@ -2097,6 +2189,7 @@ async function loadMundo() {
       .filter(p => !deletados.has(p.id))
       .map(p => ({ ...p, ex: p.ex ?? p.escala ?? 1, ey: p.ey ?? p.escala ?? 1, rot: p.rot || 0, flipY: !!p.flipY }));
     carregarPintura();
+    _iniciarRealtime(); // ⚡ conecta ao WebSocket para co-edição em tempo real
     setTimeout(() => sincronizarComNuvemAgora(false), 1500);
   }
 }
@@ -3180,9 +3273,11 @@ async function salvarPintura() {
     const pngData = cv.toDataURL('image/png');
     // 1. Salva no localStorage em hosts estáticos (Vercel) e tablets
     try { localStorage.setItem('acordelot_pintura_' + k, pngData); } catch (e) {}
-    // 2. Sincroniza em tempo real direto na nuvem do Supabase
+    // 2. Broadcast em tempo real para o parceiro ver a pintura na hora ⚡
+    rtBroadcastPintura(k, pngData);
+    // 3. Sincroniza em tempo real direto na nuvem do Supabase
     try { if (typeof savePinturaCloud === 'function') savePinturaCloud(k, pngData); } catch (e) {}
-    // 3. Salva no servidor local Python se estiver no localhost (nunca no Vercel)
+    // 4. Salva no servidor local Python se estiver no localhost (nunca no Vercel)
     if (!IS_PLAY_BUILD) try {
       await fetch('/save_pintura', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -3821,6 +3916,7 @@ function mundoPointerDown(m) {
     const novo = { id: `${propParaColocar}_${Date.now()}`, prop: propParaColocar,
                    x: Math.round(w.x), y: Math.round(w.y), ex: 1, ey: 1, rot: 0, flipX: false };
     MUNDO.props.push(novo);
+    rtBroadcastPropAdd(novo); // ⚡ tempo real: parceiro vê na hora
     mundoPropSel = novo;
     if (typeof atualizarBarraSelecaoMultipla === 'function') atualizarBarraSelecaoMultipla();
     propParaColocar = null;
@@ -3973,8 +4069,14 @@ function mundoPointerUp() {
     return;
   }
   if (pinturaAtiva) { pinturaAtiva = false; salvarPintura(); return; }
-  if (mundoAlca) { mundoAlca = null; saveMundo(); return; }
-  if (mundoArrastando) { saveMundo(); mundoArrastando = null; }
+  if (mundoAlca) {
+    if (mundoPropSel) rtBroadcastPropMove(mundoPropSel); // ⚡ escala em tempo real
+    mundoAlca = null; saveMundo(); return;
+  }
+  if (mundoArrastando) {
+    if (mundoPropSel) rtBroadcastPropMove(mundoPropSel); // ⚡ posição em tempo real
+    saveMundo(); mundoArrastando = null;
+  }
   mundoPan = null;
 }
 
@@ -12999,7 +13101,8 @@ function initTabletMultiSelectEvents() {
     if (!paraDeletar.length) return;
     const removidos = paraDeletar.length;
     paraDeletar.forEach(p => { if (p && p.id && window._propsDeletadosNestaSessao) window._propsDeletadosNestaSessao.add(p.id); });
-    _salvarDeletados(); // persiste no localStorage para sobreviver ao refresh
+    _salvarDeletados();
+    rtBroadcastPropDelete(paraDeletar.map(p => p.id)); // ⚡ parceiro vê a deleção na hora
     MUNDO.props = MUNDO.props.filter(p => !paraDeletar.includes(p));
     mundoPropsSelecionados = [];
     mundoPropSel = null;
@@ -13033,7 +13136,8 @@ function deletarPropsSelecionadosEmLote() {
   if (!paraDeletar.length) return;
   const qtd = paraDeletar.length;
   paraDeletar.forEach(p => { if (p && p.id && window._propsDeletadosNestaSessao) window._propsDeletadosNestaSessao.add(p.id); });
-  _salvarDeletados(); // persiste no localStorage para sobreviver ao refresh
+  _salvarDeletados();
+  rtBroadcastPropDelete(paraDeletar.map(p => p.id)); // ⚡ parceiro vê a deleção na hora
   MUNDO.props = MUNDO.props.filter(p => !paraDeletar.includes(p));
   mundoPropsSelecionados = [];
   mundoPropSel = null;
