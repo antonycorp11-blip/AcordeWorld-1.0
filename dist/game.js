@@ -1856,7 +1856,19 @@ async function loadMundoCloud() {
 }
 
 // ── SINCRONIZAÇÃO EM TEMPO REAL E COOPERATIVA NO SUPABASE ─────────────────────────
-window._propsDeletadosNestaSessao = window._propsDeletadosNestaSessao || new Set();
+// Deletados persistidos: sobrevivem ao refresh do navegador
+function _carregarDeletados() {
+  try {
+    const s = localStorage.getItem('acordelot_deletados_v1');
+    return s ? new Set(JSON.parse(s)) : new Set();
+  } catch(e) { return new Set(); }
+}
+function _salvarDeletados() {
+  try {
+    localStorage.setItem('acordelot_deletados_v1', JSON.stringify([...window._propsDeletadosNestaSessao]));
+  } catch(e) {}
+}
+window._propsDeletadosNestaSessao = _carregarDeletados();
 
 async function savePinturaCloud(k, pngData) {
   try {
@@ -1990,29 +2002,33 @@ async function loadAssetsCloud() {
 async function sincronizarComNuvemAgora(manual = false) {
   if (IS_PLAY_BUILD) return;
   if (manual) {
-    showToast('☁️ Sincronizando em tempo real com o Supabase...');
+    showToast('☁️ Sincronizando com o Supabase...');
     syncAllLocalPinturasToCloud(true);
   }
+
   const novasPinturas = await loadPinturasCloud();
   await loadAssetsCloud();
+
+  // Só incorpora objetos NOVOS do parceiro — nunca sobrescreve posições locais
+  // nem restaura objetos que foram deletados neste dispositivo
   const cloudData = await loadMundoCloud();
+  const deletados = window._propsDeletadosNestaSessao;
   let novosProps = 0;
-  if (cloudData && Array.isArray(cloudData.props) && MUNDO && MUNDO.props) {
+  if (cloudData && Array.isArray(cloudData.props) && MUNDO?.props) {
     const meusIds = new Set(MUNDO.props.map(p => p.id));
     for (const pOutro of cloudData.props) {
-      if (!meusIds.has(pOutro.id) && !window._propsDeletadosNestaSessao?.has(pOutro.id)) {
+      if (!meusIds.has(pOutro.id) && !deletados.has(pOutro.id)) {
         MUNDO.props.push({ ...pOutro, ex: pOutro.ex ?? 1, ey: pOutro.ey ?? 1, rot: pOutro.rot || 0 });
         meusIds.add(pOutro.id);
         novosProps++;
       }
     }
   }
-  if (manual || novosProps > 0 || novasPinturas > 0) {
-    if (novosProps > 0 || novasPinturas > 0) {
-      showToast(`⚡ Sincronizando: +${novosProps} objeto(s), +${novasPinturas} rua(s) de outro dispositivo!`);
-    } else if (manual) {
-      showToast('✨ Tudo sincronizado e em ordem com o Supabase!');
-    }
+
+  if (novosProps > 0 || novasPinturas > 0) {
+    showToast(`⚡ +${novosProps} objeto(s) e +${novasPinturas} rua(s) do seu parceiro chegaram!`);
+  } else if (manual) {
+    showToast('✨ Tudo sincronizado com o Supabase!');
   }
 }
 
@@ -2059,13 +2075,13 @@ setInterval(() => {
 async function loadMundo() {
   let loadedData = null;
 
-  // 1. Tenta carregar primeiro da nuvem Supabase Online (sincroniza entre todos os dispositivos/Vercel)
+  // Supabase é a fonte da verdade — carrega de lá primeiro
   const cloudData = await loadMundoCloud();
   if (cloudData) {
     loadedData = cloudData;
   }
 
-  // 2. Se não houver dados na nuvem, carrega do arquivo estático assets/mundo/mundo.json
+  // Fallback: arquivo estático se nuvem estiver vazia
   if (!loadedData) {
     try {
       const r = await fetch(`assets/mundo/mundo.json?t=${Date.now()}`);
@@ -2073,50 +2089,33 @@ async function loadMundo() {
     } catch (e) {}
   }
 
-  // 3. RECUPERA E MESCLA IMEDIATAMENTE as edições salvas no localStorage de cada dispositivo/tablet!
-  try {
-    const localSaveStr = localStorage.getItem('acordelot_mundo_saved');
-    if (localSaveStr) {
-      const localSave = JSON.parse(localSaveStr);
-      if (!loadedData) loadedData = localSave;
-      else if (localSave && Array.isArray(localSave.props) && loadedData.props) {
-        const idsCloud = new Set(loadedData.props.map(p => p.id));
-        let adicionouLocal = false;
-        for (const pLoc of localSave.props) {
-          if (!idsCloud.has(pLoc.id) && !window._propsDeletadosNestaSessao?.has(pLoc.id)) {
-            loadedData.props.push(pLoc);
-            idsCloud.add(pLoc.id);
-            adicionouLocal = true;
-          }
-        }
-        // Se o tablet tinha objetos novos no localStorage, já envia o mapa unificado de volta pra nuvem!
-        if (adicionouLocal && typeof saveMundoCloud === 'function') {
-          setTimeout(() => saveMundoCloud(loadedData), 2500);
-        }
-      }
-    }
-  } catch (e) {}
-
   if (loadedData) {
     MUNDO = { ...MUNDO, ...loadedData };
-    MUNDO.props = (loadedData.props || []).map(p => ({
-      ...p, ex: p.ex ?? p.escala ?? 1, ey: p.ey ?? p.escala ?? 1, rot: p.rot || 0,
-      flipY: !!p.flipY,
-    }));
+    // Remove da memória os objetos que já foram deletados neste dispositivo
+    const deletados = window._propsDeletadosNestaSessao;
+    MUNDO.props = (loadedData.props || [])
+      .filter(p => !deletados.has(p.id))
+      .map(p => ({ ...p, ex: p.ex ?? p.escala ?? 1, ey: p.ey ?? p.escala ?? 1, rot: p.rot || 0, flipY: !!p.flipY }));
     carregarPintura();
-    setTimeout(() => sincronizarComNuvemAgora(false), 1000);
+    setTimeout(() => sincronizarComNuvemAgora(false), 1500);
   }
 }
 
 async function saveMundo() {
   if (IS_PLAY_BUILD) return;
 
-  // Antes de regravar a nuvem, mescla com o que o parceiro salvou no Supabase!
+  // ─── SAVE AUTORITATIVO ────────────────────────────────────────────────────────
+  // O Supabase é a fonte da verdade. Ao salvar, pegamos a versão do parceiro na
+  // nuvem, incorporamos APENAS os objetos que ele adicionou e que NÓS não
+  // deletamos, e gravamos de volta. Isso garante que deletar aqui nunca é
+  // desfeito pelo parceiro, e que novos objetos do parceiro aparecem.
+
   const cloudOld = await loadMundoCloud();
-  if (cloudOld && Array.isArray(cloudOld.props) && MUNDO && MUNDO.props) {
+  if (cloudOld && Array.isArray(cloudOld.props) && MUNDO?.props) {
     const meusIds = new Set(MUNDO.props.map(p => p.id));
+    const deletados = window._propsDeletadosNestaSessao;
     for (const pOutro of cloudOld.props) {
-      if (!meusIds.has(pOutro.id) && !window._propsDeletadosNestaSessao?.has(pOutro.id)) {
+      if (!meusIds.has(pOutro.id) && !deletados.has(pOutro.id)) {
         MUNDO.props.push({ ...pOutro, ex: pOutro.ex ?? 1, ey: pOutro.ey ?? 1, rot: pOutro.rot || 0 });
         meusIds.add(pOutro.id);
       }
@@ -2134,33 +2133,16 @@ async function saveMundo() {
   };
   const corpo = JSON.stringify(corpoData, null, 2);
 
-  // 1. Salva no localStorage para nunca perder o progresso no navegador
   try { localStorage.setItem('acordelot_mundo_saved', corpo); } catch (e) {}
-
-  // 2. Salva ONLINE na nuvem Supabase (Vercel, Celular, Mac)
   const cloudOk = await saveMundoCloud(corpoData);
   syncAllLocalPinturasToCloud();
 
-  // 3. Salva no servidor local Python se estiver rodando em localhost (nunca no Vercel)
-  let serverOk = false;
   if (!IS_PLAY_BUILD) try {
-    const r = await fetch('/save_mundo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: corpo
-    });
-    if (r.ok) serverOk = true;
+    const r = await fetch('/save_mundo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: corpo });
+    if (r.ok && cloudOk) { showToast('☁️ Mundo salvo ONLINE no Supabase e em disco!'); return; }
   } catch (e) {}
 
-  if (cloudOk && serverOk) {
-    showToast('☁️ Mundo salvo ONLINE no Supabase e em disco!');
-  } else if (cloudOk) {
-    showToast('☁️ Mundo salvo ONLINE no Supabase!');
-  } else if (serverOk) {
-    showToast('🌍 Mundo salvo no servidor local');
-  } else {
-    showToast('💾 Mundo salvo no navegador');
-  }
+  showToast(cloudOk ? '☁️ Mundo salvo ONLINE no Supabase!' : '💾 Mundo salvo no navegador');
 }
 
 
@@ -13017,6 +12999,7 @@ function initTabletMultiSelectEvents() {
     if (!paraDeletar.length) return;
     const removidos = paraDeletar.length;
     paraDeletar.forEach(p => { if (p && p.id && window._propsDeletadosNestaSessao) window._propsDeletadosNestaSessao.add(p.id); });
+    _salvarDeletados(); // persiste no localStorage para sobreviver ao refresh
     MUNDO.props = MUNDO.props.filter(p => !paraDeletar.includes(p));
     mundoPropsSelecionados = [];
     mundoPropSel = null;
@@ -13050,6 +13033,7 @@ function deletarPropsSelecionadosEmLote() {
   if (!paraDeletar.length) return;
   const qtd = paraDeletar.length;
   paraDeletar.forEach(p => { if (p && p.id && window._propsDeletadosNestaSessao) window._propsDeletadosNestaSessao.add(p.id); });
+  _salvarDeletados(); // persiste no localStorage para sobreviver ao refresh
   MUNDO.props = MUNDO.props.filter(p => !paraDeletar.includes(p));
   mundoPropsSelecionados = [];
   mundoPropSel = null;
