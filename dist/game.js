@@ -2603,6 +2603,87 @@ function sincronizarPropDefsComMateriais() {
   });
 }
 
+function alternarPisoPintavel(id) {
+  const def = propDefs[id];
+  if (!def && !MATERIAIS[id]) return;
+
+  if (MATERIAIS[id]) {
+    delete MATERIAIS[id];
+    delete texturasDoPincel[id];
+    if (pincelMaterial === id) pincelMaterial = null;
+    showToast(`❌ ${def?.nome || id} removido do Pincel de Chão`);
+  } else {
+    MATERIAIS[id] = {
+      nome: def?.nome || id,
+      arquivo: def?.sprite || '',
+      div: 1
+    };
+    carregarTexturaDoPincel(id);
+    showToast(`🎨 ${def?.nome || id} ativado no Pincel de Chão!`);
+  }
+
+  try {
+    const ativos = Object.keys(MATERIAIS);
+    localStorage.setItem('acordelot_materiais_ativos', JSON.stringify(ativos));
+  } catch (e) {}
+
+  if (typeof renderMateriais === 'function') renderMateriais();
+  if (typeof renderMateriaisTablet === 'function') renderMateriaisTablet();
+}
+
+function abrirModalGerenciarPisos() {
+  const modal = document.getElementById('modalGerenciarPisos');
+  const lista = document.getElementById('listaModalPisos');
+  const busca = document.getElementById('buscaModalPisos');
+  if (!modal || !lista) return;
+
+  const renderListaModal = () => {
+    lista.innerHTML = '';
+    const q = (busca?.value || '').toLowerCase().trim();
+
+    Object.entries(propDefs).forEach(([id, def]) => {
+      const nome = def.nome || id;
+      if (q && !nome.toLowerCase().includes(q) && !id.toLowerCase().includes(q)) return;
+
+      const selecionado = !!MATERIAIS[id];
+      const card = document.createElement('div');
+      card.className = 'item-piso-card' + (selecionado ? ' selecionado' : '');
+
+      const img = document.createElement('img');
+      img.src = def.sprite;
+      card.appendChild(img);
+
+      const span = document.createElement('span');
+      span.textContent = nome;
+      card.appendChild(span);
+
+      if (selecionado) {
+        const check = document.createElement('div');
+        check.className = 'check-icon';
+        check.textContent = '✅';
+        card.appendChild(check);
+      }
+
+      card.onclick = () => {
+        alternarPisoPintavel(id);
+        renderListaModal();
+      };
+
+      lista.appendChild(card);
+    });
+  };
+
+  if (busca) busca.oninput = renderListaModal;
+  renderListaModal();
+  modal.classList.remove('hidden');
+
+  const fechar = () => modal.classList.add('hidden');
+  const btnFechar = document.getElementById('fecharModalPisos');
+  if (btnFechar) btnFechar.onclick = fechar;
+  const btnSalvar = document.getElementById('salvarModalPisos');
+  if (btnSalvar) btnSalvar.onclick = fechar;
+}
+
 const texturasDoPincel = {};      // id -> { img, padrao }
 let pincelMaterial = null;        // null = pincel desligado
 let pincelTamanho = 90;
@@ -2985,8 +3066,8 @@ function renderMundo(now) {
     }
   }
 
-  // grade dos blocos, só no editor: é a régua do mundo
-  if (!mundoTeste) {
+  // grade dos blocos: só é exibida se o usuário ligar a opção de grade
+  if (!mundoTeste && typeof exibirGradeEditor !== 'undefined' && exibirGradeEditor && !pincelMaterial) {
     ctx.save();
     ctx.strokeStyle = 'rgba(125,211,252,0.20)'; ctx.lineWidth = 1;
     for (let c = 0; c <= MUNDO.cols; c++) {
@@ -7345,6 +7426,18 @@ function abrirLupa(id, alvoEl) {
                    def.colide ? `bloqueia ${def.raio}px` : 'atravessa');
   document.getElementById('lupaFicha').textContent = partes.join('  ·  ');
 
+  const btnToggle = document.getElementById('lupaBtnPisoToggle');
+  if (btnToggle) {
+    const ativo = !!MATERIAIS[id];
+    btnToggle.textContent = ativo ? '✅ Ativo em Pintar Chão (Clique p/ Remover)' : '🎨 Ativar como Pincel de Chão';
+    btnToggle.classList.toggle('ativo', ativo);
+    btnToggle.onclick = (ev) => {
+      ev.stopPropagation();
+      alternarPisoPintavel(id);
+      abrirLupa(id, alvoEl);
+    };
+  }
+
   caixa.classList.remove('hidden');
   // Encosta na borda EXTERNA da doca, não no botão: ancorada no botão ela cobria as
   // colunas vizinhas da própria lista, que é o que se está comparando.
@@ -11637,6 +11730,15 @@ function initForgeUI() {
       });
       box.appendChild(b);
     };
+    
+    // Botão para o próprio usuário escolher e ativar quais chãos quer no pincel
+    const btnGerenciar = document.createElement('button');
+    btnGerenciar.className = 'tool-pill';
+    btnGerenciar.style.cssText = 'margin-bottom:6px;width:100%;font-weight:bold;background:#3b2d1c;color:#fde68a;border:1px solid #d97706;cursor:pointer;';
+    btnGerenciar.textContent = '⚙️ Escolher Chãos Pintáveis';
+    btnGerenciar.onclick = () => abrirModalGerenciarPisos();
+    box.appendChild(btnGerenciar);
+
     Object.keys(MATERIAIS).forEach(carregarTexturaDoPincel);
     Object.entries(MATERIAIS).forEach(([id, d]) => chip(id, d.nome));
     chip('apagar', '🧽 Apagar');

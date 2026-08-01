@@ -60,6 +60,23 @@
     <canvas id="lupaTela"></canvas>
     <div class="lupa-nome" id="lupaNome"></div>
     <div class="lupa-ficha" id="lupaFicha"></div>
+    <button id="lupaBtnPisoToggle" class="lupa-btn-piso">🎨 Usar como Pincel de Chão</button>
+  </div>
+
+  <!-- Modal para o Usuário Escolher Diretamente quais Assets São Chãos Pintáveis -->
+  <div id="modalGerenciarPisos" class="modal-overlay hidden">
+    <div class="modal-card modal-pisos-card">
+      <div class="modal-header">
+        <h3>🎨 Escolha os Assets Pintáveis no Chão</h3>
+        <button id="fecharModalPisos" class="modal-close-btn">✕</button>
+      </div>
+      <p class="modal-sub">Marque quais assets da sua galeria você deseja liberar no menu do Pincel de Chão:</p>
+      <input type="text" id="buscaModalPisos" class="insp-input" placeholder="🔍 Filtrar assets pelo nome..." style="margin-bottom: 10px;">
+      <div id="listaModalPisos" class="grid-pisos-modal"></div>
+      <div class="modal-footer">
+        <button id="salvarModalPisos" class="tool-pill btn-salvar-modal">✅ Concluído</button>
+      </div>
+    </div>
   </div>
 
   <!-- ═══ DOCA DE ASSETS (DIREITA) ═══ -->
