@@ -3104,8 +3104,17 @@ const DESFAZER_MAX = 25;
 let pilhaDesfazer = [], pilhaRefazer = [], ultimoRetrato = 0;
 
 function retratoDoMundo() {
+  const pinturas = {};
+  if (typeof blocosPintados !== 'undefined') {
+    Object.entries(blocosPintados).forEach(([k, cv]) => {
+      if (cv) {
+        try { pinturas[k] = cv.toDataURL('image/png'); } catch (e) {}
+      }
+    });
+  }
   return JSON.stringify({ props: MUNDO.props, spawn: MUNDO.spawn,
-                          cols: MUNDO.cols, rows: MUNDO.rows, chao: MUNDO.chao });
+                          cols: MUNDO.cols, rows: MUNDO.rows, chao: MUNDO.chao,
+                          pinturas: pinturas });
 }
 
 // `agrupar` junta ações contínuas — segurar a seta move de pixel em pixel, e cada
@@ -3124,6 +3133,28 @@ function aplicarRetrato(txt) {
   MUNDO.props = d.props;
   MUNDO.spawn = d.spawn; MUNDO.cols = d.cols; MUNDO.rows = d.rows;
   if (d.chao) MUNDO.chao = d.chao;
+
+  if (d.pinturas && typeof blocosPintados !== 'undefined') {
+    Object.keys(blocosPintados).forEach(k => {
+      const cv = blocosPintados[k];
+      if (cv) {
+        const cx = cv.getContext('2d');
+        cx.clearRect(0, 0, cv.width, cv.height);
+      }
+    });
+    Object.entries(d.pinturas).forEach(([k, pngData]) => {
+      const [c, r] = k.split('_').map(Number);
+      const cv = pinturaDoBloco(c, r);
+      const img = new Image();
+      img.onload = () => {
+        const cx = cv.getContext('2d');
+        cx.clearRect(0, 0, cv.width, cv.height);
+        cx.drawImage(img, 0, 0);
+      };
+      img.src = pngData;
+    });
+  }
+
   mundoPropSel = null; mundoArrastando = null; mundoAlca = null;
   if (typeof mundoPropsSelecionados !== 'undefined') mundoPropsSelecionados = [];
   saveMundo();
@@ -3330,6 +3361,7 @@ function mundoPointerDown(m) {
   // Pincel ligado: o toque pinta, e nada mais. Plantar e selecionar voltam quando você
   // desliga o pincel — misturar os dois no mesmo clique só gera objeto sem querer.
   if (pincelMaterial) {
+    registrarDesfazer();
     if (pincelModo === 'estrada') {
       // Começa aqui — ou na ponta do segmento anterior, se houver, para as pernas
       // emendarem exatamente e não sobrar buraco na junta.
@@ -11563,6 +11595,7 @@ function initForgeUI() {
     const box = document.getElementById('pincelMateriais');
     if (!box) return;
     box.innerHTML = '';
+    sincronizarPropDefsComMateriais();
     const chip = (id, rotulo) => {
       const b = document.createElement('button');
       b.className = 'prop-cat' + (pincelMaterial === id ? ' ativo' : '');
@@ -11580,8 +11613,6 @@ function initForgeUI() {
       });
       box.appendChild(b);
     };
-    // Carrega as seis de uma vez: a textura leva alguns quadros para decodificar, e
-    // quem escolhe o material e já arrasta pintava no vazio, sem nenhuma pista.
     Object.keys(MATERIAIS).forEach(carregarTexturaDoPincel);
     Object.entries(MATERIAIS).forEach(([id, d]) => chip(id, d.nome));
     chip('apagar', '🧽 Apagar');
