@@ -1858,6 +1858,170 @@ async function loadMundoCloud() {
   return null;
 }
 
+// ── SINCRONIZAÇÃO EM TEMPO REAL E COOPERATIVA NO SUPABASE ─────────────────────────
+window._propsDeletadosNestaSessao = window._propsDeletadosNestaSessao || new Set();
+
+async function savePinturaCloud(k, pngData) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/acordelot_worlds`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ id: `pintura_${k}`, data: { png: pngData }, updated_at: new Date().toISOString() })
+    });
+  } catch (e) {}
+}
+
+async function syncAllLocalPinturasToCloud() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('acordelot_pintura_')) {
+        const k = key.replace('acordelot_pintura_', '');
+        const png = localStorage.getItem(key);
+        if (png && !sessionStorage.getItem('synced_pin_' + k)) {
+          savePinturaCloud(k, png);
+          sessionStorage.setItem('synced_pin_' + k, '1');
+        }
+      }
+    }
+  } catch(e) {}
+}
+
+async function loadPinturasCloud() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/acordelot_worlds?id=like.pintura_*&select=id,data,updated_at`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      let count = 0;
+      if (Array.isArray(rows)) {
+        for (const r of rows) {
+          if (r && r.id && r.data && r.data.png) {
+            const k = r.id.replace('pintura_', '');
+            const existing = localStorage.getItem('acordelot_pintura_' + k);
+            if (existing !== r.data.png) {
+              localStorage.setItem('acordelot_pintura_' + k, r.data.png);
+              const img = new Image();
+              img.onload = () => {
+                try {
+                  const [col, row] = k.split('_').map(Number);
+                  const cv = pinturaDoBloco(col, row);
+                  const cx = cv.getContext('2d');
+                  cx.clearRect(0, 0, cv.width, cv.height);
+                  cx.drawImage(img, 0, 0);
+                } catch (e) {}
+              };
+              img.src = r.data.png;
+              count++;
+            }
+          }
+        }
+      }
+      return count;
+    }
+  } catch(e) {}
+  return 0;
+}
+
+async function saveAssetCloud(id, def, png, mat) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/acordelot_worlds`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ id: `asset_${id}`, data: { id, def, png, mat }, updated_at: new Date().toISOString() })
+    });
+  } catch (e) {}
+}
+
+async function loadAssetsCloud() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/acordelot_worlds?id=like.asset_*&select=id,data`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      let mudou = false;
+      if (Array.isArray(rows)) {
+        for (const r of rows) {
+          if (r && r.data && r.data.id && r.data.def && r.data.png) {
+            const { id, def, png, mat } = r.data;
+            if (!propDefs[id] || localStorage.getItem('acordelot_custom_prop_' + id) !== png) {
+              def.novo = true;
+              def.sprite = png;
+              propDefs[id] = def;
+              try {
+                localStorage.setItem('acordelot_custom_def_' + id, JSON.stringify(def));
+                localStorage.setItem('acordelot_custom_prop_' + id, png);
+              } catch(e) {}
+              if (mat) {
+                MATERIAIS[id] = mat;
+                MATERIAIS[id].arquivo = png;
+                try { localStorage.setItem('acordelot_custom_mat_' + id, JSON.stringify(mat)); } catch(e){}
+                carregarTexturaDoPincel(id);
+              }
+              const img = new Image();
+              img.onload = () => { try { propSprites[id] = prepareSprite(img); } catch(e){} };
+              img.src = png;
+              mudou = true;
+            }
+          }
+        }
+      }
+      if (mudou) {
+        if (typeof renderPaletaDeProps === 'function') renderPaletaDeProps();
+        if (typeof renderPropPaletteTablet === 'function') renderPropPaletteTablet();
+        if (typeof window.renderMateriais === 'function') window.renderMateriais();
+        if (typeof renderMateriaisTablet === 'function') renderMateriaisTablet();
+      }
+    }
+  } catch(e) {}
+}
+
+async function sincronizarComNuvemAgora(manual = false) {
+  if (IS_PLAY_BUILD) return;
+  if (manual) showToast('☁️ Sincronizando em tempo real com o Supabase...');
+  syncAllLocalPinturasToCloud();
+  const novasPinturas = await loadPinturasCloud();
+  await loadAssetsCloud();
+  const cloudData = await loadMundoCloud();
+  let novosProps = 0;
+  if (cloudData && Array.isArray(cloudData.props) && MUNDO && MUNDO.props) {
+    const meusIds = new Set(MUNDO.props.map(p => p.id));
+    for (const pOutro of cloudData.props) {
+      if (!meusIds.has(pOutro.id) && !window._propsDeletadosNestaSessao?.has(pOutro.id)) {
+        MUNDO.props.push({ ...pOutro, ex: pOutro.ex ?? 1, ey: pOutro.ey ?? 1, rot: pOutro.rot || 0 });
+        meusIds.add(pOutro.id);
+        novosProps++;
+      }
+    }
+  }
+  if (manual || novosProps > 0 || novasPinturas > 0) {
+    if (novosProps > 0 || novasPinturas > 0) {
+      showToast(`⚡ Sincronizado em tempo real: +${novosProps} objeto(s), +${novasPinturas} rua(s) do seu amigo!`);
+    } else if (manual) {
+      showToast('✨ Tudo sincronizado e em ordem com o Supabase!');
+    }
+  }
+}
+
+// Sincroniza cooperativamente em segundo plano a cada 6 segundos no modo editor
+setInterval(() => {
+  if (typeof engineMode !== 'undefined' && engineMode === 'mundo' && !IS_PLAY_BUILD) {
+    sincronizarComNuvemAgora(false);
+  }
+}, 6000);
+
 async function loadMundo() {
   let loadedData = null;
 
@@ -1882,11 +2046,25 @@ async function loadMundo() {
       flipY: !!p.flipY,
     }));
     carregarPintura();
+    setTimeout(() => sincronizarComNuvemAgora(false), 1000);
   }
 }
 
 async function saveMundo() {
   if (IS_PLAY_BUILD) return;
+
+  // Antes de regravar a nuvem, mescla com o que o parceiro salvou no Supabase!
+  const cloudOld = await loadMundoCloud();
+  if (cloudOld && Array.isArray(cloudOld.props) && MUNDO && MUNDO.props) {
+    const meusIds = new Set(MUNDO.props.map(p => p.id));
+    for (const pOutro of cloudOld.props) {
+      if (!meusIds.has(pOutro.id) && !window._propsDeletadosNestaSessao?.has(pOutro.id)) {
+        MUNDO.props.push({ ...pOutro, ex: pOutro.ex ?? 1, ey: pOutro.ey ?? 1, rot: pOutro.rot || 0 });
+        meusIds.add(pOutro.id);
+      }
+    }
+  }
+
   const corpoData = {
     nome: MUNDO.nome, bloco: MUNDO.bloco, cols: MUNDO.cols, rows: MUNDO.rows,
     blocos: MUNDO.blocos, spawn: MUNDO.spawn,
@@ -1903,6 +2081,7 @@ async function saveMundo() {
 
   // 2. Salva ONLINE na nuvem Supabase (Vercel, Celular, Mac)
   const cloudOk = await saveMundoCloud(corpoData);
+  syncAllLocalPinturasToCloud();
 
   // 3. Salva no servidor local Python se estiver rodando em localhost
   let serverOk = false;
@@ -1916,15 +2095,16 @@ async function saveMundo() {
   } catch (e) {}
 
   if (cloudOk && serverOk) {
-    showToast('☁️ Mundo salvo ONLINE na nuvem e em disco!');
+    showToast('☁️ Mundo salvo ONLINE no Supabase e em disco!');
   } else if (cloudOk) {
-    showToast('☁️ Mundo salvo ONLINE na nuvem!');
+    showToast('☁️ Mundo salvo ONLINE no Supabase!');
   } else if (serverOk) {
     showToast('🌍 Mundo salvo no servidor local');
   } else {
     showToast('💾 Mundo salvo no navegador');
   }
 }
+
 
 // ── Streaming dos blocos de chão ────────────────────────────────────────────────
 // Carrega o que está à vista mais uma borda de um bloco, e joga fora o que ficou longe.
@@ -2279,6 +2459,7 @@ async function recGravar() {
       nome: a.rotulo || id, sprite: pngData, categoria: a.categoria,
       plano: p.plano, pe: a.pe2 ?? p.pe, raio: a.raio2 ?? p.raio,
       colide: (a.raio2 ?? p.raio) > 0,
+      novo: true, timestamp: Date.now()
     };
     if (p.plano !== 'chao') def.altura = a.altura2 ?? p.altura;
     if (p.mascara) { def.mascara = p.mascara; def.colide = false; }
@@ -2293,12 +2474,17 @@ async function recGravar() {
     // 2. Se for textura/sprite de chão ou se pertencer às categorias de piso/caminho/pedra
     const ehChao = ['piso', 'caminho', 'chao', 'calcada', 'terra', 'pedra', 'agua', 'rio'].includes(a.categoria) || p.plano === 'chao';
     if (ehChao) {
-      MATERIAIS[id] = { nome: def.nome || id, arquivo: pngData, div: 1 };
+      MATERIAIS[id] = { nome: def.nome || id, arquivo: pngData, div: 1, novo: true };
       try {
         localStorage.setItem('acordelot_custom_mat_' + id, JSON.stringify(MATERIAIS[id]));
       } catch(e) {}
       carregarTexturaDoPincel(id);
     }
+
+    // 3. Sincroniza em tempo real com o Supabase
+    try {
+      if (typeof saveAssetCloud === 'function') saveAssetCloud(id, def, pngData, MATERIAIS[id] || null);
+    } catch(e) {}
 
     // Carrega o sprite para aparecer imediatamente na paleta
     const img = new Image();
@@ -2307,7 +2493,7 @@ async function recGravar() {
         propSprites[id] = prepareSprite(img);
         renderPaletaDeProps();
         renderPropPaletteTablet();
-        renderMateriaisTablet();
+        if (typeof renderMateriaisTablet === 'function') renderMateriaisTablet();
       } catch (e) {}
     };
     img.src = pngData;
@@ -2323,13 +2509,13 @@ async function recGravar() {
   } catch (e) {}
 
   if (btn) { btn.disabled = false; btn.textContent = '💾 Gravar no catálogo'; }
-  showToast(`✅ ${ok} peça(s) catalogada(s) como Asset e Pincel de Chão!`);
+  showToast(`✅ ${ok} peça(s) catalogada(s) e enviada(s) para o Supabase! (Categoria: "✨ Novo")`);
   REC.achados = [];
   recRenderResultados();
   renderPaletaDeProps();
   renderPropPaletteTablet();
   if (typeof renderMateriais === 'function') renderMateriais();
-  renderMateriaisTablet();
+  if (typeof renderMateriaisTablet === 'function') renderMateriaisTablet();
 }
 
 function initCustomProps() {
@@ -2343,14 +2529,15 @@ function initCustomProps() {
         if (defStr && pngData) {
           const def = JSON.parse(defStr);
           def.sprite = pngData;
+          def.novo = true;
           propDefs[id] = def;
 
           const img = new Image();
           img.onload = () => {
             try {
               propSprites[id] = prepareSprite(img);
-              renderPaletaDeProps();
-              renderPropPaletteTablet();
+              if (typeof renderPaletaDeProps === 'function') renderPaletaDeProps();
+              if (typeof renderPropPaletteTablet === 'function') renderPropPaletteTablet();
             } catch (e) {}
           };
           img.src = pngData;
@@ -2359,8 +2546,11 @@ function initCustomProps() {
           if (matStr) {
             MATERIAIS[id] = JSON.parse(matStr);
             MATERIAIS[id].arquivo = pngData;
+            MATERIAIS[id].novo = true;
             carregarTexturaDoPincel(id);
           }
+          // Se ainda não tiver na nuvem, dispara um sync silencioso
+          try { if (typeof saveAssetCloud === 'function') saveAssetCloud(id, def, pngData, MATERIAIS[id] || null); } catch(e){}
         }
       }
     }
@@ -2742,9 +2932,10 @@ function pinturaDoBloco(c, r) {
 }
 
 async function carregarPintura() {
-  const alvos = Object.keys(MUNDO.blocos);
+  if (typeof syncAllLocalPinturasToCloud === 'function') syncAllLocalPinturasToCloud();
+  if (typeof loadPinturasCloud === 'function') await loadPinturasCloud();
+  const alvos = Object.keys(MUNDO.blocos || {});
   await Promise.all(alvos.map(k => new Promise(res => {
-    // 1. Tenta carregar primeiro do localStorage caso exista pintura salva localmente
     try {
       const localPng = localStorage.getItem('acordelot_pintura_' + k);
       if (localPng) {
@@ -2766,7 +2957,7 @@ async function carregarPintura() {
       pinturaDoBloco(c, r).getContext('2d').drawImage(img, 0, 0);
       res();
     };
-    img.onerror = () => res(); // Ignora 404 silenciosamente se não houver pintura salva
+    img.onerror = () => res();
     img.src = `assets/mundo/pintura/${k}.png?t=${Date.now()}`;
   })));
 }
@@ -2776,10 +2967,11 @@ function pincelar(wx, wy) {
   if (!pincelMaterial) return;
   const raio = pincelTamanho / 2;
   const BW = MUNDO.bloco.w, BH = MUNDO.bloco.h;
-  const c0 = Math.max(0, Math.floor((wx - raio) / BW));
-  const c1 = Math.min(MUNDO.cols - 1, Math.floor((wx + raio) / BW));
-  const r0 = Math.max(0, Math.floor((wy - raio) / BH));
-  const r1 = Math.min(MUNDO.rows - 1, Math.floor((wy + raio) / BH));
+  // A margem de 2px garante que a borda do pincel não seja cortada na emenda dos blocos
+  const c0 = Math.max(0, Math.floor((wx - raio - 2) / BW));
+  const c1 = Math.min(MUNDO.cols - 1, Math.floor((wx + raio + 2) / BW));
+  const r0 = Math.max(0, Math.floor((wy - raio - 2) / BH));
+  const r1 = Math.min(MUNDO.rows - 1, Math.floor((wy + raio + 2) / BH));
   const apagando = pincelMaterial === 'apagar';
   const tex = apagando ? null : carregarTexturaDoPincel(pincelMaterial);
 
@@ -2797,11 +2989,11 @@ function pincelar(wx, wy) {
       const cx = cv.getContext('2d');
       const lx = wx - c * BW, ly = wy - r * BH;
       cx.save();
-      // O raio estendido em 0.5px faz o arco encostar totalmente na borda dos blocos sem deixar frestas
-      cx.beginPath(); cx.arc(lx, ly, raio + 0.5, 0, Math.PI * 2); cx.clip();
+      // Raio estendido em 1.5px elimina frestas subpixel onde a grama anterior reaparecia
+      cx.beginPath(); cx.arc(lx, ly, raio + 1.5, 0, Math.PI * 2); cx.clip();
       if (apagando) {
         cx.globalCompositeOperation = 'destination-out';
-        cx.fillRect(lx - raio - 1, ly - raio - 1, (raio + 1) * 2, (raio + 1) * 2);
+        cx.fillRect(lx - raio - 3, ly - raio - 3, (raio + 3) * 2, (raio + 3) * 2);
       } else {
         const pad = cx.createPattern(tex.tela, 'repeat');
         const offX = -(c * BW) % tex.tela.width;
@@ -2810,7 +3002,7 @@ function pincelar(wx, wy) {
           pad.setTransform(new DOMMatrix().translate(offX, offY));
         }
         cx.fillStyle = pad;
-        cx.fillRect(lx - raio - 1, ly - raio - 1, (raio + 1) * 2, (raio + 1) * 2);
+        cx.fillRect(lx - raio - 3, ly - raio - 3, (raio + 3) * 2, (raio + 3) * 2);
       }
       cx.restore();
       pinturaSuja.add(`${c}_${r}`);
@@ -2818,11 +3010,6 @@ function pincelar(wx, wy) {
   }
 }
 
-// ── Traçado de estrada ──────────────────────────────────────────────────────────
-// O jeito SimCity: clica onde a rua começa, arrasta até onde ela termina, solta. O
-// traço sai reto, com o ângulo travado de 45 em 45 graus, e o ponto final vira o começo
-// do próximo — assim as pernas emendam sem sobra nem falha. Curva e cruzamento saem de
-// graça, porque tudo é pintado na mesma camada e a tinta se funde.
 let pincelModo = 'livre';        // 'livre' = mão livre, 'estrada' = segmentos retos, 'praca' = praça circular preenchida
 let estradaDe = null;            // ponto de origem do segmento em desenho
 let estradaAte = null;           // ponta atual, já com o ângulo travado
@@ -2838,23 +3025,21 @@ function travarAngulo(x0, y0, x1, y1, livre) {
   return { x: x0 + Math.cos(a) * comp, y: y0 + Math.sin(a) * comp, comp };
 }
 
-// Carimba ao longo da reta. O passo é uma fração do raio: passo maior deixa a estrada
-// com barriga de lagarta, e passo menor só gasta tempo.
+// Passo muito mais denso (dividir por 12 em vez de 6) elimina bordas onduladas ("recorte de lagarta")
 function pintarSegmento(x0, y0, x1, y1) {
-  const passo = Math.max(4, pincelTamanho / 6);
+  const passo = Math.max(2, pincelTamanho / 12);
   const comp = Math.hypot(x1 - x0, y1 - y0);
   const n = Math.max(1, Math.ceil(comp / passo));
   for (let i = 0; i <= n; i++) pincelar(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n);
 }
 
-// Pinta uma praça circular inteira com preenchimento sólido do centro até o raio
 function pintarPracaPreenchida(wx, wy, raio) {
   if (!pincelMaterial || raio < 2) return;
   const BW = MUNDO.bloco.w, BH = MUNDO.bloco.h;
-  const c0 = Math.max(0, Math.floor((wx - raio) / BW));
-  const c1 = Math.min(MUNDO.cols - 1, Math.floor((wx + raio) / BW));
-  const r0 = Math.max(0, Math.floor((wy - raio) / BH));
-  const r1 = Math.min(MUNDO.rows - 1, Math.floor((wy + raio) / BH));
+  const c0 = Math.max(0, Math.floor((wx - raio - 2) / BW));
+  const c1 = Math.min(MUNDO.cols - 1, Math.floor((wx + raio + 2) / BW));
+  const r0 = Math.max(0, Math.floor((wy - raio - 2) / BH));
+  const r1 = Math.min(MUNDO.rows - 1, Math.floor((wy + raio + 2) / BH));
   const apagando = pincelMaterial === 'apagar';
   const tex = apagando ? null : carregarTexturaDoPincel(pincelMaterial);
 
@@ -2866,10 +3051,10 @@ function pintarPracaPreenchida(wx, wy, raio) {
       const cx = cv.getContext('2d');
       const lx = wx - c * BW, ly = wy - r * BH;
       cx.save();
-      cx.beginPath(); cx.arc(lx, ly, raio + 0.5, 0, Math.PI * 2); cx.clip();
+      cx.beginPath(); cx.arc(lx, ly, raio + 1.5, 0, Math.PI * 2); cx.clip();
       if (apagando) {
         cx.globalCompositeOperation = 'destination-out';
-        cx.fillRect(lx - raio - 1, ly - raio - 1, (raio + 1) * 2, (raio + 1) * 2);
+        cx.fillRect(lx - raio - 3, ly - raio - 3, (raio + 3) * 2, (raio + 3) * 2);
       } else {
         const pad = cx.createPattern(tex.tela, 'repeat');
         const offX = -(c * BW) % tex.tela.width;
@@ -2878,7 +3063,7 @@ function pintarPracaPreenchida(wx, wy, raio) {
           pad.setTransform(new DOMMatrix().translate(offX, offY));
         }
         cx.fillStyle = pad;
-        cx.fillRect(lx - raio - 1, ly - raio - 1, (raio + 1) * 2, (raio + 1) * 2);
+        cx.fillRect(lx - raio - 3, ly - raio - 3, (raio + 3) * 2, (raio + 3) * 2);
       }
       cx.restore();
       pinturaSuja.add(`${c}_${r}`);
@@ -2945,8 +3130,11 @@ async function salvarPintura() {
     const cv = blocosPintados[k];
     if (!cv) continue;
     const pngData = cv.toDataURL('image/png');
-    // Salva no localStorage em hosts estáticos (Vercel)
+    // 1. Salva no localStorage em hosts estáticos (Vercel) e tablets
     try { localStorage.setItem('acordelot_pintura_' + k, pngData); } catch (e) {}
+    // 2. Sincroniza em tempo real direto na nuvem do Supabase
+    try { if (typeof savePinturaCloud === 'function') savePinturaCloud(k, pngData); } catch (e) {}
+    // 3. Salva no servidor local Python se estiver no localhost
     try {
       await fetch('/save_pintura', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -2955,6 +3143,7 @@ async function salvarPintura() {
     } catch (e) {}
   }
 }
+
 
 // ── Props do mundo ──────────────────────────────────────────────────────────────
 // Escala em dois eixos e ângulo próprios. Esticar num eixo só é o que faz uma peça
@@ -3123,16 +3312,16 @@ function renderMundo(now) {
     for (let r = f.r0; r <= f.r1; r++) {
       const k = `${c}_${r}`, bl = mundoBlocos[k];
       const x = c * MUNDO.bloco.w, y = r * MUNDO.bloco.h;
-      const bleed = 0.5 / (mundoCam.zoom || 1);
+      const bleed = 1.0 / (mundoCam.zoom || 1);
       if (chaoGlobal) {
         const pin = blocosPintados[k];
-        if (pin) ctx.drawImage(pin, x, y, MUNDO.bloco.w + bleed, MUNDO.bloco.h + bleed);
+        if (pin) ctx.drawImage(pin, x - 0.5, y - 0.5, MUNDO.bloco.w + bleed + 0.5, MUNDO.bloco.h + bleed + 0.5);
         continue;
       }
       if (bl?.img.complete && bl.img.naturalWidth) {
         try { ctx.drawImage(bl.img, x, y, MUNDO.bloco.w + bleed, MUNDO.bloco.h + bleed); } catch (e) {}
         const pin = blocosPintados[k];
-        if (pin) ctx.drawImage(pin, x, y, MUNDO.bloco.w + bleed, MUNDO.bloco.h + bleed);
+        if (pin) ctx.drawImage(pin, x - 0.5, y - 0.5, MUNDO.bloco.w + bleed + 0.5, MUNDO.bloco.h + bleed + 0.5);
       } else if (!mundoTeste) {
         // Bloco vazio ou ainda carregando: no editor mostra a moldura, para você saber
         // que o espaço existe e onde ele começa.
@@ -3562,19 +3751,18 @@ function mundoPointerDown(m) {
       pinturaAtiva = true;
       return;
     }
-    pinturaAtiva = true; pincelar(w.x, w.y); return;
+    pinturaAtiva = true;
+    window._ultimaPinturaW = { x: w.x, y: w.y };
+    pincelar(w.x, w.y);
+    return;
   }
 
-  // Fora do mapa: se for uma célula de expansão, cresce ali. Vem antes de tudo porque
-  // ali não existe prop nem pintura para disputar o clique.
+  // Fora do mapa: se for uma célula de expansão, cresce ali.
   if (!mundoTeste) {
     const g = mundoGhostEm(w.x, w.y);
     if (g) { mundoExpandir(g); return; }
   }
 
-  // Com o pincel ligado, ele ganha de tudo — inclusive das alças do objeto que estiver
-  // selecionado. Testar a alça primeiro fazia o traço morrer perto de qualquer objeto
-  // selecionado, e o motivo era invisível.
   if (!pincelMaterial && mundoPropSel) {
     const k = alcaEm(mundoPropSel, w.x, w.y);
     if (k) { registrarDesfazer(); mundoAlca = k; return; }
@@ -3585,9 +3773,8 @@ function mundoPointerDown(m) {
     const novo = { id: `${propParaColocar}_${Date.now()}`, prop: propParaColocar,
                    x: Math.round(w.x), y: Math.round(w.y), ex: 1, ey: 1, rot: 0, flipX: false };
     MUNDO.props.push(novo);
-    // Planta UM e já entrega selecionado, com a caixa aberta: o gesto seguinte é sempre
-    // ajustar tamanho ou giro, não plantar outro. Para plantar de novo, toque na paleta.
     mundoPropSel = novo;
+    if (typeof atualizarBarraSelecaoMultipla === 'function') atualizarBarraSelecaoMultipla();
     propParaColocar = null;
     mundoFerramenta = 'selecionar';
     renderPaletaDeProps();
@@ -3613,24 +3800,22 @@ function mundoPointerDown(m) {
   }
 
   const p = mundoPropEm(w.x, w.y);
-  // Selecionar e arrastar valem em qualquer ferramenta menos a de mover câmera: exigir
-  // trocar de ferramenta para mexer num objeto que você acabou de plantar é atrito puro.
   if (p && mundoFerramenta !== 'mover') {
     registrarDesfazer();
     mundoPropSel = p; mundoArrastando = p;
     dragOffX = w.x - p.x; dragOffY = w.y - p.y;
+    if (typeof atualizarBarraSelecaoMultipla === 'function') atualizarBarraSelecaoMultipla();
     return;
   }
-  // Se clicou na área vazia sem ferramenta de multiseleção, limpa seleção anterior
   if (!p && mundoFerramenta !== 'multiselecao') {
     mundoPropsSelecionados = [];
     atualizarBarraSelecaoMultipla();
   }
-  // Nada sob o dedo: arrasta a câmera — mas só parado. É o que aposenta a ferramenta
-  // "Mover": mover a câmera nunca precisou de um modo próprio. Andando, a câmera segue o
-  // personagem, e arrastá-la brigaria com ele a cada quadro.
   if (!mundoTeste) mundoPan = { telaX: m.x, telaY: m.y, camX: mundoCam.x, camY: mundoCam.y };
-  if (!p) mundoPropSel = null;
+  if (!p) {
+    mundoPropSel = null;
+    if (typeof atualizarBarraSelecaoMultipla === 'function') atualizarBarraSelecaoMultipla();
+  }
 }
 
 let arrastandoCaixaSelecao = false;
@@ -3652,7 +3837,16 @@ function mundoPointerMove(m) {
     estradaAte = travarAngulo(estradaDe.x, estradaDe.y, w.x, w.y, keys.shift);
     return;
   }
-  if (pinturaAtiva) { const w = mundoDoPonteiro(m); pincelar(w.x, w.y); return; }
+  if (pinturaAtiva) {
+    const w = mundoDoPonteiro(m);
+    if (window._ultimaPinturaW) {
+      pintarSegmento(window._ultimaPinturaW.x, window._ultimaPinturaW.y, w.x, w.y);
+    } else {
+      pincelar(w.x, w.y);
+    }
+    window._ultimaPinturaW = { x: w.x, y: w.y };
+    return;
+  }
   if (mundoAlca && mundoPropSel) {
     const w = mundoDoPonteiro(m);
     arrastarAlca(mundoPropSel, w.x, w.y);
@@ -7588,28 +7782,42 @@ function renderPaletaDeProps() {
   const grade = document.getElementById('propPaleta');
   if (!grade) return;
 
-  // Filtro por categoria: 116 itens numa grade só não se varre com o olho.
+  // Filtro por categoria
   const cats = document.getElementById('propCats');
   if (cats) {
-    const usadas = [...new Set(Object.values(propDefs).map(d => d.categoria))].sort();
+    const usadas = [...new Set(Object.values(propDefs).map(d => d.categoria).filter(c => c && c !== 'novo'))].sort();
     cats.innerHTML = '';
-    ['tudo', ...usadas].forEach(c => {
+    ['tudo', 'novo', ...usadas].forEach(c => {
       const b = document.createElement('button');
       b.className = 'prop-cat' + (propCategoria === c ? ' ativo' : '');
-      const n = c === 'tudo' ? Object.keys(propDefs).length
-                             : Object.values(propDefs).filter(d => d.categoria === c).length;
-      b.textContent = `${NOME_DA_CATEGORIA[c] || c} ${n}`;
+      let n = 0;
+      if (c === 'tudo') n = Object.keys(propDefs).length;
+      else if (c === 'novo') n = Object.values(propDefs).filter(d => d.novo === true || d.categoria === 'novo').length;
+      else n = Object.values(propDefs).filter(d => d.categoria === c).length;
+      const nomeCat = c === 'novo' ? '✨ Novo' : (NOME_DA_CATEGORIA[c] || c);
+      b.textContent = `${nomeCat} (${n})`;
+      if (c === 'novo') {
+        b.style.fontWeight = 'bold';
+        b.style.color = '#fbbf24';
+      }
       b.addEventListener('click', () => { propCategoria = c; renderPaletaDeProps(); });
       cats.appendChild(b);
     });
   }
 
   const ids = Object.keys(propDefs)
-    .filter(id => propCategoria === 'tudo' || propDefs[id].categoria === propCategoria);
+    .filter(id => {
+      if (propCategoria === 'tudo') return true;
+      if (propCategoria === 'novo') return propDefs[id].novo === true || propDefs[id].categoria === 'novo';
+      return propDefs[id].categoria === propCategoria;
+    });
   grade.innerHTML = '';
   if (!ids.length) {
-    grade.innerHTML = '<p class="hint">Nenhum prop no catálogo. Coloque os PNGs em ' +
-      '<code>assets/props/</code> e declare-os em <code>assets/objects.json</code>.</p>';
+    if (propCategoria === 'novo') {
+      grade.innerHTML = '<p class="hint">Nenhum asset na categoria <b>Novo</b> ainda. Quando você extrair sprites com a ferramenta de corte ou sincronizar da nuvem, eles aparecerão aqui!</p>';
+    } else {
+      grade.innerHTML = '<p class="hint">Nenhum prop no catálogo. Coloque os PNGs em <code>assets/props/</code> e declare-os em <code>assets/objects.json</code>.</p>';
+    }
     return;
   }
   // Ordena por categoria: com 37 props, uma lista solta é impossível de varrer.
@@ -12657,7 +12865,7 @@ function renderPropPaletteTablet() {
   const paletaBox = document.getElementById('tabletPropPalette');
   if (!catBox || !paletaBox) return;
 
-  const categorias = ['tudo', 'muralhas', 'arvore', 'construcao', 'vila', 'rio', 'sagrado', 'musical'];
+  const categorias = ['novo', 'tudo', 'muralhas', 'arvore', 'construcao', 'vila', 'rio', 'sagrado', 'musical'];
   catBox.innerHTML = '';
   
   let catSel = 'muralhas';
@@ -12667,7 +12875,17 @@ function renderPropPaletteTablet() {
     catBox.querySelectorAll('.tablet-prop-cat').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
     paletaBox.innerHTML = '';
 
-    const ids = Object.keys(propDefs).filter(id => cat === 'tudo' || propDefs[id].categoria === cat);
+    const ids = Object.keys(propDefs).filter(id => {
+      if (cat === 'tudo') return true;
+      if (cat === 'novo') return propDefs[id].novo === true || propDefs[id].categoria === 'novo';
+      return propDefs[id].categoria === cat;
+    });
+
+    if (!ids.length) {
+      paletaBox.innerHTML = `<div style="padding: 12px; color: #94a3b8; font-size: 13px;">Nenhum item em <b>${cat === 'novo' ? 'Novo' : cat}</b>.</div>`;
+      return;
+    }
+
     ids.forEach(id => {
       const def = propDefs[id];
       const item = document.createElement('div');
@@ -12699,7 +12917,9 @@ function renderPropPaletteTablet() {
     const btn = document.createElement('button');
     btn.className = 'tablet-prop-cat' + (cat === catSel ? ' active' : '');
     btn.dataset.cat = cat;
-    btn.textContent = cat === 'muralhas' ? '🏰 Muralhas' : (cat.charAt(0).toUpperCase() + cat.slice(1));
+    const nome = cat === 'novo' ? '✨ Novo' : (cat === 'muralhas' ? '🏰 Muralhas' : (cat.charAt(0).toUpperCase() + cat.slice(1)));
+    btn.textContent = nome;
+    if (cat === 'novo') btn.style.color = '#fbbf24';
     btn.addEventListener('click', () => carregarPaleta(cat));
     catBox.appendChild(btn);
   });
@@ -12714,57 +12934,77 @@ function initTabletMultiSelectEvents() {
   const clearBtn = document.getElementById('tabMultiClear');
 
   scaleUp?.addEventListener('click', () => {
-    mundoPropsSelecionados.forEach(p => { p.ex = +( (p.ex || 1) * 1.1 ).toFixed(2); p.ey = +( (p.ey || 1) * 1.1 ).toFixed(2); });
-    saveMundo(); showToast('🔍+ Escala aumentada em lote');
+    const alvos = [...(mundoPropsSelecionados || [])];
+    if (mundoPropSel && !alvos.includes(mundoPropSel)) alvos.push(mundoPropSel);
+    alvos.forEach(p => { p.ex = +( (p.ex || 1) * 1.1 ).toFixed(2); p.ey = +( (p.ey || 1) * 1.1 ).toFixed(2); });
+    saveMundo(); showToast('🔍+ Escala aumentada');
   });
 
   scaleDown?.addEventListener('click', () => {
-    mundoPropsSelecionados.forEach(p => { p.ex = +( (p.ex || 1) * 0.9 ).toFixed(2); p.ey = +( (p.ey || 1) * 0.9 ).toFixed(2); });
-    saveMundo(); showToast('🔍- Escala reduzida em lote');
+    const alvos = [...(mundoPropsSelecionados || [])];
+    if (mundoPropSel && !alvos.includes(mundoPropSel)) alvos.push(mundoPropSel);
+    alvos.forEach(p => { p.ex = +( (p.ex || 1) * 0.9 ).toFixed(2); p.ey = +( (p.ey || 1) * 0.9 ).toFixed(2); });
+    saveMundo(); showToast('🔍- Escala reduzida');
   });
 
   delBtn?.addEventListener('click', () => {
-    const removidos = mundoPropsSelecionados.length;
-    MUNDO.props = MUNDO.props.filter(p => !mundoPropsSelecionados.includes(p));
+    const paraDeletar = [...(mundoPropsSelecionados || [])];
+    if (mundoPropSel && !paraDeletar.includes(mundoPropSel)) paraDeletar.push(mundoPropSel);
+    if (!paraDeletar.length) return;
+    const removidos = paraDeletar.length;
+    paraDeletar.forEach(p => { if (p && p.id && window._propsDeletadosNestaSessao) window._propsDeletadosNestaSessao.add(p.id); });
+    MUNDO.props = MUNDO.props.filter(p => !paraDeletar.includes(p));
     mundoPropsSelecionados = [];
+    mundoPropSel = null;
     caixaSelecaoMultipla = null;
     atualizarBarraSelecaoMultipla();
     saveMundo();
-    showToast(`🗑️ ${removidos} objetos removidos em lote!`);
+    showToast(removidos === 1 ? '🗑️ Objeto removido!' : `🗑️ ${removidos} objetos removidos com sucesso!`);
   });
 
   clearBtn?.addEventListener('click', () => {
     mundoPropsSelecionados = [];
+    mundoPropSel = null;
     caixaSelecaoMultipla = null;
     atualizarBarraSelecaoMultipla();
   });
 }
 
 function deletarPropsSelecionadosEmLote() {
-  if (!mundoPropsSelecionados || !mundoPropsSelecionados.length) return;
-  const qtd = mundoPropsSelecionados.length;
-  MUNDO.props = MUNDO.props.filter(p => !mundoPropsSelecionados.includes(p));
+  const paraDeletar = [...(mundoPropsSelecionados || [])];
+  if (mundoPropSel && !paraDeletar.includes(mundoPropSel)) paraDeletar.push(mundoPropSel);
+  if (!paraDeletar.length) return;
+  const qtd = paraDeletar.length;
+  paraDeletar.forEach(p => { if (p && p.id && window._propsDeletadosNestaSessao) window._propsDeletadosNestaSessao.add(p.id); });
+  MUNDO.props = MUNDO.props.filter(p => !paraDeletar.includes(p));
   mundoPropsSelecionados = [];
+  mundoPropSel = null;
   caixaSelecaoMultipla = null;
   atualizarBarraSelecaoMultipla();
   saveMundo();
-  showToast(`🗑️ ${qtd} objetos excluídos em lote!`);
+  showToast(`🗑️ ${qtd} objeto(s) excluído(s)!`);
 }
 
 function atualizarBarraSelecaoMultipla() {
   const countSpan = document.getElementById('countSelMulti');
   const btnDeletar = document.getElementById('mundoFerrDeletarMulti');
-  if (countSpan) countSpan.textContent = mundoPropsSelecionados.length;
+  if (countSpan) countSpan.textContent = (mundoPropsSelecionados ? mundoPropsSelecionados.length : 0);
   if (btnDeletar) {
-    btnDeletar.style.display = mundoPropsSelecionados.length > 0 ? 'block' : 'none';
+    btnDeletar.style.display = ((mundoPropsSelecionados && mundoPropsSelecionados.length > 0) || mundoPropSel) ? 'block' : 'none';
   }
 
   const bar = document.getElementById('tabletMultiSelectBar');
   const count = document.getElementById('tabletMultiCount');
   if (bar && count) {
-    if (mundoPropsSelecionados.length > 0) {
+    const total = (mundoPropsSelecionados ? mundoPropsSelecionados.length : 0) + (mundoPropSel && (!mundoPropsSelecionados || !mundoPropsSelecionados.includes(mundoPropSel)) ? 1 : 0);
+    if (total > 0) {
       bar.classList.remove('hidden');
-      count.textContent = `${mundoPropsSelecionados.length} objetos selecionados`;
+      if (total === 1 && mundoPropSel) {
+        const nome = (propDefs && mundoPropSel.prop && propDefs[mundoPropSel.prop]?.nome) ? propDefs[mundoPropSel.prop].nome : (mundoPropSel.prop || 'Objeto');
+        count.textContent = `1 selecionado (${nome})`;
+      } else {
+        count.textContent = `${total} objetos selecionados`;
+      }
     } else {
       bar.classList.add('hidden');
     }
