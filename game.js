@@ -2576,15 +2576,15 @@ function inclinacaoDoVento(p, def, now) {
 // colcha de retalhos.
 const MATERIAIS = {
   terra:         { nome: 'Terra',                arquivo: 'assets/texturas/terra_1.jpg',        div: 2 },
-  // A rua padrão: calçamento de pedra que fecha nas quatro bordas. A `laje_1` continua
-  // disponível para pátio antigo, mas é grosseira demais para rua.
   piso:          { nome: 'Rua de Pedra',         arquivo: 'assets/texturas/piso_calcada.jpg',  div: 3 },
   laje:          { nome: 'Calçada Antiga',       arquivo: 'assets/texturas/laje_1.jpg',         div: 4 },
   pedra_calcada: { nome: 'Pedras de Calçada HD', arquivo: 'assets/piso_calcada.jpg',          div: 2 },
   areia:         { nome: 'Areia',                arquivo: 'assets/texturas/areia_1.jpg',        div: 2 },
   folhas:        { nome: 'Folhas',               arquivo: 'assets/texturas/folhas_1.jpg',       div: 2 },
   grama_clara:   { nome: 'Grama clara',          arquivo: 'assets/texturas/grama_campo_3.jpg',  div: 3 },
+  grama_campo:   { nome: 'Grama de campo',       arquivo: 'assets/texturas/grama_campo_1.jpg',  div: 3 },
   grama_escura:  { nome: 'Grama escura',         arquivo: 'assets/texturas/grama_escura_3.jpg', div: 3 },
+  grama_mata:    { nome: 'Mato fechado',         arquivo: 'assets/texturas/grama_escura_1.jpg', div: 3 },
 };
 
 function sincronizarPropDefsComMateriais() {
@@ -2619,7 +2619,12 @@ function alternarPisoPintavel(id) {
       div: 1
     };
     carregarTexturaDoPincel(id);
-    showToast(`🎨 ${def?.nome || id} ativado no Pincel de Chão!`);
+    pincelMaterial = id;
+    propParaColocar = null;
+    if (typeof renderPaletaDeProps === 'function') renderPaletaDeProps();
+    document.getElementById('pincelTamanhoBox')?.style.setProperty('display', '');
+    document.getElementById('pincelModoBox')?.style.setProperty('display', '');
+    showToast(`🖌️ Pincel ativado com ${def?.nome || id}! Pronto para pintar.`);
   }
 
   try {
@@ -2627,7 +2632,7 @@ function alternarPisoPintavel(id) {
     localStorage.setItem('acordelot_materiais_ativos', JSON.stringify(ativos));
   } catch (e) {}
 
-  if (typeof renderMateriais === 'function') renderMateriais();
+  if (typeof window.renderMateriais === 'function') window.renderMateriais();
   if (typeof renderMateriaisTablet === 'function') renderMateriaisTablet();
 }
 
@@ -2692,20 +2697,36 @@ const blocosPintados = {};        // "c_r" -> canvas
 const pinturaSuja = new Set();    // blocos alterados desde o último salvamento
 
 function carregarTexturaDoPincel(id) {
-  if (texturasDoPincel[id]) return texturasDoPincel[id];
+  if (texturasDoPincel[id] && texturasDoPincel[id].pronta) return texturasDoPincel[id];
   const def = MATERIAIS[id];
+  if (!def) return null;
+
+  const spr = (typeof propSprites !== 'undefined') ? propSprites[id] : null;
+  if (spr && spr.canvas) {
+    const reg = { img: spr.img || null, tela: spr.canvas, pronta: true };
+    texturasDoPincel[id] = reg;
+    return reg;
+  }
+
+  const srcFile = def.arquivo || (propDefs[id] ? propDefs[id].sprite : '');
+  if (!srcFile) return null;
+
   const img = new Image();
   const reg = { img, pronta: false };
   img.onload = () => {
-    // Reduz igual ao gerador de blocos: a textura é pixel art de 1024 e, em tamanho
-    // natural, o grão fica grosseiro perto do personagem.
+    const div = def.div || 1;
     const c = document.createElement('canvas');
-    c.width = Math.max(1, Math.round(img.width / def.div));
-    c.height = Math.max(1, Math.round(img.height / def.div));
+    c.width = Math.max(1, Math.round(img.width / div));
+    c.height = Math.max(1, Math.round(img.height / div));
     c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
     reg.tela = c; reg.pronta = true;
   };
-  img.src = def.arquivo;
+  img.onerror = () => {
+    if (spr && spr.canvas) {
+      reg.tela = spr.canvas; reg.pronta = true;
+    }
+  };
+  img.src = srcFile;
   texturasDoPincel[id] = reg;
   return reg;
 }
@@ -2802,9 +2823,11 @@ function pincelar(wx, wy) {
 // traço sai reto, com o ângulo travado de 45 em 45 graus, e o ponto final vira o começo
 // do próximo — assim as pernas emendam sem sobra nem falha. Curva e cruzamento saem de
 // graça, porque tudo é pintado na mesma camada e a tinta se funde.
-let pincelModo = 'livre';        // 'livre' = mão livre, 'estrada' = segmentos retos
+let pincelModo = 'livre';        // 'livre' = mão livre, 'estrada' = segmentos retos, 'praca' = praça circular preenchida
 let estradaDe = null;            // ponto de origem do segmento em desenho
 let estradaAte = null;           // ponta atual, já com o ângulo travado
+let pracaCentro = null;          // centro da praça circular
+let pracaAtual = null;           // raio atual da praça circular
 const ANGULO_TRAVA = Math.PI / 4;
 
 function travarAngulo(x0, y0, x1, y1, livre) {
@@ -2824,7 +2847,70 @@ function pintarSegmento(x0, y0, x1, y1) {
   for (let i = 0; i <= n; i++) pincelar(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n);
 }
 
+// Pinta uma praça circular inteira com preenchimento sólido do centro até o raio
+function pintarPracaPreenchida(wx, wy, raio) {
+  if (!pincelMaterial || raio < 2) return;
+  const BW = MUNDO.bloco.w, BH = MUNDO.bloco.h;
+  const c0 = Math.max(0, Math.floor((wx - raio) / BW));
+  const c1 = Math.min(MUNDO.cols - 1, Math.floor((wx + raio) / BW));
+  const r0 = Math.max(0, Math.floor((wy - raio) / BH));
+  const r1 = Math.min(MUNDO.rows - 1, Math.floor((wy + raio) / BH));
+  const apagando = pincelMaterial === 'apagar';
+  const tex = apagando ? null : carregarTexturaDoPincel(pincelMaterial);
+
+  if (!apagando && (!tex || !tex.pronta)) return;
+
+  for (let c = c0; c <= c1; c++) {
+    for (let r = r0; r <= r1; r++) {
+      const cv = pinturaDoBloco(c, r);
+      const cx = cv.getContext('2d');
+      const lx = wx - c * BW, ly = wy - r * BH;
+      cx.save();
+      cx.beginPath(); cx.arc(lx, ly, raio + 0.5, 0, Math.PI * 2); cx.clip();
+      if (apagando) {
+        cx.globalCompositeOperation = 'destination-out';
+        cx.fillRect(lx - raio - 1, ly - raio - 1, (raio + 1) * 2, (raio + 1) * 2);
+      } else {
+        const pad = cx.createPattern(tex.tela, 'repeat');
+        const offX = -(c * BW) % tex.tela.width;
+        const offY = -(r * BH) % tex.tela.height;
+        if (typeof DOMMatrix !== 'undefined' && pad.setTransform) {
+          pad.setTransform(new DOMMatrix().translate(offX, offY));
+        }
+        cx.fillStyle = pad;
+        cx.fillRect(lx - raio - 1, ly - raio - 1, (raio + 1) * 2, (raio + 1) * 2);
+      }
+      cx.restore();
+      pinturaSuja.add(`${c}_${r}`);
+    }
+  }
+}
+
 function renderTracadoDeEstrada() {
+  if (pincelModo === 'praca' && pracaCentro && pracaAtual) {
+    const z = mundoCam.zoom || 1;
+    const raio = Math.hypot(pracaAtual.x - pracaCentro.x, pracaAtual.y - pracaCentro.y);
+    ctx.save();
+    ctx.fillStyle = pincelMaterial === 'apagar' ? 'rgba(252,165,165,.35)' : 'rgba(253,230,138,.35)';
+    ctx.beginPath(); ctx.arc(pracaCentro.x, pracaCentro.y, raio, 0, Math.PI * 2); ctx.fill();
+
+    ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 2 / z; ctx.setLineDash([6 / z, 4 / z]);
+    ctx.beginPath(); ctx.arc(pracaCentro.x, pracaCentro.y, raio, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#fde68a'; ctx.beginPath(); ctx.arc(pracaCentro.x, pracaCentro.y, 4 / z, 0, Math.PI * 2); ctx.fill();
+
+    ctx.font = `bold ${11 / z}px Outfit, sans-serif`; ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(6,9,14,.85)';
+    const txt = `⭕ Praça: Raio ${Math.round(raio)}px (Diâmetro ${Math.round(raio * 2)}px)`;
+    const larg = ctx.measureText(txt).width + 12 / z;
+    ctx.fillRect(pracaCentro.x - larg / 2, pracaCentro.y - raio - 24 / z, larg, 18 / z);
+    ctx.fillStyle = '#fde68a';
+    ctx.fillText(txt, pracaCentro.x, pracaCentro.y - raio - 11 / z);
+    ctx.restore();
+    return;
+  }
+
   if (!estradaDe || !estradaAte) return;
   const z = mundoCam.zoom || 1;
   ctx.save();
@@ -3462,6 +3548,12 @@ function mundoPointerDown(m) {
   // desliga o pincel — misturar os dois no mesmo clique só gera objeto sem querer.
   if (pincelMaterial) {
     registrarDesfazer();
+    if (pincelModo === 'praca') {
+      pracaCentro = { x: w.x, y: w.y };
+      pracaAtual = { x: w.x, y: w.y };
+      pinturaAtiva = true;
+      return;
+    }
     if (pincelModo === 'estrada') {
       // Começa aqui — ou na ponta do segmento anterior, se houver, para as pernas
       // emendarem exatamente e não sobrar buraco na junta.
@@ -3550,6 +3642,11 @@ function mundoPointerMove(m) {
     caixaSelecaoMultipla.y2 = w.y;
     return;
   }
+  if (pinturaAtiva && pincelModo === 'praca') {
+    const w = mundoDoPonteiro(m);
+    pracaAtual = { x: w.x, y: w.y };
+    return;
+  }
   if (pinturaAtiva && pincelModo === 'estrada') {
     const w = mundoDoPonteiro(m);
     estradaAte = travarAngulo(estradaDe.x, estradaDe.y, w.x, w.y, keys.shift);
@@ -3609,6 +3706,18 @@ function mundoPointerUp() {
     }
     caixaSelecaoMultipla = null;
     atualizarBarraSelecaoMultipla();
+    return;
+  }
+  if (pinturaAtiva && pincelModo === 'praca') {
+    pinturaAtiva = false;
+    if (pracaCentro && pracaAtual) {
+      const raio = Math.hypot(pracaAtual.x - pracaCentro.x, pracaAtual.y - pracaCentro.y);
+      if (raio >= 3) {
+        pintarPracaPreenchida(pracaCentro.x, pracaCentro.y, raio);
+        salvarPintura();
+      }
+      pracaCentro = null; pracaAtual = null;
+    }
     return;
   }
   if (pinturaAtiva && pincelModo === 'estrada') {
@@ -11708,7 +11817,9 @@ function initForgeUI() {
   sincronizarAmbiente();
 
   // ── Pincel de terreno ─────────────────────────────────────────────────────────
-  const renderMateriais = () => {
+  // renderMateriais precisa ser global para que alternarPisoPintavel() e o modal
+  // de seleção de pisos consigam atualizar a lista de chips do pincel.
+  window.renderMateriais = () => {
     const box = document.getElementById('pincelMateriais');
     if (!box) return;
     box.innerHTML = '';
@@ -11718,19 +11829,18 @@ function initForgeUI() {
       b.className = 'prop-cat' + (pincelMaterial === id ? ' ativo' : '');
       b.textContent = rotulo;
       b.addEventListener('click', () => {
-        // Ligar o pincel desarma o plantar: um clique só pode significar uma coisa.
         pincelMaterial = (pincelMaterial === id) ? null : id;
         if (pincelMaterial) { propParaColocar = null; renderPaletaDeProps(); }
         document.getElementById('pincelTamanhoBox').style.display = pincelMaterial ? '' : 'none';
         document.getElementById('pincelModoBox').style.display = pincelMaterial ? '' : 'none';
-        if (!pincelMaterial) { estradaDe = null; estradaAte = null; }
-        renderMateriais();
+        if (!pincelMaterial) { estradaDe = null; estradaAte = null; pracaCentro = null; pracaAtual = null; }
+        window.renderMateriais();
         if (!pincelMaterial) mundoFerramenta = 'selecionar';
-      showToast(pincelMaterial ? `🖌️ Pintando ${rotulo}` : '🖌️ Pincel desligado');
+        showToast(pincelMaterial ? `🖌️ Pintando ${rotulo}` : '🖌️ Pincel desligado');
       });
       box.appendChild(b);
     };
-    
+
     // Botão para o próprio usuário escolher e ativar quais chãos quer no pincel
     const btnGerenciar = document.createElement('button');
     btnGerenciar.className = 'tool-pill';
@@ -11743,17 +11853,22 @@ function initForgeUI() {
     Object.entries(MATERIAIS).forEach(([id, d]) => chip(id, d.nome));
     chip('apagar', '🧽 Apagar');
   };
-  renderMateriais();
+  window.renderMateriais();
   const marcarModoDoPincel = () => {
     document.getElementById('pincelModoLivre')?.classList.toggle('ativo', pincelModo === 'livre');
     document.getElementById('pincelModoEstrada')?.classList.toggle('ativo', pincelModo === 'estrada');
+    document.getElementById('pincelModoPraca')?.classList.toggle('ativo', pincelModo === 'praca');
   };
   document.getElementById('pincelModoLivre')?.addEventListener('click', () => {
-    pincelModo = 'livre'; estradaDe = estradaAte = null; marcarModoDoPincel();
+    pincelModo = 'livre'; estradaDe = estradaAte = null; pracaCentro = pracaAtual = null; marcarModoDoPincel();
   });
   document.getElementById('pincelModoEstrada')?.addEventListener('click', () => {
-    pincelModo = 'estrada'; estradaDe = estradaAte = null; marcarModoDoPincel();
+    pincelModo = 'estrada'; estradaDe = estradaAte = null; pracaCentro = pracaAtual = null; marcarModoDoPincel();
     showToast('🛣️ Clique, arraste e solte. A ponta vira o começo do próximo · Shift solta o ângulo · Esc encerra');
+  });
+  document.getElementById('pincelModoPraca')?.addEventListener('click', () => {
+    pincelModo = 'praca'; estradaDe = estradaAte = null; pracaCentro = pracaAtual = null; marcarModoDoPincel();
+    showToast('⭕ Clique no centro da praça, arraste para definir o tamanho e solte para preencher!');
   });
   marcarModoDoPincel();
 
