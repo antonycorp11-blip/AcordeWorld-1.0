@@ -2586,6 +2586,23 @@ const MATERIAIS = {
   grama_clara:   { nome: 'Grama clara',          arquivo: 'assets/texturas/grama_campo_3.jpg',  div: 3 },
   grama_escura:  { nome: 'Grama escura',         arquivo: 'assets/texturas/grama_escura_3.jpg', div: 3 },
 };
+
+function sincronizarPropDefsComMateriais() {
+  if (typeof propDefs === 'undefined' || typeof MATERIAIS === 'undefined') return;
+  Object.entries(propDefs).forEach(([id, def]) => {
+    const cat = (def.categoria || '').toLowerCase();
+    const ehPiso = ['piso', 'caminho', 'chao', 'calcada', 'terra', 'pedra'].includes(cat) || def.plano === 'chao';
+    if (ehPiso && !MATERIAIS[id]) {
+      MATERIAIS[id] = {
+        nome: def.nome || id,
+        arquivo: def.sprite,
+        div: 1
+      };
+      carregarTexturaDoPincel(id);
+    }
+  });
+}
+
 const texturasDoPincel = {};      // id -> { img, padrao }
 let pincelMaterial = null;        // null = pincel desligado
 let pincelTamanho = 90;
