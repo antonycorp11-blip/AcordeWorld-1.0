@@ -2033,9 +2033,20 @@ async function forcarUploadPinturasTablet() {
     } catch(e) {}
   }
   showToast(enviados > 0
-    ? `✅ ${enviados} bloco(s) de ruas enviados para a nuvem! Recarregue o desktop.`
+    ? `✅ ${enviados} bloco(s) de ruas enviados para a nuvem!`
     : '⚠️ Nenhuma pintura encontrada neste dispositivo.');
   return enviados;
+}
+
+// Se a URL tiver ?recuperar=1, executa o upload forçado logo após o jogo inicializar
+if (new URLSearchParams(window.location.search).get('recuperar') === '1') {
+  window.addEventListener('load', () => {
+    setTimeout(async () => {
+      showToast('⏳ Recuperando suas pinturas...');
+      const n = await forcarUploadPinturasTablet();
+      if (n > 0) showToast(`✅ ${n} bloco(s) enviados! O desktop vai receber em instantes.`);
+    }, 3000); // aguarda o jogo carregar completamente
+  });
 }
 
 // Sincroniza cooperativamente em segundo plano a cada 6 segundos no modo editor
@@ -12862,16 +12873,11 @@ function ativarModoTablet(ativar) {
       drawer.classList.remove('collapsed');
     }
     engineMode = 'mundo';
-    // Mostra o botão de recuperação de pinturas no tablet
-    const recBtn = document.getElementById('tabRecuperarPinturas');
-    if (recBtn) recBtn.style.display = 'block';
     if (typeof renderMateriaisTablet === 'function') renderMateriaisTablet();
     if (typeof renderPropPaletteTablet === 'function') renderPropPaletteTablet();
     showToast('📱 Modo Tablet ativado! Abra a gaveta superior para escolher materiais e sprites.');
   } else {
     document.body.classList.remove('tablet-editor-active');
-    const recBtn = document.getElementById('tabRecuperarPinturas');
-    if (recBtn) recBtn.style.display = 'none';
     if (drawer) drawer.classList.add('hidden');
     showToast('❌ Modo Tablet desativado.');
   }
