@@ -11390,7 +11390,12 @@ function initForgeUI() {
     const btnPincel = document.getElementById('pincelMenuBtn');
     btnPincel?.addEventListener('click', () => {
       const r = btnPincel.getBoundingClientRect();
-      menu.style.left = Math.round(r.left) + 'px';
+      const menuW = Math.min(520, window.innerWidth - 20);
+      let left = Math.round(r.left);
+      if (left + menuW > window.innerWidth - 10) {
+        left = Math.max(10, window.innerWidth - menuW - 10);
+      }
+      menu.style.left = left + 'px';
       menu.style.top = Math.round(r.bottom + 6) + 'px';
       menu.classList.toggle('hidden');
       btnPincel.classList.toggle('ativo', !menu.classList.contains('hidden'));

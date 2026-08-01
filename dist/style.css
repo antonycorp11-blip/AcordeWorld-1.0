@@ -4753,16 +4753,36 @@ body.modo-mundo #viewport-area { padding-top: var(--barra-h, 44px); }
 
 /* menu suspenso do pincel de terreno: fora da barra, aberto só quando se pede */
 .pincel-menu {
-  position: fixed; z-index: 80; min-width: 210px;
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 8px; border-radius: 8px;
-  background: #16110c; border: 1px solid #3b2d1c;
-  box-shadow: 0 10px 26px rgba(0,0,0,.6);
+  position: fixed; z-index: 100; min-width: 280px; max-width: 520px; max-height: 80vh;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px; border-radius: 10px;
+  background: #16110c; border: 1px solid #4a3a22;
+  box-shadow: 0 12px 32px rgba(0,0,0,.8);
+  overflow: hidden;
 }
 .pincel-menu.hidden { display: none; }
-.pincel-menu .prop-cats { display: flex !important; flex-wrap: wrap !important; gap: 4px !important; }
-.pincel-menu .tools-row { display: flex !important; gap: 4px !important; }
-.pincel-menu label { display: flex !important; flex-direction: column !important; gap: 3px !important; }
+.pincel-menu #pincelMateriais {
+  display: flex !important; flex-wrap: wrap !important; gap: 6px !important;
+  max-height: 280px !important; overflow-y: auto !important;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+.pincel-menu #pincelMateriais .prop-cat {
+  padding: 6px 12px !important;
+  font-size: 11px !important;
+  background: #241c14; border: 1px solid #4a3a22; color: #fde68a;
+  border-radius: 6px; cursor: pointer; white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.pincel-menu #pincelMateriais .prop-cat:hover {
+  background: #3b2d1c !important; color: #fff !important;
+}
+.pincel-menu #pincelMateriais .prop-cat.ativo {
+  background: #d97706 !important; color: #fff !important; font-weight: bold;
+  border-color: #fbbf24 !important;
+}
+.pincel-menu .tools-row { display: flex !important; gap: 6px !important; }
+.pincel-menu label { display: flex !important; flex-direction: column !important; gap: 3px !important; color: #fbbf24; font-size: 11px; font-weight: bold; }
 .pincel-menu input[type=range] { width: 100% !important; }
 
 /* menu suspenso do clima & horário: fora da barra, aberto só quando se pede */
