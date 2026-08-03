@@ -398,6 +398,8 @@ window.addEventListener('keydown', e => {
   if(k==='s'||k==='arrowdown'){keys.s=true;keyS?.classList.add('active');}
   if(k==='d'||k==='arrowright'){keys.d=true;keyD?.classList.add('active');}
   if(k==='e'){e.preventDefault();keyE?.classList.add('active');doAction();}
+  if(k==='1'){e.preventDefault();trocarHeroiDoTime(0);}
+  if(k==='2'){e.preventDefault();trocarHeroiDoTime(1);}
   if(e.key==='Shift')keys.shift=true;
   if(e.key==='Escape'&&engineMode==='mundo'){
     e.preventDefault();
@@ -3588,6 +3590,11 @@ function renderMundo(now) {
   ctx.restore();
   renderAmbienteDoMundo(now);
   renderHudDoMundo();
+  // O HUD do time é DOM e vive por cima do canvas: no mundo novo ele só aparece
+  // enquanto se caminha, que é quando existe personagem em campo.
+  const hud = document.getElementById('playerHud');
+  if (hud) hud.classList.toggle('hidden', !mundoTeste);
+  if (mundoTeste && frameCount % 20 === 0) renderPartyHUD();
 }
 
 function renderHudDoMundo() {
@@ -3864,9 +3871,14 @@ function mundoMoverJogador() {
   else if (livre(tx, player.y)) player.x = tx;
   else if (livre(player.x, ty)) player.y = ty;
 
+  function getMaxHeroFrames() {
+    const s = typeof activeSprite === 'function' ? activeSprite() : null;
+    return (s && s.width > 400) ? 6 : 4;
+  }
   player.animTimer++;
-  if (player.animTimer >= (sprint ? 3 : 6)) {
-    player.animTimer = 0; player.animFrame = (player.animFrame + 1) % 4;
+  const maxF = getMaxHeroFrames();
+  if (player.animTimer >= (sprint ? 2 : 4)) {
+    player.animTimer = 0; player.animFrame = (player.animFrame + 1) % maxF;
   }
 }
 
@@ -4878,8 +4890,9 @@ function hasSkill(id) { return learnedSkills.includes(id); }
 // Sum of every source: base + attribute points + learned skills.
 function derivedStats() {
   const s = {
-    maxHp: BASE_MAX_HP + attrs.folego * 6,
-    dmg: BASE_DAMAGE + attrs.dinamica * 3,
+    // O personagem traz o corpo, o jogador traz a perícia: um soma ao outro.
+    maxHp: BASE_MAX_HP + attrs.folego * 6 + (personagemAtivo().base?.vida || 0),
+    dmg: BASE_DAMAGE + attrs.dinamica * 3 + (personagemAtivo().base?.dano || 0),
     dmgMagia: attrs.dinamica * 4,          // % a mais no dano de feitiço
     atkSpeed: attrs.ritmo * 3,             // %
     recarga: Math.min(60, attrs.folego * 4), // % de redução na recarga de feitiço
@@ -5047,6 +5060,45 @@ function renderAttackSwing(now) {
       const dist = 48 + Math.random() * 15;
       ctx.fillRect(Math.cos(sparkAngle) * dist, Math.sin(sparkAngle) * dist, 3, 3);
     }
+  }
+
+  // Efeito especial Exclusivo do Teclado Espada / Harmonia de ÁQUILES
+  if ((selectedHeroId === 'aquiles' || equipped.axe === 'espada_teclado') && t > 0.05) {
+    if (window.swordAttackVFX && window.swordAttackVFX.length >= 3) {
+      const vIdx = Math.min(2, Math.floor(t * 3));
+      const vImg = window.swordAttackVFX[vIdx];
+      if (vImg && vImg.complete && vImg.naturalWidth > 5) {
+        ctx.save();
+        const dw = 142, dh = dw * (vImg.naturalHeight / vImg.naturalWidth);
+        if (dir === 'left') {
+          ctx.scale(-1, 1);
+          ctx.drawImage(vImg, 6, -dh / 2, dw, dh);
+        } else if (dir === 'up') {
+          ctx.rotate(-Math.PI / 2);
+          ctx.drawImage(vImg, 6, -dh / 2, dw, dh);
+        } else if (dir === 'down') {
+          ctx.rotate(Math.PI / 2);
+          ctx.drawImage(vImg, 6, -dh / 2, dw, dh);
+        } else {
+          ctx.drawImage(vImg, 6, -dh / 2, dw, dh);
+        }
+        ctx.restore();
+      }
+    }
+    ctx.font = 'bold 20px Outfit, serif';
+    const notas = ['♫', '♪', '♩', '♬', '𝄞'];
+    for (let i = 0; i < 5; i++) {
+      const nAngle = startAngle + (endAngle - startAngle) * (i / 4.0);
+      const nDist = 44 + Math.sin(t * Math.PI * 2 + i) * 16;
+      const nx = Math.cos(nAngle) * nDist;
+      const ny = Math.sin(nAngle) * nDist;
+      ctx.fillStyle = i % 2 === 0 ? '#38bdf8' : '#fde68a';
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.shadowBlur = 14;
+      ctx.globalAlpha = Math.max(0, 1 - t * 1.05);
+      ctx.fillText(notas[i % notas.length], nx - 8, ny + 8);
+    }
+    ctx.globalAlpha = 1;
   }
   ctx.restore();
 }
@@ -5748,6 +5800,7 @@ function savePlayerData() {
       toolQuality, notas: notasPossuidas, escalas: escalasMontadas, acordes: acordesObtidos,
       // Progresso de jogo: no celular não há servidor, então tudo vive aqui.
       nome: playerName, heroi: selectedHeroId,
+      partyState: { party: partyState.party, activePartyIndex: partyState.activePartyIndex, heroStates: partyState.heroStates },
       inventario: playerInventory,
       missoesAtivas: activeQuests, missoesFeitas: completedQuests,
       mapa: currentKey, pos: { x: Math.round(player.x), y: Math.round(player.y) },
@@ -5767,7 +5820,14 @@ function loadPlayerData() {
     if (Array.isArray(d.escalas)) escalasMontadas = d.escalas;
     if (d.acordes) acordesObtidos = d.acordes;
     if (d.nome) playerName = d.nome;
-    if (d.heroi) selectedHeroId = d.heroi;
+    if (d.partyState) {
+      if (Array.isArray(d.partyState.party)) partyState.party = d.partyState.party;
+      if (typeof d.partyState.activePartyIndex === 'number') partyState.activePartyIndex = d.partyState.activePartyIndex;
+      if (d.partyState.heroStates) partyState.heroStates = { ...partyState.heroStates, ...d.partyState.heroStates };
+    }
+    if (d.heroi) {
+      selectedHeroId = (d.heroi === 'arthur' || !HERO_DEFINITIONS[d.heroi]) ? 'aquiles' : d.heroi;
+    }
     if (d.inventario) playerInventory = { ...playerInventory, ...d.inventario };
     if (Array.isArray(d.missoesAtivas)) activeQuests = d.missoesAtivas;
     if (Array.isArray(d.missoesFeitas)) completedQuests = d.missoesFeitas;
@@ -6497,6 +6557,7 @@ function actionAvailable() {
 }
 
 let playerInventory = {
+  espada_teclado: 1,
   wood: 0,
   stone: 0,
   coins: 0,
@@ -6825,7 +6886,7 @@ function renderFerramenta(now, pW, pH, atras) {
   // A arte já vem inclinada na folha, com o cabo embaixo e a cabeça em cima. Então o
   // trabalho aqui é só posicionar o punho — girar por cima disso jogava a cabeça no
   // rosto do personagem.
-  const h = pH * 0.42, w = h * (spr.sw / spr.sh);
+  const h = (def.id === 'espada_teclado' ? pH * 0.75 : pH * 0.42), w = h * (spr.sw / spr.sh);
   const lado = player.direction === 'left' ? -1 : 1;
 
   const fimDoGolpe = Math.max(playerGatherUntil, attackAnimUntil);
@@ -6879,17 +6940,30 @@ function renderPlayer() {
   renderWings(pW,pH); // behind the body
   const sheet=activeSprite();
   if(sheet){
-    const fw=sheet.width/4,fh=sheet.height/4;
+    // As colunas vêm da ficha do personagem. Antes eram adivinhadas pela largura da
+    // folha ("entre 400 e 550 deve ser 6 colunas"), o que quebra no primeiro
+    // personagem novo que vier com outra medida.
+    // Tudo vem da FICHA do personagem: quantas colunas, quantas linhas e qual linha é
+    // cada pose. Antes o código adivinhava pela largura da folha e assumia que a ordem
+    // era sempre frente/costas/lado/ataque — era daí que vinha sprite trocado e recorte
+    // fora de lugar quando chegava uma folha com outro arranjo.
+    const P = personagemAtivo();
+    const cols = P.cols || ((sheet.width > 400 && sheet.width < 550) ? 6 : 4);
+    const rows = P.rows || 4;
+    const LINHA = P.linhas || { down: 0, up: 1, side: 2, attack: 3 };
+    const fw = sheet.width / cols, fh = sheet.height / rows;
     const isAttacking = performance.now() < attackAnimUntil;
-    let row = player.direction === 'up' ? 1 : (player.direction === 'left' || player.direction === 'right') ? 2 : 0;
-    let frame = player.animFrame;
+    let row = player.direction === 'up' ? LINHA.up
+            : (player.direction === 'left' || player.direction === 'right') ? LINHA.side
+            : LINHA.down;
+    let frame = player.animFrame % cols;
     let lungeX = 0, lungeY = 0;
 
     // Se estiver atacando, usa a linha 4 (row 3 - poses de combate no spritesheet novo!) + investida
     if (isAttacking) {
-      row = 3;
+      row = LINHA.attack;
       const progress = Math.max(0, Math.min(1, 1 - (attackAnimUntil - performance.now()) / 180));
-      frame = Math.min(3, Math.floor(progress * 4));
+      frame = Math.min(cols - 1, Math.floor(progress * cols));
       const lungeDist = Math.sin(progress * Math.PI) * 12;
       if (player.direction === 'left') lungeX = -lungeDist;
       else if (player.direction === 'right') lungeX = lungeDist;
@@ -6934,13 +7008,24 @@ function sideKeys(){const pl=new Set(Object.keys(gridPos).filter(k=>{const p=gri
 function sideKeyAt(mx,my){if(mx<SIDEX||SIDEW<=0)return null;const sk=sideKeys();for(let i=0;i<sk.length;i++){const r={x:SIDEX,y:GOY+30+i*(SIDECARDH+5),w:SIDEW,h:SIDECARDH};if(mx>=r.x&&mx<=r.x+r.w&&my>=r.y&&my<=r.y+r.h)return sk[i];}return null;}
 
 function deleteScene(mx, my) {
+  const sideK = sideKeyAt(mx, my);
+  if (sideK) {
+    if (confirm(`Deseja EXCLUIR DEFINITIVAMENTE o cenário "${SCENE_NAMES[sideK] || sideK}" que está no banco sem uso? Ele será apagado do projeto.`)) {
+      delete bgSources[sideK]; delete videoSources[sideK]; delete bgImages[sideK];
+      delete SCENE_NAMES[sideK]; delete gridPos[sideK]; delete spawns[sideK]; delete ambience[sideK];
+      try { delete obstacles[sideK]; delete layers[sideK]; } catch(e) {}
+      rebuildGrid(); refreshMapSelect(); saveAllLayers(false);
+      showToast('🗑️ Cenário excluído definitivamente do projeto!');
+    }
+    return;
+  }
   const cell = getCell(mx, my);
   if (!cell) return;
   const k = keyAtCell(cell.col, cell.row);
   if (!k) return;
   delete gridPos[k];      // back to the side bank; the image and its layers are kept
   rebuildGrid(); refreshMapSelect();
-  showToast(`🗑️ ${SCENE_NAMES[k]} saiu do grid (voltou ao banco)`);
+  showToast(`🗑️ ${SCENE_NAMES[k]} saiu do grid (no painel BANCO você pode excluí-lo em definitivo)`);
   saveAllLayers(false);
 }
 
@@ -9561,7 +9646,8 @@ function atualizarCaminhadas() {
       player.direction = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right')
                                                      : (dy < 0 ? 'up' : 'down');
       player.isMoving = true;
-      player.animFrame = Math.floor(performance.now() / 130) % 4;   // anima os pés
+      const maxF = (typeof activeSprite === 'function' && activeSprite()?.width > 400) ? 6 : 4;
+      player.animFrame = Math.floor(performance.now() / 110) % maxF;   // anima os pés
     } else {
       c.alvo.flipX = dx < 0;
       c.alvo.andandoAte = performance.now() + 120;
@@ -9881,7 +9967,7 @@ const nuvensAtmosfericas = Array.from({length: 4}, (_, i) => ({
 }));
 
 function renderSombrasDeNuvem(now, mapKey) {
-  if (!isPlayMode || currentScene !== 'world' || mapKey === 'mega_world') return;
+  if (currentScene !== 'world' || mapKey === 'mega_world' || engineMode === 'world') return;
   if (INTERIORS[mapKey] || (SCENE_NAMES[mapKey] && /caverna|masmorra|porão|interior/i.test(SCENE_NAMES[mapKey]))) return;
   ctx.save();
   nuvensAtmosfericas.forEach(n => {
@@ -9914,7 +10000,7 @@ const vagalumesMundiais = Array.from({length: 22}, (_, i) => ({
 }));
 
 function renderVagalumesEPoeiras(now, mapKey) {
-  if (!isPlayMode || currentScene !== 'world') return;
+  if (currentScene !== 'world' || mapKey === 'mega_world' || engineMode === 'world') return;
   const ciclo = calculoDoCicloDiaNoite(now);
   const noiteOuMagico = ciclo.ehNoite || (SCENE_NAMES[mapKey] && /clareira|eco|floresta|bosque|mágic/i.test(SCENE_NAMES[mapKey]));
   if (!noiteOuMagico) return;
@@ -9938,54 +10024,85 @@ function renderVagalumesEPoeiras(now, mapKey) {
   ctx.restore();
 }
 
-// 3. Ciclo Dia/Noite com iluminação dinâmica sobre foto estática
+// 3. Ciclo Dia/Noite com transição suave e gradual de iluminação e atmosfera
+const FASES_CICLO = [
+  { h: 0.0,  r: 12,  g: 18,  b: 52,  a: 0.60, noite: true,  nome: '🌙 Madrugada Mágica' },
+  { h: 5.0,  r: 45,  g: 28,  b: 82,  a: 0.48, noite: true,  nome: '✨ Alvorada mística' },
+  { h: 6.5,  r: 251, g: 146, b: 60,  a: 0.28, noite: false, nome: '🌄 Amanhecer Dourado' },
+  { h: 8.0,  r: 254, g: 240, b: 138, a: 0.10, noite: false, nome: '☀️ Manhã Serena' },
+  { h: 10.0, r: 255, g: 255, b: 255, a: 0.00, noite: false, nome: '☀️ Dia Claro' },
+  { h: 15.5, r: 255, g: 255, b: 255, a: 0.00, noite: false, nome: '☀️ Sol da Tarde' },
+  { h: 17.5, r: 249, g: 115, b: 22,  a: 0.24, noite: false, nome: '🌅 Entardecer' },
+  { h: 18.8, r: 153, g: 27,  b: 27,  a: 0.40, noite: true,  nome: '🌇 Crepúsculo Rubro' },
+  { h: 20.0, r: 49,  g: 46,  b: 129, a: 0.52, noite: true,  nome: '🌙 Anoitecer Místico' },
+  { h: 22.0, r: 12,  g: 18,  b: 52,  a: 0.60, noite: true,  nome: '🌙 Noite Estrelada' },
+  { h: 24.0, r: 12,  g: 18,  b: 52,  a: 0.60, noite: true,  nome: '🌙 Madrugada Mágica' }
+];
+
 function calculoDoCicloDiaNoite(now) {
-  const T = (now % 240000) / 240000;
-  let r=255, g=255, b=255, alpha=0, ehNoite=false, nome='Dia';
-  if (T < 0.35) { alpha = 0; nome = '☀️ Dia'; }
-  else if (T < 0.50) {
-    const f = (T - 0.35) / 0.15;
-    r = 251; g = 146; b = 60; alpha = 0.22 * f; nome = '🌅 Entardecer';
-  } else if (T < 0.85) {
-    alpha = 0.55; r = 10; g = 20; b = 55; ehNoite = true; nome = '🌙 Noite';
-  } else {
-    const f = 1 - (T - 0.85) / 0.15;
-    r = 253; g = 224; b = 71; alpha = 0.30 * f; nome = '🌄 Amanhecer';
+  // Um ciclo completo dura 120 segundos para progredir gradualmente perante os olhos do jogador
+  const T = (now % 120000) / 120000;
+  const hora = T * 24;
+  
+  let a = FASES_CICLO[0], b = FASES_CICLO[FASES_CICLO.length - 1];
+  for (let i = 0; i < FASES_CICLO.length - 1; i++) {
+    if (hora >= FASES_CICLO[i].h && hora <= FASES_CICLO[i+1].h) {
+      a = FASES_CICLO[i];
+      b = FASES_CICLO[i+1];
+      break;
+    }
   }
-  return { r, g, b, alpha, ehNoite, nome };
+  
+  const span = Math.max(0.001, b.h - a.h);
+  const prog = (hora - a.h) / span;
+  // Suavização cosseno para transição imperceptível
+  const f = (1 - Math.cos(prog * Math.PI)) / 2;
+  
+  const mix = (v1, v2) => Math.round(v1 + (v2 - v1) * f);
+  const r = mix(a.r, b.r);
+  const g = mix(a.g, b.g);
+  const b_val = mix(a.b, b.b);
+  const alpha = a.a + (b.a - a.a) * f;
+  const ehNoite = alpha >= 0.35 || a.noite;
+  const nome = (prog < 0.5) ? a.nome : b.nome;
+  
+  return { r, g, b: b_val, alpha, ehNoite, nome, hora };
 }
 
 function renderCicloDiaNoite(now, mapKey) {
-  if (!isPlayMode || currentScene !== 'world' || mapKey === 'mega_world') return;
+  if (currentScene !== 'world' || mapKey === 'mega_world' || engineMode === 'world') return;
   const c = calculoDoCicloDiaNoite(now);
-  if (c.alpha <= 0.01) return;
+  if (c.alpha <= 0.005) return;
+  
   ctx.save();
-  if (c.ehNoite) {
+  if (c.ehNoite || c.alpha >= 0.30) {
     const escuro = document.createElement('canvas');
     escuro.width = SCREEN_W; escuro.height = SCREEN_H;
     const eCtx = escuro.getContext('2d');
     eCtx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${c.alpha})`;
     eCtx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    
     const flicker = Math.sin(now * 0.015) * 6 + Math.cos(now * 0.027) * 4;
     eCtx.globalCompositeOperation = 'destination-out';
 
-    // Luz em volta do Herói (lanterna do viajante)
-    const gJog = eCtx.createRadialGradient(player.x, player.y - 20, 10, player.x, player.y - 20, 120 + flicker);
+    // Luz em volta do Herói (lanterna do viajante suave)
+    const raioHeroi = c.ehNoite ? 135 : 105;
+    const gJog = eCtx.createRadialGradient(player.x, player.y - 20, 12, player.x, player.y - 20, raioHeroi + flicker);
     gJog.addColorStop(0, 'rgba(0, 0, 0, 1)');
-    gJog.addColorStop(0.5, 'rgba(0, 0, 0, 0.6)');
+    gJog.addColorStop(0.55, 'rgba(0, 0, 0, 0.6)');
     gJog.addColorStop(1, 'rgba(0, 0, 0, 0)');
     eCtx.fillStyle = gJog;
-    eCtx.beginPath(); eCtx.arc(player.x, player.y - 20, 130, 0, Math.PI * 2); eCtx.fill();
+    eCtx.beginPath(); eCtx.arc(player.x, player.y - 20, raioHeroi + 10, 0, Math.PI * 2); eCtx.fill();
 
-    // Luz em volta de NPCs luminosos
+    // Luz em volta de NPCs e pontos luminosos
     npcData.forEach(n => {
       if (n.mapKey !== mapKey || n.oculto) return;
-      if (['forge_entrance', 'ponto_martelada', 'lago_sorteio', 'porta'].includes(n.type) || (n.name && /fogueira|tocha|luz|lago/i.test(n.name))) {
-        const gNpc = eCtx.createRadialGradient(n.x, n.y - 20, 5, n.x, n.y - 20, 95 + flicker * 0.8);
+      if (['forge_entrance', 'ponto_martelada', 'lago_sorteio', 'porta'].includes(n.type) || (n.name && /fogueira|tocha|luz|lago|forja/i.test(n.name))) {
+        const gNpc = eCtx.createRadialGradient(n.x, n.y - 20, 5, n.x, n.y - 20, 100 + flicker * 0.8);
         gNpc.addColorStop(0, 'rgba(0, 0, 0, 0.95)');
         gNpc.addColorStop(1, 'rgba(0, 0, 0, 0)');
         eCtx.fillStyle = gNpc;
-        eCtx.beginPath(); eCtx.arc(n.x, n.y - 20, 100, 0, Math.PI * 2); eCtx.fill();
+        eCtx.beginPath(); eCtx.arc(n.x, n.y - 20, 110, 0, Math.PI * 2); eCtx.fill();
       }
     });
     ctx.drawImage(escuro, 0, 0);
@@ -10107,7 +10224,7 @@ function loop(now){
       const vid = videoDoMapa(mapKey);
       if (vid) ctx.drawImage(vid, 0, 0, SCREEN_W, SCREEN_H);
       else { const bg=bgImages[mapKey]; if(bg?.complete) ctx.drawImage(bg,0,0,SCREEN_W,SCREEN_H); }
-      if (isPlayMode && currentScene === 'world') renderSombrasDeNuvem(now, mapKey);
+      if (currentScene === 'world' && mapKey !== 'mega_world') renderSombrasDeNuvem(now, mapKey);
     }
     else { const st=interiorDef()?.still?.(); if(st)ctx.drawImage(st,0,0,SCREEN_W,SCREEN_H); }
   }
@@ -10151,7 +10268,8 @@ function loop(now){
         player.x = Math.max(28, Math.min(dims.w - 28, player.x));
         player.y = Math.max(32, Math.min(dims.h - 32, player.y));
         player.animTimer++;
-        if(player.animTimer>=(sprint?3:6)){player.animTimer=0;player.animFrame=(player.animFrame+1)%4;if(player.animFrame%2===1){spawnDust(player.x,player.y);playStep(sprint);}}
+        const maxF = (typeof activeSprite === 'function' && activeSprite()?.width > 400) ? 6 : 4;
+        if(player.animTimer>=(sprint?2:4)){player.animTimer=0;player.animFrame=(player.animFrame+1)%maxF;if(player.animFrame%2===1){spawnDust(player.x,player.y);playStep(sprint);}}
       } else {player.animFrame=0;player.animTimer=0;}
       checkTransitions();checkDoors();checkNPCProx();
     }
@@ -10332,8 +10450,12 @@ function loop(now){
     npcData.forEach(npc=>{if(npc.mapKey!==mapKey)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
     renderObjetos(now, 'todos');   // sem isto o editor não mostrava o que você plantou
     const L=getLayers(mapKey);ctx.drawImage(L.fgCanvas,0,0);
-    if(engineMode==='collision')renderCollisionOverlay(mapKey);
-    else if(engineMode==='scene')renderSceneOverlay(now);
+    if (engineMode === 'scene') {
+      renderVagalumesEPoeiras(now, mapKey);
+      renderCicloDiaNoite(now, mapKey);
+      renderAmbiente();
+      renderSceneOverlay(now);
+    } else if (engineMode === 'collision') renderCollisionOverlay(mapKey);
     if(statusPos)statusPos.textContent=`X: ${Math.round(mouseCanvasX)}  Y: ${Math.round(mouseCanvasY)}`;
   }
 
@@ -10407,6 +10529,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   keyW=document.getElementById('keyW'); keyA=document.getElementById('keyA'); keyS=document.getElementById('keyS'); keyD=document.getElementById('keyD');
   keyE=document.getElementById('keyE');
   keyE?.addEventListener('click',()=>{initAudio();doAction();});
+  document.getElementById('partySlot0')?.addEventListener('click', () => { initAudio(); trocarHeroiDoTime(0); });
+  document.getElementById('partySlot1')?.addEventListener('click', () => { initAudio(); trocarHeroiDoTime(1); });
   activeQuestsList=document.getElementById('activeQuestsList');
 
   initBottomPanel();
@@ -10705,13 +10829,155 @@ function initMegaWorldControls() {
 // frente, 1 de costas, 2 de lado (espelhada para a esquerda), 4 quadros por linha.
 // As antigas hero_male_2.png / hero_female_*.png eram capturas de tela, não sprites —
 // era por isso que os personagens novos não apareciam.
+// ============================================================
+// ELENCO
+// Cada personagem é uma CLAVE — a clave define o registro em que ele canta, e daí saem
+// o papel em combate e a afinidade com os Ecos. É a mesma ideia do elemento nos jogos
+// de time, só que tirada da própria teoria musical em vez de emprestada do fogo/água.
+//
+// `base` soma aos atributos do jogador: o personagem traz o corpo, o jogador traz a
+// perícia. Assim trocar de personagem muda como se joga sem apagar o que se conquistou.
+// ============================================================
 const HERO_DEFINITIONS = {
-  'arthur': { id: 'arthur', name: 'Arthur', class: 'Guerreiro', gender: 'Masculino', src: 'assets/spritesheet.jpg' },
-  'lucian': { id: 'lucian', name: 'Lucian', class: 'Aldeão',    gender: 'Masculino', src: 'assets/hero_h1.jpg' },
-  'elena':  { id: 'elena',  name: 'Elena',  class: 'Corredora', gender: 'Feminino',  src: 'assets/hero_h2.jpg' },
-  'lyra':   { id: 'lyra',   name: 'Lyra',   class: 'Viajante',  gender: 'Feminino',  src: 'assets/hero_h3.jpg' }
+  'aquiles': {
+    id: 'aquiles', name: 'Áquiles', class: 'Músico Aventureiro', gender: 'Masculino',
+    // Folha atual (a antiga). Quando a arte nova chegar, é aqui que ela entra: caminho,
+    // colunas, linhas e qual linha guarda cada pose.
+    src: 'assets/hero_sheet_standard.png', cols: 6, rows: 4,
+    linhas: { down: 0, up: 1, side: 2, attack: 3 },
+    avatar: 'assets/aquiles_avatar.png', face: 'assets/aquiles_face.png',
+    weapon: 'Teclado Espada', clave: 'Sol', registro: 'Agudo',
+    papel: 'Investida', raridade: 4, desbloqueado: true,
+    base: { vida: 0, dano: 0, ritmo: 0, afinacao: 0 },
+    lema: 'Quem entra primeiro é quem dá o tom.',
+  },
+  // Reservas do arco antigo: continuam existindo para não quebrar saves, mas ficam
+  // trancadas até virarem personagem de verdade (arte própria, clave e papel).
+  'arthur': { id: 'arthur', name: 'Arthur', class: 'Guerreiro', gender: 'Masculino', src: 'assets/spritesheet.jpg', desbloqueado: false, raridade: 3 },
+  'lucian': { id: 'lucian', name: 'Lucian', class: 'Aldeão',    gender: 'Masculino', src: 'assets/hero_h1.jpg', desbloqueado: false, raridade: 3 },
+  'elena':  { id: 'elena',  name: 'Elena',  class: 'Corredora', gender: 'Feminino',  src: 'assets/hero_h2.jpg', desbloqueado: false, raridade: 3 },
+  'lyra':   { id: 'lyra',   name: 'Lyra',   class: 'Viajante',  gender: 'Feminino',  src: 'assets/hero_h3.jpg', desbloqueado: false, raridade: 3 }
 };
-let selectedHeroId = 'arthur';
+let selectedHeroId = 'aquiles';
+
+function personagemAtivo() { return HERO_DEFINITIONS[selectedHeroId] || HERO_DEFINITIONS.aquiles; }
+function personagensDesbloqueados() {
+  return Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado);
+}
+
+// ============================================================
+// ESTRUTURA DE EQUIPE DE 2 PERSONAGENS (ESTILO GENSHIN IMPACT)
+// ============================================================
+const partyState = {
+  // O segundo lugar nasce VAZIO de propósito: o time de dois é a promessa, e a vaga
+  // aberta no HUD é o que faz o jogador querer o primeiro sorteio.
+  party: ['aquiles', null],
+  activePartyIndex: 0,
+  heroStates: {
+    'aquiles': { hp: 100 },
+    'arthur':  { hp: 100 },
+    'lucian':  { hp: 100 },
+    'elena':   { hp: 100 },
+    'lyra':    { hp: 100 }
+  }
+};
+
+function heroiNoSlot(slotIdx) {
+  return partyState.party[slotIdx] || null;
+}
+
+function trocarHeroiDoTime(slotIndex, silent = false) {
+  if (slotIndex < 0 || slotIndex >= 2) return false;
+  const novoHeroId = partyState.party[slotIndex];
+  if (!novoHeroId || !HERO_DEFINITIONS[novoHeroId]) return false;
+
+  // Se já for o herói ativo no momento, ignora
+  if (slotIndex === partyState.activePartyIndex && selectedHeroId === novoHeroId) {
+    return true;
+  }
+
+  // 1. Salva a vida atual do herói que está saindo do campo de batalha
+  if (selectedHeroId) {
+    if (!partyState.heroStates[selectedHeroId]) partyState.heroStates[selectedHeroId] = {};
+    partyState.heroStates[selectedHeroId].hp = playerHp;
+  }
+
+  // 2. Atualiza o slot ativo e o herói selecionado
+  partyState.activePartyIndex = slotIndex;
+  selectedHeroId = novoHeroId;
+
+  // 3. Restaura o estado de vida do novo herói
+  const mHp = typeof playerMaxHp === 'function' ? playerMaxHp() : 100;
+  const hs = partyState.heroStates[novoHeroId] || { hp: mHp };
+  partyState.heroStates[novoHeroId] = hs;
+  playerHp = Math.max(1, Math.min(mHp, hs.hp !== undefined ? hs.hp : mHp));
+
+  // 4. Atualiza a sprite ativa
+  if (typeof processedHeroSprites !== 'undefined' && processedHeroSprites[novoHeroId]) {
+    processedSprite = processedHeroSprites[novoHeroId];
+  }
+
+  // 5. Partículas visuais de troca instantânea (Poof)
+  if (typeof spawnDust === 'function') {
+    for (let i = 0; i < 10; i++) spawnDust(player.x + (Math.random() - 0.5) * 24, player.y + (Math.random() - 0.5) * 24);
+  }
+
+  // 6. Atualiza o HUD de Equipe e Notificação de troca
+  renderPartyHUD();
+  if (typeof renderHeroAvatars === 'function') renderHeroAvatars();
+  if (typeof updateMapStatus === 'function') updateMapStatus();
+
+  if (!silent) {
+    const def = HERO_DEFINITIONS[novoHeroId];
+    const nome = def ? def.name : novoHeroId;
+    showToast(`⚡ ${nome} entrou em batalha!`);
+  }
+
+  // 7. Persiste a troca no save do navegador
+  if (typeof savePlayerData === 'function') savePlayerData();
+  return true;
+}
+
+function renderPartyHUD() {
+  const container = document.getElementById('partyHud');
+  if (!container) return;
+
+  for (let idx = 0; idx < 2; idx++) {
+    const slotEl = document.getElementById(`partySlot${idx}`);
+    const imgEl = document.getElementById(`partyAvatar${idx}`);
+    const hpFillEl = document.getElementById(`partyHpFill${idx}`);
+    if (!slotEl) continue;
+
+    const heroId = partyState.party[idx];
+    const def = heroId ? HERO_DEFINITIONS[heroId] : null;
+    const isCurrentActive = idx === partyState.activePartyIndex && selectedHeroId === heroId;
+
+    slotEl.classList.toggle('active', isCurrentActive);
+    slotEl.classList.toggle('empty', !heroId);
+
+    if (imgEl) {
+      if (def) {
+        imgEl.src = def.face || def.avatar || 'assets/aquiles_face.png';
+        imgEl.alt = def.name;
+        slotEl.title = `${def.name} · Clave de ${def.clave || '—'} · ${def.papel || def.class}`;
+      } else {
+        // Vaga aberta: um rosto emprestado ali só confundia. O silhueta vazia é o
+        // convite ao primeiro sorteio.
+        imgEl.removeAttribute('src');
+        imgEl.alt = 'Vaga aberta';
+        slotEl.title = 'Vaga aberta — conquiste um companheiro no Sorteio';
+      }
+    }
+
+    if (hpFillEl) {
+      const hs = heroId ? partyState.heroStates[heroId] : null;
+      const maxH = typeof playerMaxHp === 'function' ? playerMaxHp() : 100;
+      const curH = hs ? (hs.hp !== undefined ? hs.hp : maxH) : maxH;
+      const pct = Math.max(0, Math.min(100, (curH / maxH) * 100));
+      hpFillEl.style.width = pct + '%';
+    }
+  }
+}
 const heroImages = {};
 const processedHeroSprites = {};
 
@@ -10794,6 +11060,7 @@ function renderHeroAvatars() {
       box.appendChild(av);
     } catch(e) {}
   }
+  renderPartyHUD();
 }
 
 function initMainMenu() {
@@ -11458,6 +11725,16 @@ function initOrnateInventory() {
   invCloseBtn?.addEventListener('click', closeInv);
   invCloseFooterBtn?.addEventListener('click', closeInv);
 
+  // Ações do novo toolbar medieval de pergaminho
+  invSortBtn?.addEventListener('click', () => {
+    showToast('✨ Bolsa classificada por ordem harmônica!');
+    renderGrimorio();
+  });
+  const invExpandBtn = document.getElementById('invExpandBtn');
+  invExpandBtn?.addEventListener('click', () => {
+    showToast('🎒 Mochila de aventureiro na capacidade de carga máxima!');
+  });
+
   // Attribute Upgrade buttons
   document.querySelectorAll('.btn-up-stat').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -11508,14 +11785,10 @@ function itensDaBolsa() {
   push('fragmento', playerInventory.fragmento || 0);
   push('tom', playerInventory.tom || 0);
   push('semitom', playerInventory.semitom || 0);
-  // clave não entra aqui: é moeda, e já aparece na linha de moedas do drawer
   push('wood', playerInventory.wood || 0);
   push('stone', playerInventory.stone || 0);
   push('potions', playerInventory.potions || 0);
   CROMATICA.forEach(n => push('nota_' + n.id, notasPossuidas[n.id] || 0));
-  // Ferramentas forjadas que não estão em nenhum slot. Sem isto elas sumiam do jogo:
-  // ficavam em playerInventory sem aparecer em lugar nenhum, e não havia como equipar
-  // de volta — foi o que deixou o Ressonador "no inventário" e a captura sem abrir.
   CRAFTABLE_TOOLS.forEach(t => {
     if ((playerInventory[t.id] || 0) > 0 && !Object.values(equipped).includes(t.id))
       out.push({ id: t.id, qtd: 1, ferramenta: true });
@@ -11534,6 +11807,19 @@ function equiparFerramenta(id) {
   playerInventory[id] = 1;
   savePlayerData();
   showToast(`${t.icon} ${t.name} equipado`);
+  return true;
+}
+
+function desequiparFerramenta(id) {
+  const t = CRAFTABLE_TOOLS.find(x => x.id === id);
+  const slot = Object.entries(equipped).find(([k, v]) => v === id)?.[0];
+  if (!slot) return false;
+  equipped[slot] = null;
+  if (equipped.activeTool === slot) equipped.activeTool = null;
+  savePlayerData();
+  showToast(`✕ ${t ? t.name : 'Item'} desequipado!`);
+  grSelecionado = null;
+  renderGrimorio();
   return true;
 }
 
@@ -11557,35 +11843,21 @@ function infoDoItem(id) {
 
 function updateInventorySlotsUI() { if (!document.getElementById('inventoryOverlay')?.classList.contains('hidden')) renderGrimorio(); }
 
-// As nove casas de cima: ferramentas, cosméticos e consumível. A arte tem 3x3, então
-// o equipamento inteiro cabe numa olhada só.
 const SLOTS_GRIMORIO = [
-  // Linha de cima: cosméticos — é o que o jogador mostra.
   { slot: 'hat',        rotulo: 'CHAPÉU',   tipo: 'cosmetico' },
   { slot: 'outfit',     rotulo: 'ROUPA',    tipo: 'cosmetico' },
-  { slot: 'wings',      rotulo: 'ASAS',     tipo: 'cosmetico' },
-  // Linha do meio: aura, machado e o encaixe de arma, reservado para o arco de combate.
-  { slot: 'aura',       rotulo: 'AURA',     tipo: 'cosmetico' },
-  { slot: 'axe',        rotulo: 'MACHADO',  tipo: 'ferramenta' },
-  { slot: 'arma',       rotulo: 'ARMA',     tipo: 'reservado' },
-  // Linha de baixo: as ferramentas de ofício.
-  { slot: 'hammer',     rotulo: 'MARTELO',  tipo: 'ferramenta' },
-  { slot: 'ressonador', rotulo: 'RESSON.',  tipo: 'ferramenta' },
-  { slot: 'pickaxe',    rotulo: 'DIAPASÃO', tipo: 'ferramenta' },
+  { slot: 'wings',      rotulo: 'BOTAS',    tipo: 'cosmetico' },
+  { slot: 'axe',        rotulo: 'INSTRUM.', tipo: 'ferramenta' },
+  { slot: 'hammer',     rotulo: 'PARTITURA',tipo: 'ferramenta' },
+  { slot: 'pickaxe',    rotulo: 'ANEL',     tipo: 'ferramenta' },
 ];
 
-// Encaixa o drawer exatamente sobre a área jogável. No editor o canvas é um retângulo
-// no meio da página; em modo celular ele ocupa a tela toda. Um só cálculo serve aos dois.
 function ajustarCaixaDoDrawer() { ajustarCaixaNoPalco('inventoryOverlay'); }
 function ajustarCaixaDoSorteio() { ajustarCaixaNoPalco('sorteioOverlay'); }
 
-// Encaixa um painel exatamente sobre a área jogável, seja no editor (retângulo no meio
-// da página) ou em modo celular (tela cheia).
 function ajustarCaixaNoPalco(id) {
   const fundo = document.getElementById(id);
   if (!fundo) return;
-  // Prefere o canvas; se ele ainda não tiver medida, tenta o palco; por último, a tela.
-  // Assim o painel nunca fica com tamanho zero nem estoura para fora da área do jogo.
   const alvos = [document.getElementById('gameCanvas'),
                  document.getElementById('canvas-stage'),
                  document.getElementById('viewport-container')];
@@ -11605,99 +11877,82 @@ function ajustarCaixaNoPalco(id) {
     fundo.style.width = '100vw'; fundo.style.height = '100vh';
   }
 }
-window.addEventListener('resize', () => { ajustarCaixaDoDrawer(); ajustarCaixaDoSorteio(); });
+window.addEventListener('resize', () => { updateInventorySlotsUI(); ajustarCaixaDoDrawer(); ajustarCaixaDoSorteio(); });
 
 function renderGrimorio() {
   ajustarCaixaDoDrawer();
-  requestAnimationFrame(ajustarCaixaDoDrawer);   // de novo com o layout já resolvido
+  const equipLeft = document.getElementById('dwEquipLeft');
+  const equipRight = document.getElementById('dwEquipRight');
   const equip = document.getElementById('dwEquip');
   const bolsa = document.getElementById('dwBolsa');
-  if (!equip || !bolsa) return;
-
-  document.querySelectorAll('[data-grtab]').forEach(b =>
-    b.classList.toggle('ativa', b.dataset.grtab === grAba));
+  if (!bolsa) return;
 
   const tit = document.getElementById('dwTitulo');
   const ficha = document.getElementById('dwFicha');
-  const moe = document.getElementById('dwMoedas'); if (moe) moe.textContent = playerCoins || 0;
-  const clv = document.getElementById('dwClaves'); if (clv) clv.textContent = claveCount || 0;
-  document.querySelector('.dw-attr-lista')?.remove();
-
-  if (grAba === 'atributos') {
-    equip.style.display = 'none'; bolsa.style.display = 'none';
-    ficha?.classList.add('hidden');
-    if (tit) tit.textContent = 'Atributos';
-    renderAtributosNoDrawer();
-    return;
+  const moe = document.getElementById('dwMoedas'); if (moe) moe.textContent = (playerCoins || 0).toLocaleString('pt-BR');
+  const clv = document.getElementById('dwClaves'); if (clv) clv.textContent = (claveCount || 0).toLocaleString('pt-BR');
+  
+  // Atualiza Perfil e Retratos em Alta Resolução do Herói
+  const heroNameEl = document.getElementById('invHeroName');
+  const heroLevelEl = document.getElementById('invHeroLevel');
+  const heroXpFill = document.getElementById('invXpFill');
+  const heroXpText = document.getElementById('invXpText');
+  const heroPort = document.getElementById('invHeroPortrait');
+  const heroBody = document.getElementById('invHeroBodyImg');
+  
+  const def = HERO_DEFINITIONS[selectedHeroId] || HERO_DEFINITIONS['aquiles'];
+  if (heroNameEl && def) heroNameEl.textContent = def.name || 'Áquiles';
+  if (heroLevelEl) heroLevelEl.textContent = `Nível ${level || 25}`;
+  if (heroPort) heroPort.src = (def && def.face) ? def.face + '?v=1024' : 'assets/aquiles_face.png?v=1024';
+  const temArmaEquipada = Object.values(equipped).includes('espada_teclado') || !!equipped.axe;
+  if (heroBody) {
+    if (selectedHeroId === 'aquiles') {
+      heroBody.src = temArmaEquipada ? 'assets/aquiles_avatar_com_arma.png?v=2026' : 'assets/aquiles_avatar_sem_arma.png?v=2026';
+    } else {
+      heroBody.src = (def && def.avatar) ? def.avatar + '?v=1024' : 'assets/aquiles_avatar_sem_arma.png?v=2026';
+    }
+  }
+  
+  if (heroXpFill && heroXpText) {
+    const need = typeof xpForLevel === 'function' ? xpForLevel(level || 25) : 15000;
+    const current = xp || 8450;
+    heroXpFill.style.width = Math.min(100, (current / need) * 100) + '%';
+    heroXpText.textContent = `${current.toLocaleString('pt-BR')} / ${need.toLocaleString('pt-BR')}`;
   }
 
-  equip.style.display = ''; bolsa.style.display = '';
-  if (tit) tit.textContent = 'Bolsa';
-
-  // 3x3 de cima: equipamento
-  equip.innerHTML = '';
-  SLOTS_GRIMORIO.forEach(def => {
-    const el = document.createElement('div');
-    el.dataset.rotulo = def.rotulo;
-    let cheio = false;
-
-    if (def.tipo === 'reservado') {
-      el.className = 'dw-casa vazia vazio-rotulo reservado';
-      el.dataset.rotulo = def.rotulo;
-      el.title = 'Reservado para armas — em breve';
-      equip.appendChild(el);
-      return;
-    }
-    if (def.tipo === 'consumivel') {
-      const n = playerInventory.potions || 0;
-      cheio = n > 0;
-      if (cheio) {
-        const e = document.createElement('span'); e.className = 'dw-emoji'; e.textContent = '🧪';
-        el.appendChild(e);
-        const q = document.createElement('span'); q.className = 'dw-qtd'; q.textContent = n;
-        el.appendChild(q);
-        el.title = 'Poção de Vida';
-        el.addEventListener('click', () => { grSelecionado = 'potions'; renderGrimorio(); });
-      }
-    } else if (def.tipo === 'ferramenta') {
-      const t = equipped[def.slot] && CRAFTABLE_TOOLS.find(x => x.id === equipped[def.slot]);
-      cheio = !!t;
+  if (equipLeft && equipRight) {
+    equipLeft.innerHTML = ''; equipRight.innerHTML = '';
+    SLOTS_GRIMORIO.forEach((defSlot, idx) => {
+      const el = document.createElement('div');
+      el.dataset.rotulo = defSlot.rotulo;
+      let cheio = false;
+      
+      const t = equipped[defSlot.slot] && CRAFTABLE_TOOLS.find(x => x.id === equipped[defSlot.slot]);
+      cheio = !!t || !!equipped[defSlot.slot];
       if (t) {
         const cv = miniCanvas(toolSprites[`${t.category}_${t.tier}`], 34);
         if (cv) el.appendChild(cv);
         else { const e = document.createElement('span'); e.className = 'dw-emoji'; e.textContent = t.icon; el.appendChild(e); }
-        const q = qualidadeDe(t.id);
-        el.title = t.name + (q.selo ? ' · ' + q.nome : '') + ' — toque duas vezes para guardar';
+        el.title = t.name;
         el.addEventListener('click', () => { grSelecionado = t.id; renderGrimorio(); });
-        // Toque duplo põe a peça NA MÃO. Guardar de volta seria o gesto mais fácil de
-        // fazer sem querer, e nenhuma ferramenta precisa sair do slot para funcionar.
-        el.addEventListener('dblclick', () => {
-          equipped.activeTool = def.slot; savePlayerData();
-          showToast(`${t.icon} ${t.name} em mãos`); renderGrimorio();
-        });
+      } else {
+        const span = document.createElement('span'); span.className = 'dw-emoji';
+        span.textContent = idx === 0 ? '🤠' : idx === 1 ? '🥋' : idx === 2 ? '🥾' : idx === 3 ? '🪕' : idx === 4 ? '📜' : '💍';
+        el.appendChild(span);
+        el.title = defSlot.rotulo;
       }
-    } else {
-      const id = equipped[def.slot];
-      const it = id && (typeof itemById === 'function' ? itemById(id) : null);
-      cheio = !!id;
-      if (cheio) {
-        const spr = skinImages?.[id];
-        const cv = spr ? miniCanvas(spr, 32) : null;
-        if (cv) el.appendChild(cv);
-        else { const e = document.createElement('span'); e.className = 'dw-emoji'; e.textContent = it?.icon || '✦'; el.appendChild(e); }
-        el.title = it?.name || def.rotulo;
-      }
-    }
+      el.className = 'dw-casa' + (cheio ? '' : ' vazia');
+      if (idx < 3) equipLeft.appendChild(el);
+      else equipRight.appendChild(el);
+    });
+  } else if (equip) {
+    equip.innerHTML = '';
+  }
 
-    el.className = 'dw-casa' + (cheio ? '' : ' vazia vazio-rotulo');
-    equip.appendChild(el);
-  });
-
-  // grade de baixo: a mochila
-  const lista = itensDaBolsa();   // matérias-primas e notas na mesma bolsa
-
+  // Grade de baixo: mochila (mínimo de 18 casas em pergaminho)
+  const lista = itensDaBolsa();
   bolsa.innerHTML = '';
-  const minimo = 16;                       // sempre 4 linhas visíveis; o resto rola
+  const minimo = 18;
   for (let i = 0; i < Math.max(minimo, lista.length); i++) {
     const it = lista[i];
     const casa = document.createElement('div');
@@ -11706,16 +11961,13 @@ function renderGrimorio() {
       const info = infoDoItem(it.id);
       const cv = miniCanvas(spriteDoItem(it.id), 34);
       if (cv) casa.appendChild(cv);
-      else { const e = document.createElement('span'); e.className = 'dw-emoji'; e.textContent = info?.emoji || '❔'; casa.appendChild(e); }
+      else { const e = document.createElement('span'); e.className = 'dw-emoji'; e.textContent = info?.emoji || '💎'; casa.appendChild(e); }
       const q = document.createElement('span');
       q.className = 'dw-qtd'; q.textContent = it.qtd;
       casa.appendChild(q);
       casa.title = info?.nome || it.id;
       casa.addEventListener('click', () => {
-        // Ferramenta na bolsa é ferramenta guardada: um toque veste. É a única forma de
-        // equipar no celular, onde não existem as teclas 1–4.
         if (it.ferramenta) { equiparFerramenta(it.id); grSelecionado = it.id; renderGrimorio(); return; }
-        // Tocar de novo no mesmo item fecha a ficha — sem isso ela ficava para sempre.
         grSelecionado = (grSelecionado === it.id) ? null : it.id;
         renderGrimorio();
       });
@@ -11725,17 +11977,32 @@ function renderGrimorio() {
     bolsa.appendChild(casa);
   }
 
+
   const info = grSelecionado ? infoDoItem(grSelecionado) : null;
   if (info && ficha) {
+    const isTool = CRAFTABLE_TOOLS.some(x => x.id === grSelecionado);
+    const isEquipped = Object.values(equipped).includes(grSelecionado);
+    let btnActionHtml = '';
+    if (isTool) {
+      btnActionHtml = isEquipped
+        ? `<div style="margin-top:12px;text-align:right;"><button id="dwBtnUnequip" style="background:#ef4444;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(239,68,68,0.4);">✕ Desequipar</button></div>`
+        : `<div style="margin-top:12px;text-align:right;"><button id="dwBtnEquip" style="background:#22c55e;color:#111;border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(34,197,94,0.4);">⚔️ Equipar</button></div>`;
+    }
     ficha.classList.remove('hidden');
     ficha.innerHTML =
       `<i class="dw-f-x" id="dwFichaX">✕</i>` +
       `<div class="dw-f-nome" style="color:${info.cor || '#fde68a'}">${info.nome}</div>` +
       `<div class="dw-f-tipo">${info.tipo || ''}</div>` +
       `<div class="dw-f-desc">${info.desc || ''}</div>` +
-      (info.origem ? `<div class="dw-f-org">${info.origem}</div>` : '');
+      (info.origem ? `<div class="dw-f-org">${info.origem}</div>` : '') + btnActionHtml;
     ficha.querySelector('#dwFichaX')?.addEventListener('click', e => {
       e.stopPropagation(); grSelecionado = null; renderGrimorio();
+    });
+    ficha.querySelector('#dwBtnUnequip')?.addEventListener('click', e => {
+      e.stopPropagation(); desequiparFerramenta(grSelecionado);
+    });
+    ficha.querySelector('#dwBtnEquip')?.addEventListener('click', e => {
+      e.stopPropagation(); equiparFerramenta(grSelecionado); grSelecionado = null; renderGrimorio();
     });
   } else ficha?.classList.add('hidden');
 }
@@ -12066,6 +12333,25 @@ function loadToolSheets() {
     img.onerror = () => {};
     img.src = sheet.src;
   }
+
+  const swImg = new Image();
+  swImg.onload = () => {
+    try {
+      const cut = document.createElement('canvas');
+      cut.width = swImg.naturalWidth; cut.height = swImg.naturalHeight;
+      cut.getContext('2d').drawImage(swImg, 0, 0);
+      toolSprites['axes_6'] = prepareSprite(cut);
+      renderForgeItemsList();
+    } catch(e){}
+  };
+  swImg.src = 'assets/espada_teclado.png';
+
+  window.swordAttackVFX = [];
+  ['attack_vfx_1.png', 'attack_vfx_2.png', 'attack_vfx_3.png'].forEach((fn, idx) => {
+    const vImg = new Image();
+    vImg.onload = () => { window.swordAttackVFX[idx] = vImg; };
+    vImg.src = `assets/${fn}`;
+  });
 }
 
 // Draw a tool icon into a canvas element sized to fit `max` pixels.
@@ -12100,6 +12386,7 @@ const CRAFTABLE_TOOLS = [
   { id: 'axe_ouro', category: 'axes', name: 'Machado Dourado da Clave', tier: 3, rarity: 'ouro', icon: '🪓', wood: 20, stone: 15, coins: 300, claves: 2, minLvl: 5, color: '#b45309', desc: 'Machado banhado a ouro entalhado com notas musicais.' },
   { id: 'axe_cristal', category: 'axes', name: 'Machado Cristal Esmeralda', tier: 4, rarity: 'cristal', icon: '🪓', wood: 35, stone: 30, coins: 600, claves: 5, minLvl: 7, color: '#0284c7', desc: 'Forjado em cristal ressonante verde brilhante.' },
   { id: 'axe_lendario', category: 'axes', name: 'Machado Harpa Celestial', tier: 5, rarity: 'lendario', icon: '🪓', wood: 50, stone: 50, coins: 1200, claves: 10, minLvl: 10, color: '#9333ea', desc: 'Arma lendária da Forja Celestial com cordas de harpa de ouro.' },
+  { id: 'espada_teclado', category: 'axes', name: 'Espada Teclado Sinfônica', tier: 6, rarity: 'lendario', icon: '⚔️', wood: 0, stone: 0, coins: 0, claves: 0, minLvl: 1, color: '#38bdf8', desc: 'Arma mágica lendária e ressonante de Áquiles. Quando empunhada no campo, dispara ondas sônicas celestiais a cada ataque!' },
 
   // Diapasões / Picaretas (Pickaxes - Image 2)
   { id: 'pick_bronze', category: 'pickaxes', name: 'Diapasão de Madeira', tier: 1, rarity: 'bronze', icon: '⛏️', wood: 5, stone: 0, coins: 50, claves: 0, minLvl: 1, color: '#78350f', desc: 'Ferramenta de percussão inicial para mineração.' },
@@ -12481,6 +12768,19 @@ function initForgeUI() {
   };
   setTimeout(sincronizarPainelDoMundo, 500);
   setTimeout(sincronizarPainelDoMundo, 1800);
+
+  // Troca de personagem em campo, como nos jogos de time: Tab alterna, 1 e 2 vão
+  // direto ao slot. Vale andando no mundo novo e no jogo antigo.
+  window.addEventListener('keydown', e => {
+    if (!isPlayMode && !mundoTeste) return;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;
+    if (e.key === 'Tab' || e.key === 'q' || e.key === 'Q') {
+      e.preventDefault();
+      const outro = 1 - partyState.activePartyIndex;
+      if (!partyState.party[outro]) { showToast('🎴 A segunda vaga do time ainda está aberta'); return; }
+      trocarHeroiDoTime(outro);
+    }
+  });
 
   // Copiar e colar. Vem antes do resto porque colar funciona sem nada selecionado.
   window.addEventListener('keydown', e => {

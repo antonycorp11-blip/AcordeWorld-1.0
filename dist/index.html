@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
-  <link rel="stylesheet" href="style.css?v=202607302151">
+  <link rel="stylesheet" href="style.css?v=202608031315">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -138,6 +138,25 @@
                 </div>
               </div>
             </div>
+
+            <!-- Genshin Impact Style 2-Character Party Switch HUD -->
+            <div id="partyHud" class="party-hud">
+              <div class="party-slot active" data-slot="0" id="partySlot0" title="Herói 1 (Tecla 1)">
+                <div class="party-slot-badge">1</div>
+                <div class="party-avatar-wrap">
+                  <img id="partyAvatar0" src="assets/aquiles_face.png" alt="Slot 1">
+                </div>
+                <div class="party-hp-mini"><i id="partyHpFill0"></i></div>
+              </div>
+              <div class="party-slot" data-slot="1" id="partySlot1" title="Herói 2 (Tecla 2)">
+                <div class="party-slot-badge">2</div>
+                <div class="party-avatar-wrap">
+                  <img id="partyAvatar1" src="assets/aquiles_face.png" alt="Slot 2">
+                </div>
+                <div class="party-hp-mini"><i id="partyHpFill1"></i></div>
+              </div>
+            </div>
+
             <div class="hud-right">
               <!-- Moedas e claves vivem no inventário, como no Albion. Ficam aqui só
                    como elementos ocultos, porque o código atualiza estes ids. -->
@@ -456,38 +475,81 @@
             </div>
           </div>
 
-          <!-- ═══ RETRO 16-BIT INVENTORY & PROFILE OVERLAY ═══ -->
-          <!-- Inventário: painel lateral deslizante (drawer), estilo Albion.
-               Não-modal: o jogo continua visível e rodando atrás dele. -->
-          <div id="inventoryOverlay" class="drawer-fundo hidden">
-            <aside class="drawer" id="drawerPainel">
-              <div class="dw-titulo" id="dwTitulo">Bolsa</div>
+          <!-- ═══ ORNATE MEDIEVAL PARCHMENT INVENTORY OVERLAY (ÁQUILES JRPG STYLE) ═══ -->
+          <div id="inventoryOverlay" class="ornate-inv-fundo hidden">
+            <div class="ornate-inv-frame" id="drawerPainel">
+              <!-- Top Header Ribbon -->
+              <div class="ornate-inv-ribbon">
+                <span class="ornate-inv-title" id="dwTitulo">Inventário</span>
+              </div>
+              <button id="invCloseBtn" class="ornate-inv-close" title="Fechar">✕</button>
 
-              <button id="invCloseBtn" class="dw-fechar">✕</button>
+              <!-- Main Parchment Content -->
+              <div class="ornate-inv-content">
+                <!-- 1. Profile Medallion & Stats Banner -->
+                <div class="ornate-inv-profile-row">
+                  <div class="ornate-inv-portrait-frame">
+                    <img src="assets/aquiles_face.png?v=20260803" alt="Áquiles" class="ornate-inv-portrait-img" id="invHeroPortrait">
+                  </div>
+                  <div class="ornate-inv-profile-info">
+                    <div class="ornate-inv-name" id="invHeroName">Áquiles</div>
+                    <div class="ornate-inv-level" id="invHeroLevel">Nível 25</div>
+                    <div class="ornate-inv-xp-wrap">
+                      <div class="ornate-inv-xp-bar"><div class="ornate-inv-xp-fill" id="invXpFill"></div></div>
+                      <span class="ornate-inv-xp-txt" id="invXpText">8.450 / 15.000</span>
+                    </div>
+                    <div class="ornate-inv-currencies">
+                      <span class="ornate-inv-coin">🪙 <b id="dwMoedas">38.750</b></span>
+                      <span class="ornate-inv-gem">💎 <b id="dwClaves">1.250</b></span>
+                    </div>
+                  </div>
+                </div>
 
-              <!-- 3x3 de cima: equipamento -->
-              <div id="dwEquip" class="dw-equip"></div>
+                <!-- Divider -->
+                <div class="ornate-inv-divider"></div>
 
-              <!-- moedas ficam entre o equipamento e a mochila -->
-              <div class="dw-moedas">
-                <span class="dw-moeda ouro">🪙<b id="dwMoedas">0</b></span>
-                <span class="dw-moeda clave">𝄞<b id="dwClaves">0</b></span>
+                <!-- 2. Equipamentos (Center Hero Figure & 6 Slots) -->
+                <div class="ornate-inv-section-title">Equipamentos</div>
+                <div class="ornate-inv-equip-area">
+                  <div class="ornate-inv-col-left" id="dwEquipLeft">
+                    <!-- populated by JS: Hat, Outfit, Boots -->
+                  </div>
+                  <div class="ornate-inv-hero-center">
+                    <img src="assets/aquiles_avatar.png?v=20260803" alt="Áquiles Equipado" id="invHeroBodyImg" class="ornate-inv-body-img">
+                  </div>
+                  <div class="ornate-inv-col-right" id="dwEquipRight">
+                    <!-- populated by JS: Instrument, Partitura/Aura, Ring -->
+                  </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="ornate-inv-divider"></div>
+
+                <!-- 3. Mochila (Backpack Grid) -->
+                <div class="ornate-inv-section-title">Mochila</div>
+                <div class="ornate-inv-backpack-grid" id="dwBolsa">
+                  <!-- populated by JS: 18 embossed slots with gems/items & quantities -->
+                </div>
+
+                <!-- Item details tooltip / ficha -->
+                <div id="dwFicha" class="dw-ficha hidden"></div>
+                <!-- Hidden fallback to avoid null references during migration -->
+                <div id="dwEquip" style="display:none;"></div>
               </div>
 
-              <!-- 4 colunas de baixo: mochila, rolável -->
-              <div id="dwBolsa" class="dw-bolsa"></div>
-
-              <!-- ficha do item tocado -->
-              <div id="dwFicha" class="dw-ficha hidden"></div>
-
-              <!-- abas laterais, presas na borda de fora -->
-              <div class="dw-abas">
-                <button class="dw-aba ativa" data-grtab="bolsa"><span>BOLSA</span></button>
-                <button class="dw-aba" data-grtab="atributos"><span>ATRIBUTOS</span></button>
-                <button class="dw-aba bloqueada" data-grtab="magias" disabled
-                        title="Em breve: equipar acordes"><span>MAGIAS</span></button>
+              <!-- Bottom Footer Bar -->
+              <div class="ornate-inv-footer">
+                <div class="ornate-inv-weight">
+                  <span class="weight-icon">⚖️</span>
+                  <span class="weight-text" id="invWeightText">145 / 300</span>
+                </div>
+                <div class="ornate-inv-btn-group">
+                  <button class="ornate-inv-btn" id="invSortBtn">Classificar</button>
+                  <button class="ornate-inv-btn" id="invExpandBtn">Expandir</button>
+                </div>
               </div>
-            </aside>
+
+            </div>
           </div><!-- end inventoryOverlay -->
 
         </div><!-- end canvas-stage -->
@@ -581,6 +643,6 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="game.js?v=202607302151"></script>
+<script src="game.js?v=202608031315"></script>
 </body>
 </html>

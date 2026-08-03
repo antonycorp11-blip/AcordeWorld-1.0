@@ -345,22 +345,6 @@
       "interior": "forjador"
     },
     {
-      "id": "signpost_1785211406603_src",
-      "name": "🪧 Placa → 🎹 Conservatório",
-      "type": "signpost",
-      "mapKey": "0_1",
-      "x": 1006,
-      "y": 332,
-      "targetMapKey": "2_0",
-      "targetX": 52,
-      "targetY": 301,
-      "triggerRadius": 70,
-      "dialogue": "none",
-      "triggered": false,
-      "flipX": false,
-      "scale": 0.5
-    },
-    {
       "id": "signpost_1785211406603_dst",
       "name": "🪧 Placa → 🏰 Portões Reais",
       "type": "signpost",
@@ -553,6 +537,38 @@
         "Adoro brincar perto da fonte!",
         "Você também ouve a melodia do vento?"
       ]
+    },
+    {
+      "id": "signpost_1785779889591_src",
+      "name": "🪧 Placa → 🏰 Portões Reais",
+      "type": "signpost",
+      "mapKey": "custom_1785779853928_252",
+      "x": 41,
+      "y": 90,
+      "targetMapKey": "0_1",
+      "targetX": 1005,
+      "targetY": 331,
+      "triggerRadius": 70,
+      "dialogue": "none",
+      "triggered": false,
+      "flipX": false,
+      "scale": 0.45
+    },
+    {
+      "id": "signpost_1785779889591_dst",
+      "name": "🪧 Placa → 🏰 Game_map_music_academy_town_202608031355",
+      "type": "signpost",
+      "mapKey": "0_1",
+      "x": 1005,
+      "y": 331,
+      "targetMapKey": "custom_1785779853928_252",
+      "targetX": 41,
+      "targetY": 90,
+      "triggerRadius": 70,
+      "dialogue": "none",
+      "triggered": false,
+      "flipX": false,
+      "scale": 0.45
     }
   ]
 }

@@ -886,6 +886,123 @@ body.mobile-play #gameCanvas {
 .player-hud.hidden { display: none; }
 .player-hud > * { pointer-events: auto; }
 
+/* ── Genshin Impact Style 2-Character Party HUD ── */
+.party-hud {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.party-slot {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.85);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), inset 0 0 6px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.party-slot:hover {
+  transform: scale(1.08);
+  border-color: rgba(251, 191, 36, 0.9);
+}
+
+.party-slot.active {
+  border-color: #38bdf8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.85), inset 0 0 8px rgba(56, 189, 248, 0.4);
+  transform: scale(1.12);
+  background: radial-gradient(circle at 35% 35%, rgba(14, 116, 144, 0.95), rgba(15, 23, 42, 0.95));
+}
+
+.party-slot.active::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid #38bdf8;
+  animation: partyPulse 2s infinite;
+  pointer-events: none;
+}
+
+@keyframes partyPulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.12); opacity: 0.2; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+.party-slot-badge {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  border: 1px solid #94a3b8;
+  color: #f1f5f9;
+  font-size: 10px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  z-index: 2;
+}
+
+.party-slot.active .party-slot-badge {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  border-color: #38bdf8;
+  color: #fff;
+}
+
+.party-avatar-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.party-avatar-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.party-hp-mini {
+  position: absolute;
+  bottom: -5px;
+  width: 32px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.party-hp-mini i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+  transition: width 0.2s ease;
+}
+
+.party-slot.empty {
+  opacity: 0.45;
+}
+
 /* ── Vitals: level badge + hp/xp bars ── */
 /* ── Vitals: Level Badge + HP/XP Bars ── */
 .hud-vitals {
@@ -4880,3 +4997,364 @@ body.modo-mundo #viewport-area { padding-top: var(--barra-h, 44px); }
   font-family: 'Cinzel', serif; font-size: 13px; color: #fde68a; letter-spacing: .04em;
 }
 .lupa-ficha { font-size: 10px; color: #9b8a6a; letter-spacing: .05em; }
+
+/* ═══ INVENTÁRIO DRAWER LATERAL RPG (FIEL Á ARTE CONCEITO DO USUÁRIO) ═══ */
+.ornate-inv-fundo {
+  position: fixed !important;
+  z-index: 99999 !important;
+  background: linear-gradient(90deg, transparent 35%, rgba(0,0,0,0.55) 100%);
+  display: flex !important;
+  justify-content: flex-end;
+  align-items: stretch;
+  padding: 0;
+  box-sizing: border-box;
+  pointer-events: none;
+  overflow: hidden;
+  transition: opacity 0.2s ease;
+}
+.ornate-inv-fundo.hidden {
+  display: none !important;
+  opacity: 0;
+}
+@keyframes drawerDesliza {
+  from { transform: translateX(100%); }
+  to { transform: none; }
+}
+
+.ornate-inv-frame {
+  pointer-events: auto;
+  width: 380px;
+  max-width: 85%;
+  height: 100%;
+  background: linear-gradient(180deg, #d6b47c 0%, #c7a166 50%, #b88f55 100%);
+  border: 8px solid #52361b;
+  border-right: none;
+  border-radius: 16px 0 0 16px;
+  box-shadow: -15px 0 38px rgba(0,0,0,0.85), inset 0 0 30px rgba(65,35,12,0.5);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Outfit', sans-serif;
+  color: #3b230d;
+  animation: drawerDesliza 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ornate-inv-ribbon {
+  background: linear-gradient(180deg, #38537a 0%, #1e304b 100%);
+  border-bottom: 4px solid #b99763;
+  padding: 12px 0;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.55);
+  flex-shrink: 0;
+}
+.ornate-inv-title {
+  font-family: 'Cinzel', serif;
+  font-size: 21px;
+  font-weight: 900;
+  color: #fde68a;
+  letter-spacing: 0.08em;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.85);
+  text-transform: uppercase;
+}
+.ornate-inv-close {
+  position: absolute;
+  top: 8px; right: 12px;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #b93829 0%, #7d1f14 100%);
+  border: 2.5px solid #d8aa63;
+  color: #fcedcb;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+  transition: all 0.15s ease;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10;
+}
+.ornate-inv-close:hover {
+  transform: scale(1.1);
+  background: #d44030;
+}
+
+.ornate-inv-content {
+  padding: 14px 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-grow: 1;
+  box-sizing: border-box;
+}
+
+/* 1. Profile Medallion & Stats Banner */
+.ornate-inv-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.18);
+  padding: 10px 14px;
+  border: 1.5px solid rgba(115, 75, 35, 0.45);
+  border-radius: 12px;
+  box-shadow: inset 0 0 12px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.15);
+}
+.ornate-inv-portrait-frame {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  border: 3.5px solid #8c6239;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.45), inset 0 0 8px rgba(0,0,0,0.8);
+  overflow: hidden;
+  background: #26170d;
+  flex-shrink: 0;
+}
+.ornate-inv-portrait-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.ornate-inv-profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex-grow: 1;
+}
+.ornate-inv-name {
+  font-family: 'Cinzel', serif;
+  font-size: 19px;
+  font-weight: 900;
+  color: #211205;
+  text-shadow: none;
+}
+.ornate-inv-level {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e3a68;
+  text-transform: none;
+  letter-spacing: 0.03em;
+}
+.ornate-inv-xp-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+.ornate-inv-xp-bar {
+  flex-grow: 1;
+  height: 16px;
+  background: #2b1d11;
+  border: 2px solid #5a3c22;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+}
+.ornate-inv-xp-fill {
+  width: 56%;
+  height: 100%;
+  background: linear-gradient(90deg, #1b4b8a 0%, #3482d8 100%);
+  box-shadow: 0 0 6px rgba(52, 130, 216, 0.6);
+}
+.ornate-inv-xp-txt {
+  font-size: 11px;
+  font-weight: 800;
+  color: #f7eddc;
+  white-space: nowrap;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+}
+.ornate-inv-currencies {
+  display: flex;
+  gap: 16px;
+  margin-top: 4px;
+}
+.ornate-inv-coin, .ornate-inv-gem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: #2b1807;
+  box-shadow: none;
+}
+.ornate-inv-coin b, .ornate-inv-gem b {
+  color: #211205;
+}
+
+.ornate-inv-divider {
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #9c723f 40%, #9c723f 60%, transparent 100%);
+  margin: 4px 0;
+}
+.ornate-inv-section-title {
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: #3b220c;
+  text-align: left;
+  letter-spacing: 0.04em;
+  text-shadow: none;
+  margin: 2px 0 -4px 6px;
+  text-transform: none;
+}
+
+/* 2. Equipamentos (Hero Center Standing Directly on Parchment + 3 Slots Each Side) */
+.ornate-inv-equip-area {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 8px;
+}
+.ornate-inv-col-left, .ornate-inv-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 2;
+}
+.ornate-inv-hero-center {
+  flex-grow: 1;
+  height: 190px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  position: relative;
+  z-index: 1;
+}
+.ornate-inv-body-img {
+  max-width: 100%;
+  max-height: 185px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 12px rgba(45, 25, 8, 0.55));
+}
+
+/* 3. Mochila Grid (2 Rows x 5 Columns or Flex Grid) */
+.ornate-inv-backpack-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1.5px solid rgba(140, 95, 45, 0.35);
+  border-radius: 10px;
+  box-shadow: inset 0 0 10px rgba(60, 30, 10, 0.1);
+  min-height: 120px;
+}
+
+/* Slot Styling inside Ornate Inv (Dark slate inner box with golden bronze border) */
+.ornate-inv-frame .dw-casa {
+  width: 50px; height: 50px;
+  background: #222a36;
+  border: 2.5px solid #946c3b;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 0 10px rgba(0,0,0,0.85);
+  transition: all 0.15s ease;
+  margin: 0 auto;
+}
+.ornate-inv-frame .dw-casa:hover {
+  border-color: #fde68a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(253, 230, 138, 0.35), inset 0 0 6px rgba(0,0,0,0.6);
+}
+.ornate-inv-frame .dw-casa.vazia {
+  opacity: 0.65;
+}
+.ornate-inv-frame .dw-emoji {
+  font-size: 24px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.7));
+}
+.ornate-inv-frame .dw-qtd {
+  position: absolute;
+  bottom: 2px; right: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffffff;
+  background: rgba(15, 20, 28, 0.85);
+  padding: 1px 4px;
+  border-radius: 4px;
+  border: 1px solid #946c3b;
+}
+
+/* 4. Footer Bar */
+.ornate-inv-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, #ba9256 0%, #9c753b 100%);
+  border-top: 2.5px solid #7a5629;
+  padding: 12px 18px;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.25);
+  flex-shrink: 0;
+}
+.ornate-inv-weight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #2b1807;
+}
+.ornate-inv-btn-group {
+  display: flex;
+  gap: 10px;
+}
+.ornate-inv-btn {
+  background: linear-gradient(180deg, #325182 0%, #1c3050 100%);
+  border: 2px solid #d4a55c;
+  color: #fde68a;
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 3px 7px rgba(0,0,0,0.5);
+  transition: all 0.15s ease;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.85);
+}
+.ornate-inv-btn:hover {
+  background: linear-gradient(180deg, #4168a6 0%, #25416d 100%);
+  border-color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(0,0,0,0.7), 0 0 8px rgba(212, 165, 92, 0.4);
+}
+.ornate-inv-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+  .ornate-inv-frame { width: 320px; max-width: 92%; }
+  .ornate-inv-equip-area { gap: 6px; }
+  .ornate-inv-hero-center { height: 160px; }
+  .ornate-inv-backpack-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .ornate-inv-frame .dw-casa { width: 44px; height: 44px; }
+}
+
+
+/* vaga aberta no time: silhueta e convite, em vez de rosto emprestado */
+.party-slot.empty .party-avatar-wrap {
+  background: repeating-linear-gradient(45deg, #241c12, #241c12 6px, #2c2318 6px, #2c2318 12px);
+  border-style: dashed !important; border-color: #6b5228 !important;
+}
+.party-slot.empty .party-avatar-wrap::after {
+  content: '🎴'; position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; opacity: .8;
+}
+.party-slot.empty img { display: none; }
+.party-slot.empty .party-hp-mini { opacity: .25; }
