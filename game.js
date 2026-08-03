@@ -5004,18 +5004,50 @@ function renderFloaters(now) {
   }
 }
 
-// A quick arc sweeping toward the target, so a tap reads as a swing.
+// A dynamic crescent magic slash with trails and impact sparks
 function renderAttackSwing(now) {
   if (now > attackAnimUntil) return;
-  const t = 1 - (attackAnimUntil - now) / 180;
+  const t = 1 - (attackAnimUntil - now) / 180; // 0 to 1
   const dir = player.direction;
   const base = dir === 'left' ? Math.PI : dir === 'right' ? 0 : dir === 'up' ? -Math.PI/2 : Math.PI/2;
-  const a0 = base - 0.9 + t * 1.8;
+  
+  // Centro do golpe com avanço de investida
+  const cx = player.x + (dir === 'left' ? -12 : dir === 'right' ? 12 : 0);
+  const cy = player.y - player.height * 0.45 + (dir === 'up' ? -12 : dir === 'down' ? 12 : 0);
+
   ctx.save();
-  ctx.translate(player.x, player.y - player.height * 0.45);
-  ctx.strokeStyle = `rgba(255,255,255,${0.85 * (1 - t)})`;
-  ctx.lineWidth = 4; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.arc(0, 0, 34, a0 - 0.5, a0 + 0.5); ctx.stroke();
+  ctx.translate(cx, cy);
+
+  // Rastro de corte cortante brilhante (Magic Slash)
+  const startAngle = base - 1.2 + t * 2.4;
+  const endAngle = base - 1.2 + Math.min(2.4, t * 2.4 + 0.8);
+
+  ctx.shadowColor = '#38bdf8';
+  ctx.shadowBlur = 18;
+  ctx.strokeStyle = `rgba(186, 230, 253, ${Math.max(0, 1 - t * 0.9)})`;
+  ctx.lineWidth = 14 * (1 - Math.pow(t, 2));
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.arc(0, 0, 42 + t * 8, startAngle, endAngle);
+  ctx.stroke();
+
+  // Linha interna de núcleo de luz branca puro
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = `rgba(255, 255, 255, ${Math.max(0, 1 - t * 0.5)})`;
+  ctx.lineWidth = 4 * (1 - t);
+  ctx.beginPath();
+  ctx.arc(0, 0, 42 + t * 8, startAngle, endAngle);
+  ctx.stroke();
+
+  // Fagulhas / Sparks de impacto cortante no final
+  if (t > 0.3 && t < 0.8) {
+    ctx.fillStyle = '#7dd3fc';
+    for (let i = 0; i < 4; i++) {
+      const sparkAngle = endAngle + (Math.random() - 0.5) * 0.5;
+      const dist = 48 + Math.random() * 15;
+      ctx.fillRect(Math.cos(sparkAngle) * dist, Math.sin(sparkAngle) * dist, 3, 3);
+    }
+  }
   ctx.restore();
 }
 
@@ -6835,14 +6867,54 @@ function renderPlayer() {
   if (player.oculto) return;      // entrou pela porta na cena: sai de cena de verdade
   const pW=currentScene!=='world'?68:player.width;
   const pH=currentScene!=='world'?92:player.height;
+  
+  // Sombra de chão do herói (impede a sensação de flutuar na foto estática)
+  ctx.save();
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+  ctx.beginPath();
+  ctx.ellipse(player.x, player.y + 2, pW * 0.36, pW * 0.14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
   renderWings(pW,pH); // behind the body
   const sheet=activeSprite();
   if(sheet){
     const fw=sheet.width/4,fh=sheet.height/4;
-    const row=player.direction==='up'?1:(player.direction==='left'||player.direction==='right')?2:0;
+    const isAttacking = performance.now() < attackAnimUntil;
+    let row = player.direction === 'up' ? 1 : (player.direction === 'left' || player.direction === 'right') ? 2 : 0;
+    let frame = player.animFrame;
+    let lungeX = 0, lungeY = 0;
+
+    // Se estiver atacando, usa a linha 4 (row 3 - poses de combate no spritesheet novo!) + investida
+    if (isAttacking) {
+      row = 3;
+      const progress = Math.max(0, Math.min(1, 1 - (attackAnimUntil - performance.now()) / 180));
+      frame = Math.min(3, Math.floor(progress * 4));
+      const lungeDist = Math.sin(progress * Math.PI) * 12;
+      if (player.direction === 'left') lungeX = -lungeDist;
+      else if (player.direction === 'right') lungeX = lungeDist;
+      else if (player.direction === 'up') lungeY = -lungeDist;
+      else lungeY = lungeDist;
+    }
+
+    // Pulo suave de caminhada (step bounce) e inclinação de passada reativa
+    const stepBounce = (player.isMoving && !isAttacking) ? Math.sin(performance.now() * 0.022) * 3.5 : 0;
+    const walkTilt = (player.isMoving && !isAttacking) ? (player.direction === 'left' ? -0.05 : player.direction === 'right' ? 0.05 : 0) : 0;
+
     ctx.save();
-    if(player.direction==='left'){ctx.translate(player.x,player.y);ctx.scale(-1,1);ctx.drawImage(sheet,player.animFrame*fw,row*fh,fw,fh,-pW/2,-pH+4,pW,pH);}
-    else ctx.drawImage(sheet,player.animFrame*fw,row*fh,fw,fh,player.x-pW/2,player.y-pH+4,pW,pH);
+    const drawX = player.x + lungeX;
+    const drawY = player.y + lungeY - Math.abs(stepBounce);
+
+    if (player.direction === 'left') {
+      ctx.translate(drawX, drawY);
+      ctx.rotate(-walkTilt);
+      ctx.scale(-1, 1);
+      ctx.drawImage(sheet, frame * fw, row * fh, fw, fh, -pW / 2, -pH + 4, pW, pH);
+    } else {
+      ctx.translate(drawX, drawY);
+      ctx.rotate(walkTilt);
+      ctx.drawImage(sheet, frame * fw, row * fh, fw, fh, -pW / 2, -pH + 4, pW, pH);
+    }
     ctx.restore();
   } else {ctx.fillStyle='#3b82f6';ctx.fillRect(player.x-16,player.y-32,32,48);}
 }
@@ -9787,10 +9859,142 @@ function initBottomPanel(){
 function updateMapStatus(){
   if (typeof renderPaletaDeProps === 'function') renderPaletaDeProps();
   const name=SCENE_NAMES[currentKey]||currentKey;
-  if(statusMap)statusMap.textContent=`🗺️ ${name}`;
+  const ciclo = typeof calculoDoCicloDiaNoite === 'function' ? calculoDoCicloDiaNoite(performance.now()) : null;
+  const infoTempo = ciclo ? ` (${ciclo.nome})` : '';
+  if(statusMap)statusMap.textContent=`🗺️ ${name}${infoTempo}`;
 }
 let toastTimer=null;
 function showToast(msg){if(!toastEl)return;toastEl.textContent=msg;toastEl.classList.remove('hidden');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>toastEl.classList.add('hidden'),2500);}
+
+// ============================================================
+// REALISMO E PROFUNDIDADE PARA CENÁRIOS ESTÁTICOS (FOTOS)
+// ============================================================
+
+// 1. Sombras de nuvens itinerantes (dá sensação de luz do sol viva sobre a foto)
+const nuvensAtmosfericas = Array.from({length: 4}, (_, i) => ({
+  x: Math.random() * SCREEN_W * 2,
+  y: Math.random() * SCREEN_H,
+  scaleX: 240 + Math.random() * 180,
+  scaleY: 90 + Math.random() * 70,
+  vel: 0.35 + Math.random() * 0.3,
+  alpha: 0.12 + Math.random() * 0.08
+}));
+
+function renderSombrasDeNuvem(now, mapKey) {
+  if (!isPlayMode || currentScene !== 'world' || mapKey === 'mega_world') return;
+  if (INTERIORS[mapKey] || (SCENE_NAMES[mapKey] && /caverna|masmorra|porão|interior/i.test(SCENE_NAMES[mapKey]))) return;
+  ctx.save();
+  nuvensAtmosfericas.forEach(n => {
+    n.x -= n.vel;
+    if (n.x + n.scaleX < -100) {
+      n.x = SCREEN_W + n.scaleX + Math.random() * 300;
+      n.y = Math.random() * SCREEN_H;
+    }
+    const g = ctx.createRadialGradient(n.x, n.y, 10, n.x, n.y, n.scaleX / 2);
+    g.addColorStop(0, `rgba(0, 10, 25, ${n.alpha})`);
+    g.addColorStop(0.6, `rgba(0, 10, 25, ${n.alpha * 0.5})`);
+    g.addColorStop(1, 'rgba(0, 10, 25, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(n.x, n.y, n.scaleX / 2, n.scaleY / 2, -0.15, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.restore();
+}
+
+// 2. Vagalumes e Poeira Mágica (partículas vivas flutuando na cena)
+const vagalumesMundiais = Array.from({length: 22}, (_, i) => ({
+  x: Math.random() * SCREEN_W,
+  y: Math.random() * SCREEN_H,
+  vx: (Math.random() - 0.5) * 0.6,
+  vy: -0.2 - Math.random() * 0.4,
+  cor: i % 2 === 0 ? '#fef08a' : '#86efac',
+  size: 1.5 + Math.random() * 2,
+  offset: Math.random() * 1000
+}));
+
+function renderVagalumesEPoeiras(now, mapKey) {
+  if (!isPlayMode || currentScene !== 'world') return;
+  const ciclo = calculoDoCicloDiaNoite(now);
+  const noiteOuMagico = ciclo.ehNoite || (SCENE_NAMES[mapKey] && /clareira|eco|floresta|bosque|mágic/i.test(SCENE_NAMES[mapKey]));
+  if (!noiteOuMagico) return;
+  ctx.save();
+  vagalumesMundiais.forEach(v => {
+    v.x += v.vx + Math.sin(now * 0.002 + v.offset) * 0.4;
+    v.y += v.vy;
+    if (v.x < 0) v.x = SCREEN_W; if (v.x > SCREEN_W) v.x = 0;
+    if (v.y < 0) v.y = SCREEN_H; if (v.y > SCREEN_H) v.y = 0;
+    const brilho = (Math.sin(now * 0.004 + v.offset) + 1) / 2;
+    if (brilho > 0.15) {
+      ctx.globalAlpha = brilho * 0.85;
+      ctx.shadowColor = v.cor;
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = v.cor;
+      ctx.beginPath();
+      ctx.arc(v.x, v.y, v.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+  ctx.restore();
+}
+
+// 3. Ciclo Dia/Noite com iluminação dinâmica sobre foto estática
+function calculoDoCicloDiaNoite(now) {
+  const T = (now % 240000) / 240000;
+  let r=255, g=255, b=255, alpha=0, ehNoite=false, nome='Dia';
+  if (T < 0.35) { alpha = 0; nome = '☀️ Dia'; }
+  else if (T < 0.50) {
+    const f = (T - 0.35) / 0.15;
+    r = 251; g = 146; b = 60; alpha = 0.22 * f; nome = '🌅 Entardecer';
+  } else if (T < 0.85) {
+    alpha = 0.55; r = 10; g = 20; b = 55; ehNoite = true; nome = '🌙 Noite';
+  } else {
+    const f = 1 - (T - 0.85) / 0.15;
+    r = 253; g = 224; b = 71; alpha = 0.30 * f; nome = '🌄 Amanhecer';
+  }
+  return { r, g, b, alpha, ehNoite, nome };
+}
+
+function renderCicloDiaNoite(now, mapKey) {
+  if (!isPlayMode || currentScene !== 'world' || mapKey === 'mega_world') return;
+  const c = calculoDoCicloDiaNoite(now);
+  if (c.alpha <= 0.01) return;
+  ctx.save();
+  if (c.ehNoite) {
+    const escuro = document.createElement('canvas');
+    escuro.width = SCREEN_W; escuro.height = SCREEN_H;
+    const eCtx = escuro.getContext('2d');
+    eCtx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${c.alpha})`;
+    eCtx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    const flicker = Math.sin(now * 0.015) * 6 + Math.cos(now * 0.027) * 4;
+    eCtx.globalCompositeOperation = 'destination-out';
+
+    // Luz em volta do Herói (lanterna do viajante)
+    const gJog = eCtx.createRadialGradient(player.x, player.y - 20, 10, player.x, player.y - 20, 120 + flicker);
+    gJog.addColorStop(0, 'rgba(0, 0, 0, 1)');
+    gJog.addColorStop(0.5, 'rgba(0, 0, 0, 0.6)');
+    gJog.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    eCtx.fillStyle = gJog;
+    eCtx.beginPath(); eCtx.arc(player.x, player.y - 20, 130, 0, Math.PI * 2); eCtx.fill();
+
+    // Luz em volta de NPCs luminosos
+    npcData.forEach(n => {
+      if (n.mapKey !== mapKey || n.oculto) return;
+      if (['forge_entrance', 'ponto_martelada', 'lago_sorteio', 'porta'].includes(n.type) || (n.name && /fogueira|tocha|luz|lago/i.test(n.name))) {
+        const gNpc = eCtx.createRadialGradient(n.x, n.y - 20, 5, n.x, n.y - 20, 95 + flicker * 0.8);
+        gNpc.addColorStop(0, 'rgba(0, 0, 0, 0.95)');
+        gNpc.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        eCtx.fillStyle = gNpc;
+        eCtx.beginPath(); eCtx.arc(n.x, n.y - 20, 100, 0, Math.PI * 2); eCtx.fill();
+      }
+    });
+    ctx.drawImage(escuro, 0, 0);
+  } else {
+    ctx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${c.alpha})`;
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+  }
+  ctx.restore();
+}
 
 // ============================================================
 // MAIN LOOP
@@ -9903,6 +10107,7 @@ function loop(now){
       const vid = videoDoMapa(mapKey);
       if (vid) ctx.drawImage(vid, 0, 0, SCREEN_W, SCREEN_H);
       else { const bg=bgImages[mapKey]; if(bg?.complete) ctx.drawImage(bg,0,0,SCREEN_W,SCREEN_H); }
+      if (isPlayMode && currentScene === 'world') renderSombrasDeNuvem(now, mapKey);
     }
     else { const st=interiorDef()?.still?.(); if(st)ctx.drawImage(st,0,0,SCREEN_W,SCREEN_H); }
   }
@@ -10044,6 +10249,8 @@ function loop(now){
       renderAttackSwing(now);
       renderGatherSwing(now);
       ctx.drawImage(L.fgCanvas,0,0);renderDoorMarkers(now);updateLeaves();renderLeaves();
+      renderVagalumesEPoeiras(now, currentKey);
+      renderCicloDiaNoite(now, currentKey);
       updatePath();renderPath(now);
       updateAmbient(now);renderSpeech(now);renderFloaters(now);
       // Prompt over whatever the action button is currently pointing at — not just
