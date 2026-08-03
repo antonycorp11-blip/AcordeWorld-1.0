@@ -362,7 +362,9 @@ let startMap = '0_1';
 // Clima permanente de cada cenário (noite, névoa). Vive no world config, então é
 // ajuste de dados, não de código: { "1_1": { "escuro": 0.5, "cor": "#0b1220" } }
 let ambience = {};
-const player = { x:512, y:400, width:48, height:64, speed:3.9, sprintSpeed:6.65, direction:'down', isMoving:false, animFrame:0, animTimer:0 };
+// A folha do Achilles tem célula de 131x227 (proporção 1:1,73). Largura e altura
+// precisam seguir a mesma proporção, senão o personagem entra achatado ou esticado.
+const player = { x:512, y:400, width:52, height:90, speed:3.9, sprintSpeed:6.65, direction:'down', isMoving:false, animFrame:0, animTimer:0 };
 let playerLocked = false, savedDoorPos = {x:512,y:380}, savedDoorMap = null, lastTransTime=0, bordaTravada=false, lastDoorTime=0, lastDeadEndToast=0 /* unused */;
 const keys = {w:false,a:false,s:false,d:false,shift:false};
 // Analog thumb stick — overrides the keys while held. Magnitude drives speed, so a
@@ -3871,14 +3873,16 @@ function mundoMoverJogador() {
   else if (livre(tx, player.y)) player.x = tx;
   else if (livre(player.x, ty)) player.y = ty;
 
-  function getMaxHeroFrames() {
-    const s = typeof activeSprite === 'function' ? activeSprite() : null;
-    return (s && s.width > 400) ? 6 : 4;
-  }
-  player.animTimer++;
-  const maxF = getMaxHeroFrames();
-  if (player.animTimer >= (sprint ? 2 : 4)) {
-    player.animTimer = 0; player.animFrame = (player.animFrame + 1) % maxF;
+  // A cadência sai da VELOCIDADE real e o número de quadros vem da folha do
+  // personagem. Contar tique de laço dava passada rápida demais correndo e patinação
+  // andando devagar; adivinhar o número de quadros pela largura da imagem quebrava a
+  // cada folha nova.
+  const quadros = personagemAtivo().cols || 4;
+  player.animTimer += spd;
+  if (player.animTimer >= (sprint ? 13 : 19)) {
+    player.animTimer = 0;
+    player.animFrame = (player.animFrame + 1) % quadros;
+    if (player.animFrame === 0 || player.animFrame === Math.floor(quadros / 2)) playStep(sprint);
   }
 }
 
@@ -5063,7 +5067,7 @@ function renderAttackSwing(now) {
   }
 
   // Efeito especial Exclusivo do Teclado Espada / Harmonia de ÁQUILES
-  if ((selectedHeroId === 'aquiles' || equipped.axe === 'espada_teclado') && t > 0.05) {
+  if ((selectedHeroId === 'achilles' || equipped.axe === 'espada_teclado') && t > 0.05) {
     if (window.swordAttackVFX && window.swordAttackVFX.length >= 3) {
       const vIdx = Math.min(2, Math.floor(t * 3));
       const vImg = window.swordAttackVFX[vIdx];
@@ -5826,7 +5830,7 @@ function loadPlayerData() {
       if (d.partyState.heroStates) partyState.heroStates = { ...partyState.heroStates, ...d.partyState.heroStates };
     }
     if (d.heroi) {
-      selectedHeroId = (d.heroi === 'arthur' || !HERO_DEFINITIONS[d.heroi]) ? 'aquiles' : d.heroi;
+      selectedHeroId = HERO_DEFINITIONS[d.heroi] ? d.heroi : 'achilles';
     }
     if (d.inventario) playerInventory = { ...playerInventory, ...d.inventario };
     if (Array.isArray(d.missoesAtivas)) activeQuests = d.missoesAtivas;
@@ -10267,9 +10271,16 @@ function loop(now){
         const dims = isMegaWorld ? getMegaWorldDimensions() : { w: SCREEN_W, h: SCREEN_H };
         player.x = Math.max(28, Math.min(dims.w - 28, player.x));
         player.y = Math.max(32, Math.min(dims.h - 32, player.y));
-        player.animTimer++;
-        const maxF = (typeof activeSprite === 'function' && activeSprite()?.width > 400) ? 6 : 4;
-        if(player.animTimer>=(sprint?2:4)){player.animTimer=0;player.animFrame=(player.animFrame+1)%maxF;if(player.animFrame%2===1){spawnDust(player.x,player.y);playStep(sprint);}}
+        const quadros = personagemAtivo().cols || 4;
+        player.animTimer += spd;
+        if (player.animTimer >= (sprint ? 13 : 19)) {
+          player.animTimer = 0;
+          player.animFrame = (player.animFrame + 1) % quadros;
+          // o pé encosta duas vezes por ciclo: é aí que sai poeira e som
+          if (player.animFrame === 0 || player.animFrame === Math.floor(quadros / 2)) {
+            spawnDust(player.x, player.y); playStep(sprint);
+          }
+        }
       } else {player.animFrame=0;player.animTimer=0;}
       checkTransitions();checkDoors();checkNPCProx();
     }
@@ -10839,28 +10850,22 @@ function initMegaWorldControls() {
 // perícia. Assim trocar de personagem muda como se joga sem apagar o que se conquistou.
 // ============================================================
 const HERO_DEFINITIONS = {
-  'aquiles': {
-    id: 'aquiles', name: 'Áquiles', class: 'Músico Aventureiro', gender: 'Masculino',
-    // Folha atual (a antiga). Quando a arte nova chegar, é aqui que ela entra: caminho,
-    // colunas, linhas e qual linha guarda cada pose.
-    src: 'assets/hero_sheet_standard.png', cols: 6, rows: 4,
-    linhas: { down: 0, up: 1, side: 2, attack: 3 },
-    avatar: 'assets/aquiles_avatar.png', face: 'assets/aquiles_face.png',
+  'achilles': {
+    id: 'achilles', name: 'Achilles', class: 'Espadachim da Clave', gender: 'Masculino',
+    // Folha normalizada: 8 quadros por fileira, quatro direções próprias (não há
+    // espelhamento — o desenho de perfil direito é diferente do esquerdo).
+    src: 'assets/achilles.png', cols: 8, rows: 4,
+    linhas: { down: 0, up: 1, left: 2, right: 3 },
+    face: 'assets/achilles_face.png', avatar: 'assets/achilles_face.png',
     weapon: 'Teclado Espada', clave: 'Sol', registro: 'Agudo',
-    papel: 'Investida', raridade: 4, desbloqueado: true,
+    papel: 'Investida', raridade: 5, desbloqueado: true,
     base: { vida: 0, dano: 0, ritmo: 0, afinacao: 0 },
     lema: 'Quem entra primeiro é quem dá o tom.',
   },
-  // Reservas do arco antigo: continuam existindo para não quebrar saves, mas ficam
-  // trancadas até virarem personagem de verdade (arte própria, clave e papel).
-  'arthur': { id: 'arthur', name: 'Arthur', class: 'Guerreiro', gender: 'Masculino', src: 'assets/spritesheet.jpg', desbloqueado: false, raridade: 3 },
-  'lucian': { id: 'lucian', name: 'Lucian', class: 'Aldeão',    gender: 'Masculino', src: 'assets/hero_h1.jpg', desbloqueado: false, raridade: 3 },
-  'elena':  { id: 'elena',  name: 'Elena',  class: 'Corredora', gender: 'Feminino',  src: 'assets/hero_h2.jpg', desbloqueado: false, raridade: 3 },
-  'lyra':   { id: 'lyra',   name: 'Lyra',   class: 'Viajante',  gender: 'Feminino',  src: 'assets/hero_h3.jpg', desbloqueado: false, raridade: 3 }
 };
-let selectedHeroId = 'aquiles';
+let selectedHeroId = 'achilles';
 
-function personagemAtivo() { return HERO_DEFINITIONS[selectedHeroId] || HERO_DEFINITIONS.aquiles; }
+function personagemAtivo() { return HERO_DEFINITIONS[selectedHeroId] || HERO_DEFINITIONS.achilles; }
 function personagensDesbloqueados() {
   return Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado);
 }
@@ -10871,15 +10876,9 @@ function personagensDesbloqueados() {
 const partyState = {
   // O segundo lugar nasce VAZIO de propósito: o time de dois é a promessa, e a vaga
   // aberta no HUD é o que faz o jogador querer o primeiro sorteio.
-  party: ['aquiles', null],
+  party: ['achilles', null],
   activePartyIndex: 0,
-  heroStates: {
-    'aquiles': { hp: 100 },
-    'arthur':  { hp: 100 },
-    'lucian':  { hp: 100 },
-    'elena':   { hp: 100 },
-    'lyra':    { hp: 100 }
-  }
+  heroStates: { 'achilles': { hp: 100 } }
 };
 
 function heroiNoSlot(slotIdx) {
@@ -10957,7 +10956,7 @@ function renderPartyHUD() {
 
     if (imgEl) {
       if (def) {
-        imgEl.src = def.face || def.avatar || 'assets/aquiles_face.png';
+        imgEl.src = def.face || def.avatar || 'assets/achilles_face.png';
         imgEl.alt = def.name;
         slotEl.title = `${def.name} · Clave de ${def.clave || '—'} · ${def.papel || def.class}`;
       } else {
@@ -11900,16 +11899,16 @@ function renderGrimorio() {
   const heroPort = document.getElementById('invHeroPortrait');
   const heroBody = document.getElementById('invHeroBodyImg');
   
-  const def = HERO_DEFINITIONS[selectedHeroId] || HERO_DEFINITIONS['aquiles'];
+  const def = HERO_DEFINITIONS[selectedHeroId] || HERO_DEFINITIONS['achilles'];
   if (heroNameEl && def) heroNameEl.textContent = def.name || 'Áquiles';
   if (heroLevelEl) heroLevelEl.textContent = `Nível ${level || 25}`;
-  if (heroPort) heroPort.src = (def && def.face) ? def.face + '?v=1024' : 'assets/aquiles_face.png?v=1024';
+  if (heroPort) heroPort.src = (def && def.face) ? def.face + '?v=1024' : 'assets/achilles_face.png';
   const temArmaEquipada = Object.values(equipped).includes('espada_teclado') || !!equipped.axe;
   if (heroBody) {
-    if (selectedHeroId === 'aquiles') {
-      heroBody.src = temArmaEquipada ? 'assets/aquiles_avatar_com_arma.png?v=2026' : 'assets/aquiles_avatar_sem_arma.png?v=2026';
+    if (selectedHeroId === 'achilles') {
+      heroBody.src = 'assets/achilles_face.png';
     } else {
-      heroBody.src = (def && def.avatar) ? def.avatar + '?v=1024' : 'assets/aquiles_avatar_sem_arma.png?v=2026';
+      heroBody.src = (def && def.avatar) ? def.avatar + '?v=1024' : 'assets/achilles_face.png';
     }
   }
   
