@@ -300,7 +300,7 @@ function loadLayerKey(k) {
 async function saveAllLayers(notify=false) {
   if (IS_PLAY_BUILD) return;
   rebuildGrid();
-  const wc={gridPos,spawns,bgSources,sceneNames:SCENE_NAMES,startMap,ambience,videoSources,pixelArt,heroiEscala}, payload={worldConfig:wc};
+  const wc={gridPos,spawns,bgSources,sceneNames:SCENE_NAMES,startMap,ambience,videoSources,pixelArt,heroiEscala,zoomCenario,TEMPO_LIGADO}, payload={worldConfig:wc};
   for (const k of chavesDeCenario()) {
     const L=getLayers(k);
     const rd=L.roadCanvas.toDataURL('image/png'), fg=L.fgCanvas.toDataURL('image/png'), dr=L.doorCanvas.toDataURL('image/png');
@@ -328,6 +328,8 @@ async function loadWorldConfig() {
     if(c.videoSources)Object.assign(videoSources,c.videoSources);
     if(c.pixelArt)Object.assign(pixelArt,c.pixelArt);
     if(c.heroiEscala)aplicarEscalaHeroi(c.heroiEscala,false);
+    if(c.zoomCenario)aplicarZoomCenario(c.zoomCenario,false);
+    if(typeof c.TEMPO_LIGADO==='boolean')TEMPO_LIGADO=c.TEMPO_LIGADO;
   } catch(e) {
     const ls=localStorage.getItem('wasd_world_config_v17');
     if(ls){
@@ -342,6 +344,8 @@ async function loadWorldConfig() {
         if(c.videoSources)Object.assign(videoSources,c.videoSources);
         if(c.pixelArt)Object.assign(pixelArt,c.pixelArt);
         if(c.heroiEscala)aplicarEscalaHeroi(c.heroiEscala,false);
+        if(c.zoomCenario)aplicarZoomCenario(c.zoomCenario,false);
+        if(typeof c.TEMPO_LIGADO==='boolean')TEMPO_LIGADO=c.TEMPO_LIGADO;
       }catch(ee){}
     }
   }
@@ -9667,6 +9671,7 @@ function atualizarAmbiente() {
 }
 
 function renderAmbiente() {
+  if (!TEMPO_LIGADO) return;
   atualizarAmbiente();
   const a = ambienteAtual();
   if (!a || !(a.escuro > 0)) return;
@@ -9678,8 +9683,9 @@ function renderAmbiente() {
   c.fillRect(0, 0, SCREEN_W, SCREEN_H);
   c.restore();
   if (isPlayMode && a.halo !== false) {
-    const r = a.haloRaio || 210;
-    const g = c.createRadialGradient(player.x, player.y - 24, 10, player.x, player.y - 24, r);
+    const r = (a.haloRaio || 210) * (isPlayMode ? zoomCenario : 1);
+    const p = telaDoPonto(player.x, player.y - 24);
+    const g = c.createRadialGradient(p.x, p.y, 10, p.x, p.y, r);
     g.addColorStop(0, `rgba(253,230,138,${0.16 * a.escuro})`);
     g.addColorStop(1, 'rgba(0,0,0,0)');
     c.save();
@@ -9977,6 +9983,9 @@ let ultimaPosicaoDeJogo = null;    // onde o jogador estava quando você apertou
 
 function togglePlay(){
   isPlayMode=!isPlayMode;
+  // O HUD de time é o único elemento que precisa saber disto pelo CSS: ele mora no
+  // palco, não dentro do HUD que se apaga em diálogo e loja.
+  document.body.classList.toggle('jogando', isPlayMode);
   if(isPlayMode){
     if(signpostWizard.active)resetSignpostWizard();
     setMode('scene');
@@ -10110,6 +10119,7 @@ const nuvensAtmosfericas = Array.from({length: 4}, (_, i) => ({
 }));
 
 function renderSombrasDeNuvem(now, mapKey) {
+  if (!TEMPO_LIGADO) return;
   if (currentScene !== 'world' || mapKey === 'mega_world' || engineMode === 'world') return;
   if (INTERIORS[mapKey] || (SCENE_NAMES[mapKey] && /caverna|masmorra|porão|interior/i.test(SCENE_NAMES[mapKey]))) return;
   ctx.save();
@@ -10143,6 +10153,7 @@ const vagalumesMundiais = Array.from({length: 22}, (_, i) => ({
 }));
 
 function renderVagalumesEPoeiras(now, mapKey) {
+  if (!TEMPO_LIGADO) return;
   if (currentScene !== 'world' || mapKey === 'mega_world' || engineMode === 'world') return;
   const ciclo = calculoDoCicloDiaNoite(now);
   const noiteOuMagico = ciclo.ehNoite || (SCENE_NAMES[mapKey] && /clareira|eco|floresta|bosque|mágic/i.test(SCENE_NAMES[mapKey]));
@@ -10182,6 +10193,59 @@ const FASES_CICLO = [
   { h: 24.0, r: 12,  g: 18,  b: 52,  a: 0.60, noite: true,  nome: '🌙 Madrugada Mágica' }
 ];
 
+// Passagem do tempo DESLIGADA. O ciclo rodava um dia inteiro em 120 segundos: a cor
+// da tela mudava sem parar, e o que era para ser atmosfera virava um piscar constante
+// por cima do mapa. Enquanto não houver um relógio de jogo de verdade — dia longo,
+// noite que significa alguma coisa — fica desligado, e o mapa aparece com a cor que
+// foi desenhada. `ambience` por cenário entra no mesmo interruptor: escurecer 86% um
+// cenário é mudar a cor dele tanto quanto o ciclo mudava.
+let TEMPO_LIGADO = false;
+
+// ── Zoom do cenário ─────────────────────────────────────────────────────────────
+// A câmera aproxima e segue o jogador, presa às bordas do cenário para nunca mostrar
+// o vazio de fora. É isto que deixa o personagem grande na tela sem precisar redesenhar
+// sprite nenhum: em vez de aumentar o herói, aproxima-se o mundo inteiro.
+// Só vale JOGANDO. No editor a tela continua mostrando o cenário inteiro, porque toda
+// a marcação de clique — plantar, arrastar, pintar — é feita em coordenada de cena, e
+// uma câmera móvel faria cada clique cair no lugar errado.
+let zoomCenario = 1;
+
+function camaraDoCenario() {
+  const vw = SCREEN_W / zoomCenario, vh = SCREEN_H / zoomCenario;
+  return {
+    x: Math.max(vw / 2, Math.min(SCREEN_W - vw / 2, player.x)),
+    y: Math.max(vh / 2, Math.min(SCREEN_H - vh / 2, player.y - 20)),
+  };
+}
+
+function aplicarZoomDoCenario() {
+  const c = camaraDoCenario();
+  ctx.translate(SCREEN_W / 2, SCREEN_H / 2);
+  ctx.scale(zoomCenario, zoomCenario);
+  ctx.translate(-c.x, -c.y);
+}
+
+// Onde um ponto da cena cai na TELA. As camadas desenhadas por cima do zoom (halo de
+// luz, brilho) precisam disto, senão iluminam o canto errado quando a câmera anda.
+function telaDoPonto(x, y) {
+  if (!(zoomCenario > 1.001) || !isPlayMode) return { x, y };
+  const c = camaraDoCenario();
+  return { x: (x - c.x) * zoomCenario + SCREEN_W / 2,
+           y: (y - c.y) * zoomCenario + SCREEN_H / 2 };
+}
+
+function aplicarZoomCenario(v, salvar = true) {
+  zoomCenario = Math.max(1, Math.min(3, Number(v) || 1));
+  const rot = document.getElementById('zoomCenarioVal');
+  if (rot) rot.textContent = zoomCenario.toFixed(2).replace(/\.?0+$/, '') + '×';
+  const ctrl = document.getElementById('zoomCenario');
+  if (ctrl && Number(ctrl.value) !== zoomCenario) ctrl.value = zoomCenario;
+  if (salvar) {
+    try { localStorage.setItem('acordelot_zoom_cenario', String(zoomCenario)); } catch (e) {}
+    if (typeof saveAllLayers === 'function' && !IS_PLAY_BUILD) saveAllLayers(false);
+  }
+}
+
 function calculoDoCicloDiaNoite(now) {
   // Um ciclo completo dura 120 segundos para progredir gradualmente perante os olhos do jogador
   const T = (now % 120000) / 120000;
@@ -10212,16 +10276,30 @@ function calculoDoCicloDiaNoite(now) {
   return { r, g, b: b_val, alpha, ehNoite, nome, hora };
 }
 
+let _telaDaNoite = null;
+function telaDaNoite() {
+  if (!_telaDaNoite) {
+    _telaDaNoite = document.createElement('canvas');
+    _telaDaNoite.width = SCREEN_W; _telaDaNoite.height = SCREEN_H;
+  }
+  return _telaDaNoite;
+}
+
 function renderCicloDiaNoite(now, mapKey) {
+  if (!TEMPO_LIGADO) return;
   if (currentScene !== 'world' || mapKey === 'mega_world' || engineMode === 'world') return;
   const c = calculoDoCicloDiaNoite(now);
   if (c.alpha <= 0.005) return;
   
   ctx.save();
   if (c.ehNoite || c.alpha >= 0.30) {
-    const escuro = document.createElement('canvas');
-    escuro.width = SCREEN_W; escuro.height = SCREEN_H;
+    // Canvas reaproveitado. Antes era um `createElement('canvas')` de 1024×571 A CADA
+    // QUADRO — 60 alocações por segundo de um buffer de 2 MB, com o coletor de lixo
+    // correndo atrás. Sozinho, isso já explicava boa parte da travada.
+    const escuro = telaDaNoite();
     const eCtx = escuro.getContext('2d');
+    eCtx.clearRect(0, 0, SCREEN_W, SCREEN_H);
+    eCtx.globalCompositeOperation = 'source-over';
     eCtx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${c.alpha})`;
     eCtx.fillRect(0, 0, SCREEN_W, SCREEN_H);
     
@@ -10335,7 +10413,13 @@ function loop(now){
     return;
   }
   const camOn = isPlayMode && forcaDoDestaque(now) > 0.001;
-  if (camOn) { ctx.save(); aplicarCameraDeDestaque(now); }
+  const zoomOn = isPlayMode && !isMegaWorld && zoomCenario > 1.001;
+  // Destaque tem prioridade: ele já é uma câmera com zoom próprio, e as duas somadas
+  // aproximariam duas vezes.
+  if (camOn || zoomOn) {
+    ctx.save();
+    if (camOn) aplicarCameraDeDestaque(now); else aplicarZoomDoCenario();
+  }
 
   if (isMegaWorld) {
     if (!bgImages['mega_world']) {
@@ -10592,7 +10676,8 @@ function loop(now){
     else { renderSpeech(now); renderFloaters(now); }
     if (!IS_PLAY_BUILD) renderMotivoDoTravamento();
     else renderMarcadoresDoInterior(now);
-    if (camOn) { ctx.restore(); renderRotuloDoDestaque(now); }
+    if (camOn || zoomOn) ctx.restore();
+    if (camOn) renderRotuloDoDestaque(now);
     renderAmbiente();
     renderDlg(now);
     renderNotasGuia(now);
@@ -10628,9 +10713,14 @@ function setupHighDPICanvas() {
   const r = canvas.getBoundingClientRect();
   const densidade = window.devicePixelRatio || 1;
   const larguraCss = r.width > 40 ? r.width : SCREEN_W;
-  // Quantos pixels reais existem para cada unidade lógica do jogo, com teto para não
-  // torrar memória em telas 4K.
-  const escala = Math.min(4, Math.max(2, (larguraCss * densidade) / SCREEN_W));
+  // Quantos pixels reais existem para cada unidade lógica do jogo. O piso era 2, o que
+  // obrigava um monitor comum (densidade 1) a desenhar 2048×1142 para exibir 1024×571:
+  // quatro vezes mais pixel do que a tela mostra, todo quadro. Como o canvas já é
+  // `image-rendering: pixelated`, um pixel de desenho por pixel de tela é o que dá a
+  // borda dura que a arte pede — supersampling aqui só amaciava o que não devia amaciar.
+  // O teto caiu de 4 para 2: acima disso é fôlego gasto num detalhe que ninguém vê,
+  // e em celular de densidade 3 era ele que derrubava a taxa de quadros.
+  const escala = Math.min(2, Math.max(1, (larguraCss * densidade) / SCREEN_W));
   const targetW = Math.round(SCREEN_W * escala);
   const targetH = Math.round(SCREEN_H * escala);
   if (canvas.width !== targetW || canvas.height !== targetH) {

@@ -267,6 +267,15 @@
                 <small>Muda o desenho e a colisão junto. 100% = 52×90 px.</small>
               </label>
               <button class="tool-pill full-width" id="heroiEscalaReset">↺ Voltar ao padrão</button>
+              <label class="px-slider" style="margin-top:10px">
+                <span>Zoom do cenário <b id="zoomCenarioVal">1×</b></span>
+                <input type="range" id="zoomCenario" min="1" max="3" step="0.05" value="1">
+                <small>Só ao jogar. A câmera segue o herói e para nas bordas.</small>
+              </label>
+              <label class="px-check">
+                <input type="checkbox" id="tempoLigado">
+                <span>Passagem do tempo (dia/noite, nuvens)</span>
+              </label>
             </div>
 
           </div>
@@ -771,9 +780,14 @@
             <small>Quanto maior, mais grosso o pixel.</small>
           </label>
           <label class="px-slider">
-            <span>Cores <b id="pxCoresVal">48</b></span>
-            <input type="range" id="pxCores" min="16" max="128" step="1" value="48">
+            <span>Cores <b id="pxCoresVal">96</b></span>
+            <input type="range" id="pxCores" min="16" max="128" step="1" value="96">
             <small>Paleta adaptativa, tirada da própria imagem.</small>
+          </label>
+          <label class="px-slider">
+            <span>Vivacidade <b id="pxVivacidadeVal">118%</b></span>
+            <input type="range" id="pxVivacidade" min="0.8" max="1.6" step="0.02" value="1.18">
+            <small>Devolve a cor que a média entre tons come.</small>
           </label>
         </div>
 
@@ -790,12 +804,30 @@
 
     <!-- ═══ RIGHT VIEWPORT (REAL-TIME GAME CANVAS) ═══ -->
     <main id="viewport-area">
+      <button id="drawerToggle" title="Recolher/mostrar o editor (tecla E)">◀</button>
       <div id="viewport-container">
         <div id="canvas-stage">
           <video id="skinShopVideo" src="assets/videos/loja_de_skins.mp4" loop muted preload="none" playsinline class="video-bg hidden"></video>
           <video id="forgeVideo" src="assets/videos/ferraria_interno.mp4" loop muted preload="none" playsinline class="video-bg hidden"></video>
           <video id="sagradoVideo" src="assets/videos/notas_sagradas.mp4" loop muted preload="none" playsinline class="video-bg hidden"></video>
           <canvas id="gameCanvas" width="1024" height="571"></canvas>
+          <!-- Genshin Impact Style 2-Character Party Switch HUD -->
+          <div id="partyHud" class="party-hud">
+            <div class="party-slot active" data-slot="0" id="partySlot0" title="Herói 1 (Tecla 1)">
+              <div class="party-slot-badge">1</div>
+              <div class="party-avatar-wrap">
+                <img id="partyAvatar0" src="assets/personagens/herois/aquiles_face.png" alt="Slot 1">
+              </div>
+              <div class="party-hp-mini"><i id="partyHpFill0"></i></div>
+            </div>
+            <div class="party-slot" data-slot="1" id="partySlot1" title="Herói 2 (Tecla 2)">
+              <div class="party-slot-badge">2</div>
+              <div class="party-avatar-wrap">
+                <img id="partyAvatar1" src="assets/personagens/herois/aquiles_face.png" alt="Slot 2">
+              </div>
+              <div class="party-hp-mini"><i id="partyHpFill1"></i></div>
+            </div>
+          </div>
 
           <!-- Name input overlay -->
           <div id="nameInputOverlay" class="game-overlay hidden">
@@ -828,24 +860,6 @@
                   <i id="xpFill"></i>
                   <span id="xpLabel">XP 0 / 100</span>
                 </div>
-              </div>
-            </div>
-
-            <!-- Genshin Impact Style 2-Character Party Switch HUD -->
-            <div id="partyHud" class="party-hud">
-              <div class="party-slot active" data-slot="0" id="partySlot0" title="Herói 1 (Tecla 1)">
-                <div class="party-slot-badge">1</div>
-                <div class="party-avatar-wrap">
-                  <img id="partyAvatar0" src="assets/personagens/herois/aquiles_face.png" alt="Slot 1">
-                </div>
-                <div class="party-hp-mini"><i id="partyHpFill0"></i></div>
-              </div>
-              <div class="party-slot" data-slot="1" id="partySlot1" title="Herói 2 (Tecla 2)">
-                <div class="party-slot-badge">2</div>
-                <div class="party-avatar-wrap">
-                  <img id="partyAvatar1" src="assets/personagens/herois/aquiles_face.png" alt="Slot 2">
-                </div>
-                <div class="party-hp-mini"><i id="partyHpFill1"></i></div>
               </div>
             </div>
 
@@ -1044,38 +1058,13 @@
               </div>
 
               <div class="menu-name-row">
-                <label class="menu-label">🎭 Escolha seu Herói (2 Masculinos, 2 Femininos):</label>
+                <label class="menu-label">🎭 Seu Herói:</label>
                 <div class="hero-select-grid">
-                  <!-- Hero 1 (Male) -->
-                  <div class="hero-select-card selected" data-heroid="arthur" data-heroname="Arthur" data-herogender="Masculino">
-                    <div class="hero-avatar-box">⚔️</div>
-                    <span class="hero-card-name">Arthur</span>
-                    <span class="hero-card-class">Guerreiro</span>
-                    <span class="hero-gender-badge">Masculino</span>
-                  </div>
-
-                  <!-- Hero 2 (Male) -->
-                  <div class="hero-select-card" data-heroid="lucian" data-heroname="Lucian" data-herogender="Masculino">
-                    <div class="hero-avatar-box">🎶</div>
-                    <span class="hero-card-name">Lucian</span>
-                    <span class="hero-card-class">Bardo Mago</span>
-                    <span class="hero-gender-badge">Masculino</span>
-                  </div>
-
-                  <!-- Heroine 1 (Female) -->
-                  <div class="hero-select-card" data-heroid="elena" data-heroname="Elena" data-herogender="Feminino">
-                    <div class="hero-avatar-box">🏹</div>
-                    <span class="hero-card-name">Elena</span>
-                    <span class="hero-card-class">Arqueira</span>
-                    <span class="hero-gender-badge">Feminino</span>
-                  </div>
-
-                  <!-- Heroine 2 (Female) -->
-                  <div class="hero-select-card" data-heroid="lyra" data-heroname="Lyra" data-herogender="Feminino">
-                    <div class="hero-avatar-box">🔮</div>
-                    <span class="hero-card-name">Lyra</span>
-                    <span class="hero-card-class">Maga Guardiã</span>
-                    <span class="hero-gender-badge">Feminino</span>
+                  <div class="hero-select-card selected" data-heroid="achilles" data-heroname="Achilles" data-herogender="Masculino">
+                    <div class="hero-avatar-box"><img src="assets/achilles_face.png" alt="Achilles"></div>
+                    <span class="hero-card-name">Achilles</span>
+                    <span class="hero-card-class">Espadachim da Clave</span>
+                    <span class="hero-gender-badge">Clave de Sol</span>
                   </div>
                 </div>
               </div>
@@ -1385,7 +1374,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="game.js?v=202608031315"></script>
-<script src="pixelizador.js?v=202608041800"></script>
+<script src="game.js?v=202608042000"></script>
+<script src="pixelizador.js?v=202608042000"></script>
 </body>
 </html>

@@ -23,7 +23,7 @@ const PX_WORKER_FONTE = `
 // usa a média de cada caixa como cor da paleta. É adaptativo — nasce da imagem. Uma
 // grade fixa de cores desperdiça metade da paleta em tons que a imagem nem tem, e é
 // exatamente isso que se vê como faixa suja no céu e na água.
-function medianCut(dados, k) {
+function medianCut(dados, k, vivacidade) {
   const n = dados.length / 4;
   const ordem = new Uint32Array(n);
   for (let i = 0; i < n; i++) ordem[i] = i;
@@ -49,11 +49,17 @@ function medianCut(dados, k) {
   }
 
   while (caixas.length < k) {
-    // Sempre parte a caixa de maior amplitude: é onde a perda de cor está doendo mais.
+    // Escolhe pela amplitude PESADA PELA POPULAÇÃO. Só por amplitude, a paleta inteira
+    // ia para punhados de pixels de cor extrema — um brilho de metal, uma flor — e as
+    // grandes áreas de telhado, grama e pedra dividiam duas ou três cores entre si.
+    // Era daí que vinha o mapa lavado: o que ocupa a tela é justamente o que perdia cor.
+    // A raiz cúbica evita o oposto, que seria o céu comer a paleta toda por ser grande.
     let alvo = -1, maior = -1;
     for (let i = 0; i < caixas.length; i++) {
       const c = caixas[i];
-      if (c.fim - c.ini > 1 && c.amplitude > maior) { maior = c.amplitude; alvo = i; }
+      if (c.fim - c.ini <= 1) continue;
+      const peso = c.amplitude * Math.cbrt(c.fim - c.ini);
+      if (peso > maior) { maior = peso; alvo = i; }
     }
     if (alvo < 0) break;   // nada mais divisível: a imagem tem menos cores que K
 
@@ -78,7 +84,19 @@ function medianCut(dados, k) {
       const p = ordem[i] * 4;
       sr += dados[p]; sg += dados[p + 1]; sb += dados[p + 2];
     }
-    const r = Math.round(sr / total), g = Math.round(sg / total), b = Math.round(sb / total);
+    let r = sr / total, g = sg / total, b = sb / total;
+
+    // Média de cores é sempre menos saturada que as cores que ela resume: misturar
+    // dois tons de telhado dá um tom mais cinza que os dois. Repetido 48 vezes, é isso
+    // que tira a graça do mapa. Aqui a distância de cada canal ao cinza da caixa é
+    // esticada de volta, o que devolve a viveza sem inventar cor que não existia.
+    const cinza = r * 0.30 + g * 0.59 + b * 0.11;
+    r = cinza + (r - cinza) * vivacidade;
+    g = cinza + (g - cinza) * vivacidade;
+    b = cinza + (b - cinza) * vivacidade;
+    r = Math.max(0, Math.min(255, Math.round(r)));
+    g = Math.max(0, Math.min(255, Math.round(g)));
+    b = Math.max(0, Math.min(255, Math.round(b)));
     paleta.push([r, g, b]);
     for (let i = c.ini; i < c.fim; i++) {
       const p = ordem[i] * 4;
@@ -89,7 +107,7 @@ function medianCut(dados, k) {
 }
 
 self.onmessage = (ev) => {
-  const { bitmap, fator, cores, pedido } = ev.data;
+  const { bitmap, fator, cores, vivacidade, pedido } = ev.data;
   try {
     // Arredonda para baixo: 2752/5 dá 550,4 e meio pixel não existe. O aviso de que
     // sobrou borda é dado na interface, com os números.
@@ -105,7 +123,7 @@ self.onmessage = (ev) => {
 
     // 2. Quantização adaptativa, sem dithering.
     const img = cx.getImageData(0, 0, larg, alt);
-    const paleta = medianCut(img.data, cores);
+    const paleta = medianCut(img.data, cores, vivacidade);
     cx.putImageData(img, 0, 0);
 
     const saida = tela.transferToImageBitmap();
@@ -193,6 +211,7 @@ function pxParams() {
   return {
     fator: parseInt(pxEl('pxFator').value, 10),
     cores: parseInt(pxEl('pxCores').value, 10),
+    vivacidade: parseFloat(pxEl('pxVivacidade').value),
   };
 }
 
@@ -228,9 +247,10 @@ function pxEscolherArquivo(file) {
 // ── Processamento ───────────────────────────────────────────────────────────────
 function pxProcessar() {
   if (!PX.original) return;
-  const { fator, cores } = pxParams();
+  const { fator, cores, vivacidade } = pxParams();
   pxEl('pxFatorVal').textContent = fator + '×';
   pxEl('pxCoresVal').textContent = cores;
+  pxEl('pxVivacidadeVal').textContent = Math.round(vivacidade * 100) + '%';
 
   const w = PX.original.width, h = PX.original.height;
   const avisos = [];
@@ -253,7 +273,7 @@ function pxProcessar() {
   PX.ocupado = true;
   pxEstado('Processando…');
   createImageBitmap(PX.original).then(copia => {
-    pxWorker().postMessage({ bitmap: copia, fator, cores, pedido }, [copia]);
+    pxWorker().postMessage({ bitmap: copia, fator, cores, vivacidade, pedido }, [copia]);
   });
 }
 
@@ -305,7 +325,7 @@ async function pxSalvar() {
   botao.disabled = true;
   pxEstado('Salvando…');
 
-  const { fator, cores } = pxParams();
+  const { fator, cores, vivacidade } = pxParams();
   const nome = (pxEl('pxNome').value || '').trim() || PX.nomeArquivo || 'Cenário Pixel Art';
   const chave = PX.chaveExistente || `custom_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
@@ -326,7 +346,7 @@ async function pxSalvar() {
   }
 
   pixelArt[chave] = {
-    fator, cores,
+    fator, cores, vivacidade,
     original: origUrl || null,
     largura: PX.pequeno.width * fator,
     altura: PX.pequeno.height * fator,
@@ -377,6 +397,7 @@ async function pxAbrirExistente(chave) {
   PX.originalUrl = info.original;
   pxEl('pxFator').value = info.fator;
   pxEl('pxCores').value = info.cores;
+  pxEl('pxVivacidade').value = info.vivacidade ?? 1.18;
   pxEl('pxNome').value = (SCENE_NAMES[chave] || '').replace(/^\S+\s/, '');
   pxEstado('Carregando o original…');
   try {
@@ -415,6 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // resposta de um ajuste já superado, pxRecebeu descarta pelo número do pedido.
   pxEl('pxFator')?.addEventListener('input', pxProcessar);
   pxEl('pxCores')?.addEventListener('input', pxProcessar);
+  pxEl('pxVivacidade')?.addEventListener('input', pxProcessar);
 
   pxEl('pxSalvar')?.addEventListener('click', pxSalvar);
 
@@ -426,6 +448,45 @@ document.addEventListener('DOMContentLoaded', () => {
   else aplicarEscalaHeroi(heroiEscala, false);   // só para o rótulo nascer certo
   pxEl('heroiEscala')?.addEventListener('input', e => aplicarEscalaHeroi(e.target.value));
   pxEl('heroiEscalaReset')?.addEventListener('click', () => aplicarEscalaHeroi(1));
+
+  // ── Zoom do cenário e passagem do tempo ───────────────────────────────────────
+  const zoomSalvo = localStorage.getItem('acordelot_zoom_cenario');
+  aplicarZoomCenario(zoomSalvo || zoomCenario, false);
+  pxEl('zoomCenario')?.addEventListener('input', e => aplicarZoomCenario(e.target.value));
+
+  const chkTempo = pxEl('tempoLigado');
+  if (chkTempo) {
+    chkTempo.checked = TEMPO_LIGADO;
+    chkTempo.addEventListener('change', e => {
+      TEMPO_LIGADO = e.target.checked;
+      showToast(TEMPO_LIGADO ? '🌗 Passagem do tempo ligada.' : '☀️ Passagem do tempo desligada.');
+      saveAllLayers(false);
+    });
+  }
+
+  // ── Editor recolhível ─────────────────────────────────────────────────────────
+  // O canvas muda de tamanho ao recolher, e a resolução real dele é recalculada por
+  // setupHighDPICanvas. O ResizeObserver já instalado dispara sozinho — o timeout só
+  // garante que a medida seja tirada DEPOIS da transição, não no meio dela.
+  const recolher = (forcar) => {
+    const fechado = forcar !== undefined ? forcar : !document.body.classList.contains('editor-recolhido');
+    document.body.classList.toggle('editor-recolhido', fechado);
+    const b = pxEl('drawerToggle');
+    if (b) { b.textContent = fechado ? '▶' : '◀'; }
+    try { localStorage.setItem('acordelot_editor_recolhido', fechado ? '1' : '0'); } catch (e) {}
+    setTimeout(() => { if (typeof setupHighDPICanvas === 'function') setupHighDPICanvas(); }, 260);
+  };
+  pxEl('drawerToggle')?.addEventListener('click', () => recolher());
+  if (localStorage.getItem('acordelot_editor_recolhido') === '1') recolher(true);
+
+  // Tecla E recolhe, desde que não esteja escrevendo em campo nenhum.
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'e' && e.key !== 'E') return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const alvo = e.target;
+    if (alvo && (alvo.tagName === 'INPUT' || alvo.tagName === 'TEXTAREA' || alvo.isContentEditable)) return;
+    recolher();
+  });
   pxEl('pxReprocessar')?.addEventListener('change', e => {
     if (e.target.value) pxAbrirExistente(e.target.value);
   });

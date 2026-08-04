@@ -5410,3 +5410,77 @@ body.modo-mundo #viewport-area { padding-top: var(--barra-h, 44px); }
 @media (max-width: 720px) {
   .px-previas, .px-controles { grid-template-columns: 1fr; }
 }
+
+/* ═══ HUD de time à direita, estilo Genshin ═══ */
+/* Sai da linha de cima do HUD e vira uma coluna colada na borda direita, na altura do
+   olhar. Em cima ela dividia espaço com vida, XP e moedas e ficava pequena demais para
+   ser o gesto principal que é: trocar de personagem no meio da luta. */
+/* Fora do #playerHud: aquele contêiner se apaga sozinho em diálogo, loja e inventário,
+   e levava o trocador de personagem junto — some justamente quando se quer trocar.
+   Agora ele é filho do palco e só depende de estar jogando. */
+.party-hud { display: none; }
+body.jogando .party-hud {
+  display: flex;
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  flex-direction: column;
+  gap: 12px;
+  z-index: 32;
+}
+.party-hud .party-slot { width: 54px; height: 54px; }
+/* O slot ativo cresce e ganha borda quente: dá para saber quem está em campo pelo
+   canto do olho, sem parar para ler. */
+.party-hud .party-slot.active {
+  transform: scale(1.12);
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 2px rgba(251,191,36,0.35), 0 6px 18px rgba(0,0,0,0.7);
+}
+
+/* ═══ Editor recolhível (drawer) ═══ */
+/* Fecha a lateral para o jogo ocupar a tela inteira. Transição no `margin-left` e não
+   em `display`, para o canvas não sumir e voltar num pulo — e o ResizeObserver que já
+   existe reajusta a resolução sozinho no fim do movimento. */
+#left-sidebar {
+  transition: margin-left 0.22s ease;
+}
+body.editor-recolhido #left-sidebar {
+  margin-left: -380px;
+}
+/* O Criador de Mundo tem a própria doca de assets, que não é o #left-sidebar. Recolher
+   só uma das duas deixaria o botão sem efeito visível justamente no modo em que o
+   usuário mais quer a tela cheia. */
+#assetDock { transition: transform 0.22s ease; }
+body.editor-recolhido #assetDock { transform: translateX(100%); }
+/* No Criador de Mundo a doca fica ancorada à ESQUERDA (regra `body.modo-mundo`), então
+   ela precisa sair para o outro lado — senão "recolher" a empurrava para dentro da tela. */
+body.editor-recolhido.modo-mundo #assetDock { transform: translateX(-100%); }
+#drawerToggle {
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
+  z-index: 40;
+  width: 22px; height: 66px;
+  border: 1px solid #283754; border-left: none;
+  border-radius: 0 8px 8px 0;
+  background: #182238; color: #fbbf24;
+  font-size: 13px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 3px 0 10px rgba(0,0,0,0.45);
+}
+#drawerToggle:hover { background: #22304d; }
+.px-check { display: flex; align-items: center; gap: 7px; font-size: 12px; margin-top: 8px; cursor: pointer; }
+.px-check input { accent-color: #fbbf24; }
+
+/* Com o editor recolhido, o palco cresce para ocupar o espaço que sobrou — é para isso
+   que se recolhe. O `min()` fecha os dois lados: pela largura disponível e pela altura,
+   o que impede a proporção de quebrar em janela alta e estreita (com `object-fit: fill`
+   no canvas, quebrar a proporção esticaria a imagem do jogo). */
+body.editor-recolhido #canvas-stage {
+  width: min(100%, calc((100vh - 96px) * 1024 / 571));
+}
+/* Um herói só: a grade de quatro colunas deixava o cartão esticado e perdido no meio
+   da tela. */
+.hero-select-grid:has(.hero-select-card:only-child) { grid-template-columns: minmax(0, 220px); justify-content: center; }
+.hero-avatar-box img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
