@@ -96,10 +96,16 @@ function getNeighbor(key, dir) {
 // ASSETS
 // ============================================================
 const bgImages = {};
+// Parâmetros de pixelização por cenário: { fator, cores, original, criadoEm }.
+// Guardar o caminho do ORIGINAL é o que permite reprocessar com outros valores sem
+// pedir o arquivo de novo — a imagem pixelizada já perdeu a informação, não dá para
+// voltar dela.
+const pixelArt = {};
+
 const bgSources = {
-  '0_0':'assets/background.jpg', '1_0':'assets/background2.jpg',
-  '2_0':'assets/conservatory.jpg', '0_1':'assets/gate.jpg', '1_1':'assets/forest_entry.jpg',
-  '2_1':'assets/forest_training.jpg', '3_1':'assets/forest_clearing.jpg', '3_0':'assets/forest_deep.jpg',
+  '0_0':'assets/cenarios/mapas/background.jpg', '1_0':'assets/cenarios/mapas/background2.jpg',
+  '2_0':'assets/cenarios/mapas/conservatory.jpg', '0_1':'assets/cenarios/mapas/gate.jpg', '1_1':'assets/cenarios/mapas/forest_entry.jpg',
+  '2_1':'assets/cenarios/mapas/forest_training.jpg', '3_1':'assets/cenarios/mapas/forest_clearing.jpg', '3_0':'assets/cenarios/mapas/forest_deep.jpg',
 };
 let spriteRaw = new Image(), processedSprite = null;
 let guardSpriteRaw = new Image(), processedGuard = null;
@@ -122,9 +128,9 @@ for (const [k, src] of Object.entries(bgSources)) {
   bgImages[k] = img;
 }
 spriteRaw.onload = spriteRaw.onerror = onAssetLoad;
-spriteRaw.src = 'assets/spritesheet.jpg';
+spriteRaw.src = 'assets/referencias/spritesheet.jpg';
 guardSpriteRaw.onload = guardSpriteRaw.onerror = onAssetLoad;
-guardSpriteRaw.src = 'assets/guard_sprite.jpg';
+guardSpriteRaw.src = 'assets/personagens/npcs/guard_sprite.jpg';
 
 function processPlayerSprite() {
   try {
@@ -167,7 +173,7 @@ async function loadDialogue(id) {
 
 async function loadNPCs() {
   try {
-    const r = await fetch(`assets/npcs.json?t=${Date.now()}`);
+    const r = await fetch(`assets/dados/npcs.json?t=${Date.now()}`);
     npcData = (await r.json()).npcs || [];
   } catch(e) {
     npcData = [{ id:'city_guard', name:'Guarda Renaldo', type:'guard', mapKey:'0_1', x:440, y:320, triggerRadius:90, dialogue:'guard_intro', triggered:false, flipX:false, scale:1.0 }];
@@ -237,7 +243,7 @@ async function saveMonsters() {
   };
   const corpo = JSON.stringify(payload);
 
-  // O SERVIDOR VEM PRIMEIRO: assets/monsters.json é a fonte da verdade — é ele que o
+  // O SERVIDOR VEM PRIMEIRO: assets/dados/monsters.json é a fonte da verdade — é ele que o
   // jogo carrega e é ele que vai no deploy. O localStorage é só reserva e vive
   // estourando a cota (as camadas guardam imagens em base64), então nunca pode rodar
   // antes daqui nem derrubar o envio.
@@ -294,7 +300,7 @@ function loadLayerKey(k) {
 async function saveAllLayers(notify=false) {
   if (IS_PLAY_BUILD) return;
   rebuildGrid();
-  const wc={gridPos,spawns,bgSources,sceneNames:SCENE_NAMES,startMap,ambience,videoSources}, payload={worldConfig:wc};
+  const wc={gridPos,spawns,bgSources,sceneNames:SCENE_NAMES,startMap,ambience,videoSources,pixelArt,heroiEscala}, payload={worldConfig:wc};
   for (const k of chavesDeCenario()) {
     const L=getLayers(k);
     const rd=L.roadCanvas.toDataURL('image/png'), fg=L.fgCanvas.toDataURL('image/png'), dr=L.doorCanvas.toDataURL('image/png');
@@ -308,27 +314,34 @@ async function saveAllLayers(notify=false) {
 }
 async function loadWorldConfig() {
   try {
-    const r=await fetch(`assets/acordelot_world_config.json?t=${Date.now()}`);
+    const r=await fetch(`assets/dados/acordelot_world_config.json?t=${Date.now()}`);
     const c=await r.json();
-    if(c.gridPos)Object.assign(gridPos,c.gridPos);
+    if(c.gridPos){
+      for(const k in gridPos) delete gridPos[k];
+      Object.assign(gridPos,c.gridPos);
+    }
     if(c.spawns)Object.assign(spawns,c.spawns);
     if(c.bgSources)Object.assign(bgSources,c.bgSources);
     if(c.sceneNames)Object.assign(SCENE_NAMES,c.sceneNames);
-    if(c.startMap)startMap=c.startMap;
+    if(c.startMap){ startMap=c.startMap; currentKey=c.startMap; }
     if(c.ambience)Object.assign(ambience,c.ambience);
     if(c.videoSources)Object.assign(videoSources,c.videoSources);
+    if(c.pixelArt)Object.assign(pixelArt,c.pixelArt);
+    if(c.heroiEscala)aplicarEscalaHeroi(c.heroiEscala,false);
   } catch(e) {
     const ls=localStorage.getItem('wasd_world_config_v17');
     if(ls){
       try{
         const c=JSON.parse(ls);
-        if(c.gridPos)Object.assign(gridPos,c.gridPos);
+        if(c.gridPos){ for(const k in gridPos) delete gridPos[k]; Object.assign(gridPos,c.gridPos); }
         if(c.spawns)Object.assign(spawns,c.spawns);
         if(c.bgSources)Object.assign(bgSources,c.bgSources);
         if(c.sceneNames)Object.assign(SCENE_NAMES,c.sceneNames);
-        if(c.startMap)startMap=c.startMap;
+        if(c.startMap){ startMap=c.startMap; currentKey=c.startMap; }
         if(c.ambience)Object.assign(ambience,c.ambience);
         if(c.videoSources)Object.assign(videoSources,c.videoSources);
+        if(c.pixelArt)Object.assign(pixelArt,c.pixelArt);
+        if(c.heroiEscala)aplicarEscalaHeroi(c.heroiEscala,false);
       }catch(ee){}
     }
   }
@@ -365,6 +378,28 @@ let ambience = {};
 // A folha do Achilles tem célula de 131x227 (proporção 1:1,73). Largura e altura
 // precisam seguir a mesma proporção, senão o personagem entra achatado ou esticado.
 const player = { x:512, y:400, width:52, height:90, speed:3.9, sprintSpeed:6.65, direction:'down', isMoving:false, animFrame:0, animTimer:0 };
+
+// Tamanho do herói na tela. A medida de base é a que casa com a proporção da célula da
+// folha do Achilles (131×227); a escala multiplica as duas dimensões juntas, porque
+// esticar só uma deforma o sprite. Mexer aqui move também a colisão — e é assim que
+// tem que ser: personagem que parece grande e passa por vão de pequeno é pior que
+// personagem do tamanho errado.
+const HEROI_BASE = { width: 52, height: 90, interiorW: 68, interiorH: 92 };
+let heroiEscala = 1;
+
+function aplicarEscalaHeroi(v, salvar = true) {
+  heroiEscala = Math.max(0.5, Math.min(2, Number(v) || 1));
+  player.width = Math.round(HEROI_BASE.width * heroiEscala);
+  player.height = Math.round(HEROI_BASE.height * heroiEscala);
+  const rot = document.getElementById('heroiEscalaVal');
+  if (rot) rot.textContent = Math.round(heroiEscala * 100) + '%';
+  const ctrl = document.getElementById('heroiEscala');
+  if (ctrl && Number(ctrl.value) !== heroiEscala) ctrl.value = heroiEscala;
+  if (salvar) {
+    try { localStorage.setItem('acordelot_heroi_escala', String(heroiEscala)); } catch (e) {}
+    if (typeof saveAllLayers === 'function' && !IS_PLAY_BUILD) saveAllLayers(false);
+  }
+}
 let playerLocked = false, savedDoorPos = {x:512,y:380}, savedDoorMap = null, lastTransTime=0, bordaTravada=false, lastDoorTime=0, lastDeadEndToast=0 /* unused */;
 const keys = {w:false,a:false,s:false,d:false,shift:false};
 // Analog thumb stick — overrides the keys while held. Magnitude drives speed, so a
@@ -477,13 +512,13 @@ function fallbackGuard(ctx2, npc, t) {
 // a missing file just leaves the editor placeholder, it never breaks the load.
 // ============================================================
 const NPC_SPRITE_FILES = {
-  sr_antony:  'assets/npc_sr_antony.jpg',
-  bard:       'assets/npc_bard.jpg',
-  blacksmith: 'assets/npc_blacksmith.jpg',
-  child:      'assets/npc_child.jpg',
-  elder:      'assets/npc_elder.jpg',
-  merchant:   'assets/npc_merchant.jpg',
-  villager:   'assets/npc_villager.jpg',
+  sr_antony:  'assets/personagens/npcs/npc_sr_antony.jpg',
+  bard:       'assets/personagens/npcs/npc_bard.jpg',
+  blacksmith: 'assets/personagens/npcs/npc_blacksmith.jpg',
+  child:      'assets/personagens/npcs/npc_child.jpg',
+  elder:      'assets/personagens/npcs/npc_elder.jpg',
+  merchant:   'assets/personagens/npcs/npc_merchant.jpg',
+  villager:   'assets/personagens/npcs/npc_villager.jpg',
 };
 const npcSprites = {}; // type -> { canvas, sx, sy, sw, sh }
 
@@ -644,8 +679,8 @@ function drawSignpostNPC(ctx2, npc, t) {
 // Three variants per resource. Which one a spot uses is derived from its id, so a spot
 // keeps the same look across reloads while a row of them doesn't look cloned.
 const SPOT_SHEETS = {
-  spot_wood:  { src: 'assets/spot_wood.png',  boxes: [[40,112,452,385],[532,128,457,333],[281,558,446,354]] },
-  spot_stone: { src: 'assets/spot_stone.png', boxes: [[18,366,308,282],[353,360,316,304],[686,345,328,331]] },
+  spot_wood:  { src: 'assets/itens/spot_wood.png',  boxes: [[40,112,452,385],[532,128,457,333],[281,558,446,354]] },
+  spot_stone: { src: 'assets/itens/spot_stone.png', boxes: [[18,366,308,282],[353,360,316,304],[686,345,328,331]] },
 };
 const SPOT_HEIGHT = { spot_wood: 54, spot_stone: 58 };
 const spotSprites = {};   // `${type}_${i}` -> prepared sprite
@@ -4136,7 +4171,7 @@ const propSprites = {};   // id -> sprite preparado
 async function loadObjetos() {
   let cfg = null;
   try {
-    const r = await fetch(`assets/objects.json?t=${Date.now()}`);
+    const r = await fetch(`assets/dados/objects.json?t=${Date.now()}`);
     if (r.ok) cfg = await r.json();
   } catch (e) {}
   if (!cfg) return;
@@ -4305,7 +4340,7 @@ const monsterSprites = {}; // type -> prepared sheet
 async function loadMonsters() {
   let cfg = null;
   try {
-    const r = await fetch(`assets/monsters.json?t=${Date.now()}`);
+    const r = await fetch(`assets/dados/monsters.json?t=${Date.now()}`);
     if (r.ok) cfg = await r.json();
   } catch (e) {}
 
@@ -4985,7 +5020,7 @@ function learnSkill(id) {
 
 async function loadSkillTree() {
   try {
-    const r = await fetch(`assets/skills.json?t=${Date.now()}`);
+    const r = await fetch(`assets/dados/skills.json?t=${Date.now()}`);
     skillTree = await r.json();
   } catch (e) {}
   applyMovementStats();
@@ -5568,7 +5603,7 @@ let claveSprite = null;
   const img = new Image();
   img.onload = () => { try { claveSprite = prepareSpriteCell(img, { cols: 6, rows: 3, cell: [0, 0] }); } catch (e) {} };
   img.onerror = () => {};
-  img.src = 'assets/clave.jpg';
+  img.src = 'assets/referencias/clave.jpg';
 })();
 
 function updateDrops(now) {
@@ -5687,7 +5722,7 @@ function renderDrops(now) {
 // ============================================================
 // SHOP / COINS / INVENTORY
 // The counter sits in the middle of the interior video; standing in front of it arms
-// the action button. Catalogue lives in assets/skins.json so items can be added
+// the action button. Catalogue lives in assets/dados/skins.json so items can be added
 // without touching code — an item whose PNG is missing shows as a coloured swatch.
 // ============================================================
 const SHOP_COUNTER = { x: 512, y: 330, r: 150 };
@@ -5702,7 +5737,7 @@ let forjadorInterior = null;
   const img = new Image();
   img.onload = () => { forjadorInterior = img; };
   img.onerror = () => {};
-  img.src = 'assets/interior_forjador.jpg';
+  img.src = 'assets/cenarios/mapas/interior_forjador.jpg';
 })();
 const SAVE_KEY = 'acordelot_player_v1';
 
@@ -5867,7 +5902,7 @@ function loadPlayerData() {
 
 async function loadShopCatalog() {
   try {
-    const r = await fetch(`assets/skins.json?t=${Date.now()}`);
+    const r = await fetch(`assets/dados/skins.json?t=${Date.now()}`);
     shopCatalog = await r.json();
   } catch (e) { return; }
   playerCoins = shopCatalog.coins_start ?? 300;
@@ -6930,8 +6965,8 @@ function renderAura(now, pH) {
 
 function renderPlayer() {
   if (player.oculto) return;      // entrou pela porta na cena: sai de cena de verdade
-  const pW=currentScene!=='world'?68:player.width;
-  const pH=currentScene!=='world'?92:player.height;
+  const pW=currentScene!=='world'?HEROI_BASE.interiorW*heroiEscala:player.width;
+  const pH=currentScene!=='world'?HEROI_BASE.interiorH*heroiEscala:player.height;
   
   // Sombra de chão do herói (impede a sensação de flutuar na foto estática)
   ctx.save();
@@ -7003,6 +7038,8 @@ function renderPlayer() {
 const GCW=185,GCH=122,GPAD=10,GOX=18,GOY=50,GCOLS=5,GROWS=4;
 const SIDEX=GOX+GCOLS*(GCW+GPAD)+8, SIDEW=SCREEN_W-SIDEX-8, SIDECARDH=75;
 let wvDragKey=null, wvDragMouse={x:0,y:0};
+let selectedWorldMapCell=null, wvDragKeyPending=null, wvDragStartX=0, wvDragStartY=0;
+const bgThumbnails={};
 
 function getCell(mx,my){const col=Math.floor((mx-GOX)/(GCW+GPAD)),row=Math.floor((my-GOY)/(GCH+GPAD));if(col>=0&&col<GCOLS&&row>=0&&row<GROWS)return{col,row};return null;}
 function cellRect(col,row){return{x:GOX+col*(GCW+GPAD),y:GOY+row*(GCH+GPAD),w:GCW,h:GCH};}
@@ -7011,26 +7048,34 @@ function sideKeys(){const pl=new Set(Object.keys(gridPos).filter(k=>{const p=gri
   return chavesDeCenario().filter(k=>!pl.has(k));}
 function sideKeyAt(mx,my){if(mx<SIDEX||SIDEW<=0)return null;const sk=sideKeys();for(let i=0;i<sk.length;i++){const r={x:SIDEX,y:GOY+30+i*(SIDECARDH+5),w:SIDEW,h:SIDECARDH};if(mx>=r.x&&mx<=r.x+r.w&&my>=r.y&&my<=r.y+r.h)return sk[i];}return null;}
 
-function deleteScene(mx, my) {
-  const sideK = sideKeyAt(mx, my);
-  if (sideK) {
-    if (confirm(`Deseja EXCLUIR DEFINITIVAMENTE o cenário "${SCENE_NAMES[sideK] || sideK}" que está no banco sem uso? Ele será apagado do projeto.`)) {
-      delete bgSources[sideK]; delete videoSources[sideK]; delete bgImages[sideK];
-      delete SCENE_NAMES[sideK]; delete gridPos[sideK]; delete spawns[sideK]; delete ambience[sideK];
-      try { delete obstacles[sideK]; delete layers[sideK]; } catch(e) {}
-      rebuildGrid(); refreshMapSelect(); saveAllLayers(false);
+function deleteSceneByKey(k) {
+  if (!k) return;
+  const isPlaced = !!gridPos[k];
+  if (isPlaced) {
+    delete gridPos[k];
+    selectedWorldMapCell = null;
+    rebuildGrid(); refreshMapSelect(); weAtualizaGaleria(); saveAllLayers(false);
+    showToast(`🗑️ ${SCENE_NAMES[k] || k} movido para o BANCO (arquivado)`);
+  } else {
+    if (confirm(`Deseja EXCLUIR DEFINITIVAMENTE o cenário "${SCENE_NAMES[k] || k}"? Ele será totalmente removido.`)) {
+      delete bgSources[k]; delete videoSources[k]; delete bgImages[k];
+      delete SCENE_NAMES[k]; delete gridPos[k]; delete spawns[k]; delete ambience[k];
+      try { delete obstacles[k]; delete layers[k]; } catch(e) {}
+      selectedWorldMapCell = null;
+      rebuildGrid(); refreshMapSelect(); weAtualizaGaleria(); saveAllLayers(false);
       showToast('🗑️ Cenário excluído definitivamente do projeto!');
     }
-    return;
   }
+}
+
+function deleteScene(mx, my) {
+  const sideK = sideKeyAt(mx, my);
+  if (sideK) { deleteSceneByKey(sideK); return; }
   const cell = getCell(mx, my);
-  if (!cell) return;
-  const k = keyAtCell(cell.col, cell.row);
-  if (!k) return;
-  delete gridPos[k];      // back to the side bank; the image and its layers are kept
-  rebuildGrid(); refreshMapSelect();
-  showToast(`🗑️ ${SCENE_NAMES[k]} saiu do grid (no painel BANCO você pode excluí-lo em definitivo)`);
-  saveAllLayers(false);
+  if (cell) {
+    const k = keyAtCell(cell.col, cell.row);
+    if (k) deleteSceneByKey(k);
+  }
 }
 
 function renderWorldMap(now) {
@@ -7045,7 +7090,15 @@ function renderWorldMap(now) {
     ctx.fillStyle='#131c28';ctx.strokeStyle='#2d3748';ctx.lineWidth=1;ctx.setLineDash([3,3]);
     ctx.fillRect(r.x,r.y,r.w,r.h);ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.setLineDash([]);
     if(key&&key!==wvDragKey){
-      const img=bgImages[key];if(img?.complete)ctx.drawImage(img,r.x,r.y,r.w,r.h);
+      const img=bgImages[key];
+      if(img?.complete){
+        if(!bgThumbnails[key]){
+          const tcv=document.createElement('canvas');tcv.width=185;tcv.height=122;
+          tcv.getContext('2d',{alpha:false}).drawImage(img,0,0,185,122);
+          bgThumbnails[key]=tcv;
+        }
+        ctx.drawImage(bgThumbnails[key],r.x,r.y,r.w,r.h);
+      }
       if(cur){ctx.strokeStyle='#38bdf8';ctx.lineWidth=3;ctx.shadowColor='#38bdf8';ctx.shadowBlur=10;ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.shadowBlur=0;}
       [['north','▲'],['south','▼'],['east','▶'],['west','◀']].forEach(([d,sym])=>{
         if(!getNeighbor(key,d))return;
@@ -7062,6 +7115,17 @@ function renderWorldMap(now) {
       ctx.fillStyle='rgba(0,0,0,0.65)';ctx.fillRect(r.x,r.y+r.h-15,r.w,15);
       ctx.fillStyle='#e2e8f0';ctx.font='9px Outfit, sans-serif';ctx.textAlign='left';
       ctx.fillText(SCENE_NAMES[key]||key,r.x+3,r.y+r.h-4);
+
+      // Botão de Excluir / Arquivar visível e destacado em cada cartão do mapa-múndi
+      const isSel = selectedWorldMapCell === key;
+      if (isSel) {
+        ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 3;
+        ctx.strokeRect(r.x, r.y, r.w, r.h);
+      }
+      ctx.fillStyle = (worldMapSubTool === 'delete') ? 'rgba(239, 68, 68, 0.95)' : 'rgba(220, 38, 38, 0.88)';
+      ctx.fillRect(r.x + r.w - 32, r.y + 2, 30, 26);
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('🗑️', r.x + r.w - 17, r.y + 20);
     }else if(!key){ctx.fillStyle='#2d3748';ctx.font='9px Outfit, sans-serif';ctx.textAlign='left';ctx.fillText(`(${col},${row})`,r.x+4,r.y+11);}
   }}
   // Side panel
@@ -7070,7 +7134,15 @@ function renderWorldMap(now) {
   ctx.fillText('BANCO',SIDEX,GOY+11);ctx.font='8px Outfit, sans-serif';ctx.fillText('fora do mapa',SIDEX,GOY+22);
   sideKeys().forEach((k,i)=>{
     const r={x:SIDEX,y:GOY+28+i*(SIDECARDH+5),w:SIDEW,h:SIDECARDH};if(r.y+r.h>SCREEN_H)return;
-    const img=bgImages[k];if(img?.complete&&k!==wvDragKey)ctx.drawImage(img,r.x,r.y,r.w,r.h);
+    const img=bgImages[k];
+    if(img?.complete&&k!==wvDragKey){
+      if(!bgThumbnails[k]){
+         const tcv=document.createElement('canvas');tcv.width=185;tcv.height=122;
+         tcv.getContext('2d',{alpha:false}).drawImage(img,0,0,185,122);
+         bgThumbnails[k]=tcv;
+      }
+      ctx.drawImage(bgThumbnails[k],r.x,r.y,r.w,r.h);
+    }
     ctx.strokeStyle='#475569';ctx.lineWidth=1;ctx.strokeRect(r.x,r.y,r.w,r.h);
     ctx.fillStyle='rgba(0,0,0,0.65)';ctx.fillRect(r.x,r.y+r.h-13,r.w,13);
     ctx.fillStyle='#e2e8f0';ctx.font='8px Outfit, sans-serif';ctx.textAlign='left';
@@ -7285,7 +7357,32 @@ function onPointerDown(m){
       showToast('⚠️ Clique em um mapa no grid para selecionar o destino');
       return;
     }
-    if(worldMapSubTool==='drag'){const cell=getCell(m.x,m.y);if(cell){const k=keyAtCell(cell.col,cell.row);if(k){wvDragKey=k;wvDragMouse={...m};delete gridPos[k];rebuildGrid();return;}}const sk=sideKeyAt(m.x,m.y);if(sk){wvDragKey=sk;wvDragMouse={...m};delete gridPos[sk];rebuildGrid();}}
+    if(worldMapSubTool==='drag' || worldMapSubTool==='delete'){
+      const cell=getCell(m.x,m.y);
+      if(cell){
+        const k=keyAtCell(cell.col,cell.row);
+        if(k){
+          const r=cellRect(cell.col,cell.row);
+          if(worldMapSubTool==='delete' || (m.x >= r.x+r.w-35 && m.y <= r.y+35)) {
+            deleteSceneByKey(k);
+            return;
+          }
+          selectedWorldMapCell=k;
+          weAtualizaGaleria();
+          wvDragKeyPending=k; wvDragStartX=m.x; wvDragStartY=m.y;
+          return;
+        }
+      }
+      const sk=sideKeyAt(m.x,m.y);
+      if(sk){
+        selectedWorldMapCell=sk;
+        weAtualizaGaleria();
+        wvDragKey=sk;wvDragMouse={...m};delete gridPos[sk];rebuildGrid();
+        return;
+      }
+      selectedWorldMapCell=null;
+      weAtualizaGaleria();
+    }
     else if(worldMapSubTool==='spawn'){const cell=getCell(m.x,m.y);if(cell){const k=keyAtCell(cell.col,cell.row);if(k){const r=cellRect(cell.col,cell.row);const nx=Math.round(((m.x-r.x)/r.w)*SCREEN_W),ny=Math.round(((m.y-r.y)/r.h)*SCREEN_H);spawns[k]={x:Math.max(30,Math.min(SCREEN_W-30,nx)),y:Math.max(30,Math.min(SCREEN_H-30,ny))};showToast(`📍 Spawn de ${SCENE_NAMES[k]} atualizado`);saveAllLayers(false);}}}
     else if(worldMapSubTool==='delete'){deleteScene(m.x,m.y);}
     return;
@@ -7330,7 +7427,14 @@ function onPointerDown(m){
 function onPointerMove(m){
   if(engineMode==='mundo'){ mundoPointerMove(m); return; }
   if(capturaAtiva&&capturaAtiva.arrastando){arrastarVoz(m.x,m.y);return;}
-  if(engineMode==='worldmap'&&wvDragKey){wvDragMouse={...m};}
+  if(engineMode==='worldmap') {
+    if(wvDragKeyPending && Math.hypot(m.x-wvDragStartX, m.y-wvDragStartY) > 20) {
+      wvDragKey=wvDragKeyPending; wvDragMouse={...m};
+      delete gridPos[wvDragKey]; rebuildGrid();
+      wvDragKeyPending=null; selectedWorldMapCell=null;
+    }
+    if(wvDragKey) { wvDragMouse={...m}; }
+  }
   if(engineMode==='scene'&&!isPlayMode&&arrastandoObjeto){
     arrastandoObjeto.x=Math.round(Math.max(0,Math.min(SCREEN_W,m.x-dragOffX)));
     arrastandoObjeto.y=Math.round(Math.max(0,Math.min(SCREEN_H,m.y-dragOffY)));
@@ -7361,6 +7465,7 @@ function onPointerMove(m){
 
 function onPointerUp(){
   if(engineMode==='mundo'){ mundoPointerUp(); return; }
+  if(wvDragKeyPending) { wvDragKeyPending=null; }
   if(capturaAtiva&&capturaAtiva.arrastando){soltarVoz();return;}
   const m={x:mouseCanvasX,y:mouseCanvasY}; // touchend carries no coords — use the last known
   if(engineMode==='worldmap'&&wvDragKey){
@@ -8123,7 +8228,7 @@ function renderPaletaDeProps() {
     if (propCategoria === 'novo') {
       grade.innerHTML = '<p class="hint">Nenhum asset na categoria <b>Novo</b> ainda. Quando você extrair sprites com a ferramenta de corte ou sincronizar da nuvem, eles aparecerão aqui!</p>';
     } else {
-      grade.innerHTML = '<p class="hint">Nenhum prop no catálogo. Coloque os PNGs em <code>assets/props/</code> e declare-os em <code>assets/objects.json</code>.</p>';
+      grade.innerHTML = '<p class="hint">Nenhum prop no catálogo. Coloque os PNGs em <code>assets/props/</code> e declare-os em <code>assets/dados/objects.json</code>.</p>';
     }
     return;
   }
@@ -8822,13 +8927,21 @@ function weAtualizaGaleria() {
   g.innerHTML = '';
   for (const id of chavesDeCenario()) {
     const p = gridPos[id];
+    const isSelected = selectedWorldMapCell === id;
     const card = document.createElement('div');
-    card.className = 'scene-card' + (p ? ' placed' : '');
+    card.className = 'scene-card' + (p ? ' placed' : '') + (isSelected ? ' selected' : '');
+    if (isSelected) {
+      card.style.border = '2px solid #fbbf24';
+      card.style.background = 'rgba(251, 191, 36, 0.15)';
+    }
     card.draggable = true;
     card.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', id));
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.scene-card-del-btn')) return;
+      selectedWorldMapCell = id;
+      weAtualizaGaleria();
+    });
 
-    // Cenário animado tem vídeo no lugar da imagem. E um arquivo quebrado nunca pode
-    // derrubar o desenho: um drawImage com imagem inválida lança e matava o Mapa-Múndi.
     const fonte = videoDoMapa(id) || (bgImages[id]?.complete && bgImages[id].naturalWidth ? bgImages[id] : null);
     let desenhou = false;
     if (fonte) {
@@ -8848,9 +8961,25 @@ function weAtualizaGaleria() {
     }
     const info = document.createElement('div');
     info.className = 'scene-card-info';
+    info.style.display = 'flex';
+    info.style.alignItems = 'center';
+    info.style.width = '100%';
     info.innerHTML =
+      `<div style="display:flex;flex-direction:column;flex:1;overflow:hidden;">` +
       `<span class="scene-card-name">${SCENE_NAMES[id] || id}</span>` +
-      `<span class="scene-card-pos">${p ? `no grid (${p.col}, ${p.row})` : 'fora do grid'}</span>`;
+      `<span class="scene-card-pos">${p ? `no grid (${p.col}, ${p.row})` : 'fora do grid'}</span></div>`;
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'scene-card-del-btn';
+    delBtn.title = 'Excluir cenário';
+    delBtn.innerHTML = '🗑️';
+    delBtn.style.cssText = 'background:rgba(220,38,38,0.85);border:none;color:#fff;border-radius:4px;padding:3px 7px;cursor:pointer;font-size:12px;margin-left:6px;flex-shrink:0;';
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteSceneByKey(id);
+    });
+    info.appendChild(delBtn);
+
     card.appendChild(info);
     card.addEventListener('dblclick', () => {
       if (!p) return;
@@ -9907,7 +10036,17 @@ function togglePlay(){
 }
 function setSceneTool(t){sceneSubTool=t;npcPlacingMode=false;document.querySelectorAll('[data-stool]').forEach(b=>b.classList.toggle('active',b.dataset.stool===t));}
 function setCollisionTool(t){collisionTool=t;document.querySelectorAll('[data-ctool]').forEach(b=>b.classList.toggle('active',b.dataset.ctool===t));}
-function setWVTool(t){worldMapSubTool=t;document.querySelectorAll('[data-wvtool]').forEach(b=>b.classList.toggle('active',b.dataset.wvtool===t));}
+function setWVTool(t){
+  worldMapSubTool=t;
+  document.querySelectorAll('[data-wvtool]').forEach(b=>b.classList.toggle('active',b.dataset.wvtool===t));
+  if (t === 'delete') {
+    if (selectedWorldMapCell) {
+      deleteSceneByKey(selectedWorldMapCell);
+    } else {
+      showToast('ℹ️ Selecione um cenário no mapa ou na lista lateral e clique em Excluir.');
+    }
+  }
+}
 
 // The map picker was a hand-written list, so scenes added later never showed up in it.
 function refreshMapSelect(){
@@ -10362,7 +10501,8 @@ function loop(now){
       ctx.beginPath(); ctx.ellipse(player.x,player.y,46+pulse*10,20+pulse*5,0,0,Math.PI*2); ctx.stroke();
       ctx.restore();
     }
-    {const pW=outdoors?player.width:68,pH=outdoors?player.height:92;
+    {const pW=outdoors?player.width:HEROI_BASE.interiorW*heroiEscala,
+           pH=outdoors?player.height:HEROI_BASE.interiorH*heroiEscala;
      renderFerramenta(now,pW,pH,true);}      // atrás do corpo (andando para cima)
     // Fora do bloco de cenário externo: numa sala fechada a cena não avançava nunca,
     // congelava no primeiro `esperar` e deixava o jogador travado para sempre.
@@ -10370,7 +10510,8 @@ function loop(now){
     if (frameCount % 30 === 0) silenciarVideosDeInterior();
 
     renderPlayer();
-    if(!player.oculto){const pW=outdoors?player.width:68,pH=outdoors?player.height:92;
+    if(!player.oculto){const pW=outdoors?player.width:HEROI_BASE.interiorW*heroiEscala,
+                       pH=outdoors?player.height:HEROI_BASE.interiorH*heroiEscala;
      renderFerramenta(now,pW,pH,false);      // na frente, nas outras direções
      renderHat(pW,pH);renderAura(now,pH);}
     if(outdoors){
@@ -10854,9 +10995,9 @@ const HERO_DEFINITIONS = {
     id: 'achilles', name: 'Achilles', class: 'Espadachim da Clave', gender: 'Masculino',
     // Folha normalizada: 8 quadros por fileira, quatro direções próprias (não há
     // espelhamento — o desenho de perfil direito é diferente do esquerdo).
-    src: 'assets/achilles.png', cols: 8, rows: 4,
+    src: 'assets/personagens/herois/achilles.png', cols: 8, rows: 4,
     linhas: { down: 0, up: 1, left: 2, right: 3 },
-    face: 'assets/achilles_face.png', avatar: 'assets/achilles_face.png',
+    face: 'assets/personagens/herois/achilles_face.png', avatar: 'assets/personagens/herois/achilles_face.png',
     weapon: 'Teclado Espada', clave: 'Sol', registro: 'Agudo',
     papel: 'Investida', raridade: 5, desbloqueado: true,
     base: { vida: 0, dano: 0, ritmo: 0, afinacao: 0 },
@@ -10956,7 +11097,7 @@ function renderPartyHUD() {
 
     if (imgEl) {
       if (def) {
-        imgEl.src = def.face || def.avatar || 'assets/achilles_face.png';
+        imgEl.src = def.face || def.avatar || 'assets/personagens/herois/achilles_face.png';
         imgEl.alt = def.name;
         slotEl.title = `${def.name} · Clave de ${def.clave || '—'} · ${def.papel || def.class}`;
       } else {
@@ -11902,13 +12043,13 @@ function renderGrimorio() {
   const def = HERO_DEFINITIONS[selectedHeroId] || HERO_DEFINITIONS['achilles'];
   if (heroNameEl && def) heroNameEl.textContent = def.name || 'Áquiles';
   if (heroLevelEl) heroLevelEl.textContent = `Nível ${level || 25}`;
-  if (heroPort) heroPort.src = (def && def.face) ? def.face + '?v=1024' : 'assets/achilles_face.png';
+  if (heroPort) heroPort.src = (def && def.face) ? def.face + '?v=1024' : 'assets/personagens/herois/achilles_face.png';
   const temArmaEquipada = Object.values(equipped).includes('espada_teclado') || !!equipped.axe;
   if (heroBody) {
     if (selectedHeroId === 'achilles') {
-      heroBody.src = 'assets/achilles_face.png';
+      heroBody.src = 'assets/personagens/herois/achilles_face.png';
     } else {
-      heroBody.src = (def && def.avatar) ? def.avatar + '?v=1024' : 'assets/achilles_face.png';
+      heroBody.src = (def && def.avatar) ? def.avatar + '?v=1024' : 'assets/personagens/herois/achilles_face.png';
     }
   }
   
@@ -12049,6 +12190,44 @@ function renderAtributosNoDrawer() {
 // ============================================================
 // DRAG & DROP SCENARIO CREATION
 // ============================================================
+
+// Passo único por onde todo cenário novo entra no mundo, venha do arrastar-e-soltar
+// ou do pixelizador. Ter um caminho só é o que garante que um cenário importado por
+// qualquer porta apareça na galeria, no seletor e no arquivo salvo — antes isso era
+// uma sequência copiada, e sequência copiada é onde uma porta esquece um passo.
+function registrarCenario(customKey, savedUrl, nomeLimpo, targetCol = null, targetRow = null) {
+  bgSources[customKey] = savedUrl;
+  const img = new Image();
+  img.src = savedUrl;
+  bgImages[customKey] = img;
+  SCENE_NAMES[customKey] = `🏰 ${nomeLimpo || 'Novo Cenário'}`;
+  spawns[customKey] = { x: 512, y: 300 };
+
+  if (targetCol !== null && targetRow !== null) {
+    const occ = keyAtCell(targetCol, targetRow);
+    if (occ) delete gridPos[occ];
+    gridPos[customKey] = { col: targetCol, row: targetRow };
+  }
+
+  // Sem posição o cenário fica "fora do grid" e some da vista: acha a primeira célula
+  // livre à direita do que já existe.
+  if (!gridPos[customKey]) {
+    let col = 0;
+    const linhas = Object.values(gridPos);
+    if (linhas.length) col = Math.max(...linhas.map(p => p.col)) + 1;
+    while (keyAtCell(col, 0)) col++;
+    gridPos[customKey] = { col, row: 0 };
+  }
+
+  rebuildGrid();
+  refreshMapSelect();
+  if (typeof weAtualizaGaleria === 'function') weAtualizaGaleria();   // galeria do Mapa-Múndi
+  if (activeMapSelect) activeMapSelect.value = customKey;
+  currentKey = customKey;
+  saveAllLayers(false);
+  updateMapStatus();
+}
+
 function addCustomScenarioFromFile(file, targetCol = null, targetRow = null) {
   if (!file || !file.type.startsWith('image/')) {
     showToast('⚠️ Selecione um arquivo de imagem (.jpg, .png)!');
@@ -12074,37 +12253,7 @@ function addCustomScenarioFromFile(file, targetCol = null, targetRow = null) {
       }
     } catch(err) {}
 
-    bgSources[customKey] = savedUrl;
-    const img = new Image();
-    img.src = savedUrl;
-    bgImages[customKey] = img;
-    SCENE_NAMES[customKey] = `🏰 ${cleanName || 'Novo Cenário'}`;
-    spawns[customKey] = { x: 512, y: 300 };
-
-    if (targetCol !== null && targetRow !== null) {
-      const occ = keyAtCell(targetCol, targetRow);
-      if (occ) delete gridPos[occ];
-      gridPos[customKey] = { col: targetCol, row: targetRow };
-    }
-
-    // Sem posição o cenário fica "fora do grid" e some da vista: acha a primeira célula
-    // livre à direita do que já existe.
-    if (!gridPos[customKey]) {
-      let col = 0;
-      const linhas = Object.values(gridPos);
-      if (linhas.length) col = Math.max(...linhas.map(p => p.col)) + 1;
-      while (keyAtCell(col, 0)) col++;
-      gridPos[customKey] = { col, row: 0 };
-    }
-
-    rebuildGrid();
-    refreshMapSelect();
-    if (typeof weAtualizaGaleria === 'function') weAtualizaGaleria();   // galeria do Mapa-Múndi
-    if (activeMapSelect) activeMapSelect.value = customKey;
-    currentKey = customKey;
-    saveAllLayers(false);
-    updateMapStatus();
-
+    registrarCenario(customKey, savedUrl, cleanName, targetCol, targetRow);
     showToast(`🖼️ Cenário "${SCENE_NAMES[customKey]}" adicionado com sucesso!`);
   };
   reader.readAsDataURL(file);
@@ -12170,16 +12319,16 @@ function initScenarioUploader() {
 // and the pickaxes in a row, and the last two pickaxes have overlapping glows, so the
 // crops are declared explicitly rather than derived from a grid.
 const TOOL_SHEETS = {
-  axes: { src: 'assets/ref_axes.jpg', boxes: [
+  axes: { src: 'assets/referencias/ref_axes.jpg', boxes: [
     [51,46,252,446], [388,51,247,441], [727,46,246,451], [166,531,295,452], [576,527,270,462],
   ]},
-  ressonadores: { src: 'assets/ref_ressonadores.jpg', boxes: [
+  ressonadores: { src: 'assets/referencias/ref_ressonadores.jpg', boxes: [
     [48,255,270,545], [378,250,275,545], [700,250,300,545],
   ]},
-  hammers: { src: 'assets/ref_hammers.jpg', boxes: [
+  hammers: { src: 'assets/referencias/ref_hammers.jpg', boxes: [
     [40,55,300,420], [372,58,308,408], [698,58,272,404], [108,516,326,438], [556,492,404,470],
   ]},
-  pickaxes: { src: 'assets/ref_pickaxes.jpg', boxes: [
+  pickaxes: { src: 'assets/referencias/ref_pickaxes.jpg', boxes: [
     [30,35,175,970], [230,35,170,970], [430,35,164,970], [600,35,200,970], [800,35,215,970],
   ]},
 };
@@ -12259,17 +12408,17 @@ function podePagarNota(nota) {
 function notaPorId(id) { return CROMATICA.find(n => n.id === id) || null; }
 
 const MAGIA_SHEETS = {
-  fragmentos: { src: 'assets/ref_fragmentos.jpg', boxes: [
+  fragmentos: { src: 'assets/referencias/ref_fragmentos.jpg', boxes: [
     [45,330,275,365], [352,332,332,362], [762,332,206,372],
   ]},
-  notas: { src: 'assets/ref_notas_naturais.jpg', boxes: [
+  notas: { src: 'assets/referencias/ref_notas_naturais.jpg', boxes: [
     [20,95,215,360], [275,95,215,360], [530,95,215,360], [765,95,235,360],
     [20,565,215,400], [270,565,225,400], [545,565,215,400],
   ]},
-  sustenidas: { src: 'assets/ref_notas_sustenidas.jpg', boxes: [
+  sustenidas: { src: 'assets/referencias/ref_notas_sustenidas.jpg', boxes: [
     [65,415,160,200], [240,410,180,205], [445,405,140,215], [615,415,165,190], [845,410,135,205],
   ]},
-  acordes: { src: 'assets/ref_acordes.jpg', boxes: [] },   // recortado por grade 4x2 abaixo
+  acordes: { src: 'assets/referencias/ref_acordes.jpg', boxes: [] },   // recortado por grade 4x2 abaixo
 };
 const magiaSprites = {};   // 'fragmento' | 'tom' | 'semitom' | 'nota_do' | 'acorde_1'...
 
@@ -12343,7 +12492,7 @@ function loadToolSheets() {
       renderForgeItemsList();
     } catch(e){}
   };
-  swImg.src = 'assets/espada_teclado.png';
+  swImg.src = 'assets/itens/espada_teclado.png';
 
   window.swordAttackVFX = [];
   ['attack_vfx_1.png', 'attack_vfx_2.png', 'attack_vfx_3.png'].forEach((fn, idx) => {

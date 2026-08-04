@@ -28,6 +28,7 @@ IDS_EDITOR = [
     'left-sidebar',          # barra lateral do Editor de Cenários
     'signpostWizardOverlay',
     'dialogueEditorOverlay',
+    'pixelizadorModal',      # pixelizador de cenários: ferramenta de autor
 ]
 
 # Pastas e arquivos de assets que o jogo realmente carrega.
@@ -72,12 +73,23 @@ def construir_html() -> str:
     # é de que a atualização não foi publicada.
     versao = time.strftime('%Y%m%d%H%M%S')
 
+    # O pixelizador é ferramenta de autor: fora do build dos alunos. Sai antes de
+    # mexer no game.js, senão o dist pede um arquivo que nunca foi copiado e dá 404.
+    html = re.sub(r'\s*<script src="pixelizador\.js[^"]*"></script>', '', html)
+
     # config.js precisa vir antes de game.js para a flag existir na avaliação do módulo.
-    html = html.replace(
-        '<script src="game.js"></script>',
-        f'<script src="config.js?v={versao}"></script>\n<script src="game.js?v={versao}"></script>'
-    )
-    html = html.replace('href="style.css"', f'href="style.css?v={versao}"')
+    # A troca é por regex e não por texto literal: o index ganhou "?v=..." no src e a
+    # substituição literal parou de casar em silêncio — o dist saiu sem config.js, ou
+    # seja, sem IS_PLAY_BUILD, que é a flag que impede o build dos alunos de tentar
+    # gravar no servidor. Erro que não aparece em teste nenhum, só em produção.
+    html, trocas = re.subn(
+        r'<script src="game\.js[^"]*"></script>',
+        f'<script src="config.js?v={versao}"></script>\n<script src="game.js?v={versao}"></script>',
+        html)
+    if trocas != 1:
+        raise SystemExit(f'ERRO: esperava 1 tag de game.js no index.html, achei {trocas}. '
+                         'O dist sairia sem config.js e sem IS_PLAY_BUILD.')
+    html = re.sub(r'href="style\.css[^"]*"', f'href="style.css?v={versao}"', html)
     html = html.replace('<title>Acordelot Engine — Reino da Música</title>',
                         '<title>Acordelot — Reino da Música</title>')
     return html

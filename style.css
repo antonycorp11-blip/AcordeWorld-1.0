@@ -5358,3 +5358,55 @@ body.modo-mundo #viewport-area { padding-top: var(--barra-h, 44px); }
 }
 .party-slot.empty img { display: none; }
 .party-slot.empty .party-hp-mini { opacity: .25; }
+
+/* ═══ Pixelizador de cenários ═══ */
+.px-card {
+  background: #18130e; border: 1px solid #4a3a22; border-radius: 12px;
+  width: 92vw; max-width: 880px; max-height: 92vh; padding: 18px;
+  display: flex; flex-direction: column; gap: 12px; overflow-y: auto;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.85); color: #fde68a;
+}
+.px-linha-fonte { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+.px-zona {
+  flex: 1; min-width: 260px; display: flex; align-items: center; justify-content: center;
+  gap: 12px; padding: 14px; border: 2px dashed #4a3a22; border-radius: 10px;
+  color: #d1d5db; font-size: 13px; transition: border-color .15s, background .15s;
+}
+.px-zona.sobre { border-color: #fbbf24; background: rgba(251,191,36,0.08); }
+
+.px-previas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.px-previas figure { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.px-previas canvas {
+  width: 100%; height: auto; background: #0b0906;
+  border: 1px solid #33281a; border-radius: 8px;
+  /* A prévia processada precisa mostrar bloco de pixel, não uma versão amaciada pelo
+     navegador na hora de esticar o canvas para caber na caixa. */
+  image-rendering: pixelated;
+}
+.px-previas figcaption { font-size: 11px; color: #9ca3af; text-align: center; }
+
+.px-controles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.px-slider { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.px-slider b { color: #fbbf24; }
+.px-slider small { color: #9ca3af; font-size: 10px; }
+.px-slider input[type=range] { width: 100%; accent-color: #fbbf24; }
+
+.px-rodape { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.px-campo { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.px-campo.px-cresce { flex: 1; min-width: 200px; }
+.px-campo input, .px-campo select {
+  background: #0f0c08; border: 1px solid #4a3a22; border-radius: 6px;
+  color: #fde68a; padding: 7px 9px; font-size: 13px; font-family: inherit;
+}
+.px-avisos { display: flex; flex-direction: column; gap: 5px; }
+.px-aviso {
+  background: rgba(251,191,36,0.10); border-left: 3px solid #fbbf24;
+  padding: 7px 10px; border-radius: 4px; font-size: 11px; color: #fcd34d; line-height: 1.45;
+}
+.px-estado { font-size: 12px; color: #9ca3af; min-height: 16px; }
+.px-estado.ok { color: #4ade80; }
+.px-estado.erro { color: #ef4444; }
+
+@media (max-width: 720px) {
+  .px-previas, .px-controles { grid-template-columns: 1fr; }
+}

@@ -244,12 +244,29 @@
               <div class="tools-group-title">🗺️ Cenários do Mundo</div>
               <div class="tools-vertical-buttons">
                 <button class="tool-pill accent full-width" id="uploadScenarioBtn">🖼️ ＋ Novo Cenário</button>
+                <button class="tool-pill full-width" id="pixelizarScenarioBtn">🎨 Importar e Pixelizar</button>
+                <div class="tools-row" style="margin-top:6px;gap:4px">
+                  <button class="tool-pill active" data-wvtool="drag" style="flex:1">🖐️ Mover</button>
+                  <button class="tool-pill" data-wvtool="spawn" style="flex:1">📍 Spawn</button>
+                  <button class="tool-pill danger" data-wvtool="delete" style="flex:1">🗑️ Excluir</button>
+                </div>
               </div>
               <p class="we-side-hint">
                 Arraste um cartão para o grid à direita. Encostar dois cenários já cria a
                 passagem nos dois sentidos.
               </p>
               <div id="sceneGallery" class="scene-gallery"></div>
+            </div>
+
+            <!-- Tamanho do herói: vale em qualquer modo, por isso fica fora dos grupos -->
+            <div class="tools-group" id="heroiToolsGroup">
+              <div class="tools-group-title">🧍 Tamanho do Personagem</div>
+              <label class="px-slider">
+                <span>Escala <b id="heroiEscalaVal">100%</b></span>
+                <input type="range" id="heroiEscala" min="0.5" max="2" step="0.05" value="1">
+                <small>Muda o desenho e a colisão junto. 100% = 52×90 px.</small>
+              </label>
+              <button class="tool-pill full-width" id="heroiEscalaReset">↺ Voltar ao padrão</button>
             </div>
 
           </div>
@@ -262,7 +279,7 @@
           </div>
           <div class="npc-gallery-grid">
             <div class="npc-gallery-card" draggable="true" data-npctype="sr_antony" data-npcname="Sr. Antony (Líder)">
-              <img src="assets/npc_sr_antony.jpg" alt="Sr. Antony" class="gallery-thumb">
+              <img src="assets/personagens/npcs/npc_sr_antony.jpg" alt="Sr. Antony" class="gallery-thumb">
               <div class="npc-card-info">
                 <span class="npc-card-name">👑 Sr. Antony</span>
                 <span class="npc-card-type">Líder</span>
@@ -271,7 +288,7 @@
             </div>
 
             <div class="npc-gallery-card" draggable="true" data-npctype="guard" data-npcname="Guarda Renaldo">
-              <img src="assets/guard_sprite.jpg" alt="Guarda" class="gallery-thumb">
+              <img src="assets/personagens/npcs/guard_sprite.jpg" alt="Guarda" class="gallery-thumb">
               <div class="npc-card-info">
                 <span class="npc-card-name">⚔️ Guarda</span>
                 <span class="npc-card-type">Protetor</span>
@@ -280,7 +297,7 @@
             </div>
 
             <div class="npc-gallery-card" draggable="true" data-npctype="merchant" data-npcname="Mercador Tibério">
-              <img src="assets/npc_merchant.jpg" alt="Mercador" class="gallery-thumb">
+              <img src="assets/personagens/npcs/npc_merchant.jpg" alt="Mercador" class="gallery-thumb">
               <div class="npc-card-info">
                 <span class="npc-card-name">🛒 Mercador</span>
                 <span class="npc-card-type">Vendedor</span>
@@ -289,7 +306,7 @@
             </div>
 
             <div class="npc-gallery-card" draggable="true" data-npctype="bard" data-npcname="Bardo Lucian">
-              <img src="assets/npc_bard.jpg" alt="Bardo" class="gallery-thumb">
+              <img src="assets/personagens/npcs/npc_bard.jpg" alt="Bardo" class="gallery-thumb">
               <div class="npc-card-info">
                 <span class="npc-card-name">🎵 Bardo</span>
                 <span class="npc-card-type">Músico</span>
@@ -298,7 +315,7 @@
             </div>
 
             <div class="npc-gallery-card" draggable="true" data-npctype="blacksmith" data-npcname="Ferreiro Dorn">
-              <img src="assets/npc_blacksmith.jpg" alt="Ferreiro" class="gallery-thumb">
+              <img src="assets/personagens/npcs/npc_blacksmith.jpg" alt="Ferreiro" class="gallery-thumb">
               <div class="npc-card-info">
                 <span class="npc-card-name">🔨 Ferreiro</span>
                 <span class="npc-card-type">Armeiro</span>
@@ -307,7 +324,7 @@
             </div>
 
             <div class="npc-gallery-card" draggable="true" data-npctype="villager" data-npcname="Aldeã Mirela">
-              <img src="assets/npc_villager.jpg" alt="Aldeã" class="gallery-thumb">
+              <img src="assets/personagens/npcs/npc_villager.jpg" alt="Aldeã" class="gallery-thumb">
               <div class="npc-card-info">
                 <span class="npc-card-name">👩 Aldeã</span>
                 <span class="npc-card-type">Habitante</span>
@@ -316,7 +333,7 @@
             </div>
 
             <div class="npc-gallery-card" draggable="true" data-npctype="child" data-npcname="Menino Pipo">
-              <img src="assets/npc_child.jpg" alt="Criança" class="gallery-thumb">
+              <img src="assets/personagens/npcs/npc_child.jpg" alt="Criança" class="gallery-thumb">
               <div class="npc-card-info">
                 <span class="npc-card-name">🧒 Criança</span>
                 <span class="npc-card-type">Aprendiz</span>
@@ -710,13 +727,74 @@
       <input type="file" id="scenarioImageUpload" accept="image/*" style="display:none">
     </aside>
 
+    <!-- ═══ PIXELIZADOR DE CENÁRIOS ═══ -->
+    <div id="pixelizadorModal" class="modal-overlay hidden">
+      <div class="px-card">
+        <div class="modal-header">
+          <h3>🎨 Importar e Pixelizar Cenário</h3>
+          <button class="modal-close-btn" id="pxFechar">✕</button>
+        </div>
+        <p class="modal-sub">
+          A imagem é reduzida, tem a paleta reduzida a poucas cores e volta ampliada em
+          blocos — vira pixel art de 16 bits. Tudo acontece aqui no navegador.
+        </p>
+
+        <div class="px-linha-fonte">
+          <div id="pxZona" class="px-zona">
+            <span>Arraste a imagem aqui</span>
+            <button class="tool-pill accent" id="pxEscolher">Escolher arquivo…</button>
+            <input type="file" id="pxArquivo" accept="image/png,image/jpeg" style="display:none">
+          </div>
+          <label class="px-campo" style="display:none">
+            <span>Reprocessar cenário já salvo</span>
+            <select id="pxReprocessar"></select>
+          </label>
+        </div>
+
+        <div id="pxAvisos" class="px-avisos"></div>
+
+        <div class="px-previas">
+          <figure>
+            <canvas id="pxPreviaOriginal" width="380" height="212"></canvas>
+            <figcaption>Original · <span id="pxDimOriginal">—</span></figcaption>
+          </figure>
+          <figure>
+            <canvas id="pxPreviaProcessada" width="380" height="212"></canvas>
+            <figcaption>Pixel art · <span id="pxDimProcessada">—</span></figcaption>
+          </figure>
+        </div>
+
+        <div class="px-controles">
+          <label class="px-slider">
+            <span>Redução <b id="pxFatorVal">4×</b></span>
+            <input type="range" id="pxFator" min="2" max="8" step="1" value="4">
+            <small>Quanto maior, mais grosso o pixel.</small>
+          </label>
+          <label class="px-slider">
+            <span>Cores <b id="pxCoresVal">48</b></span>
+            <input type="range" id="pxCores" min="16" max="128" step="1" value="48">
+            <small>Paleta adaptativa, tirada da própria imagem.</small>
+          </label>
+        </div>
+
+        <div class="px-rodape">
+          <label class="px-campo px-cresce">
+            <span>Nome do cenário</span>
+            <input type="text" id="pxNome" placeholder="Ex.: Praça dos Sinos">
+          </label>
+          <button class="tool-pill accent" id="pxSalvar" disabled>💾 Salvar cenário</button>
+        </div>
+        <div id="pxEstado" class="px-estado">Escolha uma imagem para começar.</div>
+      </div>
+    </div>
+
     <!-- ═══ RIGHT VIEWPORT (REAL-TIME GAME CANVAS) ═══ -->
     <main id="viewport-area">
       <div id="viewport-container">
         <div id="canvas-stage">
-          <video id="skinShopVideo" src="assets/loja_de_skins.mp4" loop muted preload="none" playsinline class="video-bg hidden"></video>
-          <video id="forgeVideo" src="assets/ferraria_interno.mp4" loop muted preload="none" playsinline class="video-bg hidden"></video>
-          <video id="sagradoVideo" src="assets/notas_sagradas.mp4" loop muted preload="none" playsinline class="video-bg hidden"></video>
+          <video id="skinShopVideo" src="assets/videos/loja_de_skins.mp4" loop muted preload="none" playsinline class="video-bg hidden"></video>
+          <video id="forgeVideo" src="assets/videos/ferraria_interno.mp4" loop muted preload="none" playsinline class="video-bg hidden"></video>
+          <video id="sagradoVideo" src="assets/videos/notas_sagradas.mp4" loop muted preload="none" playsinline class="video-bg hidden"></video>
           <canvas id="gameCanvas" width="1024" height="571"></canvas>
 
           <!-- Name input overlay -->
@@ -758,14 +836,14 @@
               <div class="party-slot active" data-slot="0" id="partySlot0" title="Herói 1 (Tecla 1)">
                 <div class="party-slot-badge">1</div>
                 <div class="party-avatar-wrap">
-                  <img id="partyAvatar0" src="assets/aquiles_face.png" alt="Slot 1">
+                  <img id="partyAvatar0" src="assets/personagens/herois/aquiles_face.png" alt="Slot 1">
                 </div>
                 <div class="party-hp-mini"><i id="partyHpFill0"></i></div>
               </div>
               <div class="party-slot" data-slot="1" id="partySlot1" title="Herói 2 (Tecla 2)">
                 <div class="party-slot-badge">2</div>
                 <div class="party-avatar-wrap">
-                  <img id="partyAvatar1" src="assets/aquiles_face.png" alt="Slot 2">
+                  <img id="partyAvatar1" src="assets/personagens/herois/aquiles_face.png" alt="Slot 2">
                 </div>
                 <div class="party-hp-mini"><i id="partyHpFill1"></i></div>
               </div>
@@ -844,7 +922,7 @@
 
           <!-- Sorteio: o vídeo é o palco, o item premiado é composto por cima -->
           <div id="sorteioOverlay" class="sorteio-overlay hidden">
-            <video id="sorteioVideo" src="assets/sorteio_acordes.mp4" muted playsinline
+            <video id="sorteioVideo" src="assets/videos/sorteio_acordes.mp4" muted playsinline
                    preload="auto" class="sorteio-video"></video>
             <div class="sorteio-topo">
               <div class="sorteio-titulo">Lugar das Notas Sagradas</div>
@@ -1103,7 +1181,7 @@
                 <!-- 1. Profile Medallion & Stats Banner -->
                 <div class="ornate-inv-profile-row">
                   <div class="ornate-inv-portrait-frame">
-                    <img src="assets/aquiles_face.png?v=20260803" alt="Áquiles" class="ornate-inv-portrait-img" id="invHeroPortrait">
+                    <img src="assets/personagens/herois/aquiles_face.png?v=20260803" alt="Áquiles" class="ornate-inv-portrait-img" id="invHeroPortrait">
                   </div>
                   <div class="ornate-inv-profile-info">
                     <div class="ornate-inv-name" id="invHeroName">Áquiles</div>
@@ -1129,7 +1207,7 @@
                     <!-- populated by JS: Hat, Outfit, Boots -->
                   </div>
                   <div class="ornate-inv-hero-center">
-                    <img src="assets/aquiles_avatar.png?v=20260803" alt="Áquiles Equipado" id="invHeroBodyImg" class="ornate-inv-body-img">
+                    <img src="assets/personagens/herois/aquiles_avatar.png?v=20260803" alt="Áquiles Equipado" id="invHeroBodyImg" class="ornate-inv-body-img">
                   </div>
                   <div class="ornate-inv-col-right" id="dwEquipRight">
                     <!-- populated by JS: Instrument, Partitura/Aura, Ring -->
@@ -1308,5 +1386,6 @@
 ">🔄 Enviar minhas ruas</button>
 
 <script src="game.js?v=202608031315"></script>
+<script src="pixelizador.js?v=202608041800"></script>
 </body>
 </html>
