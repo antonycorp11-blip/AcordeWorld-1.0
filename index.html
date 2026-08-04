@@ -951,8 +951,10 @@
 
           <!-- Sorteio: o vídeo é o palco, o item premiado é composto por cima -->
           <div id="sorteioOverlay" class="sorteio-overlay hidden">
+            <!-- preload="none": são 17 MB, e com "auto" eles eram baixados na ABERTURA do
+                 editor, antes de qualquer uso. O sorteio carrega o vídeo quando abre. -->
             <video id="sorteioVideo" src="assets/videos/sorteio_acordes.mp4" muted playsinline
-                   preload="auto" class="sorteio-video"></video>
+                   preload="none" class="sorteio-video"></video>
             <div class="sorteio-topo">
               <div class="sorteio-titulo">Lugar das Notas Sagradas</div>
               <div class="sorteio-sub" id="sorteioSub">Os acordes se personificam aqui.</div>
@@ -1389,7 +1391,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="game.js?v=202608042400"></script>
-<script src="pixelizador.js?v=202608042400"></script>
+<script src="game.js?v=202608042600"></script>
+<script src="pixelizador.js?v=202608042600"></script>
 </body>
 </html>

@@ -38,6 +38,13 @@ let bottomPanel, panelHandle;
 // ENGINE STATE
 // ============================================================
 let engineMode = 'scene';
+
+// ── Criador de Mundo ARQUIVADO ─────────────────────────────────────────────────
+// O modo continua no código, inteiro, mas desligado: não abre, não carrega os blocos
+// do mundo e não sincroniza em segundo plano. Ele custava memória e quadros o tempo
+// todo mesmo sem ninguém usá-lo, e vinha sequestrando a abertura do editor. Para
+// voltar a usar, troque para true — nada foi apagado.
+const CRIADOR_DE_MUNDO_ATIVO = false;
 let sceneSubTool = 'select';
 let collisionTool = 'road';
 let worldMapSubTool = 'drag';
@@ -381,13 +388,20 @@ async function loadWorldConfig() {
       }catch(ee){}
     }
   }
-  for (const [k, src] of Object.entries(bgSources)) {
-    if (!bgImages[k]) {
-      const img = new Image();
-      img.src = src;
-      bgImages[k] = img;
-    }
-  }
+  // O cenário aberto entra na hora; os outros esperam a tela ficar ociosa. Baixar os
+  // 17 de uma vez são ~30 MB antes de o editor responder a qualquer clique, e 16 deles
+  // não estão à vista. A galeria do Mapa-Múndi continua funcionando: quando ela desenha
+  // as miniaturas, as imagens já chegaram.
+  const carregarBg = k => {
+    if (bgImages[k] || !bgSources[k]) return;
+    const img = new Image();
+    img.src = bgSources[k];
+    bgImages[k] = img;
+  };
+  carregarBg(currentKey);
+  const restantes = Object.keys(bgSources).filter(k => k !== currentKey);
+  const ocioso = window.requestIdleCallback || (fn => setTimeout(fn, 300));
+  ocioso(() => restantes.forEach(carregarBg));
   rebuildGrid();
   refreshMapSelect();
 }
@@ -2240,12 +2254,13 @@ if (new URLSearchParams(window.location.search).get('recuperar') === '1') {
 
 // Sincroniza cooperativamente em segundo plano a cada 6 segundos no modo editor
 setInterval(() => {
-  if (typeof engineMode !== 'undefined' && engineMode === 'mundo' && !IS_PLAY_BUILD) {
+  if (CRIADOR_DE_MUNDO_ATIVO && typeof engineMode !== 'undefined' && engineMode === 'mundo' && !IS_PLAY_BUILD) {
     sincronizarComNuvemAgora(false);
   }
 }, 6000);
 
 async function loadMundo() {
+  if (!CRIADOR_DE_MUNDO_ATIVO) return;   // arquivado: nem baixa o mundo.json
   let loadedData = null;
 
   // Supabase é a fonte da verdade — carrega de lá primeiro
@@ -10115,6 +10130,9 @@ function tremorCena(now) {
 }
 
 function setMode(mode){
+  // Arquivado: qualquer caminho que peça 'mundo' cai em 'scene'. É o que impedia o
+  // editor de abrir na tela errada sem que nada explicasse o porquê.
+  if(mode==='mundo' && !CRIADOR_DE_MUNDO_ATIVO) mode='scene';
   engineMode=mode;
   document.querySelectorAll('.mode-tab').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
   // O Mapa-Múndi tem área própria: troca o palco do jogo pelo editor de mundo em vez
@@ -10978,6 +10996,12 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Mode tabs
   document.querySelectorAll('.mode-tab').forEach(btn=>btn.addEventListener('click',()=>setMode(btn.dataset.mode)));
+  if(!CRIADOR_DE_MUNDO_ATIVO){
+    document.querySelector('.mode-tab[data-mode="mundo"]')?.style.setProperty('display','none');
+    document.getElementById('assetDock')?.style.setProperty('display','none');
+    document.body.classList.remove('modo-mundo');
+    setMode('scene');   // abre sempre no editor de cena, aconteça o que acontecer antes
+  }
   // Scene subtools
   document.querySelectorAll('[data-stool]').forEach(btn=>btn.addEventListener('click',()=>setSceneTool(btn.dataset.stool)));
   // Collision subtools
