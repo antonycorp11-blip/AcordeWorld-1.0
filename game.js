@@ -300,16 +300,41 @@ function loadLayerKey(k) {
     });
   });
 }
-async function saveAllLayers(notify=false) {
+// `alvo` diz QUAIS cenários serializar. O padrão é só o que está aberto, e a diferença
+// não é de refinamento: com 17 cenários, serializar todos são 51 PNGs de 1024x571, uns
+// 80 ms cada — 3,5 SEGUNDOS de tela travada. Como isto roda meio segundo depois de cada
+// pincelada e de cada área fechada, desenhar caminho ficou impossível. Só o botão 💾
+// pede 'todos', que é quando esperar faz sentido porque foi pedido.
+// Quais camadas de quais cenários mudaram desde o último salvamento. Converter um
+// canvas de 1024x571 em PNG custa ~80 ms, e o editor gravava as TRÊS camadas de cada
+// cenário sempre — inclusive as que ninguém tocou. Pintar caminho só suja `road`.
+const camadasSujas = new Set();
+function marcarCamadaSuja(k, tipo) { if (k) camadasSujas.add(`${tipo}:${k}`); }
+
+async function saveAllLayers(notify=false, alvo=null) {
   if (IS_PLAY_BUILD) return;
   rebuildGrid();
   const wc={gridPos,spawns,bgSources,sceneNames:SCENE_NAMES,startMap,ambience,videoSources,pixelArt,heroiEscala,zoomCenario,TEMPO_LIGADO}, payload={worldConfig:wc};
-  for (const k of chavesDeCenario()) {
+  const chaves = alvo === 'todos'
+    ? chavesDeCenario()
+    : [alvo || activeMapSelect?.value || currentKey].filter(k => k && cenarioExiste(k));
+  const tudo = alvo === 'todos';
+  for (const k of chaves) {
     const L=getLayers(k);
-    const rd=L.roadCanvas.toDataURL('image/png'), fg=L.fgCanvas.toDataURL('image/png'), dr=L.doorCanvas.toDataURL('image/png');
-    payload[`road_${k}`]=rd; payload[`fg_${k}`]=fg; payload[`door_${k}`]=dr;
-    try { localStorage.setItem(`wasd_road_${k}_v17`,rd); localStorage.setItem(`wasd_fg_${k}_v17`,fg); localStorage.setItem(`wasd_door_${k}_v17`,dr); localStorage.setItem('wasd_world_config_v17',JSON.stringify(wc)); } catch(e) {}
+    const camadas = [['road',L.roadCanvas],['fg',L.fgCanvas],['door',L.doorCanvas]];
+    for (const [tipo, cv] of camadas) {
+      // Sem mudança, sem trabalho. O 💾 grava tudo de qualquer jeito, que é quando
+      // esperar faz sentido porque foi pedido.
+      if (!tudo && !camadasSujas.has(`${tipo}:${k}`)) continue;
+      const png = cv.toDataURL('image/png');
+      payload[`${tipo}_${k}`] = png;
+      try { localStorage.setItem(`wasd_${tipo}_${k}_v17`, png); } catch(e) {}
+      camadasSujas.delete(`${tipo}:${k}`);
+    }
   }
+  // O config do mundo estava sendo gravado DENTRO do laço: sem cenário na lista ele não
+  // era salvo, e com 17 era regravado 17 vezes. Ele não depende de cenário nenhum.
+  try { localStorage.setItem('wasd_world_config_v17',JSON.stringify(wc)); } catch(e) {}
   if (podeSalvarLocalPython()) {
     try { await fetch('/save_layers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); if(notify)showToast('💾 Projeto salvo em disco!'); }
     catch(e) { if(notify)showToast('💾 Salvo no navegador!'); }
@@ -7282,10 +7307,11 @@ function areaFechar() {
   }
   c.restore();
   invalidateRoadPaint(k);
+  marcarCamadaSuja(k, 'road');
   const n = areaPontos.length;
   areaPontos = [];
   if (paintSaveTimer) clearTimeout(paintSaveTimer);
-  paintSaveTimer = setTimeout(() => saveAllLayers(false), 500);
+  paintSaveTimer = setTimeout(() => saveAllLayers(false), 1500);
   showToast(areaSubtrai ? `⛔ Área de ${n} pontos bloqueada.` : `🟢 Área de ${n} pontos virou caminho.`);
 }
 
@@ -7371,7 +7397,13 @@ function paintAt(x,y,k){
   else if(collisionTool==='eraser'){[L.roadCtx,L.fgCtx,L.doorCtx].forEach(c=>{c.save();c.globalCompositeOperation='destination-out';c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();c.restore();});}
   if(collisionTool==='door'||collisionTool==='eraser')invalidateDoorMarkers(k);
   if(collisionTool==='road'||collisionTool==='eraser')invalidateRoadPaint(k);
-  if(paintSaveTimer)clearTimeout(paintSaveTimer);paintSaveTimer=setTimeout(()=>saveAllLayers(false),500);
+  if(collisionTool==='eraser'){marcarCamadaSuja(k,'road');marcarCamadaSuja(k,'fg');marcarCamadaSuja(k,'door');}
+  else if(collisionTool==='roof')marcarCamadaSuja(k,'fg');
+  else if(collisionTool==='door')marcarCamadaSuja(k,'door');
+  else marcarCamadaSuja(k,'road');
+  // Um segundo e meio: tempo de terminar o traço antes de gravar, em vez de gravar no
+  // meio dele e engasgar a mão.
+  if(paintSaveTimer)clearTimeout(paintSaveTimer);paintSaveTimer=setTimeout(()=>saveAllLayers(false),1500);
 }
 // Depth pass. In a top-down scene almost everything you can't walk on is scenery you
 // should be able to walk *behind*: copy those pixels into the foreground layer and they
@@ -7407,6 +7439,7 @@ function autoRoofFromRoad(k) {
 
   L.fgCtx.clearRect(0,0,SCREEN_W,SCREEN_H);
   L.fgCtx.drawImage(out, 0, 0);
+  marcarCamadaSuja(k,'fg');
   saveAllLayers(true);
   showToast('🏠 Teto gerado — refine com 🔵 Telhado e 🔴 Borracha');
 }
@@ -10981,9 +11014,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   stopBtn?.addEventListener('click',()=>togglePlay());
   // Monstros entram aqui também: o botão diz "Salvar", e quem clica nele espera que
   // TUDO seja gravado. Faltar os monstros aqui já custou uma sessão de edição.
-  saveProjectBtn?.addEventListener('click',()=>{saveAllLayers(false);saveNPCs();saveMonsters();saveObjetos();showToast('💾 Projeto salvo!');});
-  saveLayersBtn?.addEventListener('click',()=>saveAllLayers(true));
-  saveWorldBtn?.addEventListener('click',()=>saveAllLayers(true));
+  saveProjectBtn?.addEventListener('click',()=>{saveAllLayers(false,'todos');saveNPCs();saveMonsters();saveObjetos();showToast('💾 Projeto salvo!');});
+  saveLayersBtn?.addEventListener('click',()=>saveAllLayers(true,'todos'));
+  saveWorldBtn?.addEventListener('click',()=>saveAllLayers(true,'todos'));
   brushSizeSelect?.addEventListener('change',e=>brushSize=parseInt(e.target.value));
   document.getElementById('autoRoofBtn')?.addEventListener('click',()=>{
     autoRoofFromRoad(activeMapSelect?.value||currentKey);
@@ -10992,11 +11025,15 @@ document.addEventListener('DOMContentLoaded',()=>{
     const k=activeMapSelect?.value||currentKey;const L=getLayers(k);
     L.roadCtx.clearRect(0,0,SCREEN_W,SCREEN_H);L.fgCtx.clearRect(0,0,SCREEN_W,SCREEN_H);L.doorCtx.clearRect(0,0,SCREEN_W,SCREEN_H);
     L.roadCtx.fillStyle='#22c55e';L.roadCtx.fillRect(430,0,164,SCREEN_H);L.roadCtx.fillRect(0,230,SCREEN_W,140);
+    ['road','fg','door'].forEach(t=>marcarCamadaSuja(k,t));
+    invalidateRoadPaint(k);invalidateDoorMarkers(k);
     showToast('🪄 Caminho padrão criado!');saveAllLayers(false);
   });
   clearLayerBtn?.addEventListener('click',()=>{
     const k=activeMapSelect?.value||currentKey;const L=getLayers(k);
     L.roadCtx.clearRect(0,0,SCREEN_W,SCREEN_H);L.fgCtx.clearRect(0,0,SCREEN_W,SCREEN_H);L.doorCtx.clearRect(0,0,SCREEN_W,SCREEN_H);
+    ['road','fg','door'].forEach(t=>marcarCamadaSuja(k,t));
+    invalidateRoadPaint(k);invalidateDoorMarkers(k);
     showToast('🗑️ Camadas limpas!');saveAllLayers(false);
   });
   resetGridBtn?.addEventListener('click',()=>{
