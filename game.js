@@ -7914,6 +7914,11 @@ const IS_PLAY_BUILD = (typeof window !== 'undefined' && window.ACORDELOT_BUILD =
 function wantsMobilePlay() {
   if (IS_PLAY_BUILD) return true;
   const q = new URLSearchParams(location.search);
+  // /edit é CAMINHO, não parâmetro. A checagem só olhava a query, então abrir
+  // localhost:8085/edit — o atalho combinado para cair no editor — não impedia o modo
+  // jogo gravado da sessão anterior de vencer. Resultado: o editor abria sem lateral e
+  // sem ferramenta, e nada na tela explicava o porquê.
+  if (location.pathname.replace(/\/+$/, '').endsWith('/edit')) return false;
   if (q.has('edit')) return false;
   if (q.has('play')) return true;
   const saved = localStorage.getItem('acordelot_mobile_mode');

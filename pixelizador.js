@@ -473,11 +473,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.toggle('editor-recolhido', fechado);
     const b = pxEl('drawerToggle');
     if (b) { b.textContent = fechado ? '▶' : '◀'; }
-    try { localStorage.setItem('acordelot_editor_recolhido', fechado ? '1' : '0'); } catch (e) {}
-    setTimeout(() => { if (typeof setupHighDPICanvas === 'function') setupHighDPICanvas(); }, 260);
   };
   pxEl('drawerToggle')?.addEventListener('click', () => recolher());
-  if (localStorage.getItem('acordelot_editor_recolhido') === '1') recolher(true);
+  // NÃO se lembra de estar recolhido entre sessões. Guardar isso fazia o editor abrir
+  // sem lateral nenhuma, e quem abrisse o app no dia seguinte encontrava uma tela de
+  // jogo sem ferramenta e sem pista do motivo. Recolher é um gesto do momento.
+  try { localStorage.removeItem('acordelot_editor_recolhido'); } catch (e) {}
 
   // Tecla E recolhe, desde que não esteja escrevendo em campo nenhum.
   document.addEventListener('keydown', e => {

@@ -5439,9 +5439,10 @@ body.jogando .party-hud {
 }
 
 /* ═══ Editor recolhível (drawer) ═══ */
-/* Fecha a lateral para o jogo ocupar a tela inteira. Transição no `margin-left` e não
-   em `display`, para o canvas não sumir e voltar num pulo — e o ResizeObserver que já
-   existe reajusta a resolução sozinho no fim do movimento. */
+/* Esconde a lateral para dar espaço em volta do palco. O palco NÃO cresce: o jogo
+   mantém o mesmo tamanho aberto ou recolhido, porque é ele a referência para julgar
+   cenário e personagem. Transição no `margin-left` e não em `display`, para a barra
+   deslizar em vez de sumir num pulo. */
 #left-sidebar {
   transition: margin-left 0.22s ease;
 }
@@ -5473,13 +5474,10 @@ body.editor-recolhido.modo-mundo #assetDock { transform: translateX(-100%); }
 .px-check { display: flex; align-items: center; gap: 7px; font-size: 12px; margin-top: 8px; cursor: pointer; }
 .px-check input { accent-color: #fbbf24; }
 
-/* Com o editor recolhido, o palco cresce para ocupar o espaço que sobrou — é para isso
-   que se recolhe. O `min()` fecha os dois lados: pela largura disponível e pela altura,
-   o que impede a proporção de quebrar em janela alta e estreita (com `object-fit: fill`
-   no canvas, quebrar a proporção esticaria a imagem do jogo). */
-body.editor-recolhido #canvas-stage {
-  width: min(100%, calc((100vh - 96px) * 1024 / 571));
-}
+/* O palco NÃO muda de tamanho quando a lateral recolhe. Fazer o jogo esticar para a
+   tela cheia mudava a única referência estável que existe para julgar o cenário e o
+   tamanho do personagem — e recolher a barra virou "o jogo pulou de tamanho" em vez de
+   "ganhei espaço". Recolher esconde a lateral e ponto: o palco fica onde está. */
 /* Um herói só: a grade de quatro colunas deixava o cartão esticado e perdido no meio
    da tela. */
 .hero-select-grid:has(.hero-select-card:only-child) { grid-template-columns: minmax(0, 220px); justify-content: center; }
