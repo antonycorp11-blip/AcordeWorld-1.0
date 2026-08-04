@@ -7922,6 +7922,37 @@ function wantsMobilePlay() {
   return false; // Permitir modo editor em mobile e tablet por padrão
 }
 
+// Sair do jogo é mais do que devolver a barra lateral. Antes só a classe `mobile-play`
+// caía: o motor continuava com isPlayMode ligado, então todo clique ia para o jogo e a
+// impressão era de editor quebrado — "as ferramentas não aparecem". Aqui o retorno é
+// completo, e o modo de trabalho é reaplicado para o grupo de ferramentas certo abrir
+// na hora, sem precisar clicar de novo na aba.
+// O rótulo do botão é decidido num lugar só. Espalhado por cada caminho que liga ou
+// desliga o jogo, um deles sempre esquece — e um botão escrito "Modo Jogo" enquanto o
+// jogo já roda é pior que nenhum botão.
+function atualizarRotuloDeModo() {
+  const jogando = document.body.classList.contains('mobile-play') || isPlayMode;
+  const t = document.getElementById('mobileEditorToggleText');
+  const i = document.getElementById('mobileEditorToggleIcon');
+  if (t) t.textContent = jogando ? 'Modo Editor' : 'Modo Jogo';
+  if (i) i.textContent = jogando ? '✏️' : '🎮';
+}
+
+function voltarAoEditor() {
+  document.body.classList.remove('mobile-play');
+  document.getElementById('left-sidebar')?.classList.remove('hidden');
+  document.getElementById('engine-header')?.classList.remove('hidden');
+  document.getElementById('mainMenuOverlay')?.classList.add('hidden');
+  // Gaveta recolhida escondia a lateral inteira, e o editor parecia sem ferramenta.
+  document.body.classList.remove('editor-recolhido');
+  try { localStorage.setItem('acordelot_editor_recolhido', '0'); } catch (e) {}
+  const b = document.getElementById('drawerToggle'); if (b) b.textContent = '◀';
+  const alvo = isPlayMode ? (modoAntesDeJogar || 'scene') : (engineMode || 'scene');
+  if (isPlayMode) togglePlay();
+  setMode(alvo);
+  setTimeout(() => { if (typeof setupHighDPICanvas === 'function') setupHighDPICanvas(); }, 60);
+}
+
 function initMobileEditorToggle() {
   const toggleBtn = document.getElementById('mobileEditorToggleBtn');
   const icon = document.getElementById('mobileEditorToggleIcon');
@@ -7929,18 +7960,10 @@ function initMobileEditorToggle() {
   if (!toggleBtn) return;
 
   const updateToggleUI = () => {
-    const isMobilePlay = document.body.classList.contains('mobile-play');
-    if (isMobilePlay) {
-      if (icon) icon.textContent = '✏️';
-      if (text) text.textContent = 'Modo Editor';
-      toggleBtn.classList.remove('in-play');
-      toggleBtn.classList.add('in-editor');
-    } else {
-      if (icon) icon.textContent = '🎮';
-      if (text) text.textContent = 'Modo Jogo';
-      toggleBtn.classList.remove('in-editor');
-      toggleBtn.classList.add('in-play');
-    }
+    const jogando = document.body.classList.contains('mobile-play') || isPlayMode;
+    atualizarRotuloDeModo();
+    toggleBtn.classList.toggle('in-editor', jogando);
+    toggleBtn.classList.toggle('in-play', !jogando);
   };
 
   toggleBtn.addEventListener('click', (e) => {
@@ -7948,10 +7971,8 @@ function initMobileEditorToggle() {
     e.stopPropagation();
     initAudio();
     
-    if (document.body.classList.contains('mobile-play')) {
-      document.body.classList.remove('mobile-play');
-      document.getElementById('left-sidebar')?.classList.remove('hidden');
-      document.getElementById('engine-header')?.classList.remove('hidden');
+    if (document.body.classList.contains('mobile-play') || isPlayMode) {
+      voltarAoEditor();
       localStorage.setItem('acordelot_mobile_mode', 'edit');
       showToast('✏️ Modo Editor ativado');
     } else {
@@ -10100,6 +10121,7 @@ function safeSpawn(key){
 }
 
 let jogoIniciado = false;          // já houve uma partida nesta sessão do editor
+let modoAntesDeJogar = 'scene';    // modo de trabalho a devolver quando o jogo parar
 let ultimaPosicaoDeJogo = null;    // onde o jogador estava quando você apertou Parar
 
 function togglePlay(){
@@ -10107,8 +10129,13 @@ function togglePlay(){
   // O HUD de time é o único elemento que precisa saber disto pelo CSS: ele mora no
   // palco, não dentro do HUD que se apaga em diálogo e loja.
   document.body.classList.toggle('jogando', isPlayMode);
+  atualizarRotuloDeModo();
   if(isPlayMode){
     if(signpostWizard.active)resetSignpostWizard();
+    // Jogar exige o modo Cena, mas o modo de TRABALHO precisa voltar depois: quem
+    // estava pintando colisão e apertou ▶ voltava para o editor em Cena, sem os
+    // pincéis à vista, e parecia que a ferramenta tinha sumido.
+    modoAntesDeJogar = engineMode;
     setMode('scene');
     document.getElementById('bottom-panel')?.classList.add('collapsed');
     npcPlacingMode=false; canvas?.classList.remove('cursor-crosshair');
@@ -10161,6 +10188,10 @@ function togglePlay(){
     playerLocked=false; dlg.state=DLG_STATE.CLOSED; hideNameInput();
     keys.w=keys.a=keys.s=keys.d=false;
     atualizarRastreador();
+    // Reaplica o modo para o grupo de ferramentas do modo atual voltar a aparecer:
+    // entrar em jogo força 'scene' e esconde os outros, e sem isto quem estava em
+    // Colisão voltava para um editor sem os pincéis à vista.
+    setMode(modoAntesDeJogar || 'scene');
     showToast('⏹ Parado. Voltou ao editor.');
   }
 }

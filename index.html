@@ -9,17 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
-  <link rel="stylesheet" href="style.css?v=202608031315">
+  <link rel="stylesheet" href="style.css?v=202608042100">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
-
-<!-- Floating Mobile / Tablet Editor & Play Mode Toggle -->
-<button id="mobileEditorToggleBtn" class="mobile-editor-toggle-btn" title="Alternar Modo Editor / Jogo">
-  <span id="mobileEditorToggleIcon">✏️</span>
-  <span id="mobileEditorToggleText">Modo Editor</span>
-</button>
 
 <div id="engine-shell">
 
@@ -44,6 +38,13 @@
     <div class="header-center">
       <button id="playBtn" class="play-btn">▶ Jogar</button>
       <button id="stopBtn" class="stop-btn hidden">⏹ Parar</button>
+      <!-- Alternar Editor/Jogo mora ao lado de Parar: os dois decidem a mesma coisa —
+           se a tela é para jogar ou para trabalhar. Flutuando no canto, ele cobria o
+           HUD e vivia longe do botão com que se confunde. -->
+      <button id="mobileEditorToggleBtn" class="header-btn" title="Alternar Modo Editor / Jogo">
+        <span id="mobileEditorToggleIcon">🎮</span>
+        <span id="mobileEditorToggleText">Modo Jogo</span>
+      </button>
       <button id="modoTabletHeaderBtn" class="header-btn tablet-header-btn" style="background:linear-gradient(135deg, #0284c7, #0369a1);color:#fff;font-weight:700;border:1px solid #38bdf8">📱 Modo Tablet</button>
       <button id="testarCenaBtn" class="header-btn">🎬 Rodar Cena do Mapa</button>
     </div>
@@ -1388,7 +1389,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="game.js?v=202608042000"></script>
-<script src="pixelizador.js?v=202608042000"></script>
+<script src="game.js?v=202608042100"></script>
+<script src="pixelizador.js?v=202608042100"></script>
 </body>
 </html>
