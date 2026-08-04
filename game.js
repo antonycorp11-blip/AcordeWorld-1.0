@@ -6,15 +6,11 @@
 const SCREEN_W = 1024;
 const SCREEN_H = 571;
 
-const SCENE_NAMES = {
-  '1_0': '🌲 Floresta Mágica',
-  '2_0': '🎹 Conservatório',
-  '0_1': '🏰 Portões Reais',
-  '1_1': '🌿 Entrada Floresta',
-  '2_1': '🌳 Bosque de Treino',
-  '3_1': '🍃 Clareira',
-  '3_0': '🌲 Floresta Profunda',
-};
+// Vazio de propósito. Os sete cenários do motor original (fotos JPG da grade antiga)
+// viviam escritos aqui, e por isso voltavam sozinhos a cada recarga mesmo depois de
+// excluídos no editor. Quem lista os cenários agora é o arquivo de configuração — os
+// arquivos de imagem continuam em assets/cenarios/mapas/, nada foi apagado do disco.
+const SCENE_NAMES = {};
 
 // ============================================================
 // DOM REFS
@@ -64,17 +60,8 @@ let frameCount = 0, lastFPSTime = 0, currentFPS = 60;
 // ============================================================
 // WORLD SYSTEM
 // ============================================================
-let gridPos = {
-  '1_0': { col:1, row:0 }, '2_0': { col:2, row:0 },
-  '0_1': { col:0, row:1 }, '1_1': { col:1, row:1 },
-  // Training grounds east of the forest entrance — rearrange freely in Mapa-Múndi.
-  '2_1': { col:2, row:1 }, '3_1': { col:3, row:1 }, '3_0': { col:3, row:0 },
-};
-let spawns = {
-  '1_0': {x:512,y:300}, '2_0': {x:512,y:300},
-  '0_1': {x:512,y:400}, '1_1': {x:512,y:420},
-  '2_1': {x:512,y:400}, '3_1': {x:512,y:400}, '3_0': {x:512,y:400},
-};
+let gridPos = {};
+let spawns = {};
 let worldGrid = {};
 function rebuildGrid() {
   worldGrid = {};
@@ -108,15 +95,11 @@ const bgImages = {};
 // voltar dela.
 const pixelArt = {};
 
-const bgSources = {
-  '1_0':'assets/cenarios/mapas/background2.jpg',
-  '2_0':'assets/cenarios/mapas/conservatory.jpg', '0_1':'assets/cenarios/mapas/gate.jpg', '1_1':'assets/cenarios/mapas/forest_entry.jpg',
-  '2_1':'assets/cenarios/mapas/forest_training.jpg', '3_1':'assets/cenarios/mapas/forest_clearing.jpg', '3_0':'assets/cenarios/mapas/forest_deep.jpg',
-};
+const bgSources = {};
 let spriteRaw = new Image(), processedSprite = null;
 let guardSpriteRaw = new Image(), processedGuard = null;
 let assetsLoaded = 0;
-const totalAssets = Object.keys(bgSources).length + 2; // +player sprite +guard sprite
+let totalAssets = Object.keys(bgSources).length + 2; // +player sprite +guard sprite
 
 function onAssetLoad() {
   assetsLoaded++;
@@ -363,6 +346,13 @@ async function loadWorldConfig() {
     if(c.sceneNames){ for(const k in SCENE_NAMES) delete SCENE_NAMES[k]; Object.assign(SCENE_NAMES,c.sceneNames); }
     if(c.spawns){ for(const k in spawns) delete spawns[k]; Object.assign(spawns,c.spawns); }
     if(c.startMap){ startMap=c.startMap; currentKey=c.startMap; }
+    // startMap apontando para cenário já excluído deixava currentKey num mapa
+    // inexistente enquanto o seletor do editor caía noutro: o jogo desenhava um
+    // e as ferramentas editavam o outro.
+    if(!bgSources[currentKey] && !videoSources[currentKey]){
+      const primeiro = Object.keys(bgSources)[0];
+      if(primeiro){ startMap=primeiro; currentKey=primeiro; }
+    }
     if(c.ambience)Object.assign(ambience,c.ambience);
     if(c.videoSources)Object.assign(videoSources,c.videoSources);
     if(c.pixelArt)Object.assign(pixelArt,c.pixelArt);
@@ -379,6 +369,13 @@ async function loadWorldConfig() {
         if(c.bgSources)Object.assign(bgSources,c.bgSources);
         if(c.sceneNames)Object.assign(SCENE_NAMES,c.sceneNames);
         if(c.startMap){ startMap=c.startMap; currentKey=c.startMap; }
+        // startMap apontando para cenário já excluído deixava currentKey num mapa
+        // inexistente enquanto o seletor do editor caía noutro: o jogo desenhava um
+        // e as ferramentas editavam o outro.
+        if(!bgSources[currentKey] && !videoSources[currentKey]){
+          const primeiro = Object.keys(bgSources)[0];
+          if(primeiro){ startMap=primeiro; currentKey=primeiro; }
+        }
         if(c.ambience)Object.assign(ambience,c.ambience);
         if(c.videoSources)Object.assign(videoSources,c.videoSources);
         if(c.pixelArt)Object.assign(pixelArt,c.pixelArt);
@@ -1726,6 +1723,15 @@ function checkTransitions() {
     if (q) { pathGuide.waypoints = (q.path_waypoints?.[currentKey]) || []; pathGuide.particles = []; }
   }
   updateMapStatus();
+  // Atravessar andando NO EDITOR precisa manter o editor de pé: sem isto o seletor
+  // mudava de cenário mas a lista de NPCs, a hierarquia e o grupo de ferramentas
+  // ficavam apontando para o mapa anterior — a barra parecia ter sumido.
+  if (!isPlayMode) {
+    refreshMapSelect();
+    refreshNPCHierarchy?.();
+    setMode(engineMode || 'scene');
+    deselectNPC?.();
+  }
   showToast(SCENE_NAMES[destino] || destino);
   if (isPlayMode) talvezIniciarCenaDoMapa(destino);
 }
@@ -7043,14 +7049,27 @@ function renderPlayer() {
     const LINHA = P.linhas || { down: 0, up: 1, side: 2, attack: 3 };
     const fw = sheet.width / cols, fh = sheet.height / rows;
     const isAttacking = performance.now() < attackAnimUntil;
-    let row = player.direction === 'up' ? LINHA.up
-            : (player.direction === 'left' || player.direction === 'right') ? LINHA.side
-            : LINHA.down;
+
+    // A folha manda. Se ela tem linha própria para `left` e `right` — como a do Achilles
+    // — cada lado usa a sua; se só tem `side`, o lado esquerdo é o direito espelhado.
+    // Pedir LINHA.side numa folha sem essa chave dava `undefined`, e `undefined * fh` é
+    // NaN: o drawImage não desenhava NADA e o personagem simplesmente sumia ao andar
+    // para os lados.
+    const temLadosProprios = LINHA.left !== undefined && LINHA.right !== undefined;
+    const espelharLado = !temLadosProprios && player.direction === 'left';
+    let row = LINHA[player.direction];
+    if (row === undefined) {
+      row = player.direction === 'up' ? LINHA.up
+          : (player.direction === 'left' || player.direction === 'right') ? LINHA.side
+          : LINHA.down;
+    }
     let frame = player.animFrame % cols;
     let lungeX = 0, lungeY = 0;
 
-    // Se estiver atacando, usa a linha 4 (row 3 - poses de combate no spritesheet novo!) + investida
-    if (isAttacking) {
+    // Ataque só troca de linha se a folha TIVER uma linha de ataque. A do Achilles usa
+    // as quatro linhas para as quatro direções — sem esta guarda, atacar apagava o
+    // personagem pelo mesmo NaN.
+    if (isAttacking && LINHA.attack !== undefined) {
       row = LINHA.attack;
       const progress = Math.max(0, Math.min(1, 1 - (attackAnimUntil - performance.now()) / 180));
       frame = Math.min(cols - 1, Math.floor(progress * cols));
@@ -7069,7 +7088,7 @@ function renderPlayer() {
     const drawX = player.x + lungeX;
     const drawY = player.y + lungeY - Math.abs(stepBounce);
 
-    if (player.direction === 'left') {
+    if (espelharLado) {
       ctx.translate(drawX, drawY);
       ctx.rotate(-walkTilt);
       ctx.scale(-1, 1);
@@ -10294,7 +10313,18 @@ function refreshMapSelect(){
     o.textContent=`${SCENE_NAMES[k]||k}${p?` (${p.col},${p.row})`:' (fora do grid)'}`;
     activeMapSelect.appendChild(o);
   });
-  activeMapSelect.value=(bgSources[keep]||videoSources[keep])?keep:chavesDeCenario()[0];
+  // Quando o valor anterior não existe mais, o seletor caía no PRIMEIRO da lista — que
+  // raramente é o cenário desenhado na tela. O resultado é o editor trabalhando num
+  // mapa enquanto o jogo mostra outro: NPC posicionado no lugar errado, ferramenta
+  // pintando um cenário invisível. A referência certa é o cenário em cena.
+  const valido = k => k && (bgSources[k] || videoSources[k]);
+  activeMapSelect.value = valido(keep) ? keep
+                        : valido(currentKey) ? currentKey
+                        : chavesDeCenario()[0];
+  // E currentKey acompanha, para os dois nunca mais divergirem.
+  if (activeMapSelect.value && currentKey !== activeMapSelect.value && !isPlayMode) {
+    currentKey = activeMapSelect.value;
+  }
 }
 
 // ============================================================
@@ -10956,21 +10986,29 @@ function loop(now){
     renderCena(now);
     if(statusPos)statusPos.textContent=`X: ${Math.round(player.x)}  Y: ${Math.round(player.y)}`;
   } else {
-    npcData.forEach(npc=>{if(npc.mapKey!==mapKey)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
+    // No modo Cena quem desenha os NPCs é renderSceneOverlay, que além do sprite mostra
+    // seleção, alça e raio de gatilho. Desenhar aqui TAMBÉM pintava cada NPC duas vezes
+    // por quadro: com zoom as duas passadas saíam em posições diferentes e apareciam
+    // dois personagens; sem zoom sobrepunham e escureciam as bordas transparentes.
+    if (engineMode !== 'scene') {
+      npcData.forEach(npc=>{if(npc.mapKey!==mapKey)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
+    }
     renderObjetos(now, 'todos');   // sem isto o editor não mostrava o que você plantou
     const L=getLayers(mapKey);ctx.drawImage(L.fgCanvas,0,0);
     // O personagem aparece no editor enquanto a caminhada estiver ligada — sem ele não
     // há como ver se o caminho pintado dá passagem.
     if (andarNoEditor && !player.oculto) renderPlayer();
-    // O `save` da câmera acontece antes do desenho do cenário, para os dois modos. Sem
-    // este `restore` aqui, no editor a pilha do canvas crescia um nível A CADA QUADRO.
-    if (camOn || zoomOn) ctx.restore();
+    // TUDO do editor desenha DENTRO da câmera. renderSceneOverlay desenha os NPCs de
+    // novo (é ele quem mostra seleção, alça e raio de gatilho); com o `restore` antes
+    // dele, essa segunda passada saía sem zoom enquanto a primeira saía com — dois
+    // NPCs na tela, um por cima do outro, deslocados. O `restore` vai para o fim.
     if (engineMode === 'scene') {
       renderVagalumesEPoeiras(now, mapKey);
       renderCicloDiaNoite(now, mapKey);
       renderAmbiente();
       renderSceneOverlay(now);
     } else if (engineMode === 'collision') renderCollisionOverlay(mapKey);
+    if (camOn || zoomOn) ctx.restore();
     if(statusPos)statusPos.textContent=`X: ${Math.round(mouseCanvasX)}  Y: ${Math.round(mouseCanvasY)}`;
   }
 

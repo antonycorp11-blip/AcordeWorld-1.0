@@ -1,87 +1,23 @@
 {
   "gridPos": {
-    "1_0": {
-      "col": 1,
-      "row": 0
-    },
-    "2_0": {
-      "col": 2,
-      "row": 0
-    },
-    "0_1": {
-      "col": 0,
-      "row": 1
-    },
-    "1_1": {
-      "col": 0,
-      "row": 2
-    },
-    "2_1": {
-      "col": 3,
-      "row": 0
-    },
-    "3_1": {
-      "col": 2,
-      "row": 0
-    },
-    "3_0": {
-      "col": 3,
-      "row": 0
-    },
-    "custom_1785173102424_996": {
-      "col": 0,
-      "row": 3
-    },
-    "custom_1785254692668_431": {
-      "col": -1,
-      "row": 0
-    },
     "notas_sagradas": {
       "col": 3,
       "row": -1
     },
-    "custom_1785779853928_252": {
-      "col": 1,
-      "row": 1
-    },
     "custom_1785869541494_557": {
       "col": 0,
       "row": 0
+    },
+    "custom_1785880661560_858": {
+      "col": 0,
+      "row": 1
+    },
+    "custom_1785881037059_214": {
+      "col": 0,
+      "row": 2
     }
   },
   "spawns": {
-    "1_0": {
-      "x": 60,
-      "y": 368
-    },
-    "2_0": {
-      "x": 60,
-      "y": 313
-    },
-    "0_1": {
-      "x": 503,
-      "y": 430
-    },
-    "1_1": {
-      "x": 498,
-      "y": 438
-    },
-    "2_1": {
-      "x": 512,
-      "y": 400
-    },
-    "3_1": {
-      "x": 512,
-      "y": 400
-    },
-    "3_0": {
-      "x": 512,
-      "y": 400
-    },
-    "custom_1785173102424_996": {
-      "x": 512,
-      "y": 300
-    },
     "custom_1785254196551_992": {
       "x": 512,
       "y": 300
@@ -117,17 +53,17 @@
     "custom_1785871568442_57": {
       "x": 512,
       "y": 300
+    },
+    "custom_1785880661560_858": {
+      "x": 512,
+      "y": 300
+    },
+    "custom_1785881037059_214": {
+      "x": 512,
+      "y": 300
     }
   },
   "bgSources": {
-    "1_0": "assets/cenarios/mapas/background2.jpg",
-    "2_0": "assets/cenarios/mapas/conservatory.jpg",
-    "0_1": "assets/cenarios/mapas/gate.jpg",
-    "1_1": "assets/cenarios/mapas/forest_entry.jpg",
-    "2_1": "assets/cenarios/mapas/forest_training.jpg",
-    "3_1": "assets/cenarios/mapas/forest_clearing.jpg",
-    "3_0": "assets/cenarios/mapas/forest_deep.jpg",
-    "custom_1785173102424_996": "assets/cenarios/mapas/bg_custom_1785173102424_996.jpg",
     "custom_1785254196551_992": "assets/cenarios/mapas/bg_custom_1785254196551_992.jpg",
     "custom_1785254692668_431": "assets/cenarios/mapas/bg_custom_1785254692668_431.jpg",
     "vilarejo_precidade": "assets/bg_vilarejo_precidade.jpg",
@@ -135,17 +71,11 @@
     "custom_1785776481744_650": "assets/cenarios/mapas/bg_custom_1785776481744_650.jpg",
     "custom_1785779853928_252": "assets/cenarios/mapas/bg_custom_1785779853928_252.jpg",
     "custom_1785869541494_557": "assets/cenarios/mapas/bg_custom_1785869541494_557.jpg",
-    "custom_1785871568442_57": "assets/cenarios/mapas/bg_custom_1785871568442_57.png"
+    "custom_1785871568442_57": "assets/cenarios/mapas/bg_custom_1785871568442_57.png",
+    "custom_1785880661560_858": "assets/cenarios/mapas/bg_custom_1785880661560_858.jpg",
+    "custom_1785881037059_214": "assets/cenarios/mapas/bg_custom_1785881037059_214.jpg"
   },
   "sceneNames": {
-    "1_0": "🌲 Floresta Mágica",
-    "2_0": "🎹 Conservatório",
-    "0_1": "🏰 Portões Reais",
-    "1_1": "🌿 Entrada Floresta",
-    "2_1": "🌳 Bosque de Treino",
-    "3_1": "🍃 Clareira",
-    "3_0": "🌲 Floresta Profunda",
-    "custom_1785173102424_996": "🌑 Floresta Sombria",
     "custom_1785254196551_992": "🏰 Forest_Edge_Hunting_Ground_map_202607281154",
     "custom_1785254692668_431": "🌿 Clareira dos Ecos",
     "notas_sagradas": "✦ Lugar das Notas Sagradas",
@@ -154,20 +84,12 @@
     "custom_1785776481744_650": "🏰 altar das escalas manha",
     "custom_1785779853928_252": "🏰 Game_map_music_academy_town_202608031355",
     "custom_1785869541494_557": "🏰 Pixel_art_medieval_city_map_202608041450",
-    "custom_1785871568442_57": "🏰 C3ntro Acordlot"
+    "custom_1785871568442_57": "🏰 C3ntro Acordlot",
+    "custom_1785880661560_858": "🏰 Pixel_art_medieval_city_gate_202608041747",
+    "custom_1785881037059_214": "🏰 floesta inicial"
   },
-  "startMap": "custom_1785173102424_996",
+  "startMap": "custom_1785881037059_214",
   "ambience": {
-    "custom_1785173102424_996": {
-      "escuro": 0.86,
-      "cor": "#070b12",
-      "haloRaio": 190
-    },
-    "1_1": {
-      "escuro": 0.82,
-      "cor": "#070c16",
-      "haloRaio": 215
-    },
     "vilarejo_precidade": {
       "escuro": 0,
       "cor": "#ffffff",
@@ -193,6 +115,6 @@
     }
   },
   "heroiEscala": 0.5,
-  "zoomCenario": 1.85,
+  "zoomCenario": 1.6,
   "TEMPO_LIGADO": false
 }
