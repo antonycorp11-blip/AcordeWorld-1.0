@@ -47,17 +47,9 @@
     "custom_1785869541494_557": {
       "col": 0,
       "row": 0
-    },
-    "custom_1785871568442_57": {
-      "col": 0,
-      "row": -1
     }
   },
   "spawns": {
-    "0_0": {
-      "x": 512,
-      "y": 494
-    },
     "1_0": {
       "x": 60,
       "y": 368
@@ -128,7 +120,6 @@
     }
   },
   "bgSources": {
-    "0_0": "assets/cenarios/mapas/background.jpg",
     "1_0": "assets/cenarios/mapas/background2.jpg",
     "2_0": "assets/cenarios/mapas/conservatory.jpg",
     "0_1": "assets/cenarios/mapas/gate.jpg",
@@ -147,7 +138,6 @@
     "custom_1785871568442_57": "assets/cenarios/mapas/bg_custom_1785871568442_57.png"
   },
   "sceneNames": {
-    "0_0": "🏰 Vila Medieval",
     "1_0": "🌲 Floresta Mágica",
     "2_0": "🎹 Conservatório",
     "0_1": "🏰 Portões Reais",
@@ -202,7 +192,7 @@
       "criadoEm": "2026-08-04T19:26:12.405Z"
     }
   },
-  "heroiEscala": 0.65,
-  "zoomCenario": 1,
+  "heroiEscala": 0.5,
+  "zoomCenario": 1.85,
   "TEMPO_LIGADO": false
 }

@@ -1,7 +1,7 @@
 {
   "id": "apresentacao",
   "nome": "Cena 4 — O Líder de Acordelot",
-  "mapa": "0_0",
+  "mapa": "custom_1785869541494_557",
   "autoStart": true,
   "gatilho": {
     "tipo": "falar",

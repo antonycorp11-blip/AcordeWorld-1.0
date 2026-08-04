@@ -73,18 +73,18 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
 
     def _upload_image(self, data):
         try:
-            assets_dir = os.path.join(DIRECTORY, 'assets')
-            os.makedirs(assets_dir, exist_ok=True)
+            mapas_dir = os.path.join(DIRECTORY, 'assets', 'cenarios', 'mapas')
+            os.makedirs(mapas_dir, exist_ok=True)
             filename = data.get('filename', f"custom_bg_{int(os.times().user * 1000)}.jpg")
             filename = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', filename)
             img_b64 = data.get('image', '')
             if ',' in img_b64:
                 img_b64 = img_b64.split(',', 1)[1]
-            fpath = os.path.join(assets_dir, filename)
+            fpath = os.path.join(mapas_dir, filename)
             img_data = base64.b64decode(img_b64)
             with open(fpath, 'wb') as f:
                 f.write(img_data)
-            url = f"assets/{filename}"
+            url = f"assets/cenarios/mapas/{filename}"
             print(f"[Server] Uploaded image saved: {url}")
             self._ok({'status': 'ok', 'url': url, 'filename': filename})
         except Exception as e:
@@ -101,7 +101,9 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
             cfg = data.get('worldConfig')
             if cfg is not None:
                 if isinstance(cfg, dict) and cfg.get('gridPos'):
-                    cfg_path = os.path.join(assets_dir, 'acordelot_world_config.json')
+                    dados_dir = os.path.join(assets_dir, 'dados')
+                    os.makedirs(dados_dir, exist_ok=True)
+                    cfg_path = os.path.join(dados_dir, 'acordelot_world_config.json')
                     self._backup(cfg_path)
                     with open(cfg_path, 'w') as f:
                         json.dump(cfg, f, indent=2, ensure_ascii=False)
@@ -110,15 +112,21 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
                     print("[Server] RECUSADO: worldConfig vazio ou sem gridPos.")
 
             # Save canvas layer images
-            pattern = re.compile(r'^(road|fg|door)_([0-9]+_[0-9]+)$')
+            # Aceita qualquer chave de cenário, não só as numéricas do grid original.
+            # Com o filtro antigo, todo cenário importado (chave "custom_...") tinha a
+            # colisão descartada em silêncio no POST: o editor dizia salvo, o disco não
+            # recebia nada, e a pintura só existia no localStorage de quem pintou.
+            pattern = re.compile(r'^(road|fg|door)_([A-Za-z0-9_\-]+)$')
             saved = []
+            mascaras_dir = os.path.join(assets_dir, 'cenarios', 'mascaras')
+            os.makedirs(mascaras_dir, exist_ok=True)
             for key, val in data.items():
                 m = pattern.match(key)
                 if m and isinstance(val, str) and val.startswith('data:image/png;base64,'):
                     layer_type = m.group(1)
                     map_key = m.group(2)
                     fname = f'acordelot_{layer_type}_{map_key}_mask.png'
-                    fpath = os.path.join(assets_dir, fname)
+                    fpath = os.path.join(mascaras_dir, fname)
                     img_data = base64.b64decode(val.split(',', 1)[1])
                     with open(fpath, 'wb') as f:
                         f.write(img_data)
@@ -156,12 +164,11 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
 
     def _save_npcs(self, data):
         try:
-            assets_dir = os.path.join(DIRECTORY, 'assets')
-            os.makedirs(assets_dir, exist_ok=True)
-            npc_path = os.path.join(assets_dir, 'npcs.json')
+            dados_dir = os.path.join(DIRECTORY, 'assets', 'dados')
+            os.makedirs(dados_dir, exist_ok=True)
+            npc_path = os.path.join(dados_dir, 'npcs.json')
             self._backup(npc_path)
             count = len(data.get('npcs', []))
-            # Lista vazia nunca é intencional: seria apagar todos os NPCs do jogo.
             if count == 0:
                 print("[Server] RECUSADO: npcs.json vazio.")
                 self._ok({'status': 'ignorado', 'count': 0})
@@ -176,9 +183,9 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
 
     def _save_monsters(self, data):
         try:
-            assets_dir = os.path.join(DIRECTORY, 'assets')
-            os.makedirs(assets_dir, exist_ok=True)
-            path = os.path.join(assets_dir, 'monsters.json')
+            dados_dir = os.path.join(DIRECTORY, 'assets', 'dados')
+            os.makedirs(dados_dir, exist_ok=True)
+            path = os.path.join(dados_dir, 'monsters.json')
             self._backup(path)
             with open(path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
@@ -191,9 +198,9 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
 
     def _save_objects(self, data):
         try:
-            assets_dir = os.path.join(DIRECTORY, 'assets')
-            os.makedirs(assets_dir, exist_ok=True)
-            path = os.path.join(assets_dir, 'objects.json')
+            dados_dir = os.path.join(DIRECTORY, 'assets', 'dados')
+            os.makedirs(dados_dir, exist_ok=True)
+            path = os.path.join(dados_dir, 'objects.json')
             self._backup(path)
             with open(path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)

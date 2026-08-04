@@ -212,9 +212,23 @@
                   <button class="tool-pill half-width" data-ctool="door">🟣 Porta</button>
                   <button class="tool-pill half-width" data-ctool="eraser">🔴 Borracha</button>
                 </div>
+                <div class="tools-row">
+                  <button class="tool-pill full-width" data-ctool="area">📐 Área Caminhável (cliques)</button>
+                </div>
+                <div class="tools-row" id="areaAcoes" style="display:none">
+                  <button class="tool-pill half-width" id="areaFecharBtn">✓ Fechar área</button>
+                  <button class="tool-pill half-width" id="areaDesfazerBtn">↶ Tirar ponto</button>
+                </div>
+                <p class="we-side-hint" id="areaDica" style="display:none">
+                  Clique canto a canto. Voltar ao primeiro ponto (ou Enter) fecha e o miolo
+                  vira caminho. Segure Alt ao clicar para a área virar bloqueio.
+                </p>
                 <div class="tools-row align-center margin-top-sm">
                   <label for="brushSizeSelect" class="tool-label-sm">Pincel:</label>
                   <select id="brushSizeSelect" class="select-sm-tool full-flex">
+                    <option value="3">3px · fio</option>
+                    <option value="6">6px · fino</option>
+                    <option value="10">10px · detalhe</option>
                     <option value="20">20px</option>
                     <option value="40" selected>40px</option>
                     <option value="70">70px</option>
@@ -1061,7 +1075,7 @@
                 <label class="menu-label">🎭 Seu Herói:</label>
                 <div class="hero-select-grid">
                   <div class="hero-select-card selected" data-heroid="achilles" data-heroname="Achilles" data-herogender="Masculino">
-                    <div class="hero-avatar-box"><img src="assets/achilles_face.png" alt="Achilles"></div>
+                    <div class="hero-avatar-box"><img src="assets/personagens/herois/achilles_face.png" alt="Achilles"></div>
                     <span class="hero-card-name">Achilles</span>
                     <span class="hero-card-class">Espadachim da Clave</span>
                     <span class="hero-gender-badge">Clave de Sol</span>

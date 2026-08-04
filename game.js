@@ -7,7 +7,6 @@ const SCREEN_W = 1024;
 const SCREEN_H = 571;
 
 const SCENE_NAMES = {
-  '0_0': '🏰 Vila Medieval',
   '1_0': '🌲 Floresta Mágica',
   '2_0': '🎹 Conservatório',
   '0_1': '🏰 Portões Reais',
@@ -59,13 +58,13 @@ let frameCount = 0, lastFPSTime = 0, currentFPS = 60;
 // WORLD SYSTEM
 // ============================================================
 let gridPos = {
-  '0_0': { col:0, row:0 }, '1_0': { col:1, row:0 }, '2_0': { col:2, row:0 },
+  '1_0': { col:1, row:0 }, '2_0': { col:2, row:0 },
   '0_1': { col:0, row:1 }, '1_1': { col:1, row:1 },
   // Training grounds east of the forest entrance — rearrange freely in Mapa-Múndi.
   '2_1': { col:2, row:1 }, '3_1': { col:3, row:1 }, '3_0': { col:3, row:0 },
 };
 let spawns = {
-  '0_0': {x:512,y:300}, '1_0': {x:512,y:300}, '2_0': {x:512,y:300},
+  '1_0': {x:512,y:300}, '2_0': {x:512,y:300},
   '0_1': {x:512,y:400}, '1_1': {x:512,y:420},
   '2_1': {x:512,y:400}, '3_1': {x:512,y:400}, '3_0': {x:512,y:400},
 };
@@ -103,7 +102,7 @@ const bgImages = {};
 const pixelArt = {};
 
 const bgSources = {
-  '0_0':'assets/cenarios/mapas/background.jpg', '1_0':'assets/cenarios/mapas/background2.jpg',
+  '1_0':'assets/cenarios/mapas/background2.jpg',
   '2_0':'assets/cenarios/mapas/conservatory.jpg', '0_1':'assets/cenarios/mapas/gate.jpg', '1_1':'assets/cenarios/mapas/forest_entry.jpg',
   '2_1':'assets/cenarios/mapas/forest_training.jpg', '3_1':'assets/cenarios/mapas/forest_clearing.jpg', '3_0':'assets/cenarios/mapas/forest_deep.jpg',
 };
@@ -281,9 +280,13 @@ function loadLayerKey(k) {
   return new Promise(resolve => {
     const L=getLayers(k); let done=0;
     const items=[
-      {ctx:L.roadCtx, url:`assets/acordelot_road_${k}_mask.png`, ls:`wasd_road_${k}_v17`},
-      {ctx:L.fgCtx,   url:`assets/acordelot_fg_${k}_mask.png`,   ls:`wasd_fg_${k}_v17`},
-      {ctx:L.doorCtx, url:`assets/acordelot_door_${k}_mask.png`,  ls:`wasd_door_${k}_v17`},
+      // O servidor grava em assets/cenarios/mascaras/ desde a reorganização das pastas,
+      // mas a leitura continuou apontando para a raiz de assets/: 404 em toda máscara,
+      // e a colisão só sobrevivia no localStorage do navegador que a pintou. Trocar de
+      // máquina, limpar o cache ou abrir o build publicado era perder tudo.
+      {ctx:L.roadCtx, url:`assets/cenarios/mascaras/acordelot_road_${k}_mask.png`, ls:`wasd_road_${k}_v17`},
+      {ctx:L.fgCtx,   url:`assets/cenarios/mascaras/acordelot_fg_${k}_mask.png`,   ls:`wasd_fg_${k}_v17`},
+      {ctx:L.doorCtx, url:`assets/cenarios/mascaras/acordelot_door_${k}_mask.png`, ls:`wasd_door_${k}_v17`},
     ];
     items.forEach(item => {
       const img=new Image();
@@ -320,9 +323,13 @@ async function loadWorldConfig() {
       for(const k in gridPos) delete gridPos[k];
       Object.assign(gridPos,c.gridPos);
     }
-    if(c.spawns)Object.assign(spawns,c.spawns);
-    if(c.bgSources)Object.assign(bgSources,c.bgSources);
-    if(c.sceneNames)Object.assign(SCENE_NAMES,c.sceneNames);
+    // SUBSTITUI, não funde. Fundir era o motivo de um cenário excluído renascer a cada
+    // recarga: o arquivo salvo não tinha mais a chave, mas os padrões escritos aqui no
+    // código voltavam a somar. Apagar tem que ser para valer — se o arquivo lista os
+    // cenários, é ele quem manda.
+    if(c.bgSources){ for(const k in bgSources) delete bgSources[k]; Object.assign(bgSources,c.bgSources); }
+    if(c.sceneNames){ for(const k in SCENE_NAMES) delete SCENE_NAMES[k]; Object.assign(SCENE_NAMES,c.sceneNames); }
+    if(c.spawns){ for(const k in spawns) delete spawns[k]; Object.assign(spawns,c.spawns); }
     if(c.startMap){ startMap=c.startMap; currentKey=c.startMap; }
     if(c.ambience)Object.assign(ambience,c.ambience);
     if(c.videoSources)Object.assign(videoSources,c.videoSources);
@@ -7230,6 +7237,114 @@ function renderSceneOverlay(now) {
 // COLLISION OVERLAY
 // ============================================================
 let isPainting=false, brushSize=40, paintPos={x:-100,y:-100}, paintSaveTimer=null;
+
+// ── Área caminhável por cliques ────────────────────────────────────────────────
+// Pincel é bom para retocar, ruim para declarar uma praça inteira: exige arrastar sem
+// falhar e sempre sobra buraco onde a mão tremeu. Aqui se marcam os CANTOS — clique a
+// clique, uma linha ligando o anterior ao novo — e o miolo do contorno vira caminho de
+// uma vez. É a diferença entre pintar o chão e desenhar a planta dele.
+const AREA_RAIO_FECHAR = 14;    // clicar dentro disto, sobre o 1º ponto, fecha a área
+let areaPontos = [];
+let areaSubtrai = false;        // segurando Alt, a área vira bloqueio em vez de caminho
+
+function areaAdicionarPonto(x, y) {
+  // Voltar ao primeiro ponto é o gesto natural de "fechei o contorno".
+  if (areaPontos.length >= 3) {
+    const p0 = areaPontos[0];
+    if (Math.hypot(x - p0.x, y - p0.y) <= AREA_RAIO_FECHAR) { areaFechar(); return; }
+  }
+  areaPontos.push({ x, y });
+}
+
+function areaDesfazerPonto() { areaPontos.pop(); }
+function areaCancelar() { areaPontos = []; }
+
+function areaFechar() {
+  if (areaPontos.length < 3) { showToast('⚠️ Uma área precisa de pelo menos 3 pontos.'); return; }
+  const k = activeMapSelect?.value || currentKey;
+  const L = getLayers(k);
+  const c = L.roadCtx;
+  c.save();
+  c.beginPath();
+  c.moveTo(areaPontos[0].x, areaPontos[0].y);
+  for (let i = 1; i < areaPontos.length; i++) c.lineTo(areaPontos[i].x, areaPontos[i].y);
+  c.closePath();
+  if (areaSubtrai) {
+    c.globalCompositeOperation = 'destination-out';
+    c.fill();
+  } else {
+    c.globalCompositeOperation = 'source-over';
+    c.fillStyle = '#22c55e';
+    c.fill();
+    // A borda entra junto e grossa: o preenchimento para no meio do pixel da linha, e
+    // sem isto sobra uma franja não-caminhável exatamente onde o jogador encosta.
+    c.strokeStyle = '#22c55e'; c.lineWidth = 2; c.lineJoin = 'round'; c.stroke();
+  }
+  c.restore();
+  invalidateRoadPaint(k);
+  const n = areaPontos.length;
+  areaPontos = [];
+  if (paintSaveTimer) clearTimeout(paintSaveTimer);
+  paintSaveTimer = setTimeout(() => saveAllLayers(false), 500);
+  showToast(areaSubtrai ? `⛔ Área de ${n} pontos bloqueada.` : `🟢 Área de ${n} pontos virou caminho.`);
+}
+
+function renderAreaEmConstrucao() {
+  if (collisionTool !== 'area') return;
+  const c = ctx;
+  c.save();
+  if (areaPontos.length) {
+    // Prévia do miolo já preenchido: mostra o que vai virar caminho antes de confirmar.
+    if (areaPontos.length >= 2) {
+      c.beginPath();
+      c.moveTo(areaPontos[0].x, areaPontos[0].y);
+      for (let i = 1; i < areaPontos.length; i++) c.lineTo(areaPontos[i].x, areaPontos[i].y);
+      if (paintPos.x > 0) c.lineTo(paintPos.x, paintPos.y);
+      c.closePath();
+      c.fillStyle = areaSubtrai ? 'rgba(239,68,68,0.20)' : 'rgba(34,197,94,0.22)';
+      c.fill();
+    }
+    c.strokeStyle = areaSubtrai ? '#ef4444' : '#22c55e';
+    c.lineWidth = 2.5; c.lineJoin = 'round';
+    c.beginPath();
+    c.moveTo(areaPontos[0].x, areaPontos[0].y);
+    for (let i = 1; i < areaPontos.length; i++) c.lineTo(areaPontos[i].x, areaPontos[i].y);
+    c.stroke();
+    // Linha tracejada até o cursor: o próximo trecho, antes de existir.
+    if (paintPos.x > 0) {
+      c.setLineDash([6, 5]);
+      c.beginPath();
+      const u = areaPontos[areaPontos.length - 1];
+      c.moveTo(u.x, u.y); c.lineTo(paintPos.x, paintPos.y);
+      c.stroke();
+      c.setLineDash([]);
+    }
+    areaPontos.forEach((p, i) => {
+      const primeiro = i === 0;
+      c.beginPath();
+      c.arc(p.x, p.y, primeiro ? 7 : 4.5, 0, Math.PI * 2);
+      c.fillStyle = primeiro ? '#22c55e' : '#86efac';
+      c.fill();
+      c.strokeStyle = '#052e16'; c.lineWidth = 1.5; c.stroke();
+    });
+    // Anel no primeiro ponto quando fechar já é possível: o alvo fica visível.
+    if (areaPontos.length >= 3) {
+      c.beginPath();
+      c.arc(areaPontos[0].x, areaPontos[0].y, AREA_RAIO_FECHAR, 0, Math.PI * 2);
+      c.strokeStyle = 'rgba(34,197,94,0.85)'; c.lineWidth = 1.5; c.setLineDash([4, 4]);
+      c.stroke(); c.setLineDash([]);
+    }
+  }
+  c.fillStyle = '#bbf7d0';
+  c.font = 'bold 12px Outfit, sans-serif';
+  c.textAlign = 'left';
+  const dica = areaPontos.length
+    ? `${areaPontos.length} ponto(s) · clique no 1º ou Enter para fechar · Backspace apaga · Esc cancela`
+    : 'Clique para marcar o primeiro canto da área caminhável (Alt = bloquear)';
+  c.fillText(dica, 12, SCREEN_H - 14);
+  c.restore();
+}
+
 let lastPaint=null;
 
 // A drag only fires a handful of mousemove events, so stamping one circle per event
@@ -7308,6 +7423,7 @@ function renderCollisionOverlay(k){
   ctx.globalAlpha=0.5;
   ctx.drawImage(L.fgCanvas,0,0); // roof layer, so you can see what's already covered
   ctx.restore();
+  if(collisionTool==='area'){ renderAreaEmConstrucao(); ctx.restore(); return; }
   if(paintPos.x>0){const col=collisionTool==='road'?'#22c55e':collisionTool==='roof'?'#38bdf8':collisionTool==='door'?'#a855f7':'#ef4444';ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.globalAlpha=0.8;ctx.beginPath();ctx.arc(paintPos.x,paintPos.y,brushSize/2,0,Math.PI*2);ctx.stroke();ctx.restore();}
 }
 
@@ -7391,7 +7507,10 @@ function onPointerDown(m){
     else if(worldMapSubTool==='delete'){deleteScene(m.x,m.y);}
     return;
   }
-  if(engineMode==='collision'){isPainting=true;endStroke();paintStroke(m.x,m.y,activeMapSelect?.value||currentKey);return;}
+  if(engineMode==='collision'){
+    if(collisionTool==='area'){ areaSubtrai=!!m.alt; areaAdicionarPonto(m.x,m.y); return; }
+    isPainting=true;endStroke();paintStroke(m.x,m.y,activeMapSelect?.value||currentKey);return;
+  }
   if(engineMode==='scene'){
     if(isPlayMode){tryTalk();return;} // tapping near an NPC starts the conversation
     if(npcPlacingMode){placeNPC(m.x,m.y);return;}
@@ -7981,7 +8100,9 @@ function enterMobilePlay() {
 
 function bindCanvasEvents(){
   const track=m=>{mouseCanvasX=m.x;mouseCanvasY=m.y;return m;};
-  canvas.addEventListener('mousedown', e=>{initAudio();onPointerDown(track(getM(e)));});
+  // `alt` viaja junto do ponto: onPointerDown recebe só coordenadas, e quem precisa da
+  // tecla (a área caminhável, para inverter em bloqueio) não tem o evento em mãos.
+  canvas.addEventListener('mousedown', e=>{initAudio();const m=track(getM(e));m.alt=e.altKey;onPointerDown(m);});
   canvas.addEventListener('mousemove', e=>onPointerMove(track(getM(e))));
   canvas.addEventListener('mouseleave', ()=>{hoveredNPC=null;canvas.className='';});
   window.addEventListener('mouseup', onPointerUp);
@@ -8508,7 +8629,7 @@ function syncInspector(npc){
 
   if (npc.type === 'signpost') {
     signpostBox?.classList.remove('hidden');
-    if (inspTargetMap) inspTargetMap.value = npc.targetMapKey || '0_0';
+    if (inspTargetMap) inspTargetMap.value = npc.targetMapKey || chavesDeCenario()[0] || '';
     if (inspTargetX) inspTargetX.value = npc.targetX || 512;
     if (inspTargetY) inspTargetY.value = npc.targetY || 300;
   } else {
@@ -8585,7 +8706,7 @@ function placeNPC(x,y){
 }
 function refreshNPCHierarchy(){
   if(!npcHierarchyList)return;
-  const mapKey=activeMapSelect?.value||'0_0';
+  const mapKey=activeMapSelect?.value||currentKey;
   const filtered=npcData.filter(n=>n.mapKey===mapKey);
   if(!filtered.length){npcHierarchyList.innerHTML='<div class="empty-msg">Sem NPCs neste mapa</div>';return;}
   npcHierarchyList.innerHTML=filtered.map(npc=>`
@@ -10044,7 +10165,16 @@ function togglePlay(){
   }
 }
 function setSceneTool(t){sceneSubTool=t;npcPlacingMode=false;document.querySelectorAll('[data-stool]').forEach(b=>b.classList.toggle('active',b.dataset.stool===t));}
-function setCollisionTool(t){collisionTool=t;document.querySelectorAll('[data-ctool]').forEach(b=>b.classList.toggle('active',b.dataset.ctool===t));}
+function setCollisionTool(t){
+  collisionTool=t;
+  document.querySelectorAll('[data-ctool]').forEach(b=>b.classList.toggle('active',b.dataset.ctool===t));
+  // Trocar de ferramenta no meio de um contorno abandonaria pontos invisíveis, que
+  // reapareceriam ao voltar para a área sem que ninguém lembrasse deles.
+  if(t!=='area') areaCancelar();
+  const mostrar = t==='area' ? '' : 'none';
+  const acoes=document.getElementById('areaAcoes'); if(acoes) acoes.style.display=mostrar;
+  const dica=document.getElementById('areaDica'); if(dica) dica.style.display=mostrar;
+}
 function setWVTool(t){
   worldMapSubTool=t;
   document.querySelectorAll('[data-wvtool]').forEach(b=>b.classList.toggle('active',b.dataset.wvtool===t));
@@ -10783,6 +10913,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('[data-stool]').forEach(btn=>btn.addEventListener('click',()=>setSceneTool(btn.dataset.stool)));
   // Collision subtools
   document.querySelectorAll('[data-ctool]').forEach(btn=>btn.addEventListener('click',()=>setCollisionTool(btn.dataset.ctool)));
+  document.getElementById('areaFecharBtn')?.addEventListener('click',()=>areaFechar());
+  document.getElementById('areaDesfazerBtn')?.addEventListener('click',()=>areaDesfazerPonto());
+  // Teclado do contorno. Só responde com a ferramenta em uso e fora de campo de texto,
+  // senão Backspace apagaria ponto enquanto se escreve o nome de um NPC.
+  document.addEventListener('keydown',e=>{
+    if(engineMode!=='collision'||collisionTool!=='area')return;
+    const a=e.target;
+    if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.isContentEditable))return;
+    if(e.key==='Enter'){e.preventDefault();areaFechar();}
+    else if(e.key==='Backspace'){e.preventDefault();areaDesfazerPonto();}
+    else if(e.key==='Escape'){e.preventDefault();areaCancelar();}
+  });
   // WV subtools
   document.querySelectorAll('[data-wvtool]').forEach(btn=>btn.addEventListener('click',()=>setWVTool(btn.dataset.wvtool)));
 
@@ -10822,7 +10964,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     showToast('🗑️ Camadas limpas!');saveAllLayers(false);
   });
   resetGridBtn?.addEventListener('click',()=>{
-    gridPos={'0_0':{col:0,row:0},'1_0':{col:1,row:0},'2_0':{col:2,row:0},'0_1':{col:0,row:1},'1_1':{col:1,row:1}};
+    gridPos={'1_0':{col:1,row:0},'2_0':{col:2,row:0},'0_1':{col:0,row:1},'1_1':{col:1,row:1}};
     rebuildGrid();showToast('🔄 Grid reorganizado!');saveAllLayers(false);
   });
   document.getElementById('resetGridBtn2')?.addEventListener('click',()=>resetGridBtn?.click());
@@ -11345,7 +11487,7 @@ function initMainMenu() {
       ? CUT.roteiros.find(r => r.id === escolha.slice(5)) : null;
 
     const modoLivre = escolha === 'livre';
-    const startMapKey = modoLivre ? '0_0'
+    const startMapKey = modoLivre ? ((startMap && cenarioExiste(startMap)) ? startMap : chavesDeCenario()[0])
       : (cenaEscolhida?.mapa
       || ((startMap && cenarioExiste(startMap)) ? startMap : 'custom_1785173102424_996'));
     if (cenarioExiste(startMapKey)) {
@@ -12588,7 +12730,7 @@ function loadToolSheets() {
   ['attack_vfx_1.png', 'attack_vfx_2.png', 'attack_vfx_3.png'].forEach((fn, idx) => {
     const vImg = new Image();
     vImg.onload = () => { window.swordAttackVFX[idx] = vImg; };
-    vImg.src = `assets/${fn}`;
+    vImg.src = `assets/itens/${fn}`;
   });
 }
 
