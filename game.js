@@ -7490,6 +7490,14 @@ function getM(e){
       y: megaCameraY + ry / megaMapZoom
     };
   }
+  // Desfaz a câmera do zoom. Sem isto, com o cenário aproximado o clique caía onde o
+  // pixel estaria SEM zoom: pintar e plantar erravam o alvo por centenas de pixels, e
+  // era por isso que o zoom só valia jogando. Agora vale no editor também.
+  if (zoomCenario > 1.001) {
+    const c = camaraDoCenario();
+    return { x: (rx - SCREEN_W / 2) / zoomCenario + c.x,
+             y: (ry - SCREEN_H / 2) / zoomCenario + c.y };
+  }
   return { x: rx, y: ry };
 }
 
@@ -9878,7 +9886,7 @@ function renderAmbiente() {
   c.fillRect(0, 0, SCREEN_W, SCREEN_H);
   c.restore();
   if (isPlayMode && a.halo !== false) {
-    const r = (a.haloRaio || 210) * (isPlayMode ? zoomCenario : 1);
+    const r = (a.haloRaio || 210) * zoomCenario;
     const p = telaDoPonto(player.x, player.y - 24);
     const g = c.createRadialGradient(p.x, p.y, 10, p.x, p.y, r);
     g.addColorStop(0, `rgba(253,230,138,${0.16 * a.escuro})`);
@@ -10427,6 +10435,29 @@ let TEMPO_LIGADO = false;
 // uma câmera móvel faria cada clique cair no lugar errado.
 let zoomCenario = 1;
 
+// Andar no cenário SEM entrar em jogo. Entrar em jogo arrasta junto HUD, monstros,
+// diálogos, cenas de abertura e reposiciona o personagem no spawn — quando tudo o que
+// se quer é conferir se o caminho recém-traçado dá passagem. Aqui só o personagem se
+// mexe: as ferramentas continuam ativas e o clique continua sendo do editor.
+let andarNoEditor = false;
+
+// Quem manda o personagem andar e a câmera aproximar: jogando de verdade, ou o modo
+// de caminhada do editor.
+function personagemAndando() { return isPlayMode || andarNoEditor; }
+
+
+function alternarAndarNoEditor(ligar) {
+  andarNoEditor = ligar === undefined ? !andarNoEditor : !!ligar;
+  ['andarEditorBtn','andarEditorBtn2'].forEach(id => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.classList.toggle('active', andarNoEditor);
+    b.textContent = andarNoEditor ? '🚶 Andando (clique para parar)' : '🚶 Andar no cenário';
+  });
+  if (!andarNoEditor) { keys.w = keys.a = keys.s = keys.d = false; player.isMoving = false; }
+  else showToast('🚶 WASD anda. As ferramentas continuam funcionando.');
+}
+
 function camaraDoCenario() {
   const vw = SCREEN_W / zoomCenario, vh = SCREEN_H / zoomCenario;
   return {
@@ -10445,7 +10476,7 @@ function aplicarZoomDoCenario() {
 // Onde um ponto da cena cai na TELA. As camadas desenhadas por cima do zoom (halo de
 // luz, brilho) precisam disto, senão iluminam o canto errado quando a câmera anda.
 function telaDoPonto(x, y) {
-  if (!(zoomCenario > 1.001) || !isPlayMode) return { x, y };
+  if (!(zoomCenario > 1.001)) return { x, y };
   const c = camaraDoCenario();
   return { x: (x - c.x) * zoomCenario + SCREEN_W / 2,
            y: (y - c.y) * zoomCenario + SCREEN_H / 2 };
@@ -10630,7 +10661,7 @@ function loop(now){
     return;
   }
   const camOn = isPlayMode && forcaDoDestaque(now) > 0.001;
-  const zoomOn = isPlayMode && !isMegaWorld && zoomCenario > 1.001;
+  const zoomOn = !isMegaWorld && zoomCenario > 1.001;
   // Destaque tem prioridade: ele já é uma câmera com zoom próprio, e as duas somadas
   // aproximariam duas vezes.
   if (camOn || zoomOn) {
@@ -10671,6 +10702,30 @@ function loop(now){
       if (currentScene === 'world' && mapKey !== 'mega_world') renderSombrasDeNuvem(now, mapKey);
     }
     else { const st=interiorDef()?.still?.(); if(st)ctx.drawImage(st,0,0,SCREEN_W,SCREEN_H); }
+  }
+
+  // Caminhada do editor: só move o personagem e nada mais. Sem HUD, sem monstro, sem
+  // diálogo — e sem tirar o clique das ferramentas.
+  if(!isPlayMode && andarNoEditor && currentScene === 'world'){
+    let dx=0,dy=0;
+    if(keys.w)dy-=1;if(keys.s)dy+=1;if(keys.a)dx-=1;if(keys.d)dx+=1;
+    if(stick.active){dx=stick.x;dy=stick.y;}
+    const len=Math.hypot(dx,dy);
+    player.isMoving=len>0.15;
+    if(player.isMoving){
+      const sprint=keys.shift||len>0.92;
+      const spd=(sprint?player.sprintSpeed:player.speed)*Math.min(1,len);
+      dx/=len; dy/=len;
+      if(Math.abs(dx)>Math.abs(dy)) player.direction=dx<0?'left':'right';
+      else player.direction=dy<0?'up':'down';
+      const tx=player.x+dx*spd, ty=player.y+dy*spd;
+      // Respeita a colisão pintada: é justamente isso que se quer testar ao andar.
+      if(canMoveTo(tx,ty)){player.x=tx;player.y=ty;}
+      else if(canMoveTo(tx,player.y))player.x=tx;
+      else if(canMoveTo(player.x,ty))player.y=ty;
+      player.animTimer+=spd;
+      if(player.animTimer>(sprint?13:19)){player.animTimer=0;player.animFrame=(player.animFrame+1)%(personagemAtivo().cols||4);}
+    } else { player.animFrame=0; player.animTimer=0; }
   }
 
   if(isPlayMode){
@@ -10904,6 +10959,12 @@ function loop(now){
     npcData.forEach(npc=>{if(npc.mapKey!==mapKey)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
     renderObjetos(now, 'todos');   // sem isto o editor não mostrava o que você plantou
     const L=getLayers(mapKey);ctx.drawImage(L.fgCanvas,0,0);
+    // O personagem aparece no editor enquanto a caminhada estiver ligada — sem ele não
+    // há como ver se o caminho pintado dá passagem.
+    if (andarNoEditor && !player.oculto) renderPlayer();
+    // O `save` da câmera acontece antes do desenho do cenário, para os dois modos. Sem
+    // este `restore` aqui, no editor a pilha do canvas crescia um nível A CADA QUADRO.
+    if (camOn || zoomOn) ctx.restore();
     if (engineMode === 'scene') {
       renderVagalumesEPoeiras(now, mapKey);
       renderCicloDiaNoite(now, mapKey);
@@ -11006,6 +11067,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('[data-stool]').forEach(btn=>btn.addEventListener('click',()=>setSceneTool(btn.dataset.stool)));
   // Collision subtools
   document.querySelectorAll('[data-ctool]').forEach(btn=>btn.addEventListener('click',()=>setCollisionTool(btn.dataset.ctool)));
+  ['andarEditorBtn','andarEditorBtn2'].forEach(id =>
+    document.getElementById(id)?.addEventListener('click',()=>alternarAndarNoEditor()));
   document.getElementById('areaFecharBtn')?.addEventListener('click',()=>areaFechar());
   document.getElementById('areaDesfazerBtn')?.addEventListener('click',()=>areaDesfazerPonto());
   // Teclado do contorno. Só responde com a ferramenta em uso e fora de campo de texto,
