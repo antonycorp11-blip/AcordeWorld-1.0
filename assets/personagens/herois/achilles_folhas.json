@@ -1,0 +1,72 @@
+{
+  "achilles_caminhada.png": {
+    "cols": 8,
+    "rows": 4,
+    "celula": [
+      112,
+      280
+    ],
+    "corpo": 132,
+    "base": 274
+  },
+  "achilles_parado.png": {
+    "cols": 4,
+    "rows": 4,
+    "celula": [
+      107,
+      280
+    ],
+    "corpo": 132,
+    "base": 274
+  },
+  "achilles_guarda.png": {
+    "cols": 4,
+    "rows": 4,
+    "celula": [
+      146,
+      280
+    ],
+    "corpo": 132,
+    "base": 274
+  },
+  "achilles_ataque.png": {
+    "cols": 6,
+    "rows": 4,
+    "celula": [
+      266,
+      280
+    ],
+    "corpo": 132,
+    "base": 274
+  },
+  "achilles_ataque_vertical.png": {
+    "cols": 6,
+    "rows": 4,
+    "celula": [
+      161,
+      280
+    ],
+    "corpo": 132,
+    "base": 274
+  },
+  "achilles_estocada.png": {
+    "cols": 5,
+    "rows": 4,
+    "celula": [
+      195,
+      280
+    ],
+    "corpo": 132,
+    "base": 274
+  },
+  "achilles_giro.png": {
+    "cols": 6,
+    "rows": 4,
+    "celula": [
+      320,
+      280
+    ],
+    "corpo": 132,
+    "base": 274
+  }
+}

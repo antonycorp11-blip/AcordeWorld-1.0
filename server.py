@@ -11,7 +11,11 @@ import os
 import re
 
 PORT = 8085
-DIRECTORY = '/Users/aquillesantony/Downloads/wasd_game'
+# A pasta servida é a do próprio arquivo. Estava escrita à mão apontando para
+# ~/Downloads/wasd_game, e mover o projeto para a Mesa derrubou o servidor com
+# FileNotFoundError — um caminho fixo quebra na primeira vez que alguém arrasta a
+# pasta para outro lugar.
+DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
 class GameHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):

@@ -5111,6 +5111,18 @@ let lastAttack = 0, attackAnimUntil = 0, playerHurtUntil = 0, deadUntil = 0;
 // para o olho pegar a passagem da lâmina. 360 dá 60 ms por quadro, que é a cadência que
 // jogo 16-bit usa para um corte básico.
 const ATAQUE_MS = 360;
+
+// Catálogo de golpes. Cada um aponta para a folha que o desenha, quanto tempo dura na
+// tela e quanto espera para poder repetir. Ter isto como DADO — e não espalhado em
+// ifs — é o que faz um golpe novo ser três linhas aqui, e não uma caçada pelo arquivo.
+const GOLPES = {
+  basico:   { folha: 'ataque',   ms: 360, espera: 0,    alcance: 1.0, dano: 1.0,  rotulo: 'Corte' },
+  vertical: { folha: 'vertical', ms: 520, espera: 4200, alcance: 1.1, dano: 1.8,  rotulo: 'Corte Vertical' },
+  estocada: { folha: 'estocada', ms: 420, espera: 3200, alcance: 1.5, dano: 1.5,  rotulo: 'Estocada' },
+  giro:     { folha: 'giro',     ms: 620, espera: 8000, alcance: 1.3, dano: 2.2,  rotulo: 'Giro da Clave' },
+};
+let golpeEmCurso = null;
+const esperaDoGolpe = {};   // id -> instante em que fica pronto de novo
 const floaters = []; // damage numbers
 
 function addFloater(x, y, text, colour) {
@@ -5266,12 +5278,16 @@ function darMartelada() {
 }
 
 // Nearest monster within swing range — also drives the action button label.
-function attackTarget() {
+// `mult` estica o alcance por golpe: a estocada avança e alcança mais longe que o corte
+// básico, o giro pega em volta. Sem isto todo golpe teria o mesmo raio e a diferença
+// entre eles seria só a animação.
+function attackTarget(mult = 1) {
   if (!isPlayMode || playerLocked || currentScene !== 'world' || playerHp <= 0) return null;
   let best = null, bestD = Infinity;
+  const alcance = ATTACK_RANGE * mult;
   liveMonsters().forEach(m => {
     const d = Math.hypot(player.x - m.x, player.y - m.y);
-    if (d < ATTACK_RANGE && d < bestD) { best = m; bestD = d; }
+    if (d < alcance && d < bestD) { best = m; bestD = d; }
   });
   return best;
 }
@@ -5290,24 +5306,46 @@ function atualizarBotaoDeAtaque(now) {
   const pct = espera > 0 ? (falta / espera) * 100 : 0;
   if (_velAtaque) _velAtaque.style.height = pct.toFixed(0) + '%';
   _btnAtaque.classList.toggle('recarregando', falta > 0);
+
+  // As habilidades têm espera própria e bem mais longa: sem sinal na tela, o jogador
+  // aperta no vazio e acha que o botão não funciona.
+  document.querySelectorAll('.btn-habilidade[data-golpe]').forEach(b => {
+    const g = GOLPES[b.dataset.golpe];
+    if (!g) return;
+    const resta = Math.max(0, (esperaDoGolpe[b.dataset.golpe] || 0) - now);
+    b.classList.toggle('recarregando', resta > 0);
+    b.style.setProperty('--recarga', g.espera ? (resta / g.espera * 100).toFixed(0) + '%' : '0%');
+  });
 }
 
-function doAttack() {
+function doAttack(idGolpe = 'basico') {
   const now = performance.now();
-  if (now - lastAttack < attackCooldown()) return;
+  const g = GOLPES[idGolpe] || GOLPES.basico;
+
+  // Duas esperas diferentes: a do ataque básico vem dos atributos do personagem, a das
+  // habilidades é fixa por golpe. Um golpe forte não pode ficar barato porque o jogador
+  // subiu velocidade de ataque.
+  if (idGolpe === 'basico') {
+    if (now - lastAttack < attackCooldown()) return;
+  } else {
+    if (now < (esperaDoGolpe[idGolpe] || 0)) return;
+    esperaDoGolpe[idGolpe] = now + g.espera;
+  }
 
   // O GOLPE SAI SEMPRE. Antes a função voltava sem fazer nada quando não havia alvo por
   // perto, então apertar o botão no vazio não produzia reação nenhuma — parecia botão
   // quebrado. Errar o golpe é parte do jogo, e é a única forma de testar a animação sem
   // monstro na tela.
-  lastAttack = now; attackAnimUntil = now + ATAQUE_MS;
+  lastAttack = now;
+  golpeEmCurso = g;
+  attackAnimUntil = now + g.ms;
 
-  const m = attackTarget();
+  const m = attackTarget(g.alcance);
   if (!m || m.pronto) return;   // sem alvo, ou já se abriu: aí é ressoar, não bater
   const s = derivedStats();
 
   const crit = s.crit > 0 && Math.random() * 100 < s.crit;
-  const dmg = Math.round(playerDamage() * (crit ? 2 : 1));
+  const dmg = Math.round(playerDamage() * g.dano * (crit ? 2 : 1));
   m.hp -= dmg;
   m.hurtUntil = now + 260;
   addFloater(m.x, monsterBounds(m).y - 12, crit ? `${dmg}!` : `-${dmg}`, crit ? '#fde047' : '#fca5a5');
@@ -7096,28 +7134,29 @@ function renderPlayer() {
     if (troca) sheet = troca.img;
     const cols = troca ? troca.cols
                : (P.cols || ((sheet.width > 400 && sheet.width < 550) ? 6 : 4));
-    const fw = sheet.width / cols, fh = sheet.height / rows;
+    const linhasDaFolha = troca ? troca.rows : rows;
+    const fw = sheet.width / cols, fh = sheet.height / linhasDaFolha;
 
-    // A largura de desenho vem da PROPORÇÃO DA FOLHA em uso, não de uma medida fixa. A
-    // folha de ataque é o dobro de larga (proporção 2,0 contra 0,67 da caminhada) por
-    // causa do rastro da espada; usar a largura da caminhada nela espremeria o
-    // personagem à metade. Como as três folhas foram casadas na mesma altura e na mesma
-    // linha de pés, manter a ALTURA e derivar a largura mantém o herói do mesmo tamanho.
-    const dW = pH * (fw / fh);
+    // O desenho escala pelo CORPO e ancora os PÉS, não pela célula. A célula do golpe
+    // vertical é bem mais alta que o personagem para caber a espada erguida; desenhar
+    // pela célula deixaria o herói com metade do tamanho justamente ali. Com `corpo` e
+    // `base` da ficha, qualquer folha nova entra do tamanho certo sem ajuste na mão.
+    const esc = troca ? (pH / troca.m.corpo) : (pH / fh);
+    const dW = fw * esc, dH = fh * esc;
+    // Distância do topo da célula até a linha dos pés, já escalada: é o quanto o
+    // desenho precisa subir para os pés caírem em player.y.
+    const dPe = troca ? troca.m.base * esc : dH;
 
     // A folha manda. Se ela tem linha própria para `left` e `right` — como a do Achilles
     // — cada lado usa a sua; se só tem `side`, o lado esquerdo é o direito espelhado.
     // Pedir LINHA.side numa folha sem essa chave dava `undefined`, e `undefined * fh` é
     // NaN: o drawImage não desenhava NADA e o personagem simplesmente sumia ao andar
     // para os lados.
-    const linhaUnica = troca && troca.linhaUnica !== undefined;
-    const temLadosProprios = !linhaUnica && LINHA.left !== undefined && LINHA.right !== undefined;
-    // Folha de direção única: a esquerda sai do espelho da direita, e cima/baixo usam a
-    // mesma pose de lado — placeholder assumido até chegar a folha com as 4 direções.
-    const espelharLado = linhaUnica
-      ? (player.direction === 'left')
-      : (!temLadosProprios && player.direction === 'left');
-    let row = linhaUnica ? troca.linhaUnica : LINHA[player.direction];
+    // Todas as folhas do Achilles têm as quatro direções próprias (conferido: as linhas
+    // diferem entre si em 27-34, contra 15-18 de uma folha que repete a mesma pose).
+    const temLadosProprios = LINHA.left !== undefined && LINHA.right !== undefined;
+    const espelharLado = !temLadosProprios && player.direction === 'left';
+    let row = LINHA[player.direction];
     if (row === undefined) {
       row = player.direction === 'up' ? LINHA.up
           : (player.direction === 'left' || player.direction === 'right') ? LINHA.side
@@ -7132,8 +7171,8 @@ function renderPlayer() {
 
     // Ataque: os quadros correm do começo ao fim DENTRO da janela do golpe, para o
     // corte terminar junto com o dano em vez de ficar parado num quadro qualquer.
-    if (troca && troca.atacando) {
-      const passou = 1 - (attackAnimUntil - performance.now()) / ATAQUE_MS;
+    if (troca && troca.atacando && golpeEmCurso) {
+      const passou = 1 - (attackAnimUntil - performance.now()) / golpeEmCurso.ms;
       frame = Math.max(0, Math.min(cols - 1, Math.floor(passou * cols)));
     }
 
@@ -7163,11 +7202,11 @@ function renderPlayer() {
       ctx.translate(drawX, drawY);
       ctx.rotate(-walkTilt);
       ctx.scale(-1, 1);
-      ctx.drawImage(sheet, frame * fw, row * fh, fw, fh, -dW / 2, -pH + 4, dW, pH);
+      ctx.drawImage(sheet, frame * fw, row * fh, fw, fh, -dW / 2, -dPe + 4, dW, dH);
     } else {
       ctx.translate(drawX, drawY);
       ctx.rotate(walkTilt);
-      ctx.drawImage(sheet, frame * fw, row * fh, fw, fh, -dW / 2, -pH + 4, dW, pH);
+      ctx.drawImage(sheet, frame * fw, row * fh, fw, fh, -dW / 2, -dPe + 4, dW, dH);
     }
     ctx.restore();
   } else {ctx.fillStyle='#3b82f6';ctx.fillRect(player.x-16,player.y-32,32,48);}
@@ -11196,8 +11235,17 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   // As três habilidades ainda não fazem nada: ficam desabilitadas no HTML em vez de
   // abrirem um aviso de "em breve" a cada toque.
-  ['habilidade1','habilidade2','habilidade3'].forEach(id =>
-    document.getElementById(id)?.addEventListener('pointerdown', e => e.preventDefault()));
+  // Cada habilidade é um golpe do catálogo. A ordem segue a da roda, de baixo para cima.
+  const HABILIDADES = { habilidade1: 'estocada', habilidade2: 'vertical', habilidade3: 'giro' };
+  Object.entries(HABILIDADES).forEach(([id, golpe]) => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.disabled = false;
+    b.title = GOLPES[golpe].rotulo;
+    b.dataset.golpe = golpe;
+    b.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); doAttack(golpe); });
+    b.addEventListener('contextmenu', e => e.preventDefault());
+  });
 
   ['andarEditorBtn','andarEditorBtn2'].forEach(id =>
     document.getElementById(id)?.addEventListener('click',()=>alternarAndarNoEditor()));
@@ -11524,15 +11572,19 @@ const HERO_DEFINITIONS = {
     // caminhada. Todas foram casadas na mesma escala e na mesma célula por
     // ferramentas/casar_folhas_heroi.py: sem isso o herói mudava de tamanho ao parar.
     src: 'assets/personagens/herois/achilles_caminhada.png', cols: 8, rows: 4,
+    // Uma folha por estado. `medidas` (achilles_folhas.json) traz o tamanho do CORPO e
+    // a linha dos PÉS de cada uma — sem isso o desenho teria que usar a célula, que é
+    // mais alta que o personagem para caber a espada erguida do golpe vertical, e o
+    // herói sairia com metade do tamanho nessa folha.
+    medidas: 'assets/personagens/herois/achilles_folhas.json',
     folhas: {
-      andar:  { src: 'assets/personagens/herois/achilles_caminhada.png', cols: 8 },
-      parado: { src: 'assets/personagens/herois/achilles_parado.png',    cols: 4 },
-      // A folha de ataque veio com as QUATRO linhas na mesma direção (medido: as linhas
-      // diferem entre si em 15-18, contra 26-29 nas direções de verdade da caminhada).
-      // Por isso `linhaUnica`: todas as direções usam a linha 0, espelhada para a
-      // esquerda. Quando chegar uma folha com as quatro direções, é só apagar esta
-      // chave e o desenho volta a usar uma linha por direção.
-      ataque: { src: 'assets/personagens/herois/achilles_ataque.png', cols: 6, linhaUnica: 0 },
+      andar:    { src: 'assets/personagens/herois/achilles_caminhada.png' },
+      parado:   { src: 'assets/personagens/herois/achilles_parado.png' },
+      guarda:   { src: 'assets/personagens/herois/achilles_guarda.png' },
+      ataque:   { src: 'assets/personagens/herois/achilles_ataque.png' },
+      vertical: { src: 'assets/personagens/herois/achilles_ataque_vertical.png' },
+      estocada: { src: 'assets/personagens/herois/achilles_estocada.png' },
+      giro:     { src: 'assets/personagens/herois/achilles_giro.png' },
     },
     linhas: { down: 0, up: 1, left: 2, right: 3 },
     // Quadro em que cada direção fica ao PARAR. A folha é de caminhada e não tem pose
@@ -11688,14 +11740,25 @@ function hero_isPNG(id) {
 // Folhas extras por estado, guardadas por caminho. Ficam fora de processedHeroSprites
 // porque aquele mapa é por personagem, e um personagem agora tem várias folhas.
 const folhasDoHeroi = {};
+// Medidas por folha, lidas de achilles_folhas.json: célula, corpo (altura pés→cabeça) e
+// base (onde a linha dos pés cai dentro da célula). São elas que permitem misturar
+// folhas de tamanhos diferentes sem o personagem pular de tamanho.
+const medidasDasFolhas = {};
+
+async function carregarMedidasDasFolhas() {
+  for (const hero of Object.values(HERO_DEFINITIONS)) {
+    if (!hero.medidas) continue;
+    try {
+      const r = await fetch(hero.medidas + '?t=' + Date.now());
+      Object.assign(medidasDasFolhas, await r.json());
+    } catch (e) { console.warn('[Acordelot] ficha de folhas não carregou:', e); }
+  }
+}
 
 function loadHeroSprites() {
   for (const [id, hero] of Object.entries(HERO_DEFINITIONS)) {
     const img = new Image();
-    img.onload = () => {
-      processHeroSprite(id, img);
-      renderHeroAvatars();
-    };
+    img.onload = () => { processHeroSprite(id, img); renderHeroAvatars(); };
     img.src = hero.src;
     heroImages[id] = img;
 
@@ -11706,23 +11769,28 @@ function loadHeroSprites() {
       folhasDoHeroi[estado.src] = extra;
     }
   }
+  carregarMedidasDasFolhas();
 }
 
-// Qual folha e quantas colunas usar AGORA. Parado só vale fora de combate e com a folha
-// já baixada — se ela ainda não chegou, continua a de caminhada em vez de piscar.
+// Qual folha desenhar agora, com as medidas dela junto. Devolve null enquanto a imagem
+// ou a ficha não chegaram — melhor manter a folha anterior que piscar.
 function folhaAtualDoHeroi(atacando) {
   const P = personagemAtivo();
   const f = P.folhas;
   if (!f) return null;
+
+  const golpe = atacando && golpeEmCurso ? f[golpeEmCurso.folha] : null;
   const querParado = !player.isMoving && !atacando && f.parado;
-  const alvo = atacando && f.ataque ? f.ataque
-             : querParado ? f.parado
-             : (f.andar || null);
+  const alvo = golpe || (querParado ? f.parado : (f.andar || null));
   if (!alvo) return null;
+
   const img = folhasDoHeroi[alvo.src];
   if (!img || !img.complete || img.naturalWidth < 10) return null;
-  return { img, cols: alvo.cols, parado: querParado && alvo === f.parado,
-           atacando: atacando && alvo === f.ataque, linhaUnica: alvo.linhaUnica };
+  const m = medidasDasFolhas[alvo.src.split('/').pop()];
+  if (!m) return null;
+
+  return { img, m, cols: m.cols, rows: m.rows,
+           parado: alvo === f.parado, atacando: !!golpe };
 }
 
 function processHeroSprite(id, imgRaw) {

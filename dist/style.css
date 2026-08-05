@@ -5574,3 +5574,12 @@ body.jogando .roda-combate { display: block; }
   .hab-2 { right: 72px; bottom: 66px; }
   .hab-3 { right: 18px; bottom: 90px; }
 }
+/* Recarga das habilidades: mesma leitura do botão grande, em escala menor. */
+.btn-habilidade { position: relative; overflow: hidden; }
+.btn-habilidade::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0;
+  height: var(--recarga, 0%);
+  background: rgba(8, 12, 20, 0.66);
+  pointer-events: none; transition: height .08s linear;
+}
+.btn-habilidade.recarregando { filter: grayscale(0.55) brightness(0.72); }
