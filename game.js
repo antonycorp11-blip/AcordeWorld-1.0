@@ -495,6 +495,10 @@ window.addEventListener('keydown', e => {
   if(e.code==='Space'&&(isPlayMode||andarNoEditor)&&dlg.state===DLG_STATE.CLOSED){
     e.preventDefault(); doAttack();
   }
+  // Q desperta a Lâmina Ecoante. Ela não é um golpe: é uma janela em que os golpes mudam.
+  if(e.code==='KeyQ'&&(isPlayMode||andarNoEditor)&&dlg.state===DLG_STATE.CLOSED){
+    e.preventDefault(); ativarLamina();
+  }
   if(k==='1'){e.preventDefault();trocarHeroiDoTime(0);}
   if(k==='2'){e.preventDefault();trocarHeroiDoTime(1);}
   if(e.key==='Shift')keys.shift=true;
@@ -5168,6 +5172,30 @@ const COMBO_JANELA_MS = 520;
 // senão a corrente vira um moinho sem risco.
 const COMBO_REMATE_ESPERA = 900;
 
+// Lâmina Ecoante: a espada gigante que se solta do corpo. Ela vinha em TODO ataque
+// básico do Achilles, o que gastava o efeito mais bonito do jogo em cada golpe. Agora é
+// habilidade: ativa uma janela em que os golpes ganham a lâmina e ferem mais.
+const LAMINA_MS = 6000, LAMINA_ESPERA = 12000, LAMINA_BONUS = 1.6;
+let laminaAte = 0, laminaEsperaAte = 0;
+
+function ativarLamina() {
+  const now = performance.now();
+  if (now < laminaEsperaAte) return false;
+  laminaAte = now + LAMINA_MS;
+  laminaEsperaAte = now + LAMINA_ESPERA;
+  showToast('✦ Lâmina Ecoante desperta');
+  return true;
+}
+function laminaAtiva() { return performance.now() < laminaAte; }
+
+// Painel de "som capturado" aberto: nenhum ataque sai. Sem isto, o toque em Guardar
+// atravessava para o botão de ataque e o golpe saía junto — o jogador não conseguia
+// fechar a revelação.
+function revelacaoAberta() {
+  const el = document.getElementById('capturaReveal');
+  return !!el && !el.classList.contains('hidden');
+}
+
 let comboMostrado = null;  // { passo, rotulo, ate } — o que a tela está anunciando
 let comboPasso = 0;        // qual elo vem agora
 let comboAte = 0;          // até quando a corrente aceita o próximo elo
@@ -5270,7 +5298,7 @@ function renderAttackSwing(now) {
   }
 
   // Efeito especial Exclusivo do Teclado Espada / Harmonia de ÁQUILES
-  if ((selectedHeroId === 'achilles' || equipped.axe === 'espada_teclado') && t > 0.05) {
+  if (laminaAtiva() && t > 0.05) {
     if (window.swordAttackVFX && window.swordAttackVFX.length >= 3) {
       const vIdx = Math.min(2, Math.floor(t * 3));
       const vImg = window.swordAttackVFX[vIdx];
@@ -5395,6 +5423,34 @@ function atualizarBotaoDeAtaque(now) {
     _velAtaque = document.getElementById('ataqueRecarga');
     if (!_btnAtaque) return;
   }
+  // Cara do botão: ataque, ou a ação disponível. O ícone sozinho mentiria sobre o que
+  // vai acontecer quando o botão deixa de bater e passa a abrir uma porta.
+  const ACT_ICO = { talk:'💬', travel:'🪧', gather:'✋', enter:'🚪', entrarPorta:'🚪',
+                    enterForge:'🔨', shop:'🛒', forge:'🔨', martelar:'🔨', sair:'↩',
+                    sortear:'🎲', forjarEscala:'🎼' };
+  const ACT_TXT = { talk:'FALAR', travel:'VIAJAR', gather:'COLETAR', enter:'ENTRAR',
+                    entrarPorta:'ENTRAR', enterForge:'ENTRAR', shop:'LOJA', forge:'FORJAR',
+                    martelar:'MARTELAR', sair:'SAIR', sortear:'SORTEAR', forjarEscala:'FORJAR' };
+  const acao = actionAvailable();
+  const modoAcao = !!acao && acao !== 'attack' && acao !== 'ressoar';
+  const ico = document.getElementById('ataqueIcone');
+  const rot = document.getElementById('ataqueRotulo');
+  _btnAtaque.classList.toggle('modo-acao', modoAcao);
+  if (ico) ico.textContent = modoAcao ? (ACT_ICO[acao] || '✋') : '⚔';
+  if (rot) rot.textContent = modoAcao ? (ACT_TXT[acao] || 'AGIR') : '';
+
+  // Ressoar aparece só quando há Eco aberto ao lado.
+  document.getElementById('botaoRessoar')?.classList.toggle('disponivel', acao === 'ressoar');
+
+  // Recarga da Lâmina no botão da habilidade.
+  const bl = document.getElementById('habilidade1');
+  if (bl) {
+    const restaL = Math.max(0, laminaEsperaAte - now);
+    bl.classList.toggle('recarregando', restaL > 0);
+    bl.classList.toggle('ativa', laminaAtiva());
+    bl.style.setProperty('--recarga', (restaL / LAMINA_ESPERA * 100).toFixed(0) + '%');
+  }
+
   const espera = attackCooldown();
   const falta = Math.max(0, espera - (now - lastAttack));
   const pct = espera > 0 ? (falta / espera) * 100 : 0;
@@ -5411,6 +5467,7 @@ function atualizarBotaoDeAtaque(now) {
 
 function doAttack() {
   const now = performance.now();
+  if (revelacaoAberta()) return;                         // painel de captura no comando
   if (now < comboTravaAte) return;                       // pausa após o remate
   if (now - lastAttack < attackCooldown()) return;
 
@@ -5439,8 +5496,11 @@ function doAttack() {
   }
 
   // O giro pega todo mundo em volta; os outros elos batem num alvo só.
-  const alvos = g.emVolta ? alvosEmVolta(g.alcance)
-                          : [attackTarget(g.alcance)].filter(Boolean);
+  // Com a lâmina desperta o golpe pega em volta e machuca mais: é o que faz a
+  // habilidade valer a espera.
+  const emVolta = g.emVolta || laminaAtiva();
+  const alvos = emVolta ? alvosEmVolta(g.alcance * (laminaAtiva() ? 1.35 : 1))
+                        : [attackTarget(g.alcance)].filter(Boolean);
   if (!alvos.length) return;
 
   const s = derivedStats();
@@ -5448,7 +5508,7 @@ function doAttack() {
     if (m.pronto) continue;   // já se abriu: agora é ressoar, não bater
 
     const crit = s.crit > 0 && Math.random() * 100 < s.crit;
-    const dmg = Math.round(playerDamage() * g.dano * (crit ? 2 : 1));
+    const dmg = Math.round(playerDamage() * g.dano * (laminaAtiva() ? LAMINA_BONUS : 1) * (crit ? 2 : 1));
     m.hp -= dmg;
     m.hurtUntil = now + 260;
     addFloater(m.x, monsterBounds(m).y - 12, crit ? `${dmg}!` : `-${dmg}`,
@@ -6796,20 +6856,20 @@ function renderDoorMarkers(now) {
     const a = (near ? 0.55 : 0.28) + pulse * 0.25;
     ctx.save();
     // Soft glow on the threshold
-    const g = ctx.createRadialGradient(m.x, m.y, 2, m.x, m.y, 26 + pulse * 5);
+    const g = ctx.createRadialGradient(m.x, m.y, 2, m.x, m.y, 16 + pulse * 3);
     g.addColorStop(0, `rgba(253,224,71,${a * 0.55})`);
     g.addColorStop(1, 'rgba(253,224,71,0)');
     ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(m.x, m.y, 30, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(m.x, m.y, 19, 0, Math.PI*2); ctx.fill();
     // Little hanging sign above the door
-    const sy = m.y - 42 - pulse * 3;
+    const sy = m.y - 30 - pulse * 2;
     ctx.globalAlpha = near ? 1 : 0.75;
     ctx.fillStyle = 'rgba(28,20,10,0.88)';
     ctx.strokeStyle = `rgba(251,191,36,${0.5 + pulse*0.4})`;
     ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.roundRect(m.x-13, sy-11, 26, 22, 5); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(m.x, sy+11); ctx.lineTo(m.x, sy+17); ctx.stroke();
-    ctx.fillStyle = '#fde68a'; ctx.font = '13px serif';
+    ctx.beginPath(); ctx.roundRect(m.x-9, sy-8, 18, 16, 4); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(m.x, sy+8); ctx.lineTo(m.x, sy+13); ctx.stroke();
+    ctx.fillStyle = '#fde68a'; ctx.font = '9px serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('🚪', m.x, sy+1);
     ctx.restore();
@@ -7365,8 +7425,13 @@ function renderPlayer() {
     }
 
     // Pulo suave de caminhada (step bounce) e inclinação de passada reativa
-    const stepBounce = (player.isMoving && !isAttacking) ? Math.sin(performance.now() * 0.022) * 3.5 : 0;
-    const walkTilt = (player.isMoving && !isAttacking) ? (player.direction === 'left' ? -0.05 : player.direction === 'right' ? 0.05 : 0) : 0;
+    // Folha animada JÁ TEM o corpo subindo e descendo desenhado quadro a quadro. O
+    // balanço e a inclinação daqui eram para folhas sem animação; somados à folha nova
+    // viravam balanço em cima de balanço, e de lado o resultado lia como abrir a perna e
+    // pular em vez de caminhar.
+    const folhaAnimada = !!personagemAtivo().folhas;
+    const stepBounce = (!folhaAnimada && player.isMoving && !isAttacking) ? Math.sin(performance.now() * 0.022) * 3.5 : 0;
+    const walkTilt = (!folhaAnimada && player.isMoving && !isAttacking) ? (player.direction === 'left' ? -0.05 : player.direction === 'right' ? 0.05 : 0) : 0;
 
     ctx.save();
     const drawX = player.x + lungeX;
@@ -9783,7 +9848,9 @@ function renderMarcadoresDeNPC(now) {
     const b = npcBounds(npc);
     const y = b.y - 20 + Math.sin(now * 0.004) * 4;
     ctx.save();
-    ctx.font = 'bold 30px Outfit, sans-serif';
+    // 18px e não 30: o canvas de 1024 é esticado para a largura do celular, então o
+    // marcador desenhado grande vira um cartaz que cobre o cenário.
+    ctx.font = 'bold 18px Outfit, sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.lineWidth = 4;
     ctx.strokeStyle = 'rgba(6,9,14,0.9)';
@@ -11501,15 +11568,40 @@ document.addEventListener('DOMContentLoaded',()=>{
   if (btnAtk) {
     // `pointerdown` e não `click`: no celular o clique só dispara ao SOLTAR o dedo, e um
     // botão de ataque que espera o dedo sair parece atrasado.
-    btnAtk.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); doAttack(); });
+    //
+    // Um botão, duas funções: com monstro ao alcance ele ataca; com placa, porta, NPC ou
+    // ponto de coleta ele age. Antes havia dois botões disputando o mesmo canto da tela
+    // e um disparava o outro.
+    btnAtk.addEventListener('pointerdown', e => {
+      e.preventDefault(); initAudio();
+      const act = actionAvailable();
+      if (act && act !== 'attack' && act !== 'ressoar') doAction();
+      else doAttack();
+    });
     btnAtk.addEventListener('contextmenu', e => e.preventDefault());
+  }
+
+  // Ressoar em botão próprio, e só ele ressoa.
+  const btnRes = document.getElementById('botaoRessoar');
+  if (btnRes) {
+    btnRes.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); ressoar(); });
+    btnRes.addEventListener('contextmenu', e => e.preventDefault());
   }
   // As três habilidades ainda não fazem nada: ficam desabilitadas no HTML em vez de
   // abrirem um aviso de "em breve" a cada toque.
   // Os três botões pequenos voltaram a ser vagas. Os quatro golpes viraram uma corrente
   // no botão grande, e ocupá-los com os mesmos golpes seria oferecer duas portas para a
   // mesma coisa. Ficam reservados para habilidades de verdade.
-  ['habilidade1','habilidade2','habilidade3'].forEach(id => {
+  // Habilidade 1: Lâmina Ecoante. As outras duas seguem reservadas.
+  const btnLamina = document.getElementById('habilidade1');
+  if (btnLamina) {
+    btnLamina.disabled = false;
+    btnLamina.title = 'Lâmina Ecoante — os golpes ganham a lâmina gigante e ferem em volta';
+    btnLamina.querySelector('.hab-ico').textContent = '⚔';
+    btnLamina.dataset.tecla = 'Q';
+    btnLamina.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); ativarLamina(); });
+  }
+  ['habilidade2','habilidade3'].forEach(id => {
     const b = document.getElementById(id);
     if (!b) return;
     b.disabled = true;

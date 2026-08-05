@@ -405,7 +405,6 @@
       "aggroRange": 260,
       "touchRange": 34,
       "persegue": true,
-      "exigeRessonador": true,
       "drops": [
         {
           "item": "clave",

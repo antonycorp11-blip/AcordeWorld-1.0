@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=20260805094921">
+  <link rel="stylesheet" href="style.css?v=20260805104305">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -122,9 +122,19 @@
             <button class="btn-habilidade hab-3" id="habilidade3" disabled title="Habilidade 3">
               <span class="hab-ico">❈</span>
             </button>
-            <button class="btn-ataque" id="botaoAtaque" title="Ataque — aperte em sequência para encadear o combo">
-              <span class="atk-ico">⚔</span>
+            <!-- Um botão só para ataque e ação: com monstro ao alcance ele bate, com
+                 placa, porta ou NPC ele interage. Dois botões disputando o mesmo polegar
+                 era o que fazia um disparar o outro. -->
+            <button class="btn-ataque" id="botaoAtaque" title="Ataque / Ação">
+              <span class="atk-ico" id="ataqueIcone">⚔</span>
+              <span class="atk-rotulo" id="ataqueRotulo"></span>
               <i class="atk-recarga" id="ataqueRecarga"></i>
+            </button>
+            <!-- Ressoar tem botão PRÓPRIO: aparece só com um Eco aberto por perto.
+                 Dividindo lugar com o ataque, guardar o som capturado disparava um golpe
+                 no mesmo toque. -->
+            <button class="btn-ressoar" id="botaoRessoar" title="Ressoar o Eco">
+              <span>✦</span><small>RESSOAR</small>
             </button>
           </div>
           </div>
@@ -645,7 +655,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="config.js?v=20260805094921"></script>
-<script src="game.js?v=20260805094921"></script>
+<script src="config.js?v=20260805104305"></script>
+<script src="game.js?v=20260805104305"></script>
 </body>
 </html>

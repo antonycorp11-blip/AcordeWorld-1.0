@@ -5605,3 +5605,50 @@ body.jogando .roda-combate { display: block; }
   background: linear-gradient(135deg, #15803d, #166534);
   color: #dcfce7; border-color: #4ade80; font-weight: 700;
 }
+
+/* Rótulo da ação dentro do botão grande: quando ele deixa de ser ataque e passa a ser
+   "Falar", "Entrar", "Coletar", o ícone sozinho mentiria sobre o que vai acontecer. */
+.atk-rotulo {
+  position: absolute; bottom: 9px; left: 0; right: 0;
+  font-size: 9px; font-weight: 700; letter-spacing: .04em;
+  color: #fde68a; text-shadow: 0 1px 2px #000; z-index: 3;
+}
+.btn-ataque.modo-acao {
+  background: radial-gradient(circle at 35% 30%, #0369a1, #0c4a6e 70%);
+  border-color: rgba(147, 197, 253, 0.6);
+}
+.btn-ataque.modo-acao::before { content: none; }
+
+/* Ressoar: botão próprio, acima da roda, e só existe com um Eco aberto por perto. */
+.btn-ressoar {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%) translateY(-132px);
+  display: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  width: 86px; height: 62px; border-radius: 14px;
+  background: radial-gradient(circle at 40% 30%, #7e22ce, #4c1d95 75%);
+  border: 2px solid #c4b5fd; color: #ede9fe;
+  font-size: 20px; line-height: 1; cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.6), 0 0 14px rgba(167,139,250,0.5);
+  animation: pulso-ressoar 1s ease-in-out infinite;
+}
+.btn-ressoar small { font-size: 8px; letter-spacing: .1em; margin-top: 2px; }
+body.jogando .btn-ressoar.disponivel { display: flex; }
+@keyframes pulso-ressoar {
+  0%,100% { box-shadow: 0 6px 18px rgba(0,0,0,0.6), 0 0 10px rgba(167,139,250,0.45); }
+  50%     { box-shadow: 0 6px 18px rgba(0,0,0,0.6), 0 0 24px rgba(167,139,250,0.95); }
+}
+
+/* O botão de ação separado sai do celular: o botão grande faz as duas coisas. */
+body.mobile-play .touch-actions { display: none; }
+
+/* Retratos do time mais para cima, longe da roda de combate. Em 50% eles caíam
+   exatamente sobre as habilidades e os dois disputavam o mesmo toque. */
+body.jogando .party-hud { top: 30%; }
+/* Lâmina desperta: o botão fica aceso enquanto a janela está aberta. */
+.btn-habilidade.ativa {
+  border-color: #fbbf24; color: #fde68a;
+  background: radial-gradient(circle at 35% 30%, #b45309, #7c2d12 72%);
+  box-shadow: 0 0 16px rgba(251,191,36,0.7);
+}
