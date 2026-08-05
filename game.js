@@ -500,6 +500,7 @@ window.addEventListener('keydown', e => {
   if(e.key==='Shift')keys.shift=true;
   // Esc desarma o monstro escolhido: sem saída, o cursor fica em cruz para sempre e
   // todo clique no mapa vira um bicho novo.
+  if(e.key==='Escape'&&combateNoEditor){ alternarCombateNoEditor(false); }
   if(e.key==='Escape'&&monstroParaColocar){
     monstroParaColocar=null; canvas?.classList.remove('cursor-crosshair');
     renderPaletaDeMonstros(); showToast('Colocação cancelada');
@@ -4585,7 +4586,7 @@ function atualizarRotina(m, def, now) {
 const ESPACO_ENTRE_MONSTROS = 46;
 
 function updateMonsters(now) {
-  if (!isPlayMode || currentScene !== 'world') return;
+  if (!monstrosVivos() || currentScene !== 'world') return;
   atualizarCaptura(now);
 
   // Elege os que perseguem nesta rodada: os mais próximos primeiro. Os demais rondam
@@ -5370,7 +5371,7 @@ function alcanceAte(m, mult = 1) {
 }
 
 function attackTarget(mult = 1) {
-  if (!isPlayMode || playerLocked || currentScene !== 'world' || playerHp <= 0) return null;
+  if (!monstrosVivos() || playerLocked || currentScene !== 'world' || playerHp <= 0) return null;
   let best = null, bestD = Infinity;
   liveMonsters().forEach(m => {
     const d = Math.hypot(player.x - m.x, player.y - m.y);
@@ -5466,7 +5467,7 @@ function doAttack() {
 
 // Todos os monstros ao alcance, para o remate girar de verdade em vez de escolher um.
 function alvosEmVolta(mult = 1) {
-  if (!isPlayMode || playerLocked || currentScene !== 'world' || playerHp <= 0) return [];
+  if (!monstrosVivos() || playerLocked || currentScene !== 'world' || playerHp <= 0) return [];
   return liveMonsters().filter(m => Math.hypot(player.x - m.x, player.y - m.y) < alcanceAte(m, mult));
 }
 
@@ -7465,6 +7466,15 @@ function renderWorldMap(now) {
 // ============================================================
 function renderSceneOverlay(now) {
   const mapKey = activeMapSelect?.value || currentKey;
+
+  // Com os monstros soltos, o editor usa o MESMO desenho do jogo: animado, sem etiqueta
+  // e sem caixa de seleção. Ver o bicho com moldura vermelha e o nome flutuando não diz
+  // nada sobre como a arena se comporta — é justamente disso que se quer sair ao soltar.
+  if (combateNoEditor) {
+    renderMonsters(now);
+    return;
+  }
+
   // Monsters, so they can be seen and dragged in the editor.
   monsters.forEach(m=>{
     if(m.mapKey!==mapKey)return;
@@ -7769,7 +7779,7 @@ function onPointerDown(m){
   // da ferramenta (plantar, pintar, selecionar), senão não daria para trabalhar. Vem
   // depois da captura e do diálogo de propósito: quem está ressoando ou escolhendo uma
   // resposta não quer sacar a espada.
-  if (isPlayMode && !playerLocked && !shopOpen && !inventoryOpen && !charOpen && !forging) {
+  if ((isPlayMode || combateNoEditor) && !playerLocked && !shopOpen && !inventoryOpen && !charOpen && !forging) {
     doAttack();
     return;
   }
@@ -10724,6 +10734,42 @@ let zoomCenario = 1;
 // mexe: as ferramentas continuam ativas e o clique continua sendo do editor.
 let andarNoEditor = false;
 
+// Monstros VIVOS dentro do editor. Eles ficam congelados ali de propósito — ninguém
+// quer posicionar um bicho que sai andando da mão. Mas para montar uma arena e provar
+// que ela funciona, era preciso sair do editor, entrar no jogo, e voltar a cada ajuste.
+// Este interruptor solta os monstros sem largar as ferramentas.
+let combateNoEditor = false;
+
+// Quem manda os monstros se mexerem, atacarem e receberem dano: o jogo de verdade, ou
+// o teste de combate dentro do editor.
+function monstrosVivos() { return isPlayMode || combateNoEditor; }
+
+function alternarCombateNoEditor(ligar) {
+  combateNoEditor = ligar === undefined ? !combateNoEditor : !!ligar;
+  // Combate sem poder andar não serve para nada: ligar um liga o outro.
+  if (combateNoEditor && !andarNoEditor) alternarAndarNoEditor(true);
+  ['combateEditorBtn','combateEditorBtn2'].forEach(id => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.classList.toggle('active', combateNoEditor);
+    b.textContent = combateNoEditor ? '👾 Monstros soltos (clique para parar)'
+                                    : '👾 Soltar os monstros';
+  });
+  if (combateNoEditor) {
+    // Ao soltar, todo mundo volta inteiro e para casa: testar arena com os bichos meio
+    // mortos da tentativa anterior não diz nada.
+    monsters.forEach(m => {
+      if (m.mapKey !== currentKey) return;
+      m.dead = false; m.hp = m.maxHp; m.pronto = false;
+      m.x = m.homeX ?? m.x; m.y = m.homeY ?? m.y; m.respawnAt = 0;
+    });
+    showToast('👾 Monstros soltos — espaço ataca, ESC para parar');
+  } else {
+    monsters.forEach(m => { if (m.mapKey === currentKey) { m.x = m.homeX ?? m.x; m.y = m.homeY ?? m.y; } });
+    showToast('👾 Monstros de volta ao posto');
+  }
+}
+
 // Quem manda o personagem andar e a câmera aproximar: jogando de verdade, ou o modo
 // de caminhada do editor.
 function personagemAndando() { return isPlayMode || andarNoEditor; }
@@ -10737,7 +10783,12 @@ function alternarAndarNoEditor(ligar) {
     b.classList.toggle('active', andarNoEditor);
     b.textContent = andarNoEditor ? '🚶 Andando (clique para parar)' : '🚶 Andar no cenário';
   });
-  if (!andarNoEditor) { keys.w = keys.a = keys.s = keys.d = false; player.isMoving = false; }
+  if (!andarNoEditor) {
+    keys.w = keys.a = keys.s = keys.d = false; player.isMoving = false;
+    // Parar de andar recolhe os monstros: deixá-los soltos com o personagem parado
+    // vira um cerco que atrapalha justamente quem voltou para editar.
+    if (combateNoEditor) alternarCombateNoEditor(false);
+  }
   else showToast('🚶 WASD anda. As ferramentas continuam funcionando.');
 }
 
@@ -11009,6 +11060,10 @@ function loop(now){
       player.animTimer+=spd;
       if(player.animTimer>passoDaAnimacao(sprint)){player.animTimer=0;player.animFrame=(player.animFrame+1)%(personagemAtivo().cols||4);}
     } else { player.animFrame = quadroParado(); player.animTimer = 0; }
+
+    // Os monstros só eram atualizados DENTRO do bloco de modo jogo. Soltá-los no editor
+    // os deixava vivos para o dano mas parados no lugar — metade do teste.
+    if (combateNoEditor) { updateMonsters(now); updateDrops(now); }
   }
 
   if(isPlayMode){
@@ -11382,6 +11437,8 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   ['andarEditorBtn','andarEditorBtn2'].forEach(id =>
     document.getElementById(id)?.addEventListener('click',()=>alternarAndarNoEditor()));
+  ['combateEditorBtn','combateEditorBtn2'].forEach(id =>
+    document.getElementById(id)?.addEventListener('click',()=>alternarCombateNoEditor()));
   document.getElementById('areaFecharBtn')?.addEventListener('click',()=>areaFechar());
   document.getElementById('areaDesfazerBtn')?.addEventListener('click',()=>areaDesfazerPonto());
   // Teclado do contorno. Só responde com a ferramenta em uso e fora de campo de texto,
