@@ -5507,6 +5507,56 @@ function atualizarChuva(now) {
   });
 }
 
+// A lança-microfone da Wins desenhada de perfil, apontada para baixo, com a ponta em (x, y).
+// Vai como forma vetorial porque a arma dela vive dentro da folha de sprites e não existe
+// como recorte solto — desenhar dá controle de ângulo e brilho que um recorte não daria.
+function desenharLancaDaWins(x, y, alt, alfa) {
+  const h = alt, larg = h * 0.075;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalAlpha = alfa;
+
+  // Rastro luminoso atrás da haste.
+  const g = ctx.createLinearGradient(0, -h, 0, 0);
+  g.addColorStop(0, 'rgba(147,197,253,0)');
+  g.addColorStop(1, 'rgba(191,219,254,0.55)');
+  ctx.strokeStyle = g; ctx.lineWidth = larg * 2.6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(0, -h * 1.5); ctx.lineTo(0, -h * 0.2); ctx.stroke();
+
+  // Haste.
+  ctx.fillStyle = '#cbd5e1';
+  ctx.fillRect(-larg / 2, -h * 0.82, larg, h * 0.62);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillRect(-larg / 2, -h * 0.82, larg * 0.35, h * 0.62);
+
+  // Cabeça de microfone no topo: grade redonda com aro.
+  const rm = larg * 1.9, cy = -h * 0.86;
+  ctx.fillStyle = '#1e293b';
+  ctx.beginPath(); ctx.arc(0, cy, rm, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = Math.max(1, larg * 0.35);
+  ctx.beginPath(); ctx.arc(0, cy, rm, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(226,232,240,0.7)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(-rm * 0.7, cy); ctx.lineTo(rm * 0.7, cy); ctx.stroke();
+
+  // Anel de empunhadura logo abaixo da cabeça.
+  ctx.fillStyle = '#f8d17a';
+  ctx.fillRect(-larg * 1.1, -h * 0.7, larg * 2.2, h * 0.05);
+
+  // Lâmina: losango afiado terminando exatamente na ponta.
+  ctx.fillStyle = '#eff6ff';
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(-larg * 1.15, -h * 0.15);
+  ctx.lineTo(0, -h * 0.24);
+  ctx.lineTo(larg * 1.15, -h * 0.15);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#7dd3fc';
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(0, -h * 0.24); ctx.lineTo(larg * 1.15, -h * 0.15);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
 function renderChuva(now) {
   if (!chuva) return;
   ctx.save();
@@ -5521,15 +5571,12 @@ function renderChuva(now) {
     if (t < 0 || t > 1.35) return;
     const px = chuva.centro.x + l.dx, py = chuva.centro.y + l.dy;
     if (t <= 1) {
-      // Descendo do alto: a lança entra de cima da tela e crava no ponto.
-      const alt = 180 * (1 - t);
-      ctx.strokeStyle = '#dbeafe'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(px, py - alt - 26); ctx.lineTo(px, py - alt); ctx.stroke();
+      // Descendo do alto: a lança inteira entra de cima e crava no ponto.
+      const alt = 200 * (1 - t) * (1 - t);   // acelera na queda
+      desenharLancaDaWins(px, py - alt, 64, 1);
     } else {
-      // Cravada, apagando.
-      ctx.globalAlpha = 1 - (t - 1) / 0.35;
-      ctx.strokeStyle = '#93c5fd'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(px, py - 22); ctx.lineTo(px, py); ctx.stroke();
+      // Cravada, apagando de pé no chão.
+      desenharLancaDaWins(px, py, 64, 1 - (t - 1) / 0.35);
       ctx.globalAlpha = 1;
     }
   });
@@ -5654,11 +5701,25 @@ function renderEstadosDeMonstro(now) {
     ctx.save();
     ctx.font = 'bold 13px Outfit, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillStyle = dorme ? '#a5b4fc' : '#c4b5fd';
-    ctx.strokeStyle = 'rgba(6,9,14,0.9)'; ctx.lineWidth = 3;
-    const txt = dorme ? 'zZ' : '✶';
     const y = b.y - 6 + Math.sin(now * 0.005) * 3;
-    ctx.strokeText(txt, m.x, y); ctx.fillText(txt, m.x, y);
+    if (dorme) {
+      ctx.fillStyle = '#a5b4fc';
+      ctx.strokeStyle = 'rgba(6,9,14,0.9)'; ctx.lineWidth = 3;
+      ctx.strokeText('zZ', m.x, y); ctx.fillText('zZ', m.x, y);
+    } else {
+      // Paralisado: faíscas desenhadas. Antes era o caractere ✶, que a fonte não tem —
+      // e fonte sem glifo desenha o retângulo vazio (o "quadrado roxo").
+      ctx.strokeStyle = '#c4b5fd'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+      const g = now * 0.012;
+      for (let i = 0; i < 3; i++) {
+        const a = g + i * (Math.PI * 2 / 3);
+        const r1 = 3, r2 = 8;
+        ctx.beginPath();
+        ctx.moveTo(m.x + Math.cos(a) * r1, y - 4 + Math.sin(a) * r1 * 0.7);
+        ctx.lineTo(m.x + Math.cos(a) * r2, y - 4 + Math.sin(a) * r2 * 0.7);
+        ctx.stroke();
+      }
+    }
     ctx.restore();
   });
 }
@@ -5688,31 +5749,31 @@ function carregarPassivas(d) { if (d) Object.assign(passivas, d); }
 // e a Wins apertava o botão para ver a espada do Achilles sair.
 const HABILIDADES = {
   achilles: [
-    { id: 'lamina', nome: LAMINA_NOME, ico: '⚔', tecla: 'Q',
+    { id: 'lamina', nome: LAMINA_NOME, ico: 'assets/icons/habilidades/akles_lamina.png', tecla: 'Q',
       usar: () => ativarLamina(), ativa: () => laminaAtiva(),
       resta: () => Math.max(0, (laminaAtiva() ? laminaAte : laminaEsperaAte) - performance.now()),
       total: () => laminaAtiva() ? LAMINA_MS : LAMINA_ESPERA },
-    { id: 'setima', nome: SETIMA_NOME, ico: '➤', tecla: 'R',
+    { id: 'setima', nome: SETIMA_NOME, ico: 'assets/icons/habilidades/akles_setima.png', tecla: 'R',
       usar: () => engatilharSetima(),
       ativa: () => setimaEngatilhada || mirandoSetima(),
       resta: () => Math.max(0, setimaEsperaAte - performance.now()),
       total: () => SETIMA_ESPERA,
       passivas: ['akles.setima.empurrao'] },
-    { id: 'orbita', nome: ORBITA_NOME, ico: '✹', tecla: 'F', suprema: true,
+    { id: 'orbita', nome: ORBITA_NOME, ico: 'assets/icons/habilidades/akles_orbita.png', tecla: 'F', suprema: true,
       usar: () => ativarOrbita(), ativa: () => orbitaAtiva(),
       resta: () => Math.max(0, (orbitaAtiva() ? orbitaAte : orbitaEsperaAte) - performance.now()),
       total: () => orbitaAtiva() ? ORBITA_MS : ORBITA_ESPERA,
       passivas: ['akles.suprema.dano', 'akles.suprema.cura'] },
   ],
   wins: [
-    { id: 'chuva', nome: CHUVA_NOME, ico: '⇊', tecla: 'Q',
+    { id: 'chuva', nome: CHUVA_NOME, ico: 'assets/icons/habilidades/wins_chuva.png', tecla: 'Q',
       usar: () => ativarChuva(), ativa: () => !!chuva,
       resta: () => Math.max(0, chuvaEsperaAte - performance.now()), total: () => CHUVA_ESPERA },
-    { id: 'grito', nome: GRITO_NOME, ico: '◉', tecla: 'R',
+    { id: 'grito', nome: GRITO_NOME, ico: 'assets/icons/habilidades/wins_grito.png', tecla: 'R',
       usar: () => ativarGrito(), ativa: () => !!grito,
       resta: () => Math.max(0, gritoEsperaAte - performance.now()), total: () => GRITO_ESPERA,
       passivas: ['wins.grito.raio'] },
-    { id: 'clarao', nome: SONO_NOME, ico: '☀', tecla: 'F', suprema: true,
+    { id: 'clarao', nome: SONO_NOME, ico: 'assets/icons/habilidades/wins_clarao.png', tecla: 'F', suprema: true,
       usar: () => ativarSono(), ativa: () => !!clarao,
       resta: () => Math.max(0, sonoEsperaAte - performance.now()), total: () => SONO_ESPERA,
       passivas: ['wins.suprema.carga', 'wins.suprema.sono'] },
@@ -5739,7 +5800,9 @@ function atualizarBuffs(now) {
       d.className = 'buff' + (h.suprema ? ' suprema' : '');
       d.title = h.nome;
       d.dataset.id = h.id;
-      d.innerHTML = `<span>${h.ico}</span><span class="buff-seg"></span><i class="buff-barra"></i>`;
+      const arte = /\.(png|jpe?g|webp)$/i.test(h.ico);
+      d.innerHTML = (arte ? `<img src="${h.ico}" alt="">` : `<span>${h.ico}</span>`) +
+                    '<span class="buff-seg"></span><i class="buff-barra"></i>';
       caixa.appendChild(d);
     });
   }
@@ -5762,7 +5825,15 @@ function sincronizarBotoesDeHabilidade() {
     b.disabled = !h;
     b.title = h ? h.nome : 'Habilidade ainda não desbloqueada';
     const ico = b.querySelector('.hab-ico');
-    if (ico) ico.textContent = h ? h.ico : '·';
+    if (ico) {
+      // O ícone virou ARTE. Continua aceitando texto para uma habilidade sem miniatura
+      // ainda — quem não tem arte não pode ficar com o botão vazio.
+      if (h && /\.(png|jpe?g|webp)$/i.test(h.ico)) {
+        ico.innerHTML = `<img src="${h.ico}" alt="">`;
+      } else {
+        ico.textContent = h ? h.ico : '·';
+      }
+    }
     if (h && h.tecla) b.dataset.tecla = h.tecla; else delete b.dataset.tecla;
   });
 }
