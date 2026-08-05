@@ -5614,3 +5614,10 @@ body.jogando .roda-combate { display: block; }
   background: rgba(251,191,36,0.10);
 }
 .npc-gallery-card.armado .btn-card-add { background: #b45309; color: #fff; }
+
+/* Botões de teste na barra do topo. Acesos, mostram que o editor está com o mundo
+   rodando — sem isso não há como saber, olhando a tela, se os monstros estão soltos. */
+#andarEditorBtn.active, #combateEditorBtn.active {
+  background: linear-gradient(135deg, #15803d, #166534);
+  color: #dcfce7; border-color: #4ade80; font-weight: 700;
+}

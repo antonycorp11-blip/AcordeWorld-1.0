@@ -831,6 +831,15 @@
       "y": 429,
       "escala": 1,
       "flipX": false
+    },
+    {
+      "id": "shiker_1785932887180",
+      "type": "shiker",
+      "mapKey": "custom_1785900374897_630",
+      "x": 508,
+      "y": 212,
+      "escala": 1,
+      "flipX": false
     }
   ]
 }

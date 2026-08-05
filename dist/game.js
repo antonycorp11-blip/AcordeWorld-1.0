@@ -10752,8 +10752,7 @@ function alternarCombateNoEditor(ligar) {
     const b = document.getElementById(id);
     if (!b) return;
     b.classList.toggle('active', combateNoEditor);
-    b.textContent = combateNoEditor ? '👾 Monstros soltos (clique para parar)'
-                                    : '👾 Soltar os monstros';
+    b.textContent = combateNoEditor ? '👾 Monstros soltos' : '👾 Soltar monstros';
   });
   if (combateNoEditor) {
     // Ao soltar, todo mundo volta inteiro e para casa: testar arena com os bichos meio
@@ -10781,7 +10780,7 @@ function alternarAndarNoEditor(ligar) {
     const b = document.getElementById(id);
     if (!b) return;
     b.classList.toggle('active', andarNoEditor);
-    b.textContent = andarNoEditor ? '🚶 Andando (clique para parar)' : '🚶 Andar no cenário';
+    b.textContent = andarNoEditor ? '🚶 Andando' : '🚶 Andar';
   });
   if (!andarNoEditor) {
     keys.w = keys.a = keys.s = keys.d = false; player.isMoving = false;
