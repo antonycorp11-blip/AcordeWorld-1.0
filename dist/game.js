@@ -5829,6 +5829,19 @@ function killMonster(m, now) {
 function damagePlayer(amount) {
   const now = performance.now();
   if (now < playerHurtUntil) return; // invulnerability window
+
+  // No TESTE dentro do editor o herói apanha mas não cai. Morrer ali travava tudo: a
+  // morte liga playerLocked e entrega a recuperação ao updateRespawn, que só roda no
+  // modo jogo — o resultado era o combate parar de vez, sem dano e sem controle, e
+  // nada na tela dizendo o porquê. Foi exatamente este o "funcionou e depois parou".
+  // Quem está montando uma arena quer sentir a pancada, não recomeçar a cada erro.
+  if (combateNoEditor && !isPlayMode) {
+    playerHp = Math.max(1, playerHp - amount);
+    playerHurtUntil = now + 700;
+    addFloater(player.x, player.y - player.height - 6, `-${amount}`, '#fecaca');
+    return;
+  }
+
   playerHp = Math.max(0, playerHp - amount);
   playerHurtUntil = now + 700;
   addFloater(player.x, player.y - player.height - 6, `-${amount}`, '#fecaca');
@@ -10774,6 +10787,10 @@ function alternarCombateNoEditor(ligar) {
       m.dead = false; m.hp = m.maxHp; m.pronto = false; m.abertoAte = 0;
       m.x = m.homeX ?? m.x; m.y = m.homeY ?? m.y; m.respawnAt = 0;
     });
+    // Começa o teste com o herói inteiro e livre: entrar numa arena já machucado ou
+    // travado de uma rodada anterior não diz nada sobre a arena.
+    playerHp = playerMaxHp();
+    playerLocked = false; deadUntil = 0; playerHurtUntil = 0;
     showToast('👾 Monstros soltos — espaço ataca, ESC para parar');
   } else {
     monsters.forEach(m => { if (m.mapKey === currentKey) { m.x = m.homeX ?? m.x; m.y = m.homeY ?? m.y; } });
@@ -11074,7 +11091,9 @@ function loop(now){
 
     // Os monstros só eram atualizados DENTRO do bloco de modo jogo. Soltá-los no editor
     // os deixava vivos para o dano mas parados no lugar — metade do teste.
-    if (combateNoEditor) { updateMonsters(now); updateDrops(now); }
+    // updateRespawn entra junto: sem ele, um herói que tenha caído por qualquer outro
+    // caminho ficaria travado para sempre, porque a recuperação vive só no modo jogo.
+    if (combateNoEditor) { updateRespawn(now); updateMonsters(now); updateDrops(now); }
   }
 
   if(isPlayMode){
