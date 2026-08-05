@@ -5685,3 +5685,23 @@ body.jogando .party-hud { top: 30%; }
   border-color: #fff; color: #0c4a6e;
   box-shadow: 0 6px 20px rgba(0,0,0,0.6), 0 0 22px rgba(224,242,254,0.95);
 }
+
+/* ═══ Barras de vida e XP no celular ═══ */
+/* No computador elas têm 14 e 11 px de altura com texto de 9 px — apertado, mas legível
+   numa tela grande. No celular o mesmo tamanho fica minúsculo, e no caso da barra de XP o
+   texto de 9 px não cabia nos 11 px de altura: os números saíam cortados em cima e embaixo.
+   Aqui tudo cresce junto, mantendo a proporção entre barra e texto. */
+@media (max-width: 900px), (max-height: 500px) {
+  .hud-vitals { gap: 8px; }
+  .hud-bars { gap: 6px; }
+  .bar { width: 190px; height: 20px; border-width: 2px; }
+  .bar.xp { width: 190px; height: 18px; }
+  .bar-val-text, .bar.xp span {
+    font-size: 12px; letter-spacing: .3px;
+    /* Contorno em vez de só sombra: sobre a barra vermelha cheia, sombra sozinha não
+       separa o número do fundo. */
+    text-shadow: 0 1px 0 #000, 0 -1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 2px 4px #000;
+  }
+  /* O medalhão de nível encolhe um pouco para as barras terem onde crescer. */
+  .lvl-badge { width: 40px; height: 40px; font-size: 15px; }
+}

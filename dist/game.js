@@ -496,11 +496,12 @@ window.addEventListener('keydown', e => {
     e.preventDefault(); doAttack();
   }
   // Q desperta a Lâmina Ecoante. Ela não é um golpe: é uma janela em que os golpes mudam.
-  if(e.code==='KeyQ'&&(isPlayMode||andarNoEditor)&&dlg.state===DLG_STATE.CLOSED){
-    e.preventDefault(); ativarLamina();
-  }
-  if(e.code==='KeyR'&&(isPlayMode||andarNoEditor)&&dlg.state===DLG_STATE.CLOSED){
-    e.preventDefault(); armarSetima();
+  // Q e R chamam a primeira e a segunda habilidade DO PERSONAGEM EM CAMPO, não a Lâmina e
+  // a Sétima por nome — senão a Wins usaria as do Achilles pelo teclado.
+  if((e.code==='KeyQ'||e.code==='KeyR')&&(isPlayMode||andarNoEditor)&&dlg.state===DLG_STATE.CLOSED){
+    e.preventDefault();
+    const h = habilidadesDoHeroi()[e.code==='KeyQ' ? 0 : 1];
+    if (h) h.usar();
   }
   if(k==='1'){e.preventDefault();trocarHeroiDoTime(0);}
   if(k==='2'){e.preventDefault();trocarHeroiDoTime(1);}
@@ -3982,8 +3983,7 @@ function mundoMoverJogador() {
   const sprint = keys.shift || len > 0.92;
   const spd = (sprint ? player.sprintSpeed : player.speed) * Math.min(1, len);
   dx /= len; dy /= len;
-  if (Math.abs(dx) > Math.abs(dy)) player.direction = dx < 0 ? 'left' : 'right';
-  else player.direction = dy < 0 ? 'up' : 'down';
+  player.direction = direcaoDoMovimento(dx, dy, player.direction);
 
   const tx = player.x + dx * spd, ty = player.y + dy * spd;
   const livre = (x, y) => x > 20 && y > 24 && x < mundoLargura() - 20 && y < mundoAltura() - 24
@@ -5292,11 +5292,27 @@ let laminaVoando = null;  // { de:{x,y}, para:{x,y}, inicio, acertados:Set }
 function setimaPronta() { return performance.now() >= setimaEsperaAte; }
 function mirandoSetima() { return !!mira; }
 
-// Arma a mira. Daqui em diante o toque na tela aponta, e soltar dispara.
-function armarSetima() {
+// A Sétima tem DOIS tempos. Apertar a habilidade só a deixa ENGATILHADA; a mira nasce
+// quando o dedo pressiona o botão de ataque e segura, e o arremesso sai ao soltar.
+//
+// A primeira versão armava a mira no próprio toque da habilidade — e como esse mesmo toque
+// levantava o dedo em seguida, o `pointerup` disparava na hora: apertar a habilidade já
+// era o arremesso, sem nunca dar para mirar.
+let setimaEngatilhada = false;
+
+function engatilharSetima() {
   if (!setimaPronta() || laminaVoando) return false;
-  mira = { x: player.x, y: player.y - 1 };
-  anunciar(SETIMA_NOME, 1100);
+  setimaEngatilhada = true;
+  anunciar(SETIMA_NOME + ' · PRONTA', 1100);
+  return true;
+}
+
+// Chamado quando o dedo PRESSIONA o botão de ataque com a habilidade engatilhada.
+function abrirMiraSetima() {
+  if (!setimaEngatilhada || !setimaPronta() || laminaVoando) return false;
+  setimaEngatilhada = false;
+  mira = { x: player.x + (player.direction === 'left' ? -60 : player.direction === 'right' ? 60 : 0),
+           y: player.y + (player.direction === 'up' ? -60 : player.direction === 'down' ? 60 : 0) };
   return true;
 }
 
@@ -5347,6 +5363,87 @@ function atualizarLaminaVoando(now) {
     addFloater(m.x, monsterBounds(m).y - 12, crit ? `${dmg}!` : `-${dmg}`, crit ? '#fde047' : '#c4b5fd');
     if (m.hp <= 0) killMonster(m, now);
   });
+}
+
+// ── Habilidades por personagem ──────────────────────────────────────────────────
+// Cada herói declara as suas. Os três botões da roda leem esta lista, então trocar de
+// personagem troca o que os botões fazem — antes eles chamavam a Lâmina e a Sétima direto,
+// e a Wins apertava o botão para ver a espada do Achilles sair.
+const HABILIDADES = {
+  achilles: [
+    { id: 'lamina', nome: LAMINA_NOME, ico: '⚔', tecla: 'Q',
+      usar: () => ativarLamina(),
+      ativa: () => laminaAtiva(),
+      resta: () => Math.max(0, (laminaAtiva() ? laminaAte : laminaEsperaAte) - performance.now()),
+      total: () => laminaAtiva() ? LAMINA_MS : LAMINA_ESPERA },
+    { id: 'setima', nome: SETIMA_NOME, ico: '➤', tecla: 'R',
+      usar: () => engatilharSetima(),
+      ativa: () => setimaEngatilhada || mirandoSetima(),
+      resta: () => Math.max(0, setimaEsperaAte - performance.now()),
+      total: () => SETIMA_ESPERA },
+  ],
+  // A Wins ainda não tem habilidade própria. Deixar as do Achilles aqui seria pior que
+  // deixar vazio: ela apertaria o botão e sairia a espada dele.
+  wins: [],
+};
+
+function habilidadesDoHeroi() { return HABILIDADES[selectedHeroId] || []; }
+
+// Cara dos três botões: ícone, tecla, ativo/desabilitado. Roda na troca de personagem.
+function sincronizarBotoesDeHabilidade() {
+  const lista = habilidadesDoHeroi();
+  ['habilidade1','habilidade2','habilidade3'].forEach((id, i) => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    const h = lista[i];
+    b.disabled = !h;
+    b.title = h ? h.nome : 'Habilidade ainda não desbloqueada';
+    const ico = b.querySelector('.hab-ico');
+    if (ico) ico.textContent = h ? h.ico : '·';
+    if (h && h.tecla) b.dataset.tecla = h.tecla; else delete b.dataset.tecla;
+  });
+}
+
+// Entrada em campo: anel que se abre do chão e uma coluna de luz curta. A troca antes
+// acontecia no mesmo quadro, sem nada marcando o instante — parecia falha de sprite em vez
+// de uma personagem entrando.
+const TROCA_MS = 620;
+let trocaEfeito = null;
+
+function renderTrocaDeHeroi(now) {
+  if (!trocaEfeito) return;
+  const t = (now - trocaEfeito.inicio) / TROCA_MS;
+  if (t >= 1) { trocaEfeito = null; return; }
+  const alfa = 1 - t;
+
+  ctx.save();
+  // Anel abrindo no chão, achatado pela perspectiva de cima.
+  ctx.strokeStyle = `rgba(191,219,254,${0.85 * alfa})`;
+  ctx.lineWidth = 3 * (1 - t * 0.6);
+  ctx.beginPath();
+  ctx.ellipse(player.x, player.y, 18 + t * 66, 7 + t * 26, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  // Segundo anel atrasado: dá a sensação de onda em vez de um círculo só crescendo.
+  if (t > 0.18) {
+    const t2 = (t - 0.18) / 0.82;
+    ctx.strokeStyle = `rgba(147,197,253,${0.5 * (1 - t2)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(player.x, player.y, 18 + t2 * 52, 7 + t2 * 20, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // Coluna curta de luz subindo pelo corpo, some rápido.
+  if (t < 0.55) {
+    const tc = t / 0.55;
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createLinearGradient(0, player.y, 0, player.y - player.height * 1.15);
+    g.addColorStop(0, `rgba(224,242,254,${0.5 * (1 - tc)})`);
+    g.addColorStop(1, 'rgba(147,197,253,0)');
+    ctx.fillStyle = g;
+    const larg = player.width * (1.1 - tc * 0.4);
+    ctx.fillRect(player.x - larg / 2, player.y - player.height * 1.15, larg, player.height * 1.15);
+  }
+  ctx.restore();
 }
 
 // Faixa de mira: sai do PÉ do personagem e vai até onde se aponta, com a ponta marcada.
@@ -5492,36 +5589,11 @@ function renderAttackSwing(now) {
   ctx.save();
   ctx.translate(cx, cy);
 
-  // Rastro de corte cortante brilhante (Magic Slash)
-  const startAngle = base - 1.2 + t * 2.4;
-  const endAngle = base - 1.2 + Math.min(2.4, t * 2.4 + 0.8);
-
-  ctx.shadowColor = '#38bdf8';
-  ctx.shadowBlur = 18;
-  ctx.strokeStyle = `rgba(186, 230, 253, ${Math.max(0, 1 - t * 0.9)})`;
-  ctx.lineWidth = 14 * (1 - Math.pow(t, 2));
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.arc(0, 0, 42 + t * 8, startAngle, endAngle);
-  ctx.stroke();
-
-  // Linha interna de núcleo de luz branca puro
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = `rgba(255, 255, 255, ${Math.max(0, 1 - t * 0.5)})`;
-  ctx.lineWidth = 4 * (1 - t);
-  ctx.beginPath();
-  ctx.arc(0, 0, 42 + t * 8, startAngle, endAngle);
-  ctx.stroke();
-
-  // Fagulhas / Sparks de impacto cortante no final
-  if (t > 0.3 && t < 0.8) {
-    ctx.fillStyle = '#7dd3fc';
-    for (let i = 0; i < 4; i++) {
-      const sparkAngle = endAngle + (Math.random() - 0.5) * 0.5;
-      const dist = 48 + Math.random() * 15;
-      ctx.fillRect(Math.cos(sparkAngle) * dist, Math.sin(sparkAngle) * dist, 3, 3);
-    }
-  }
+  // Aqui vivia um arco azul brilhante girando em volta do personagem, com núcleo branco e
+  // fagulhas — herança de quando as folhas não tinham golpe desenhado e o efeito precisava
+  // fingir o corte. Hoje TODAS as folhas de ataque já trazem o próprio rastro, desenhado
+  // quadro a quadro, e esse arco girava por cima dele: dois cortes na mesma tela,
+  // atrapalhando justamente a animação que se quer ver. Saiu.
 
   // Espada gigante da Lâmina Ecoante.
   //
@@ -5559,20 +5631,9 @@ function renderAttackSwing(now) {
       ctx.drawImage(vImg, 10, -dh / 2, dw, dh);
       ctx.restore();
     }
-    ctx.font = 'bold 20px Outfit, serif';
-    const notas = ['♫', '♪', '♩', '♬', '𝄞'];
-    for (let i = 0; i < 5; i++) {
-      const nAngle = startAngle + (endAngle - startAngle) * (i / 4.0);
-      const nDist = 44 + Math.sin(t * Math.PI * 2 + i) * 16;
-      const nx = Math.cos(nAngle) * nDist;
-      const ny = Math.sin(nAngle) * nDist;
-      ctx.fillStyle = i % 2 === 0 ? '#38bdf8' : '#fde68a';
-      ctx.shadowColor = ctx.fillStyle;
-      ctx.shadowBlur = 14;
-      ctx.globalAlpha = Math.max(0, 1 - t * 1.05);
-      ctx.fillText(notas[i % notas.length], nx - 8, ny + 8);
-    }
-    ctx.globalAlpha = 1;
+    // As cinco notas musicais que orbitavam o golpe saíram junto: elas eram posicionadas
+    // ao longo do arco que não existe mais, e mesmo redesenhadas viravam mais um enfeite
+    // girando em volta do personagem — a mesma poluição que o arco causava.
   }
   ctx.restore();
 }
@@ -5681,44 +5742,36 @@ function atualizarBotaoDeAtaque(now) {
   // Ressoar aparece só quando há Eco aberto ao lado.
   document.getElementById('botaoRessoar')?.classList.toggle('disponivel', acao === 'ressoar');
 
-  // Recarga da Lâmina no botão da habilidade: véu, anel de desperta e o CONTADOR em
-  // segundos. A barra sozinha não diz quanto falta — o número é o que evita ficar
-  // apertando no vazio para descobrir.
-  const bl = document.getElementById('habilidade1');
-  if (bl) {
-    const ativa = laminaAtiva();
-    // Enquanto está desperta, o número conta o que resta DELA; depois, o que resta da
-    // espera. São duas contagens diferentes e o jogador se importa com as duas.
-    const restaJanela = Math.max(0, laminaAte - now);
-    const restaEspera = Math.max(0, laminaEsperaAte - now);
-    bl.classList.toggle('recarregando', !ativa && restaEspera > 0);
-    bl.classList.toggle('ativa', ativa);
-    bl.style.setProperty('--recarga', (restaEspera / LAMINA_ESPERA * 100).toFixed(0) + '%');
-    const conta = document.getElementById('habConta1');
+  // Recarga e destaque dos três botões, lidos do catálogo do personagem em campo. Antes
+  // isto era escrito à mão para a Lâmina e para a Sétima, com as constantes do Achilles
+  // — a Wins herdava os contadores dele mesmo sem ter as habilidades.
+  const listaHab = habilidadesDoHeroi();
+  ['habilidade1','habilidade2','habilidade3'].forEach((id, i) => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    const h = listaHab[i];
+    const conta = document.getElementById('habConta' + (i + 1));
+    if (!h) {
+      b.classList.remove('recarregando', 'ativa');
+      if (conta) { conta.textContent = ''; conta.style.display = 'none'; }
+      return;
+    }
+    const ativa = h.ativa();
+    const resta = h.resta();
+    const total = h.total() || 1;
+    b.classList.toggle('ativa', ativa);
+    b.classList.toggle('recarregando', !ativa && resta > 0);
+    b.style.setProperty('--recarga', (resta / total * 100).toFixed(0) + '%');
     if (conta) {
-      const alvo = ativa ? restaJanela : restaEspera;
-      // Math.ceil e não round: mostrar "0" com meio segundo restando é mentir que já pode.
-      conta.textContent = alvo > 0 ? String(Math.ceil(alvo / 1000)) : '';
-      conta.style.display = alvo > 0 ? 'flex' : 'none';
+      // Math.ceil: mostrar zero com meio segundo restando mentiria que já pode usar.
+      conta.textContent = resta > 0 ? String(Math.ceil(resta / 1000)) : '';
+      conta.style.display = resta > 0 ? 'flex' : 'none';
       conta.style.color = ativa ? '#fde68a' : '#fff';
     }
-  }
-
-  // Botão da Sétima: acende enquanto a mira está armada, e conta a espera depois.
-  const bs = document.getElementById('habilidade2');
-  if (bs) {
-    const restaS = Math.max(0, setimaEsperaAte - now);
-    bs.classList.toggle('recarregando', restaS > 0 && !mirandoSetima());
-    bs.classList.toggle('ativa', mirandoSetima());
-    bs.style.setProperty('--recarga', (restaS / SETIMA_ESPERA * 100).toFixed(0) + '%');
-    const cs = document.getElementById('habConta2');
-    if (cs) {
-      cs.textContent = restaS > 0 ? String(Math.ceil(restaS / 1000)) : '';
-      cs.style.display = restaS > 0 ? 'flex' : 'none';
-    }
-  }
-  // O botão de ataque acende junto: é ele que o polegar procura para soltar o arremesso.
-  _btnAtaque.classList.toggle('mirando', mirandoSetima());
+  });
+  // O botão de ataque acende quando há mira aberta OU habilidade engatilhada esperando o
+  // dedo: é nele que o gesto continua.
+  _btnAtaque.classList.toggle('mirando', mirandoSetima() || setimaEngatilhada);
 
   const espera = attackCooldown();
   const falta = Math.max(0, espera - (now - lastAttack));
@@ -8184,6 +8237,7 @@ function onPointerDown(m){
   // Mira armada: o toque aponta, não golpeia. Sem esta saída, tocar na tela para mirar
   // disparava um golpe e a mira era descartada no mesmo gesto.
   if (mirandoSetima()) { apontarSetima(m.x, m.y); return; }
+  if (setimaEngatilhada && abrirMiraSetima()) { apontarSetima(m.x, m.y); return; }
   if ((isPlayMode || combateNoEditor) && !playerLocked && !shopOpen && !inventoryOpen && !charOpen && !forging) {
     doAttack();
     return;
@@ -8756,12 +8810,27 @@ function bindTouchControls() {
     ox = bc.left + bc.width / 2;
     oy = bc.top + bc.height / 2;
   };
+  // Zona morta de 22% do raio. Sem ela, o menor tremor do dedo já valia como direção — o
+  // dedo apoiado meio fora do centro empurrava o personagem para um lado sozinho, e era
+  // isso que fazia ele ir para onde não se pediu.
+  const ZONA_MORTA = 0.22;
+
   const apply = (cx, cy) => {
     let dx = cx - ox, dy = cy - oy;
     const d = Math.hypot(dx, dy), k = d > R ? R / d : 1;
     knob.style.transform = `translate(${dx * k}px, ${dy * k}px)`;
-    stick.x = Math.max(-1, Math.min(1, dx / R));
-    stick.y = Math.max(-1, Math.min(1, dy / R));
+
+    const bruto = Math.min(1, d / R);
+    if (bruto < ZONA_MORTA) {
+      // Dentro da zona morta o manche existe mas não manda: o polegar pode descansar.
+      stick.x = 0; stick.y = 0; stick.active = true;
+      return;
+    }
+    // Reescala o que sobra para 0..1, senão a zona morta encurtaria o alcance útil e a
+    // velocidade máxima nunca seria alcançada.
+    const forca = (bruto - ZONA_MORTA) / (1 - ZONA_MORTA);
+    stick.x = (dx / (d || 1)) * forca;
+    stick.y = (dy / (d || 1)) * forca;
     stick.active = true;
   };
   const release = () => {
@@ -11474,8 +11543,7 @@ function loop(now){
       const sprint=keys.shift||len>0.92;
       const spd=(sprint?player.sprintSpeed:player.speed)*Math.min(1,len);
       dx/=len; dy/=len;
-      if(Math.abs(dx)>Math.abs(dy)) player.direction=dx<0?'left':'right';
-      else player.direction=dy<0?'up':'down';
+      player.direction = direcaoDoMovimento(dx, dy, player.direction);
       const tx=player.x+dx*spd, ty=player.y+dy*spd;
       // Respeita a colisão pintada: é justamente isso que se quer testar ao andar.
       if(canMoveTo(tx,ty)){player.x=tx;player.y=ty;}
@@ -11528,8 +11596,7 @@ function loop(now){
         const sprint=keys.shift||len>0.92;
         const spd=(sprint?player.sprintSpeed:player.speed)*Math.min(1,len);
         dx/=len;dy/=len;
-        if(Math.abs(dx)>Math.abs(dy))player.direction=dx<0?'left':'right';
-        else player.direction=dy<0?'up':'down';
+        player.direction = direcaoDoMovimento(dx, dy, player.direction);
         const tx=player.x+dx*spd,ty=player.y+dy*spd;
         if(canMoveTo(tx,ty)){player.x=tx;player.y=ty;}
         else if(canMoveTo(tx,player.y))player.x=tx;
@@ -11722,6 +11789,7 @@ function loop(now){
       renderMarcadoresDeNPC(now); renderCaptura(now); renderRessonancia(now);
       renderCombo(now); renderAnuncio(now);
       atualizarLaminaVoando(now); renderLaminaVoando(now); renderMira(now);
+      renderTrocaDeHeroi(now);
     }
     else { renderSpeech(now); renderFloaters(now); }
     if (!IS_PLAY_BUILD) renderMotivoDoTravamento();
@@ -11867,9 +11935,23 @@ document.addEventListener('DOMContentLoaded',()=>{
     // e um disparava o outro.
     btnAtk.addEventListener('pointerdown', e => {
       e.preventDefault(); initAudio();
+      // Habilidade engatilhada: PRESSIONAR abre a mira, e soltar arremessa. É o gesto de
+      // segurar para apontar — o golpe comum não sai neste toque.
+      if (abrirMiraSetima()) return;
       const act = actionAvailable();
       if (act && act !== 'attack' && act !== 'ressoar') doAction();
       else doAttack();
+    });
+    // Soltar no botão dispara o arremesso. Sem isto, largar o dedo em cima do botão não
+    // contava como soltar e a mira ficava presa na tela.
+    btnAtk.addEventListener('pointerup', e => { if (mirandoSetima()) { e.preventDefault(); soltarSetima(); } });
+    btnAtk.addEventListener('pointercancel', () => { if (mirandoSetima()) soltarSetima(); });
+    // Arrastar com o dedo em cima do botão também aponta.
+    btnAtk.addEventListener('pointermove', e => {
+      if (!mirandoSetima()) return;
+      e.preventDefault();
+      const r = canvas.getBoundingClientRect();
+      apontarSetima((e.clientX - r.left) * SCREEN_W / r.width, (e.clientY - r.top) * SCREEN_H / r.height);
     });
     btnAtk.addEventListener('contextmenu', e => e.preventDefault());
   }
@@ -11885,32 +11967,20 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Os três botões pequenos voltaram a ser vagas. Os quatro golpes viraram uma corrente
   // no botão grande, e ocupá-los com os mesmos golpes seria oferecer duas portas para a
   // mesma coisa. Ficam reservados para habilidades de verdade.
-  // Habilidade 1: Lâmina Ecoante. As outras duas seguem reservadas.
-  const btnLamina = document.getElementById('habilidade1');
-  if (btnLamina) {
-    btnLamina.disabled = false;
-    btnLamina.title = `${LAMINA_NOME} — os golpes ganham a lâmina gigante e ferem em volta`;
-    btnLamina.querySelector('.hab-ico').textContent = '⚔';
-    btnLamina.dataset.tecla = 'Q';
-    btnLamina.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); ativarLamina(); });
-  }
-  // Habilidade 2: Acorde de Sétima. Ela ARMA a mira em vez de golpear na hora — depois é
-  // apontar na tela e soltar.
-  const btnSetima = document.getElementById('habilidade2');
-  if (btnSetima) {
-    btnSetima.disabled = false;
-    btnSetima.title = `${SETIMA_NOME} — mire na tela e solte para arremessar a lâmina`;
-    btnSetima.querySelector('.hab-ico').textContent = '➤';
-    btnSetima.dataset.tecla = 'R';
-    btnSetima.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); armarSetima(); });
-  }
-  ['habilidade3'].forEach(id => {
+  // Os três botões chamam a habilidade do PERSONAGEM EM CAMPO, e não uma habilidade fixa.
+  // Amarrá-las direto na Lâmina e na Sétima dava as habilidades do Achilles para a Wins:
+  // ela apertava e saía a espada dele, que não é a arma dela.
+  ['habilidade1','habilidade2','habilidade3'].forEach((id, i) => {
     const b = document.getElementById(id);
     if (!b) return;
-    b.disabled = true;
-    b.title = 'Habilidade ainda não desbloqueada';
-    b.addEventListener('pointerdown', e => e.preventDefault());
+    b.addEventListener('pointerdown', e => {
+      e.preventDefault(); initAudio();
+      const hab = habilidadesDoHeroi()[i];
+      if (hab) hab.usar();
+    });
+    b.addEventListener('contextmenu', e => e.preventDefault());
   });
+  sincronizarBotoesDeHabilidade();
 
   ['andarEditorBtn','andarEditorBtn2'].forEach(id =>
     document.getElementById(id)?.addEventListener('click',()=>alternarAndarNoEditor()));
@@ -12327,6 +12397,21 @@ function personagemAtivo() { return HERO_DEFINITIONS[selectedHeroId] || HERO_DEF
 const PASSO_DA_CAMINHADA = 13, PASSO_DA_CORRIDA = 9;
 function passoDaAnimacao(sprint) { return sprint ? PASSO_DA_CORRIDA : PASSO_DA_CAMINHADA; }
 
+// Direção que o personagem encara, com HISTERESE. Escolher só por `|dx| > |dy|` faz a
+// direção trocar de eixo a cada quadro quando o dedo está perto da diagonal — o sprite
+// piscava entre lado e frente, e dava a sensação de andar para onde não se pediu. Aqui o
+// eixo atual só é abandonado quando o outro ganha por uma margem.
+const MARGEM_DE_TROCA = 1.35;
+
+function direcaoDoMovimento(dx, dy, atual) {
+  const ax = Math.abs(dx), ay = Math.abs(dy);
+  const noEixoX = atual === 'left' || atual === 'right';
+  // Já andando na horizontal: só vira para a vertical se ela for claramente maior.
+  if (noEixoX && ay <= ax * MARGEM_DE_TROCA) return dx < 0 ? 'left' : 'right';
+  if (!noEixoX && ax <= ay * MARGEM_DE_TROCA) return dy < 0 ? 'up' : 'down';
+  return ax > ay ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+}
+
 function quadroParado() {
   const p = personagemAtivo().parado;
   if (!p) return 0;
@@ -12392,9 +12477,17 @@ function trocarHeroiDoTime(slotIndex, silent = false) {
   golpeEmCurso = null; attackAnimUntil = 0; guardaAte = 0;
   mira = null;                 // mira armada não atravessa a troca
 
-  // 5. Partículas visuais de troca instantânea (Poof)
+  // 4c. Os três botões passam a mostrar as habilidades de quem entrou.
+  sincronizarBotoesDeHabilidade();
+  setimaEngatilhada = false;
+
+  // 5. Troca com PESO. Só poeira não dizia que algo aconteceu — a personagem simplesmente
+  // virava outra no mesmo quadro. Agora há um anel de entrada que se abre do chão, o nome
+  // de quem entrou anunciado na tela, e a poeira como acabamento.
+  trocaEfeito = { inicio: performance.now(), nome: (HERO_DEFINITIONS[novoHeroId] || {}).name || novoHeroId };
+  anunciar(((HERO_DEFINITIONS[novoHeroId] || {}).name || novoHeroId).toUpperCase(), 1300);
   if (typeof spawnDust === 'function') {
-    for (let i = 0; i < 10; i++) spawnDust(player.x + (Math.random() - 0.5) * 24, player.y + (Math.random() - 0.5) * 24);
+    for (let i = 0; i < 14; i++) spawnDust(player.x + (Math.random() - 0.5) * 30, player.y + (Math.random() - 0.5) * 22);
   }
 
   // 6. Atualiza o HUD de Equipe e Notificação de troca
