@@ -501,7 +501,8 @@ window.addEventListener('keydown', e => {
   if((e.code==='KeyQ'||e.code==='KeyR'||e.code==='KeyF')&&(isPlayMode||andarNoEditor)&&dlg.state===DLG_STATE.CLOSED){
     e.preventDefault();
     const h = habilidadesDoHeroi()[e.code==='KeyQ' ? 0 : e.code==='KeyR' ? 1 : 2];
-    if (h) h.usar();
+    if (habilidadeUsavel(h)) h.usar();
+    else if (h) showToast(`${h.nome} ainda está trancada — abra na ficha (tecla C).`);
   }
   if(k==='1'){e.preventDefault();trocarHeroiDoTime(0);}
   if(k==='2'){e.preventDefault();trocarHeroiDoTime(1);}
@@ -4977,6 +4978,9 @@ function renderMonsters(now) {
       const q = monsterParado[m.type];
       spr = q[Math.floor((now + m.phase * 400) / 220) % q.length];
     }
+    // Rede de segurança: um quadro de fileira que faltou cai no quadro base. Sem isto um
+    // buraco no array de golpe deixava o monstro sem desenho no meio do ataque.
+    if (!spr) spr = monsterSprites[m.type];
     const b = monsterBounds(m);
     const hop = Math.abs(Math.sin(now * 0.004 + m.phase)) * (andando ? 5 : 3);
     // Avanço curto no impacto: o golpe ganha peso sem precisar de sprite novo.
@@ -4990,8 +4994,19 @@ function renderMonsters(now) {
       if (now < (m.impactoAte || 0)) { ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 16; }
       ctx.drawImage(spr.canvas, spr.sx, spr.sy, spr.sw, spr.sh, -b.w/2, -b.h, b.w, b.h);
     } else {
-      ctx.fillStyle = '#7c3aed';
-      ctx.fillRect(m.x - b.w/2, m.y - b.h - hop, b.w, b.h);
+      // ESTE era o quadrado roxo. Enquanto o PNG/JPEG da folha não termina de decodificar
+      // — e são dez folhas de 1024×1024, cada uma passando pelo recorte por inundação em
+      // JavaScript — `spr` fica indefinido, e o código antigo pintava um retângulo roxo
+      // sólido no lugar do monstro. Aparecia sobretudo em golpe e caminhada, que pedem
+      // quadros de fileiras que chegam depois do quadro base.
+      //
+      // Um espaço reservado visível nunca foi a resposta certa: melhor uma sombra discreta
+      // que diz "tem algo aqui" e desaparece sozinha quando a folha chega.
+      ctx.globalAlpha *= 0.5;
+      ctx.fillStyle = 'rgba(8,10,20,0.55)';
+      ctx.beginPath();
+      ctx.ellipse(m.x, m.y - hop - 4, b.w * 0.34, b.w * 0.16, 0, 0, Math.PI * 2);
+      ctx.fill();
     }
     ctx.restore();
 
@@ -5294,6 +5309,10 @@ const orbitaUltimoToque = {};    // id do monstro -> instante do último toque
 // Efeito das passivas da suprema, tirado do nível.
 function orbitaBonusDeDano() { return 1 + 0.25 * nivelPassiva('akles.suprema.dano'); }
 function orbitaCura() { return nivelPassiva('akles.suprema.cura'); }
+// Passiva 3 da suprema: cada nível engorda a lâmina que gira. Cresce o desenho, o raio da
+// volta e o alcance do toque juntos — só o desenho crescer daria uma espada grande que
+// atravessa o monstro sem acertar.
+function orbitaEscala() { return 0.8 + 0.2 * nivelPassiva('akles.suprema.tamanho'); }
 
 function ativarOrbita() {
   const now = performance.now();
@@ -5309,15 +5328,17 @@ function orbitaAtiva() { return performance.now() < orbitaAte; }
 // aplicaria dano a cada quadro e derreteria qualquer inimigo em meio segundo.
 function atualizarOrbita(now) {
   if (!orbitaAtiva() || !monstrosVivos()) return;
+  const esc = orbitaEscala();
+  const raio = ORBITA_RAIO * esc;
   const ang = now * 0.011;
-  const lx = player.x + Math.cos(ang) * ORBITA_RAIO;
-  const ly = player.y - player.height * 0.45 + Math.sin(ang) * ORBITA_RAIO * 0.55;
+  const lx = player.x + Math.cos(ang) * raio;
+  const ly = player.y - player.height * 0.45 + Math.sin(ang) * raio * 0.55;
   const s = derivedStats();
   liveMonsters().forEach(m => {
     if (m.pronto) return;
     if (now - (orbitaUltimoToque[m.id] || 0) < ORBITA_TOQUE_MS) return;
     const b = monsterBounds(m);
-    if (Math.hypot(m.x - lx, m.y - b.h * 0.5 - ly) > 26 + b.w * 0.3) return;
+    if (Math.hypot(m.x - lx, m.y - b.h * 0.5 - ly) > 26 * esc + b.w * 0.3) return;
     orbitaUltimoToque[m.id] = now;
     const dmg = Math.max(1, Math.round(playerDamage() * 0.55));
     m.hp -= dmg;
@@ -5335,12 +5356,14 @@ function atualizarOrbita(now) {
 
 function renderOrbita(now) {
   if (!orbitaAtiva()) return;
+  const esc = orbitaEscala();
+  const raio = ORBITA_RAIO * esc;
   const resta = orbitaAte - now;
   const alfa = Math.min(1, resta / 400);
   const ang = now * 0.011;
   const cy = player.y - player.height * 0.45;
-  const lx = player.x + Math.cos(ang) * ORBITA_RAIO;
-  const ly = cy + Math.sin(ang) * ORBITA_RAIO * 0.55;
+  const lx = player.x + Math.cos(ang) * raio;
+  const ly = cy + Math.sin(ang) * raio * 0.55;
 
   ctx.save();
   ctx.globalAlpha = alfa;
@@ -5348,7 +5371,7 @@ function renderOrbita(now) {
   ctx.strokeStyle = 'rgba(191,219,254,0.35)';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.ellipse(player.x, cy, ORBITA_RAIO, ORBITA_RAIO * 0.55, 0, 0, Math.PI * 2);
+  ctx.ellipse(player.x, cy, raio, raio * 0.55, 0, 0, Math.PI * 2);
   ctx.stroke();
 
   const vImg = window.swordAttackVFX && window.swordAttackVFX[0];
@@ -5357,10 +5380,10 @@ function renderOrbita(now) {
   // arrastado, não uma espada em órbita.
   ctx.rotate(ang + Math.PI / 2);
   if (vImg && vImg.complete && vImg.naturalWidth > 5) {
-    const dw = 72, dh = dw * (vImg.naturalHeight / vImg.naturalWidth);
+    const dw = 72 * esc, dh = dw * (vImg.naturalHeight / vImg.naturalWidth);
     ctx.drawImage(vImg, -dw / 2, -dh / 2, dw, dh);
   } else {
-    ctx.fillStyle = '#e0f2fe'; ctx.fillRect(-26, -3, 52, 6);
+    ctx.fillStyle = '#e0f2fe'; ctx.fillRect(-26 * esc, -3, 52 * esc, 6);
   }
   ctx.restore();
 }
@@ -5733,6 +5756,7 @@ function renderEstadosDeMonstro(now) {
 // nenhuma escolha de evolução teria peso.
 const passivas = {
   'akles.suprema.dano':   1,   // quanto a espada girando aumenta o dano
+  'akles.suprema.tamanho':1,   // o tamanho da lâmina que gira
   'akles.suprema.cura':   1,   // vida devolvida quando a espada girando fere
   'akles.setima.empurrao':1,   // distância que o arremesso joga o alvo
   'wins.grito.raio':      1,   // alcance do grito paralisante
@@ -5766,7 +5790,7 @@ const HABILIDADES = {
       usar: () => ativarOrbita(), ativa: () => orbitaAtiva(),
       resta: () => Math.max(0, (orbitaAtiva() ? orbitaAte : orbitaEsperaAte) - performance.now()),
       total: () => orbitaAtiva() ? ORBITA_MS : ORBITA_ESPERA,
-      passivas: ['akles.suprema.dano', 'akles.suprema.cura'] },
+      passivas: ['akles.suprema.dano', 'akles.suprema.cura', 'akles.suprema.tamanho'] },
   ],
   wins: [
     { id: 'chuva', nome: CHUVA_NOME, ico: 'assets/icons/habilidades/wins_chuva.png', tecla: 'Q',
@@ -5787,6 +5811,9 @@ const HABILIDADES = {
 };
 
 function habilidadesDoHeroi() { return HABILIDADES[selectedHeroId] || []; }
+// Só as ABERTAS podem ser disparadas. `habilidadesDoHeroi` continua devolvendo a lista
+// inteira porque a roda de botões precisa dos espaços vazios para não mudar de forma.
+function habilidadeUsavel(h) { return !!h && habilidadeAberta(h.id); }
 
 // Quadradinhos de efeito ativo. Aparecem só enquanto a habilidade está valendo, com os
 // segundos que faltam e uma barrinha esvaziando.
@@ -5828,8 +5855,12 @@ function sincronizarBotoesDeHabilidade() {
     const b = document.getElementById(id);
     if (!b) return;
     const h = lista[i];
-    b.disabled = !h;
-    b.title = h ? h.nome : 'Habilidade ainda não desbloqueada';
+    const trancada = !!h && !habilidadeAberta(h.id);
+    b.disabled = !h || trancada;
+    b.classList.toggle('trancada', trancada);
+    b.title = !h ? 'Sem habilidade neste espaço'
+            : trancada ? `${h.nome} — abrir na ficha do personagem (tecla C)`
+            : h.nome;
     const ico = b.querySelector('.hab-ico');
     if (ico) {
       // O ícone virou ARTE. Continua aceitando texto para uma habilidade sem miniatura
@@ -6060,7 +6091,10 @@ function renderAttackSwing(now) {
       const baseAng = dir === 'left' ? Math.PI : dir === 'up' ? -Math.PI / 2
                     : dir === 'down' ? Math.PI / 2 : 0;
       const varre = (-0.95 + tl * 1.9);
-      const dw = 150, dh = dw * (vImg.naturalHeight / vImg.naturalWidth);
+      // Era 150 px de largura: numa tela de 1024 com zoom 1,6 a lâmina cobria o
+      // personagem inteiro e boa parte do cenário. 104 mantém o peso do golpe sem
+      // esconder quem está golpeando.
+      const dw = 104, dh = dw * (vImg.naturalHeight / vImg.naturalWidth);
 
       ctx.save();
       // Aparece e desaparece suave nas pontas, para não piscar do nada.
@@ -6948,7 +6982,7 @@ function savePlayerData() {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       coins: playerCoins, owned: ownedItems, equipped, claves: claveCount,
       level, xp, attrPoints, skillPoints, attrs, skills: learnedSkills,
-      passivas,
+      passivas, habilidadesAbertas,
       toolQuality, notas: notasPossuidas, escalas: escalasMontadas, acordes: acordesObtidos,
       // Progresso de jogo: no celular não há servidor, então tudo vive aqui.
       nome: playerName, heroi: selectedHeroId,
@@ -7006,6 +7040,7 @@ function loadPlayerData() {
     if (typeof d.attrPoints === 'number') attrPoints = d.attrPoints;
     if (typeof d.skillPoints === 'number') skillPoints = d.skillPoints;
     carregarPassivas(d.passivas);
+    carregarHabilidadesAbertas(d.habilidadesAbertas);
     if (d.attrs) {
       // Saves antigos guardam força/agilidade/capacidade. Converte em vez de descartar,
       // senão quem já jogou perde o progresso ao atualizar.
@@ -11549,7 +11584,11 @@ function initBottomPanel(){
 // STATUS
 // ============================================================
 function updateMapStatus(){
-  if (typeof renderPaletaDeProps === 'function') renderPaletaDeProps();
+  // A paleta de props NÃO se reconstrói aqui. Esta função só atualiza o rótulo do mapa,
+  // mas reconstruía as centenas de miniaturas em canvas da paleta do editor — e é chamada
+  // na troca de personagem. Media 50 a 430 ms por chamada: era isso que travava a troca,
+  // e o travamento piorava a cada vez. Quem muda os props (carregar cenário, importar,
+  // trocar categoria) já chama renderPaletaDeProps por conta própria.
   const name=SCENE_NAMES[currentKey]||currentKey;
   const ciclo = typeof calculoDoCicloDiaNoite === 'function' ? calculoDoCicloDiaNoite(performance.now()) : null;
   const infoTempo = ciclo ? ` (${ciclo.nome})` : '';
@@ -12427,7 +12466,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     b.addEventListener('pointerdown', e => {
       e.preventDefault(); initAudio();
       const hab = habilidadesDoHeroi()[i];
-      if (hab) hab.usar();
+      if (habilidadeUsavel(hab)) hab.usar();
+      else if (hab) showToast(`${hab.nome} ainda está trancada — abra na ficha.`);
     });
     b.addEventListener('contextmenu', e => e.preventDefault());
   });
@@ -15874,35 +15914,79 @@ const FICHA_HEROIS = {
 // são as mesmas que o combate usa (orbitaBonusDeDano, gritoRaio, sonoCarga…): se uma
 // mudar lá, muda aqui também.
 const FICHA_PASSIVAS_MAX = 5;
+
+// Preço em CLAVES para subir uma passiva do nível n para n+1. As claves são o item que se
+// coleta no mundo, então evoluir custa jogo, não só tempo. O ponto de habilidade continua
+// sendo necessário — ele é a permissão, a clave é o preço.
+const PASSIVA_CUSTO = [2500, 4000, 6000, 9000];
+function custoDaPassiva(n) { return PASSIVA_CUSTO[n - 1] ?? null; }
+
+// Preço em CLAVES para abrir uma habilidade. Aqui NÃO se gasta ponto de habilidade: é uma
+// quantidade maior de claves e nada mais, porque abrir uma magia nova é conquista de
+// exploração. A primeira de cada herói já vem aberta — sem ela não há como lutar.
+const HABILIDADE_CUSTO = { 2: 6000, 3: 12000 };
+let habilidadesAbertas = ['lamina', 'chuva'];
+function habilidadeAberta(id) { return habilidadesAbertas.includes(id); }
+function carregarHabilidadesAbertas(d) {
+  if (Array.isArray(d) && d.length) habilidadesAbertas = d.slice();
+}
+
+// Ícones desenhados em SVG, não em caractere de fonte. Foi um caractere sem glifo que
+// virou o retângulo vazio que o Antony viu como "quadrado roxo" — com traço vetorial o
+// desenho não depende de a fonte ter o símbolo.
+const ICO_SVG = {
+  espada: '<path d="M4 20 L11 13 M9 4 h7 v7 l-6 6 -3 -3 z"/>',
+  cruz:   '<path d="M12 5 v14 M5 12 h14"/>',
+  empurra:'<path d="M4 12 h11 M11 8 l4 4 -4 4 M19 6 v12"/>',
+  onda:   '<circle cx="12" cy="12" r="3"/><path d="M6 7 a8 8 0 0 0 0 10 M18 7 a8 8 0 0 1 0 10"/>',
+  relogio:'<circle cx="12" cy="12" r="8"/><path d="M12 7 v5 l4 2"/>',
+  lua:    '<path d="M15 4 a8 8 0 1 0 5 11 A7 7 0 0 1 15 4 z"/>',
+  regua:  '<path d="M4 16 L16 4 M13 4 h6 v6 M8 12 l4 4"/>',
+};
+function icoSvg(nome, tam) {
+  const d = ICO_SVG[nome] || ICO_SVG.espada;
+  return `<svg viewBox="0 0 24 24" width="${tam}" height="${tam}" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+    stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+}
+
+// Catálogo das passivas. `valor(n)` devolve o efeito no nível n já em número legível, e
+// `oQueFaz` explica em uma frase o que o ponto compra — o pedido do Antony era justamente
+// detalhar melhor o upgrade antes de gastar.
 const PASSIVAS_INFO = {
   'akles.suprema.dano': {
-    nome: 'Ressonância Cortante', ico: '⚔',
-    desc: 'A espada girando aumenta o dano dele.',
+    nome: 'Ressonância Cortante', ico: 'espada',
+    oQueFaz: 'Cada nível soma 25% de dano à lâmina enquanto ela gira.',
     valor: n => `+${Math.round(25 * n)}% de dano`,
   },
   'akles.suprema.cura': {
-    nome: 'Sangue em Compasso', ico: '✚',
-    desc: 'Cada golpe da espada girando devolve vida.',
+    nome: 'Sangue em Compasso', ico: 'cruz',
+    oQueFaz: 'Cada golpe da lâmina em órbita devolve vida a ele. Ela toca a cada 0,42 s, então em briga cheia isso segura muita vida.',
     valor: n => `+${n} de vida por golpe`,
   },
+  'akles.suprema.tamanho': {
+    nome: 'Lâmina Maior', ico: 'regua',
+    oQueFaz: 'Aumenta a lâmina que gira: o desenho, o raio da volta e o alcance do toque crescem juntos, então ela varre mais chão em cada volta.',
+    valor: n => `${Math.round((0.8 + 0.2 * n) * 100)}% do tamanho`,
+  },
   'akles.setima.empurrao': {
-    nome: 'Impacto de Sétima', ico: '↷',
-    desc: 'O arremesso joga o alvo mais longe.',
+    nome: 'Impacto de Sétima', ico: 'empurra',
+    oQueFaz: 'A espada arremessada joga o alvo mais longe ao acertar — serve para tirar um inimigo de cima de você.',
     valor: n => `${30 + 22 * n} px de empurrão`,
   },
   'wins.grito.raio': {
-    nome: 'Projeção de Voz', ico: '◎',
-    desc: 'O grito alcança mais longe.',
+    nome: 'Projeção de Voz', ico: 'onda',
+    oQueFaz: 'Aumenta o raio do grito, então ele pega mais inimigos de uma vez.',
     valor: n => `${90 + 22 * n} px de raio`,
   },
   'wins.suprema.carga': {
-    nome: 'Anacruse', ico: '⧗',
-    desc: 'Ela ergue a lança mais rápido.',
+    nome: 'Anacruse', ico: 'relogio',
+    oQueFaz: 'Ela ergue a lança mais rápido: menos tempo parada e vulnerável antes do clarão.',
     valor: n => `${(Math.max(240, 900 - 130 * n) / 1000).toFixed(2)} s de carga`,
   },
   'wins.suprema.sono': {
-    nome: 'Fermata', ico: '☾',
-    desc: 'Os monstros dormem por mais tempo.',
+    nome: 'Fermata', ico: 'lua',
+    oQueFaz: 'Os monstros dormem por mais tempo depois do clarão — é a janela em que você bate à vontade.',
     valor: n => `${((2500 + 900 * n) / 1000).toFixed(1)} s de sono`,
   },
 };
@@ -15950,9 +16034,9 @@ function desenharFicha() {
   // Cabeçalho e retrato.
   const pts = document.getElementById('fichaPontos');
   if (pts) {
-    pts.textContent = skillPoints
-      ? `✦ ${skillPoints} ponto${skillPoints > 1 ? 's' : ''}`
-      : 'sem pontos';
+    // As duas moedas juntas: o ponto autoriza subir, a clave paga.
+    pts.innerHTML = `<b>${skillPoints}</b> ponto${skillPoints === 1 ? '' : 's'}`
+      + ` <em>·</em> <b>${claveCount.toLocaleString('pt-BR')}</b> claves`;
     pts.classList.toggle('vazio', !skillPoints);
   }
   const ret = document.getElementById('fichaRetrato');
@@ -16008,8 +16092,21 @@ function desenharFicha() {
       </div>`;
 
     const col = document.createElement('div');
-    const ids = h.passivas || [];
-    if (!ids.length) {
+    const aberta = habilidadeAberta(h.id);
+    if (!aberta) linha.classList.add('trancada');
+    const ids = aberta ? (h.passivas || []) : [];
+    if (!aberta) {
+      // Trancada: no lugar das passivas vai o preço. Não faz sentido evoluir o que ainda
+      // não se pode usar.
+      const custo = HABILIDADE_CUSTO[i + 1] || 0;
+      col.className = 'fh-abrir-wrap';
+      const bt = document.createElement('button');
+      bt.className = 'fh-abrir' + (claveCount >= custo ? ' pode' : '');
+      bt.innerHTML = `<span>ABRIR</span><small>${custo.toLocaleString('pt-BR')} claves</small>`;
+      bt.addEventListener('click', () => desbloquearHabilidade(h.id, i + 1));
+      col.appendChild(bt);
+    }
+    else if (!ids.length) {
       // Habilidade sem passiva mostra isso de propósito: assim fica claro que não é um
       // painel que faltou carregar.
       col.className = 'fh-sem-pass';
@@ -16024,19 +16121,22 @@ function desenharFicha() {
 }
 
 function fichaBotaoDePassiva(pid) {
-  const info = PASSIVAS_INFO[pid] || { nome: pid, ico: '•', desc: '', valor: n => `nível ${n}` };
+  const info = PASSIVAS_INFO[pid] || { nome: pid, ico: 'espada', oQueFaz: '', valor: n => `nível ${n}` };
   const n = nivelPassiva(pid);
   const maximo = n >= FICHA_PASSIVAS_MAX;
-  const pode = !maximo && skillPoints > 0;
+  const custo = custoDaPassiva(n);
+  // Duas condições, não uma: o ponto de habilidade autoriza, a clave paga.
+  const temPonto = skillPoints > 0;
+  const temClave = custo != null && claveCount >= custo;
+  const pode = !maximo && temPonto && temClave;
 
   const b = document.createElement('button');
   b.className = 'fh-pass' + (maximo ? ' maximo' : pode ? ' podeSubir' : '');
-  b.innerHTML = `<span>${info.ico}</span>
+  b.innerHTML = `${icoSvg(info.ico, 18)}
     <span class="fh-pass-nivel">${maximo ? 'MÁX' : `${n}/${FICHA_PASSIVAS_MAX}`}</span>`;
   b.disabled = maximo;
   b.addEventListener('click', () => subirPassiva(pid));
-  // A dica é o que transforma o clique em decisão: mostra o efeito de agora e o do próximo.
-  const dica = () => mostrarDicaDeFicha(b, info, n, maximo);
+  const dica = () => mostrarDicaDeFicha(b, info, n, maximo, custo, temPonto, temClave);
   b.addEventListener('mouseenter', dica);
   b.addEventListener('focus', dica);
   b.addEventListener('mouseleave', esconderDicaDeFicha);
@@ -16046,16 +16146,41 @@ function fichaBotaoDePassiva(pid) {
 
 function subirPassiva(pid) {
   const n = nivelPassiva(pid);
-  if (n >= FICHA_PASSIVAS_MAX) { showToast('Essa passiva já está no máximo.'); return; }
-  if (skillPoints < 1) { showToast('⚠️ Sem pontos de habilidade — suba de nível.'); return; }
-  skillPoints -= 1;
-  passivas[pid] = n + 1;
   const info = PASSIVAS_INFO[pid];
-  showToast(`✦ ${info ? info.nome : pid} → nível ${n + 1}`);
+  if (n >= FICHA_PASSIVAS_MAX) { showToast('Essa passiva já está no máximo.'); return; }
+  if (skillPoints < 1) { showToast('Sem ponto de habilidade — suba de nível para ganhar um.'); return; }
+  const custo = custoDaPassiva(n);
+  if (claveCount < custo) {
+    showToast(`Faltam ${(custo - claveCount).toLocaleString('pt-BR')} claves para este nível.`);
+    return;
+  }
+  skillPoints -= 1;
+  claveCount -= custo;
+  passivas[pid] = n + 1;
+  showToast(`${info ? info.nome : pid} → nível ${n + 1}  (−${custo.toLocaleString('pt-BR')} claves)`);
   savePlayerData();
   desenharFicha();
   esconderDicaDeFicha();
   atualizarPontoDaFicha();
+}
+
+// Abrir uma habilidade custa SÓ claves, e mais do que uma passiva: é conquista de
+// exploração, não de nível.
+function desbloquearHabilidade(id, posicao) {
+  if (habilidadeAberta(id)) return;
+  const custo = HABILIDADE_CUSTO[posicao];
+  if (!custo) return;
+  if (claveCount < custo) {
+    showToast(`Faltam ${(custo - claveCount).toLocaleString('pt-BR')} claves para abrir esta habilidade.`);
+    return;
+  }
+  claveCount -= custo;
+  habilidadesAbertas.push(id);
+  const h = (HABILIDADES[fichaHeroiVisto] || []).find(x => x.id === id);
+  showToast(`${h ? h.nome : id} desbloqueada!  (−${custo.toLocaleString('pt-BR')} claves)`);
+  savePlayerData();
+  desenharFicha();
+  sincronizarBotoesDeHabilidade();
 }
 
 // Marca o botão do HUD quando há ponto para gastar, para a evolução não passar batida.
@@ -16064,21 +16189,26 @@ function atualizarPontoDaFicha() {
 }
 
 let fichaDicaEl = null;
-function mostrarDicaDeFicha(botao, info, n, maximo) {
+function mostrarDicaDeFicha(botao, info, n, maximo, custo, temPonto, temClave) {
   if (!fichaDicaEl) {
     fichaDicaEl = document.createElement('div');
     fichaDicaEl.className = 'ficha-dica';
     document.getElementById('fichaHeroi')?.appendChild(fichaDicaEl);
   }
-  fichaDicaEl.innerHTML = `<b>${info.nome}</b>${info.desc}
-    <div class="fd-agora">Agora: ${info.valor(n)}</div>
-    ${maximo ? '' : `<div class="fd-prox">Nível ${n + 1}: ${info.valor(n + 1)}</div>`}`;
+  const faltas = [];
+  if (!maximo && !temPonto) faltas.push('falta 1 ponto de habilidade');
+  if (!maximo && !temClave) faltas.push(`faltam ${(custo - claveCount).toLocaleString('pt-BR')} claves`);
+  fichaDicaEl.innerHTML = `<b>${info.nome}</b>
+    <div class="fd-faz">${info.oQueFaz || ''}</div>
+    <div class="fd-agora">Agora, nível ${n}: ${info.valor(n)}</div>
+    ${maximo ? '<div class="fd-max">Nível máximo.</div>'
+             : `<div class="fd-prox">Nível ${n + 1}: ${info.valor(n + 1)}</div>
+                <div class="fd-preco">Custa 1 ponto + ${custo.toLocaleString('pt-BR')} claves</div>
+                ${faltas.length ? `<div class="fd-falta">Ainda ${faltas.join(' e ')}.</div>` : ''}`}`;
   fichaDicaEl.classList.remove('hidden');
-  // Posiciona relativo ao quadro da ficha, não à página: o jogo vive dentro de um palco
-  // que pode estar escalado.
   const pai = document.getElementById('fichaHeroi').getBoundingClientRect();
   const r = botao.getBoundingClientRect();
-  fichaDicaEl.style.left = `${Math.max(6, r.left - pai.left - 190)}px`;
+  fichaDicaEl.style.left = `${Math.max(6, r.left - pai.left - 250)}px`;
   fichaDicaEl.style.top = `${Math.max(6, r.top - pai.top - 8)}px`;
 }
 function esconderDicaDeFicha() { fichaDicaEl?.classList.add('hidden'); }

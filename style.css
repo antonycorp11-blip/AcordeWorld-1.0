@@ -6009,3 +6009,47 @@ body.jogando .party-hud { top: 30%; }
   .ficha-heroi-chip { width: 34px; height: 34px; }
   .fb-seg { height: 7px; }
 }
+
+/* Duas moedas no topo da ficha: ponto de habilidade e claves. */
+.ficha-pontos b { color: #f2e3b6; }
+.ficha-pontos em { opacity: .5; font-style: normal; }
+
+/* Habilidade trancada: continua visível, apagada, para o jogador saber que existe. */
+.ficha-hab.trancada { opacity: .62; border-left-color: rgba(107,124,180,.5); }
+.ficha-hab.trancada .fh-ico img { filter: grayscale(1) brightness(.75); }
+.ficha-hab.trancada .fh-nome::after { content: ' 🔒'; font-size: 10px; }
+.fh-abrir-wrap { display: flex; justify-content: center; }
+.fh-abrir {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 6px 10px; cursor: pointer;
+  background: rgba(12,18,40,.9); border: 1px solid rgba(107,124,180,.5);
+  color: #8b96bb; font-family: inherit; transition: all .15s;
+}
+.fh-abrir span { font-size: 10.5px; font-weight: 800; letter-spacing: .12em; }
+.fh-abrir small { font-size: 9px; opacity: .85; }
+/* Acende só quando dá para pagar: um botão dourado que recusa o clique é pior que um cinza. */
+.fh-abrir.pode {
+  color: #f8ecc4; border-color: #e8c469;
+  background: linear-gradient(180deg, rgba(122,94,30,.75), rgba(24,32,66,.6));
+  box-shadow: 0 0 12px rgba(232,196,105,.35);
+}
+.fh-abrir.pode:hover { transform: scale(1.05); }
+
+/* Botão da roda com a habilidade trancada. */
+.btn-habilidade.trancada { opacity: .38; filter: grayscale(1); }
+.btn-habilidade.trancada::after {
+  content: '🔒'; position: absolute; inset: 0;
+  display: grid; place-items: center; font-size: 15px;
+}
+
+/* Ícone de passiva agora é traço vetorial, não caractere de fonte. */
+.fh-pass svg { display: block; }
+
+/* Dica: o que a passiva faz, o valor de agora, o do próximo nível e o preço. */
+.ficha-dica .fd-faz { color: #b6c1dd; margin-bottom: 5px; }
+.ficha-dica .fd-preco {
+  margin-top: 5px; padding-top: 4px; color: #f4dfa4;
+  border-top: 1px solid rgba(169,126,44,.35);
+}
+.ficha-dica .fd-falta { color: #fca5a5; margin-top: 2px; }
+.ficha-dica .fd-max { color: #ffe9ab; margin-top: 4px; }
