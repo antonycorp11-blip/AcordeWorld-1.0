@@ -23,32 +23,29 @@ MARGEM = 6
 
 
 def altura_do_corpo(q):
-    """Altura dos PÉS ao topo da CABEÇA, ignorando o que for fino.
+    """Altura do OMBRO aos PÉS — o corpo de verdade, sem cabeça nem arma.
 
-    Medir a altura total do quadro não serve: no golpe vertical a espada erguida acima
-    da cabeça faz a silhueta ter 278 px contra os 193 da caminhada, e escalar por isso
-    encolheria o personagem a 60% justamente onde ele deveria ficar do mesmo tamanho.
+    A régua anterior media dos pés ao topo da CABEÇA, descendo até a primeira linha larga.
+    Funcionou para um personagem só, mas quebrou com o segundo: o cabelo da Wins é volumoso
+    e largo, então a régua marcava o topo do cabelo como se fosse a cabeça. As duas folhas
+    fechavam em 124 px de "corpo" e ainda assim o corpo dela era 11% menor que o dele —
+    119 px de ombro ao pé contra 133.
 
-    O truque é que a espada é FINA e a cabeça é LARGA. Descendo do topo, a primeira
-    linha que ocupa mais de um terço da largura do corpo é o alto do cabelo; tudo acima
-    disso é lâmina, rastro ou mecha solta.
-
-    A largura de cada linha sai de um `resize` para 1 pixel de largura com filtro BOX,
-    que soma a linha inteira em C. O laço em Python equivalente custava segundos por
-    folha, multiplicados por sete folhas e por cada tentativa de ajuste.
+    Ombro ao pé não depende de penteado, chapéu, lâmina erguida nem rastro. É a medida que
+    faz dois personagens diferentes terem o mesmo tamanho na tela.
     """
     if not q:
         return 0
     binario = q.getchannel('A').point(lambda v: 255 if v else 0)
-    # média por linha * largura = quantidade de pixels opacos naquela linha
     somas = [v * q.width / 255 for v in binario.resize((1, q.height), Image.BOX).getdata()]
-    corpo = max(somas) if somas else 0
-    if not corpo:
+    maxw = max(somas) if somas else 0
+    if not maxw:
         return 0
-    limite = corpo * 0.34
-    topo = next((y for y, w in enumerate(somas) if w >= limite), 0)
+    # 55% da largura máxima é a linha dos ombros: cabeça e cabelo são mais estreitos que
+    # o tronco com os braços, e lâmina ou rastro são muito mais estreitos ainda.
+    ombro = next((y for y, w in enumerate(somas) if w >= maxw * 0.55), 0)
     base = max((y for y, w in enumerate(somas) if w > 0), default=q.height - 1)
-    return base - topo + 1
+    return base - ombro + 1
 
 
 def quadros_da_folha(caminho, cols, lins):
@@ -78,16 +75,41 @@ def main(entradas):
         alt = medidas[len(medidas) // 2] if medidas else 0
         folhas.append({'caminho': caminho, 'cols': cols, 'lins': lins,
                        'quadros': qs, 'altura': alt})
-        print(f'{Path(caminho).name:34} {cols}x{lins} · corpo com {alt} px de altura')
+        print(f'{Path(caminho).name:34} {cols}x{lins} · ombro ao pe: {alt} px')
 
-    referencia = min(f['altura'] for f in folhas if f['altura'])
-    print(f'\nrégua: corpo de {referencia} px (o menor — reduzir preserva o desenho, '
+    # A escala é UMA POR PERSONAGEM, tirada da folha de CAMINHADA dele.
+    #
+    # Medir cada folha separadamente não funciona: nas poses de ataque o corpo agacha, se
+    # estica e a arma alarga a silhueta, e a mesma régua devolveu de 88 a 225 px entre as
+    # folhas do mesmo personagem. Ajustar cada folha pela própria medida encolheria umas e
+    # ampliaria outras, e o herói mudaria de tamanho a cada golpe.
+    #
+    # A caminhada é a pose neutra: em pé, braços ao lado, sem golpe deformando nada. Dela
+    # sai um número por personagem, e esse número vale para todas as folhas dele.
+    def dono(caminho):
+        nome = Path(caminho).name
+        return nome.split('_')[0]
+
+    ref_por_heroi = {}
+    for f in folhas:
+        if '_caminhada' in Path(f['caminho']).name:
+            ref_por_heroi[dono(f['caminho'])] = f['altura']
+    faltando = {dono(f['caminho']) for f in folhas} - set(ref_por_heroi)
+    if faltando:
+        raise SystemExit(f'ERRO: sem folha de caminhada para {sorted(faltando)}. '
+                         'É dela que sai a escala do personagem.')
+
+    referencia = min(ref_por_heroi.values())
+    print('\nrégua por personagem (ombro ao pé na caminhada):')
+    for h, v in sorted(ref_por_heroi.items()):
+        print(f'   {h}: {v} px  ->  escala {referencia / v:.3f}')
+    print(f'referência: {referencia} px (a menor — reduzir preserva o desenho, '
           f'ampliar pixel art inventa pixel)')
 
     # Reescala e mede o maior quadro do conjunto inteiro, para a célula servir a todas.
     maxw = maxh = 0
     for f in folhas:
-        f['escala'] = referencia / f['altura'] if f['altura'] else 1
+        f['escala'] = referencia / ref_por_heroi[dono(f['caminho'])]
         novos = []
         for q in f['quadros']:
             if not q:
@@ -134,7 +156,7 @@ def main(entradas):
         ficha[Path(f['caminho']).name] = {
             'cols': f['cols'], 'rows': f['lins'],
             'celula': [CW, CH],
-            'corpo': round(f['altura'] * f['escala']),   # altura pés→cabeça, em pixels
+            'corpo': round(ref_por_heroi[dono(f['caminho'])] * f['escala']),  # ombro→pé
             'base': CH - MARGEM,                          # onde estão os pés na célula
         }
     destino = Path(folhas[0]['caminho']).parent / 'achilles_folhas.json'

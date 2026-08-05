@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=20260805134646">
+  <link rel="stylesheet" href="style.css?v=20260805143623">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -112,6 +112,10 @@
           <video id="sagradoVideo" src="assets/videos/notas_sagradas.mp4" loop muted preload="none" playsinline class="video-bg hidden"></video>
           <canvas id="gameCanvas" width="1024" height="571"></canvas>
           <!-- Genshin Impact Style 2-Character Party Switch HUD -->
+          <!-- Quadradinhos de efeito ativo. Uma habilidade que muda o jeito de lutar por
+               alguns segundos precisa de um lugar FIXO dizendo que está valendo — o botão
+               aceso fica no canto da tela e o brilho no personagem some no meio da luta. -->
+          <div class="buffs" id="buffs"></div>
           <div class="roda-combate" id="rodaCombate">
             <button class="btn-habilidade hab-1" id="habilidade1" disabled title="Habilidade 1">
               <span class="hab-ico">✦</span>
@@ -394,9 +398,9 @@
               <div class="menu-name-row">
                 <label class="menu-label">🎭 Seu Herói:</label>
                 <div class="hero-select-grid">
-                  <div class="hero-select-card selected" data-heroid="achilles" data-heroname="Achilles" data-herogender="Masculino">
-                    <div class="hero-avatar-box"><img src="assets/personagens/herois/achilles_face.png" alt="Achilles"></div>
-                    <span class="hero-card-name">Achilles</span>
+                  <div class="hero-select-card selected" data-heroid="achilles" data-heroname="Akles" data-herogender="Masculino">
+                    <div class="hero-avatar-box"><img src="assets/personagens/herois/achilles_face.png" alt="Akles"></div>
+                    <span class="hero-card-name">Akles</span>
                     <span class="hero-card-class">Espadachim da Clave</span>
                     <span class="hero-gender-badge">Clave de Sol</span>
                   </div>
@@ -660,7 +664,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="config.js?v=20260805134646"></script>
-<script src="game.js?v=20260805134646"></script>
+<script src="config.js?v=20260805143623"></script>
+<script src="game.js?v=20260805143623"></script>
 </body>
 </html>

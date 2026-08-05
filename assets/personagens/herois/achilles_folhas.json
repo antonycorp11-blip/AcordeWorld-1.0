@@ -3,120 +3,120 @@
     "cols": 7,
     "rows": 4,
     "celula": [
-      111,
-      274
+      147,
+      289
     ],
-    "corpo": 124,
-    "base": 268
+    "corpo": 162,
+    "base": 283
   },
   "achilles_ataque.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
-      247,
-      274
+      287,
+      289
     ],
-    "corpo": 124,
-    "base": 268
+    "corpo": 162,
+    "base": 283
   },
   "achilles_ataque_vertical.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
-      159,
-      274
+      167,
+      289
     ],
-    "corpo": 124,
-    "base": 268
+    "corpo": 162,
+    "base": 283
   },
   "achilles_caminhada.png": {
     "cols": 8,
     "rows": 4,
     "celula": [
-      106,
-      274
+      137,
+      289
     ],
-    "corpo": 124,
-    "base": 268
+    "corpo": 162,
+    "base": 283
   },
   "achilles_estocada.png": {
     "cols": 5,
     "rows": 4,
     "celula": [
-      188,
-      274
+      271,
+      289
     ],
-    "corpo": 124,
-    "base": 268
+    "corpo": 162,
+    "base": 283
   },
   "achilles_giro.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
-      285,
-      274
+      318,
+      289
     ],
-    "corpo": 124,
-    "base": 268
+    "corpo": 162,
+    "base": 283
   },
   "achilles_guarda.png": {
     "cols": 4,
     "rows": 4,
     "celula": [
-      138,
-      274
+      236,
+      289
     ],
-    "corpo": 124,
-    "base": 268
+    "corpo": 162,
+    "base": 283
   },
   "achilles_parado.png": {
     "cols": 4,
     "rows": 4,
     "celula": [
-      103,
-      274
+      183,
+      289
     ],
-    "corpo": 124,
-    "base": 268
+    "corpo": 162,
+    "base": 283
   },
   "wins_estocada.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
-      183,
-      274
+      220,
+      289
     ],
-    "corpo": 124,
-    "base": 268
+    "corpo": 162,
+    "base": 283
   },
   "wins_giro.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
-      217,
-      274
+      223,
+      289
     ],
-    "corpo": 124,
-    "base": 268
+    "corpo": 162,
+    "base": 283
   },
   "wins_varredura.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
-      265,
-      274
+      217,
+      289
     ],
-    "corpo": 124,
-    "base": 268
+    "corpo": 162,
+    "base": 283
   },
   "wins_vertical.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
-      251,
-      274
+      261,
+      289
     ],
-    "corpo": 124,
-    "base": 268
+    "corpo": 162,
+    "base": 283
   }
 }

@@ -498,9 +498,9 @@ window.addEventListener('keydown', e => {
   // Q desperta a Lâmina Ecoante. Ela não é um golpe: é uma janela em que os golpes mudam.
   // Q e R chamam a primeira e a segunda habilidade DO PERSONAGEM EM CAMPO, não a Lâmina e
   // a Sétima por nome — senão a Wins usaria as do Achilles pelo teclado.
-  if((e.code==='KeyQ'||e.code==='KeyR')&&(isPlayMode||andarNoEditor)&&dlg.state===DLG_STATE.CLOSED){
+  if((e.code==='KeyQ'||e.code==='KeyR'||e.code==='KeyF')&&(isPlayMode||andarNoEditor)&&dlg.state===DLG_STATE.CLOSED){
     e.preventDefault();
-    const h = habilidadesDoHeroi()[e.code==='KeyQ' ? 0 : 1];
+    const h = habilidadesDoHeroi()[e.code==='KeyQ' ? 0 : e.code==='KeyR' ? 1 : 2];
     if (h) h.usar();
   }
   if(k==='1'){e.preventDefault();trocarHeroiDoTime(0);}
@@ -5279,6 +5279,91 @@ function laminaAtiva() { return performance.now() < laminaAte; }
 // O alcance começa curto de propósito. A habilidade sobe de nível depois; largar já com
 // alcance grande não deixaria espaço para ela crescer.
 const SETIMA_NOME = 'ACORDE DE SÉTIMA';
+
+// ── Suprema do Akles: a espada que gira em volta dele ───────────────────────────
+// Ela não é um golpe, é um ESTADO: por alguns segundos a lâmina orbita o corpo, fere quem
+// encosta e deixa os golpes normais mais fortes. Ele continua atacando enquanto ela gira —
+// é isso que faz a suprema mudar o jeito de lutar em vez de só somar um número.
+const ORBITA_NOME = 'GIRO DO ACORDE MAIOR';
+const ORBITA_MS = 3500, ORBITA_ESPERA = 16000;
+const ORBITA_RAIO = 58;          // distância da lâmina ao corpo
+const ORBITA_TOQUE_MS = 420;     // carência entre dois toques no mesmo monstro
+let orbitaAte = 0, orbitaEsperaAte = 0;
+const orbitaUltimoToque = {};    // id do monstro -> instante do último toque
+
+// Efeito das passivas da suprema, tirado do nível.
+function orbitaBonusDeDano() { return 1 + 0.25 * nivelPassiva('akles.suprema.dano'); }
+function orbitaCura() { return nivelPassiva('akles.suprema.cura'); }
+
+function ativarOrbita() {
+  const now = performance.now();
+  if (now < orbitaEsperaAte) return false;
+  orbitaAte = now + ORBITA_MS;
+  orbitaEsperaAte = now + ORBITA_ESPERA;
+  anunciar(ORBITA_NOME);
+  return true;
+}
+function orbitaAtiva() { return performance.now() < orbitaAte; }
+
+// A lâmina em órbita fere por CONTATO, com carência por monstro. Sem a carência ela
+// aplicaria dano a cada quadro e derreteria qualquer inimigo em meio segundo.
+function atualizarOrbita(now) {
+  if (!orbitaAtiva() || !monstrosVivos()) return;
+  const ang = now * 0.011;
+  const lx = player.x + Math.cos(ang) * ORBITA_RAIO;
+  const ly = player.y - player.height * 0.45 + Math.sin(ang) * ORBITA_RAIO * 0.55;
+  const s = derivedStats();
+  liveMonsters().forEach(m => {
+    if (m.pronto) return;
+    if (now - (orbitaUltimoToque[m.id] || 0) < ORBITA_TOQUE_MS) return;
+    const b = monsterBounds(m);
+    if (Math.hypot(m.x - lx, m.y - b.h * 0.5 - ly) > 26 + b.w * 0.3) return;
+    orbitaUltimoToque[m.id] = now;
+    const dmg = Math.max(1, Math.round(playerDamage() * 0.55));
+    m.hp -= dmg;
+    m.hurtUntil = now + 200;
+    addFloater(m.x, b.y - 12, `-${dmg}`, '#fde68a');
+    // Passiva 2: a lâmina girando devolve vida ao ferir.
+    if (playerHp < playerMaxHp()) {
+      const cura = orbitaCura();
+      playerHp = Math.min(playerMaxHp(), playerHp + cura);
+      addFloater(player.x, player.y - player.height - 6, `+${cura}`, '#86efac');
+    }
+    if (m.hp <= 0) killMonster(m, now);
+  });
+}
+
+function renderOrbita(now) {
+  if (!orbitaAtiva()) return;
+  const resta = orbitaAte - now;
+  const alfa = Math.min(1, resta / 400);
+  const ang = now * 0.011;
+  const cy = player.y - player.height * 0.45;
+  const lx = player.x + Math.cos(ang) * ORBITA_RAIO;
+  const ly = cy + Math.sin(ang) * ORBITA_RAIO * 0.55;
+
+  ctx.save();
+  ctx.globalAlpha = alfa;
+  // Rastro elíptico da órbita, para o olho entender que é uma volta e não um pulo.
+  ctx.strokeStyle = 'rgba(191,219,254,0.35)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(player.x, cy, ORBITA_RAIO, ORBITA_RAIO * 0.55, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const vImg = window.swordAttackVFX && window.swordAttackVFX[0];
+  ctx.translate(lx, ly);
+  // A lâmina aponta para FORA do círculo: girar sem virar a ponta pareceria um objeto
+  // arrastado, não uma espada em órbita.
+  ctx.rotate(ang + Math.PI / 2);
+  if (vImg && vImg.complete && vImg.naturalWidth > 5) {
+    const dw = 72, dh = dw * (vImg.naturalHeight / vImg.naturalWidth);
+    ctx.drawImage(vImg, -dw / 2, -dh / 2, dw, dh);
+  } else {
+    ctx.fillStyle = '#e0f2fe'; ctx.fillRect(-26, -3, 52, 6);
+  }
+  ctx.restore();
+}
 const SETIMA_ESPERA = 9000;
 const SETIMA_ALCANCE = 190;      // em pixels de cena, do pé do personagem
 const SETIMA_DANO = 2.0;
@@ -5356,6 +5441,9 @@ function atualizarLaminaVoando(now) {
     if (m.pronto || laminaVoando.acertados.has(m.id)) return;
     if (Math.hypot(m.x - x, m.y - (y + player.height * 0.45)) > SETIMA_RAIO_DANO + monsterBounds(m).w * 0.3) return;
     laminaVoando.acertados.add(m.id);
+    // Passiva da Sétima: o arremesso joga o alvo para longe, e a distância sobe com o
+    // nível. É a única passiva desta habilidade.
+    empurrarMonstro(m, 30 + 22 * nivelPassiva('akles.setima.empurrao'));
     const crit = s.crit > 0 && Math.random() * 100 < s.crit;
     const dmg = Math.round(playerDamage() * SETIMA_DANO * (crit ? 2 : 1));
     m.hp -= dmg;
@@ -5365,6 +5453,235 @@ function atualizarLaminaVoando(now) {
   });
 }
 
+// ── Habilidades da Wins ─────────────────────────────────────────────────────────
+// Ela é de alcance: as três agem À DISTÂNCIA, ao contrário do Akles, que precisa encostar.
+// É o que faz trocar de personagem mudar a posição em que se joga, não só a animação.
+
+// 1. CHUVA DE LANÇAS — muitas estocadas de uma vez, caindo de longe sobre uma área.
+const CHUVA_NOME = 'CHUVA DE SEMÍNIMAS';
+const CHUVA_ESPERA = 10000, CHUVA_ALCANCE = 230, CHUVA_LANCAS = 9, CHUVA_MS = 1400;
+const CHUVA_RAIO = 82;           // área que a chuva cobre
+let chuvaEsperaAte = 0, chuva = null;   // { centro, inicio, caidas:[] }
+
+function ativarChuva() {
+  const now = performance.now();
+  if (now < chuvaEsperaAte || chuva) return false;
+  // Cai sobre o monstro mais próximo dentro do alcance; sem alvo, cai à frente dela.
+  const alvo = liveMonsters()
+    .filter(m => !m.pronto && Math.hypot(m.x - player.x, m.y - player.y) < CHUVA_ALCANCE)
+    .sort((a, b) => Math.hypot(a.x - player.x, a.y - player.y) - Math.hypot(b.x - player.x, b.y - player.y))[0];
+  const centro = alvo ? { x: alvo.x, y: alvo.y } : {
+    x: player.x + (player.direction === 'left' ? -140 : player.direction === 'right' ? 140 : 0),
+    y: player.y + (player.direction === 'up' ? -120 : player.direction === 'down' ? 120 : 0),
+  };
+  chuvaEsperaAte = now + CHUVA_ESPERA;
+  // Cada lança sorteia posição e atraso: caírem juntas viraria um bloco, e o que dá a
+  // sensação de chuva é a irregularidade.
+  chuva = { centro, inicio: now, lancas: Array.from({ length: CHUVA_LANCAS }, () => ({
+    dx: (Math.random() - 0.5) * CHUVA_RAIO * 2,
+    dy: (Math.random() - 0.5) * CHUVA_RAIO * 1.2,
+    atraso: Math.random() * (CHUVA_MS * 0.6), bateu: false,
+  })) };
+  anunciar(CHUVA_NOME);
+  return true;
+}
+
+function atualizarChuva(now) {
+  if (!chuva) return;
+  if (now - chuva.inicio > CHUVA_MS) { chuva = null; return; }
+  const s = derivedStats();
+  chuva.lancas.forEach(l => {
+    if (l.bateu || now - chuva.inicio < l.atraso + 260) return;
+    l.bateu = true;
+    const px = chuva.centro.x + l.dx, py = chuva.centro.y + l.dy;
+    if (typeof spawnDust === 'function') spawnDust(px, py);
+    if (!monstrosVivos()) return;
+    liveMonsters().forEach(m => {
+      if (m.pronto) return;
+      if (Math.hypot(m.x - px, m.y - py) > 30 + monsterBounds(m).w * 0.3) return;
+      const dmg = Math.max(1, Math.round(playerDamage() * 0.5));
+      m.hp -= dmg; m.hurtUntil = now + 180;
+      addFloater(m.x, monsterBounds(m).y - 12, `-${dmg}`, '#bfdbfe');
+      if (m.hp <= 0) killMonster(m, now);
+    });
+  });
+}
+
+function renderChuva(now) {
+  if (!chuva) return;
+  ctx.save();
+  // Marca da área no chão: o jogador precisa ver onde vai cair antes de cair.
+  ctx.strokeStyle = 'rgba(191,219,254,0.5)'; ctx.lineWidth = 2; ctx.setLineDash([6, 5]);
+  ctx.beginPath();
+  ctx.ellipse(chuva.centro.x, chuva.centro.y, CHUVA_RAIO, CHUVA_RAIO * 0.5, 0, 0, Math.PI * 2);
+  ctx.stroke(); ctx.setLineDash([]);
+
+  chuva.lancas.forEach(l => {
+    const t = (now - chuva.inicio - l.atraso) / 260;
+    if (t < 0 || t > 1.35) return;
+    const px = chuva.centro.x + l.dx, py = chuva.centro.y + l.dy;
+    if (t <= 1) {
+      // Descendo do alto: a lança entra de cima da tela e crava no ponto.
+      const alt = 180 * (1 - t);
+      ctx.strokeStyle = '#dbeafe'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(px, py - alt - 26); ctx.lineTo(px, py - alt); ctx.stroke();
+    } else {
+      // Cravada, apagando.
+      ctx.globalAlpha = 1 - (t - 1) / 0.35;
+      ctx.strokeStyle = '#93c5fd'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(px, py - 22); ctx.lineTo(px, py); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  });
+  ctx.restore();
+}
+
+// 2. GRITO — paralisa quem está na área. O RAIO é a passiva.
+const GRITO_NOME = 'GRITO EM FORTÍSSIMO';
+const GRITO_ESPERA = 12000, GRITO_MS = 520, GRITO_PARALISIA = 2200;
+let gritoEsperaAte = 0, grito = null;
+function gritoRaio() { return 90 + 22 * nivelPassiva('wins.grito.raio'); }
+
+function ativarGrito() {
+  const now = performance.now();
+  if (now < gritoEsperaAte) return false;
+  gritoEsperaAte = now + GRITO_ESPERA;
+  grito = { inicio: now, raio: gritoRaio() };
+  anunciar(GRITO_NOME);
+  if (monstrosVivos()) {
+    liveMonsters().forEach(m => {
+      if (m.pronto) return;
+      if (Math.hypot(m.x - player.x, m.y - player.y) > grito.raio) return;
+      // Paralisia reaproveita a mesma trava do golpe do monstro: enquanto `atacandoAte`
+      // está no futuro ele não avança nem golpeia. Não precisou de estado novo.
+      m.atacandoAte = now + GRITO_PARALISIA;
+      m.paralisadoAte = now + GRITO_PARALISIA;
+      addFloater(m.x, monsterBounds(m).y - 12, 'PARADO', '#c4b5fd');
+    });
+  }
+  return true;
+}
+
+function renderGrito(now) {
+  if (!grito) return;
+  const t = (now - grito.inicio) / GRITO_MS;
+  if (t >= 1) { grito = null; return; }
+  ctx.save();
+  // Três anéis saindo dela, um atrás do outro: som que se espalha.
+  for (let i = 0; i < 3; i++) {
+    const ti = t - i * 0.18;
+    if (ti <= 0) continue;
+    ctx.strokeStyle = `rgba(196,181,253,${0.8 * (1 - ti)})`;
+    ctx.lineWidth = 4 * (1 - ti);
+    ctx.beginPath();
+    ctx.ellipse(player.x, player.y - player.height * 0.35, grito.raio * ti,
+                grito.raio * ti * 0.55, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// 3. SUPREMA — a lança acende e o clarão apaga o mapa; todos os monstros dormem.
+const SONO_NOME = 'CLARÃO DA PAUSA';
+const SONO_ESPERA = 24000;
+let sonoEsperaAte = 0, clarao = null;
+function sonoCarga() { return Math.max(240, 900 - 130 * nivelPassiva('wins.suprema.carga')); }
+function sonoDuracao() { return 2500 + 900 * nivelPassiva('wins.suprema.sono'); }
+
+function ativarSono() {
+  const now = performance.now();
+  if (now < sonoEsperaAte) return false;
+  sonoEsperaAte = now + SONO_ESPERA;
+  // A carga é o tempo de erguer a lança antes do clarão. A passiva 1 encurta isso — é o
+  // que transforma a suprema de "anunciada" em "instantânea" ao evoluir.
+  clarao = { inicio: now, carga: sonoCarga(), disparou: false };
+  anunciar(SONO_NOME);
+  return true;
+}
+
+function atualizarSono(now) {
+  if (!clarao) return;
+  const t = now - clarao.inicio;
+  if (!clarao.disparou && t >= clarao.carga) {
+    clarao.disparou = true;
+    const dur = sonoDuracao();
+    if (monstrosVivos()) {
+      // Todos os monstros DO MAPA, não só os por perto: é um clarão que cobre a tela.
+      monsters.filter(m => m.mapKey === currentKey && !m.dead && !m.pronto).forEach(m => {
+        m.atacandoAte = now + dur;
+        m.dormindoAte = now + dur;
+        addFloater(m.x, monsterBounds(m).y - 12, 'zZ', '#a5b4fc');
+      });
+    }
+  }
+  if (t > clarao.carga + 700) clarao = null;
+}
+
+function renderClarao(now) {
+  if (!clarao) return;
+  const t = now - clarao.inicio;
+  ctx.save();
+  if (t < clarao.carga) {
+    // Carregando: um brilho crescente na ponta da lança, acima dela.
+    const tc = t / clarao.carga;
+    ctx.globalCompositeOperation = 'lighter';
+    const cy = player.y - player.height * 1.05;
+    const g = ctx.createRadialGradient(player.x, cy, 2, player.x, cy, 10 + tc * 34);
+    g.addColorStop(0, `rgba(255,255,255,${0.5 + tc * 0.5})`);
+    g.addColorStop(1, 'rgba(199,210,254,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(player.x, cy, 10 + tc * 34, 0, Math.PI * 2); ctx.fill();
+  } else {
+    // O clarão: tela inteira em branco, apagando rápido. Em coordenada de CENA porque este
+    // desenho acontece dentro da câmera.
+    const td = (t - clarao.carga) / 700;
+    ctx.globalAlpha = Math.max(0, 1 - td) * 0.85;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(-SCREEN_W, -SCREEN_H, SCREEN_W * 3, SCREEN_H * 3);
+  }
+  ctx.restore();
+}
+
+// Monstro dormindo ou paralisado mostra o motivo, senão o jogador não sabe por que ele
+// parou e acha que travou.
+function renderEstadosDeMonstro(now) {
+  monsters.forEach(m => {
+    if (m.dead || m.mapKey !== currentKey) return;
+    const dorme = now < (m.dormindoAte || 0);
+    const parado = !dorme && now < (m.paralisadoAte || 0);
+    if (!dorme && !parado) return;
+    const b = monsterBounds(m);
+    ctx.save();
+    ctx.font = 'bold 13px Outfit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = dorme ? '#a5b4fc' : '#c4b5fd';
+    ctx.strokeStyle = 'rgba(6,9,14,0.9)'; ctx.lineWidth = 3;
+    const txt = dorme ? 'zZ' : '✶';
+    const y = b.y - 6 + Math.sin(now * 0.005) * 3;
+    ctx.strokeText(txt, m.x, y); ctx.fillText(txt, m.x, y);
+    ctx.restore();
+  });
+}
+
+// ── Passivas ────────────────────────────────────────────────────────────────────
+// Cada passiva é um NÍVEL, e o efeito sai de uma conta sobre esse nível. Guardar o efeito
+// já calculado obrigaria a mexer em código a cada melhoria; guardando o nível, subir uma
+// passiva vira mudar um número — e é isso que a tela de evolução vai fazer quando existir.
+//
+// Só a suprema e a habilidade 2 têm passivas, de propósito: se toda habilidade tivesse,
+// nenhuma escolha de evolução teria peso.
+const passivas = {
+  'akles.suprema.dano':   1,   // quanto a espada girando aumenta o dano
+  'akles.suprema.cura':   1,   // vida devolvida quando a espada girando fere
+  'akles.setima.empurrao':1,   // distância que o arremesso joga o alvo
+  'wins.grito.raio':      1,   // alcance do grito paralisante
+  'wins.suprema.carga':   1,   // reduz o tempo de carregamento da suprema
+  'wins.suprema.sono':    1,   // quanto tempo os monstros dormem
+};
+function nivelPassiva(id) { return passivas[id] || 1; }
+// Guardado junto do resto do progresso, para a evolução não se perder ao fechar o jogo.
+function carregarPassivas(d) { if (d) Object.assign(passivas, d); }
+
 // ── Habilidades por personagem ──────────────────────────────────────────────────
 // Cada herói declara as suas. Os três botões da roda leem esta lista, então trocar de
 // personagem troca o que os botões fazem — antes eles chamavam a Lâmina e a Sétima direto,
@@ -5372,22 +5689,68 @@ function atualizarLaminaVoando(now) {
 const HABILIDADES = {
   achilles: [
     { id: 'lamina', nome: LAMINA_NOME, ico: '⚔', tecla: 'Q',
-      usar: () => ativarLamina(),
-      ativa: () => laminaAtiva(),
+      usar: () => ativarLamina(), ativa: () => laminaAtiva(),
       resta: () => Math.max(0, (laminaAtiva() ? laminaAte : laminaEsperaAte) - performance.now()),
       total: () => laminaAtiva() ? LAMINA_MS : LAMINA_ESPERA },
     { id: 'setima', nome: SETIMA_NOME, ico: '➤', tecla: 'R',
       usar: () => engatilharSetima(),
       ativa: () => setimaEngatilhada || mirandoSetima(),
       resta: () => Math.max(0, setimaEsperaAte - performance.now()),
-      total: () => SETIMA_ESPERA },
+      total: () => SETIMA_ESPERA,
+      passivas: ['akles.setima.empurrao'] },
+    { id: 'orbita', nome: ORBITA_NOME, ico: '✹', tecla: 'F', suprema: true,
+      usar: () => ativarOrbita(), ativa: () => orbitaAtiva(),
+      resta: () => Math.max(0, (orbitaAtiva() ? orbitaAte : orbitaEsperaAte) - performance.now()),
+      total: () => orbitaAtiva() ? ORBITA_MS : ORBITA_ESPERA,
+      passivas: ['akles.suprema.dano', 'akles.suprema.cura'] },
   ],
-  // A Wins ainda não tem habilidade própria. Deixar as do Achilles aqui seria pior que
-  // deixar vazio: ela apertaria o botão e sairia a espada dele.
-  wins: [],
+  wins: [
+    { id: 'chuva', nome: CHUVA_NOME, ico: '⇊', tecla: 'Q',
+      usar: () => ativarChuva(), ativa: () => !!chuva,
+      resta: () => Math.max(0, chuvaEsperaAte - performance.now()), total: () => CHUVA_ESPERA },
+    { id: 'grito', nome: GRITO_NOME, ico: '◉', tecla: 'R',
+      usar: () => ativarGrito(), ativa: () => !!grito,
+      resta: () => Math.max(0, gritoEsperaAte - performance.now()), total: () => GRITO_ESPERA,
+      passivas: ['wins.grito.raio'] },
+    { id: 'clarao', nome: SONO_NOME, ico: '☀', tecla: 'F', suprema: true,
+      usar: () => ativarSono(), ativa: () => !!clarao,
+      resta: () => Math.max(0, sonoEsperaAte - performance.now()), total: () => SONO_ESPERA,
+      passivas: ['wins.suprema.carga', 'wins.suprema.sono'] },
+  ],
 };
 
 function habilidadesDoHeroi() { return HABILIDADES[selectedHeroId] || []; }
+
+// Quadradinhos de efeito ativo. Aparecem só enquanto a habilidade está valendo, com os
+// segundos que faltam e uma barrinha esvaziando.
+function atualizarBuffs(now) {
+  const caixa = document.getElementById('buffs');
+  if (!caixa) return;
+  const ativos = habilidadesDoHeroi().filter(h => h.ativa());
+
+  // Reconstrói só quando a lista MUDA. Redesenhar todo quadro reiniciaria a transição da
+  // barrinha e ela nunca chegaria a andar.
+  const chave = ativos.map(h => h.id).join(',');
+  if (caixa.dataset.chave !== chave) {
+    caixa.dataset.chave = chave;
+    caixa.innerHTML = '';
+    ativos.forEach(h => {
+      const d = document.createElement('div');
+      d.className = 'buff' + (h.suprema ? ' suprema' : '');
+      d.title = h.nome;
+      d.dataset.id = h.id;
+      d.innerHTML = `<span>${h.ico}</span><span class="buff-seg"></span><i class="buff-barra"></i>`;
+      caixa.appendChild(d);
+    });
+  }
+  ativos.forEach(h => {
+    const d = caixa.querySelector(`.buff[data-id="${h.id}"]`);
+    if (!d) return;
+    const resta = h.resta(), total = h.total() || 1;
+    d.querySelector('.buff-seg').textContent = resta > 0 ? Math.ceil(resta / 1000) : '';
+    d.querySelector('.buff-barra').style.transform = `scaleX(${Math.max(0, resta / total)})`;
+  });
+}
 
 // Cara dos três botões: ícone, tecla, ativo/desabilitado. Roda na troca de personagem.
 function sincronizarBotoesDeHabilidade() {
@@ -5772,6 +6135,7 @@ function atualizarBotaoDeAtaque(now) {
   // O botão de ataque acende quando há mira aberta OU habilidade engatilhada esperando o
   // dedo: é nele que o gesto continua.
   _btnAtaque.classList.toggle('mirando', mirandoSetima() || setimaEngatilhada);
+  atualizarBuffs(now);
 
   const espera = attackCooldown();
   const falta = Math.max(0, espera - (now - lastAttack));
@@ -5831,7 +6195,11 @@ function doAttack() {
     if (m.pronto) continue;   // já se abriu: agora é ressoar, não bater
 
     const crit = s.crit > 0 && Math.random() * 100 < s.crit;
-    const dmg = Math.round(playerDamage() * g.dano * (laminaAtiva() ? LAMINA_BONUS : 1) * (crit ? 2 : 1));
+    // A espada girando deixa TODOS os golpes mais fortes — é a passiva 1 da suprema.
+    const dmg = Math.round(playerDamage() * g.dano
+      * (laminaAtiva() ? LAMINA_BONUS : 1)
+      * (orbitaAtiva() ? orbitaBonusDeDano() : 1)
+      * (crit ? 2 : 1));
     m.hp -= dmg;
     m.hurtUntil = now + 260;
     addFloater(m.x, monsterBounds(m).y - 12, crit ? `${dmg}!` : `-${dmg}`,
@@ -11789,7 +12157,11 @@ function loop(now){
       renderMarcadoresDeNPC(now); renderCaptura(now); renderRessonancia(now);
       renderCombo(now); renderAnuncio(now);
       atualizarLaminaVoando(now); renderLaminaVoando(now); renderMira(now);
-      renderTrocaDeHeroi(now);
+      atualizarOrbita(now); renderOrbita(now);
+      atualizarChuva(now); renderChuva(now);
+      renderGrito(now); atualizarSono(now);
+      renderEstadosDeMonstro(now);
+      renderTrocaDeHeroi(now); renderClarao(now);
     }
     else { renderSpeech(now); renderFloaters(now); }
     if (!IS_PLAY_BUILD) renderMotivoDoTravamento();
@@ -12308,7 +12680,9 @@ function initMegaWorldControls() {
 // ============================================================
 const HERO_DEFINITIONS = {
   'achilles': {
-    id: 'achilles', name: 'Achilles', class: 'Espadachim da Clave', gender: 'Masculino',
+    // O id continua 'achilles': é a chave dos arquivos de folha, da ficha de medidas e dos
+    // saves já gravados. O nome exibido é que virou Akles.
+    id: 'achilles', name: 'Akles', class: 'Espadachim da Clave', gender: 'Masculino',
     // Folha normalizada: 8 quadros por fileira, quatro direções próprias (não há
     // espelhamento — o desenho de perfil direito é diferente do esquerdo).
     // `src` é a folha padrão (a de caminhada). `folhas` lista as outras por estado —

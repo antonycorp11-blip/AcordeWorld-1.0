@@ -5705,3 +5705,37 @@ body.jogando .party-hud { top: 30%; }
   /* O medalhão de nível encolhe um pouco para as barras terem onde crescer. */
   .lvl-badge { width: 40px; height: 40px; font-size: 15px; }
 }
+
+/* ═══ Quadradinhos de efeito ativo ═══ */
+/* Ficam abaixo das barras de vida, no canto de leitura do HUD. Cada um traz o ícone da
+   habilidade e os segundos que faltam — é o único aviso que fica parado na tela enquanto
+   o efeito dura. */
+.buffs {
+  position: absolute; left: 14px; top: 74px;
+  display: flex; gap: 6px; z-index: 33; pointer-events: none;
+}
+.buff {
+  position: relative;
+  width: 40px; height: 40px; border-radius: 8px;
+  background: linear-gradient(160deg, #1e293b, #0f172a);
+  border: 2px solid #fbbf24;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 19px; color: #fde68a;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.6), 0 0 12px rgba(251,191,36,0.45);
+}
+.buff.suprema { border-color: #93c5fd; color: #dbeafe; box-shadow: 0 3px 10px rgba(0,0,0,0.6), 0 0 14px rgba(147,197,253,0.6); }
+.buff .buff-seg {
+  position: absolute; bottom: -2px; right: 1px;
+  font-size: 10px; font-weight: 800; color: #fff;
+  text-shadow: 0 1px 0 #000, 0 -1px 0 #000, 1px 0 0 #000, -1px 0 0 #000;
+}
+/* Barrinha de tempo restante na base do quadradinho. */
+.buff .buff-barra {
+  position: absolute; left: 2px; right: 2px; bottom: 2px; height: 3px;
+  background: rgba(251,191,36,0.9); border-radius: 2px;
+  transform-origin: left center;
+}
+@media (max-width: 900px), (max-height: 500px) {
+  .buffs { top: 86px; left: 12px; }
+  .buff { width: 36px; height: 36px; font-size: 17px; }
+}
