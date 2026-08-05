@@ -65,11 +65,17 @@ def main(entradas):
             maxw = max(maxw, q.width); maxh = max(maxh, q.height)
         f['quadros'] = novos
 
-    CW, CH = maxw + MARGEM * 2, maxh + MARGEM * 2
-    print(f'célula comum: {CW}x{CH}\n')
+    # ALTURA comum, LARGURA por folha. A folha de ataque é muito mais larga que as
+    # outras porque o rastro da espada se estende para o lado; forçar todas na largura
+    # dela deixaria caminhada e parado com metade da célula vazia. O que precisa casar é
+    # a altura e a linha dos pés — com elas iguais, o desenho pode calcular a largura
+    # pela proporção da própria folha e o personagem sai do mesmo tamanho em todas.
+    CH = maxh + MARGEM * 2
+    print(f'altura de célula comum: {CH}\n')
 
     for f in folhas:
         nc, nl = f['cols'], f['lins']
+        CW = max(q.width for q in f['quadros'] if q) + MARGEM * 2
         folha = Image.new('RGBA', (CW * nc, CH * nl), (0, 0, 0, 0))
         for i, q in enumerate(f['quadros']):
             if not q:
@@ -79,11 +85,11 @@ def main(entradas):
             y = li * CH + (CH - MARGEM) - q.height   # pés na mesma linha, em TODAS as folhas
             folha.paste(q, (x, y), q)
         folha.save(f['caminho'])
-        print(f"{Path(f['caminho']).name:34} regravada em {folha.width}x{folha.height} "
-              f"(escala {f['escala']:.3f})")
+        print(f"{Path(f['caminho']).name:34} {folha.width}x{folha.height} · "
+              f"célula {CW}x{CH} · escala {f['escala']:.3f} · proporção {CW/CH:.3f}")
 
-    print(f'\nProporção da célula: {CW/CH:.3f} — use largura = altura * {CW/CH:.3f} '
-          f'na caixa do corpo, senão o sprite estica.')
+    print('\nCada folha tem sua própria largura de célula; o desenho calcula a largura '
+          'pela proporção da folha em uso, mantendo a altura do personagem.')
 
 
 if __name__ == '__main__':

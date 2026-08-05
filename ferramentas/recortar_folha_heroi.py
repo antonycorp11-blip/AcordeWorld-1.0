@@ -140,6 +140,24 @@ def curar_pontos_de_fundo(im, limite=60):
     return im, len(presos)
 
 
+def vales(perfil, n):
+    """Onde cortar uma grade de `n` células. Procura o mínimo de densidade numa janela
+    em volta de cada divisa teórica: o corte cai onde há menos desenho, que é a fresta
+    entre dois quadros, mesmo quando ela não está completamente vazia."""
+    total = len(perfil)
+    passo = total / n
+    cortes = [0]
+    janela = int(passo * 0.22)          # ±22% da célula: folga para a divisa torta
+    for i in range(1, n):
+        centro = int(i * passo)
+        ini = max(cortes[-1] + 1, centro - janela)
+        fim = min(total - 1, centro + janela)
+        melhor = min(range(ini, fim + 1), key=lambda x: (perfil[x], abs(x - centro)))
+        cortes.append(melhor)
+    cortes.append(total)
+    return cortes
+
+
 def bandas(vazias, tamanho):
     """Dos corredores de fundo saem os limites das células: o meio de cada corredor é
     um corte. Detectar assim é mais confiável que dividir por 8, porque o gerador
@@ -175,18 +193,27 @@ def processar(entrada, saida, cols=None, linhas=None):
     rec = limpar_franja(rec)
     px = rec.load()
 
-    vazio_col = [x for x in range(larg) if all(px[x, y][3] == 0 for y in range(alt))]
-    vazio_lin = [y for y in range(alt) if all(px[x, y][3] == 0 for x in range(larg))]
-    cortes_x = bandas(vazio_col, larg)
-    cortes_y = bandas(vazio_lin, alt)
-    nc, nl = len(cortes_x) - 1, len(cortes_y) - 1
-    print(f'grade detectada: {nc} colunas x {nl} linhas')
+    # Perfil de densidade: quantos pixels opacos há em cada coluna e em cada linha.
+    perfil_x = [sum(1 for y in range(alt) if px[x, y][3]) for x in range(larg)]
+    perfil_y = [sum(1 for x in range(larg) if px[x, y][3]) for y in range(alt)]
 
-    if cols and linhas and (nc != cols or nl != linhas):
-        print(f'  ⚠️  esperava {cols}x{linhas}; usando divisão regular')
-        cortes_x = [round(i * larg / cols) for i in range(cols + 1)]
-        cortes_y = [round(i * alt / linhas) for i in range(linhas + 1)]
+    if cols and linhas:
+        # Com a grade conhecida, o corte é o VALE de densidade perto de cada divisa
+        # teórica. Exigir corredor totalmente vazio falhava na folha de ataque, onde o
+        # rastro da espada atravessa a divisa e liga uma célula à seguinte — a grade era
+        # lida como 4 colunas em vez de 6, e a divisão regular que entrava no lugar
+        # cortava as cabeças.
+        cortes_x = vales(perfil_x, cols)
+        cortes_y = vales(perfil_y, linhas)
         nc, nl = cols, linhas
+        print(f'grade: {nc} colunas x {nl} linhas (cortes pelo vale de densidade)')
+    else:
+        vazio_col = [x for x in range(larg) if perfil_x[x] == 0]
+        vazio_lin = [y for y in range(alt) if perfil_y[y] == 0]
+        cortes_x = bandas(vazio_col, larg)
+        cortes_y = bandas(vazio_lin, alt)
+        nc, nl = len(cortes_x) - 1, len(cortes_y) - 1
+        print(f'grade detectada: {nc} colunas x {nl} linhas')
 
     # Recorta cada célula pelo conteúdo.
     quadros = []

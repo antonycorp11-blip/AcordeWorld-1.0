@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
-  <link rel="stylesheet" href="style.css?v=20260804211041">
+  <link rel="stylesheet" href="style.css?v=20260804213103">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -103,7 +103,24 @@
           <video id="sagradoVideo" src="assets/videos/notas_sagradas.mp4" loop muted preload="none" playsinline class="video-bg hidden"></video>
           <canvas id="gameCanvas" width="1024" height="571"></canvas>
           <!-- Genshin Impact Style 2-Character Party Switch HUD -->
-          <div id="partyHud" class="party-hud">
+          <div class="roda-combate" id="rodaCombate">
+            <button class="btn-habilidade hab-1" id="habilidade1" disabled title="Habilidade 1">
+              <span class="hab-ico">✦</span>
+            </button>
+            <button class="btn-habilidade hab-2" id="habilidade2" disabled title="Habilidade 2">
+              <span class="hab-ico">✧</span>
+            </button>
+            <button class="btn-habilidade hab-3" id="habilidade3" disabled title="Habilidade 3">
+              <span class="hab-ico">❈</span>
+            </button>
+            <button class="btn-ataque" id="botaoAtaque" title="Ataque básico (clique ou espaço)">
+              <span class="atk-ico">⚔</span>
+              <i class="atk-recarga" id="ataqueRecarga"></i>
+            </button>
+          </div>
+          </div>
+
+           <div id="partyHud" class="party-hud">
             <div class="party-slot active" data-slot="0" id="partySlot0" title="Herói 1 (Tecla 1)">
               <div class="party-slot-badge">1</div>
               <div class="party-avatar-wrap">
@@ -433,12 +450,14 @@
                 <div class="stick-knob" id="stickKnob"></div>
               </div>
             </div>
+            <!-- Roda de combate, à direita: ataque básico grande no centro e três
+                 habilidades em volta, como nos jogos de ação de celular. O botão de
+                 ação (falar, entrar, coletar) fica acima da roda, separado do combate,
+                 porque são gestos de intenção diferente. -->
             <div class="touch-actions">
               <button class="touch-action btn-talk" id="touchAction">E · Falar</button>
             </div>
-          </div>
-
-          <!-- Revelação da captura: o fecho do ritual do Eco. Mostra o que saiu dali,
+         <!-- Revelação da captura: o fecho do ritual do Eco. Mostra o que saiu dali,
                com nome e quantidade, e só sai quando o jogador manda. -->
           <div id="capturaReveal" class="cap-reveal hidden">
             <div class="cap-caixa">
@@ -617,7 +636,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="config.js?v=20260804211041"></script>
-<script src="game.js?v=20260804211041"></script>
+<script src="config.js?v=20260804213103"></script>
+<script src="game.js?v=20260804213103"></script>
 </body>
 </html>

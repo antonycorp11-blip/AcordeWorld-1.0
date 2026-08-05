@@ -5497,3 +5497,80 @@ body.editor-recolhido.modo-mundo #assetDock { transform: translateX(-100%); }
   color: #fff; border-color: #fbbf24;
 }
 #mobileEditorToggleBtn:hover { filter: brightness(1.15); }
+
+/* ═══ Roda de combate (ataque básico + 3 habilidades) ═══ */
+/* Fica na borda direita, na altura do polegar, espelhando o joystick da esquerda. As
+   habilidades orbitam o botão grande em vez de virem enfileiradas: em fila, o polegar
+   precisa procurar qual é qual; em roda, cada uma tem uma direção fixa. */
+.roda-combate {
+  position: absolute;
+  right: 22px; bottom: 26px;
+  width: 168px; height: 168px;
+  pointer-events: none;
+  z-index: 34;
+}
+.roda-combate > * { pointer-events: auto; }
+
+.btn-ataque {
+  position: absolute;
+  right: 6px; bottom: 6px;
+  width: 92px; height: 92px;
+  border-radius: 50%;
+  border: 2px solid rgba(253, 230, 138, 0.55);
+  background: radial-gradient(circle at 35% 30%, #b45309, #7c2d12 70%);
+  color: #fde68a;
+  font-size: 38px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.65), inset 0 0 14px rgba(0,0,0,0.45);
+  cursor: pointer;
+  transition: transform .08s ease, filter .12s ease;
+  overflow: hidden;
+}
+.btn-ataque:active { transform: scale(0.92); filter: brightness(1.25); }
+.btn-ataque.recarregando { filter: grayscale(0.5) brightness(0.7); }
+
+/* Véu de recarga: sobe de baixo para cima enquanto o golpe não está pronto. Mostrar
+   QUANTO falta vale mais que só apagar o botão. */
+.atk-recarga {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 0%;
+  background: rgba(8, 12, 20, 0.62);
+  pointer-events: none;
+  transition: height .06s linear;
+}
+
+.btn-habilidade {
+  position: absolute;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: 2px solid rgba(148, 163, 184, 0.4);
+  background: radial-gradient(circle at 35% 30%, #334155, #0f172a 72%);
+  color: #cbd5e1;
+  font-size: 21px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+  cursor: pointer;
+  transition: transform .08s ease;
+}
+.btn-habilidade:active:not(:disabled) { transform: scale(0.9); }
+.btn-habilidade:disabled { opacity: 0.42; cursor: default; }
+
+/* As três em arco de 90°, à esquerda e acima do botão de ataque. */
+.hab-1 { right: 104px; bottom: 14px; }
+.hab-2 { right: 82px;  bottom: 76px; }
+.hab-3 { right: 20px;  bottom: 104px; }
+
+/* A roda vive no palco, fora de #touchControls: aquele bloco só aparece em celular, e
+   no computador a roda ficaria invisível justamente onde o teste é feito. Só depende de
+   estar jogando. */
+.roda-combate { display: none; }
+body.jogando .roda-combate { display: block; }
+
+@media (max-width: 780px) {
+  .roda-combate { width: 148px; height: 148px; right: 14px; bottom: 18px; }
+  .btn-ataque { width: 80px; height: 80px; font-size: 33px; }
+  .btn-habilidade { width: 46px; height: 46px; font-size: 18px; }
+  .hab-1 { right: 90px; bottom: 12px; }
+  .hab-2 { right: 72px; bottom: 66px; }
+  .hab-3 { right: 18px; bottom: 90px; }
+}

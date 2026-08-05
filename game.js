@@ -489,6 +489,10 @@ window.addEventListener('keydown', e => {
   if(k==='s'||k==='arrowdown'){keys.s=true;keyS?.classList.add('active');}
   if(k==='d'||k==='arrowright'){keys.d=true;keyD?.classList.add('active');}
   if(k==='e'){e.preventDefault();keyE?.classList.add('active');doAction();}
+  // Espaço ataca: é a tecla que a mão já procura, e libera o mouse para outra coisa.
+  if(e.code==='Space'&&(isPlayMode||andarNoEditor)&&dlg.state===DLG_STATE.CLOSED){
+    e.preventDefault(); doAttack();
+  }
   if(k==='1'){e.preventDefault();trocarHeroiDoTime(0);}
   if(k==='2'){e.preventDefault();trocarHeroiDoTime(1);}
   if(e.key==='Shift')keys.shift=true;
@@ -5103,6 +5107,10 @@ let levelFlashUntil = 0;
 let spawnFlashUntil = 0;
 let playerHp = BASE_MAX_HP;
 let lastAttack = 0, attackAnimUntil = 0, playerHurtUntil = 0, deadUntil = 0;
+// Duração do golpe na tela. Eram 180 ms para seis quadros — 30 ms cada, rápido demais
+// para o olho pegar a passagem da lâmina. 360 dá 60 ms por quadro, que é a cadência que
+// jogo 16-bit usa para um corte básico.
+const ATAQUE_MS = 360;
 const floaters = []; // damage numbers
 
 function addFloater(x, y, text, colour) {
@@ -5268,14 +5276,35 @@ function attackTarget() {
   return best;
 }
 
+// Véu que sobe no botão enquanto o golpe recarrega. Mostrar QUANTO falta vale mais que
+// só apagar o botão: com o véu dá para cronometrar o próximo golpe pelo canto do olho.
+let _btnAtaque = null, _velAtaque = null;
+function atualizarBotaoDeAtaque(now) {
+  if (!_btnAtaque) {
+    _btnAtaque = document.getElementById('botaoAtaque');
+    _velAtaque = document.getElementById('ataqueRecarga');
+    if (!_btnAtaque) return;
+  }
+  const espera = attackCooldown();
+  const falta = Math.max(0, espera - (now - lastAttack));
+  const pct = espera > 0 ? (falta / espera) * 100 : 0;
+  if (_velAtaque) _velAtaque.style.height = pct.toFixed(0) + '%';
+  _btnAtaque.classList.toggle('recarregando', falta > 0);
+}
+
 function doAttack() {
   const now = performance.now();
   if (now - lastAttack < attackCooldown()) return;
+
+  // O GOLPE SAI SEMPRE. Antes a função voltava sem fazer nada quando não havia alvo por
+  // perto, então apertar o botão no vazio não produzia reação nenhuma — parecia botão
+  // quebrado. Errar o golpe é parte do jogo, e é a única forma de testar a animação sem
+  // monstro na tela.
+  lastAttack = now; attackAnimUntil = now + ATAQUE_MS;
+
   const m = attackTarget();
-  if (!m) return;
-  if (m.pronto) return;   // já se abriu: agora é ressoar, não bater
+  if (!m || m.pronto) return;   // sem alvo, ou já se abriu: aí é ressoar, não bater
   const s = derivedStats();
-  lastAttack = now; attackAnimUntil = now + 180;
 
   const crit = s.crit > 0 && Math.random() * 100 < s.crit;
   const dmg = Math.round(playerDamage() * (crit ? 2 : 1));
@@ -7069,14 +7098,26 @@ function renderPlayer() {
                : (P.cols || ((sheet.width > 400 && sheet.width < 550) ? 6 : 4));
     const fw = sheet.width / cols, fh = sheet.height / rows;
 
+    // A largura de desenho vem da PROPORÇÃO DA FOLHA em uso, não de uma medida fixa. A
+    // folha de ataque é o dobro de larga (proporção 2,0 contra 0,67 da caminhada) por
+    // causa do rastro da espada; usar a largura da caminhada nela espremeria o
+    // personagem à metade. Como as três folhas foram casadas na mesma altura e na mesma
+    // linha de pés, manter a ALTURA e derivar a largura mantém o herói do mesmo tamanho.
+    const dW = pH * (fw / fh);
+
     // A folha manda. Se ela tem linha própria para `left` e `right` — como a do Achilles
     // — cada lado usa a sua; se só tem `side`, o lado esquerdo é o direito espelhado.
     // Pedir LINHA.side numa folha sem essa chave dava `undefined`, e `undefined * fh` é
     // NaN: o drawImage não desenhava NADA e o personagem simplesmente sumia ao andar
     // para os lados.
-    const temLadosProprios = LINHA.left !== undefined && LINHA.right !== undefined;
-    const espelharLado = !temLadosProprios && player.direction === 'left';
-    let row = LINHA[player.direction];
+    const linhaUnica = troca && troca.linhaUnica !== undefined;
+    const temLadosProprios = !linhaUnica && LINHA.left !== undefined && LINHA.right !== undefined;
+    // Folha de direção única: a esquerda sai do espelho da direita, e cima/baixo usam a
+    // mesma pose de lado — placeholder assumido até chegar a folha com as 4 direções.
+    const espelharLado = linhaUnica
+      ? (player.direction === 'left')
+      : (!temLadosProprios && player.direction === 'left');
+    let row = linhaUnica ? troca.linhaUnica : LINHA[player.direction];
     if (row === undefined) {
       row = player.direction === 'up' ? LINHA.up
           : (player.direction === 'left' || player.direction === 'right') ? LINHA.side
@@ -7088,6 +7129,13 @@ function renderPlayer() {
       ? Math.floor(performance.now() / 190) % cols
       : player.animFrame % cols;
     let lungeX = 0, lungeY = 0;
+
+    // Ataque: os quadros correm do começo ao fim DENTRO da janela do golpe, para o
+    // corte terminar junto com o dano em vez de ficar parado num quadro qualquer.
+    if (troca && troca.atacando) {
+      const passou = 1 - (attackAnimUntil - performance.now()) / ATAQUE_MS;
+      frame = Math.max(0, Math.min(cols - 1, Math.floor(passou * cols)));
+    }
 
     // Ataque só troca de linha se a folha TIVER uma linha de ataque. A do Achilles usa
     // as quatro linhas para as quatro direções — sem esta guarda, atacar apagava o
@@ -7115,11 +7163,11 @@ function renderPlayer() {
       ctx.translate(drawX, drawY);
       ctx.rotate(-walkTilt);
       ctx.scale(-1, 1);
-      ctx.drawImage(sheet, frame * fw, row * fh, fw, fh, -pW / 2, -pH + 4, pW, pH);
+      ctx.drawImage(sheet, frame * fw, row * fh, fw, fh, -dW / 2, -pH + 4, dW, pH);
     } else {
       ctx.translate(drawX, drawY);
       ctx.rotate(walkTilt);
-      ctx.drawImage(sheet, frame * fw, row * fh, fw, fh, -pW / 2, -pH + 4, pW, pH);
+      ctx.drawImage(sheet, frame * fw, row * fh, fw, fh, -dW / 2, -pH + 4, dW, pH);
     }
     ctx.restore();
   } else {ctx.fillStyle='#3b82f6';ctx.fillRect(player.x-16,player.y-32,32,48);}
@@ -7555,6 +7603,15 @@ function onPointerDown(m){
   if(dlg.state===DLG_STATE.CHOOSING){ const i=choiceAt(m.x,m.y); if(i>=0)selectChoice(i); return; }
   if(dlg.state===DLG_STATE.TYPING||dlg.state===DLG_STATE.WAITING){ advanceDlg(); return; }
   if(dlg.state===DLG_STATE.NAME_INPUT) return;
+
+  // Clique no cenário ataca — só JOGANDO de verdade. No editor o clique continua sendo
+  // da ferramenta (plantar, pintar, selecionar), senão não daria para trabalhar. Vem
+  // depois da captura e do diálogo de propósito: quem está ressoando ou escolhendo uma
+  // resposta não quer sacar a espada.
+  if (isPlayMode && !playerLocked && !shopOpen && !inventoryOpen && !charOpen && !forging) {
+    doAttack();
+    return;
+  }
 
   // Editor tools stay live during play mode — painting the walkable path while the
   // character runs around is the whole point of the collision tab.
@@ -10865,6 +10922,7 @@ function loop(now){
     if(touchAction&&act)touchAction.textContent=ACT_LABEL[act];
     touchAction?.classList.toggle('disabled', !act);
     playerHud?.classList.toggle('hidden', talking||shopOpen||inventoryOpen||charOpen);
+    atualizarBotaoDeAtaque(now);
     if(coinCount)coinCount.textContent=playerCoins;
     if(claveCountEl)claveCountEl.textContent=`${claveCount}`;
     if(lvlNum)lvlNum.textContent=level;
@@ -11128,6 +11186,19 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('[data-stool]').forEach(btn=>btn.addEventListener('click',()=>setSceneTool(btn.dataset.stool)));
   // Collision subtools
   document.querySelectorAll('[data-ctool]').forEach(btn=>btn.addEventListener('click',()=>setCollisionTool(btn.dataset.ctool)));
+  // ── Roda de combate ───────────────────────────────────────────────────────────
+  const btnAtk = document.getElementById('botaoAtaque');
+  if (btnAtk) {
+    // `pointerdown` e não `click`: no celular o clique só dispara ao SOLTAR o dedo, e um
+    // botão de ataque que espera o dedo sair parece atrasado.
+    btnAtk.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); doAttack(); });
+    btnAtk.addEventListener('contextmenu', e => e.preventDefault());
+  }
+  // As três habilidades ainda não fazem nada: ficam desabilitadas no HTML em vez de
+  // abrirem um aviso de "em breve" a cada toque.
+  ['habilidade1','habilidade2','habilidade3'].forEach(id =>
+    document.getElementById(id)?.addEventListener('pointerdown', e => e.preventDefault()));
+
   ['andarEditorBtn','andarEditorBtn2'].forEach(id =>
     document.getElementById(id)?.addEventListener('click',()=>alternarAndarNoEditor()));
   document.getElementById('areaFecharBtn')?.addEventListener('click',()=>areaFechar());
@@ -11456,6 +11527,12 @@ const HERO_DEFINITIONS = {
     folhas: {
       andar:  { src: 'assets/personagens/herois/achilles_caminhada.png', cols: 8 },
       parado: { src: 'assets/personagens/herois/achilles_parado.png',    cols: 4 },
+      // A folha de ataque veio com as QUATRO linhas na mesma direção (medido: as linhas
+      // diferem entre si em 15-18, contra 26-29 nas direções de verdade da caminhada).
+      // Por isso `linhaUnica`: todas as direções usam a linha 0, espelhada para a
+      // esquerda. Quando chegar uma folha com as quatro direções, é só apagar esta
+      // chave e o desenho volta a usar uma linha por direção.
+      ataque: { src: 'assets/personagens/herois/achilles_ataque.png', cols: 6, linhaUnica: 0 },
     },
     linhas: { down: 0, up: 1, left: 2, right: 3 },
     // Quadro em que cada direção fica ao PARAR. A folha é de caminhada e não tem pose
@@ -11638,11 +11715,14 @@ function folhaAtualDoHeroi(atacando) {
   const f = P.folhas;
   if (!f) return null;
   const querParado = !player.isMoving && !atacando && f.parado;
-  const alvo = querParado ? f.parado : (f.andar || null);
+  const alvo = atacando && f.ataque ? f.ataque
+             : querParado ? f.parado
+             : (f.andar || null);
   if (!alvo) return null;
   const img = folhasDoHeroi[alvo.src];
   if (!img || !img.complete || img.naturalWidth < 10) return null;
-  return { img, cols: alvo.cols, parado: querParado };
+  return { img, cols: alvo.cols, parado: querParado && alvo === f.parado,
+           atacando: atacando && alvo === f.ataque, linhaUnica: alvo.linhaUnica };
 }
 
 function processHeroSprite(id, imgRaw) {
