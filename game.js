@@ -11646,11 +11646,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   initMegaWorldControls();
   initTesteDeCena();
   blockIOSGestures();
-  if(wantsMobilePlay())enterMobilePlay();
-  abrirMenuInicialSePreciso();
-  iniciarAutosave();
-  setTimeout(()=>loadingOverlay?.classList.add('hidden'),600);
+  // O LAÇO COMEÇA ANTES de tudo que é opcional. Ele era iniciado na ÚLTIMA linha da
+  // inicialização, depois de entrar em modo jogo, abrir menu e ligar o autosave — e uma
+  // exceção em qualquer um desses passos deixava o jogo sem nunca desenhar um quadro:
+  // tela preta, sem controle, sem mensagem. Desenhar é a única coisa que não pode
+  // depender do resto dar certo.
   requestAnimationFrame(loop);
+
+  // Cada passo isolado: um que falhe não leva os outros junto.
+  try { if(wantsMobilePlay())enterMobilePlay(); } catch(e){ console.error('[Acordelot] entrada em jogo:', e); }
+  try { abrirMenuInicialSePreciso(); } catch(e){ console.error('[Acordelot] menu inicial:', e); }
+  try { iniciarAutosave(); } catch(e){ console.error('[Acordelot] autosave:', e); }
+  setTimeout(()=>loadingOverlay?.classList.add('hidden'),600);
 });
 
 // Botão de teste: libera a trava de "já rodou" e dispara a abertura na hora, para

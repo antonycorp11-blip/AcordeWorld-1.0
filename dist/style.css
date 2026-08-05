@@ -5499,13 +5499,15 @@ body.editor-recolhido.modo-mundo #assetDock { transform: translateX(-100%); }
 #mobileEditorToggleBtn:hover { filter: brightness(1.15); }
 
 /* ═══ Roda de combate (ataque básico + 3 habilidades) ═══ */
-/* Fica na borda direita, na altura do polegar, espelhando o joystick da esquerda. As
-   habilidades orbitam o botão grande em vez de virem enfileiradas: em fila, o polegar
-   precisa procurar qual é qual; em roda, cada uma tem uma direção fixa. */
+/* O botão de ataque fica no CENTRO do contêiner e as habilidades orbitam em volta dele,
+   num arco que aponta para dentro da tela. Antes cada uma tinha um par de deslocamentos
+   escrito à mão a partir da borda — e a conta não fechava em telas estreitas: elas
+   saíam do contêiner e apareciam espalhadas ao lado do botão em vez de em volta.
+   Agora a posição sai de um ÂNGULO e um RAIO, e o arranjo é o mesmo em qualquer tela. */
 .roda-combate {
   position: absolute;
-  right: 22px; bottom: 26px;
-  width: 168px; height: 168px;
+  right: 18px; bottom: 18px;
+  width: 196px; height: 196px;
   pointer-events: none;
   z-index: 34;
 }
@@ -5513,20 +5515,21 @@ body.editor-recolhido.modo-mundo #assetDock { transform: translateX(-100%); }
 
 .btn-ataque {
   position: absolute;
-  right: 6px; bottom: 6px;
-  width: 92px; height: 92px;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 96px; height: 96px;
   border-radius: 50%;
   border: 2px solid rgba(253, 230, 138, 0.55);
   background: radial-gradient(circle at 35% 30%, #b45309, #7c2d12 70%);
   color: #fde68a;
-  font-size: 38px; line-height: 1;
+  font-size: 40px; line-height: 1;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 6px 20px rgba(0,0,0,0.65), inset 0 0 14px rgba(0,0,0,0.45);
   cursor: pointer;
-  transition: transform .08s ease, filter .12s ease;
+  transition: filter .12s ease;
   overflow: hidden;
 }
-.btn-ataque:active { transform: scale(0.92); filter: brightness(1.25); }
+.btn-ataque:active { filter: brightness(1.3); }
 .btn-ataque.recarregando { filter: grayscale(0.5) brightness(0.7); }
 
 /* Véu de recarga: sobe de baixo para cima enquanto o golpe não está pronto. Mostrar
@@ -5539,26 +5542,31 @@ body.editor-recolhido.modo-mundo #assetDock { transform: translateX(-100%); }
   transition: height .06s linear;
 }
 
+/* `--ang` é a direção da habilidade e `--raio` a distância até o centro. O par de
+   rotações opostas gira a POSIÇÃO sem girar o ícone. */
 .btn-habilidade {
   position: absolute;
-  width: 52px; height: 52px;
+  left: 50%; top: 50%;
+  --raio: 74px;
+  transform: translate(-50%, -50%) rotate(var(--ang)) translateY(calc(-1 * var(--raio)))
+             rotate(calc(-1 * var(--ang)));
+  width: 54px; height: 54px;
   border-radius: 50%;
-  border: 2px solid rgba(148, 163, 184, 0.4);
+  border: 2px solid rgba(148, 163, 184, 0.45);
   background: radial-gradient(circle at 35% 30%, #334155, #0f172a 72%);
   color: #cbd5e1;
-  font-size: 21px; line-height: 1;
+  font-size: 22px; line-height: 1;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 4px 14px rgba(0,0,0,0.6);
   cursor: pointer;
-  transition: transform .08s ease;
+  overflow: hidden;
 }
-.btn-habilidade:active:not(:disabled) { transform: scale(0.9); }
 .btn-habilidade:disabled { opacity: 0.42; cursor: default; }
 
-/* As três em arco de 90°, à esquerda e acima do botão de ataque. */
-.hab-1 { right: 104px; bottom: 14px; }
-.hab-2 { right: 82px;  bottom: 76px; }
-.hab-3 { right: 20px;  bottom: 104px; }
+/* Arco de cima até a esquerda: o lado que sobra de tela, longe da borda direita. */
+.hab-1 { --ang: -90deg; }   /* à esquerda do ataque */
+.hab-2 { --ang: -45deg; }   /* acima e à esquerda */
+.hab-3 { --ang: 0deg; }     /* acima */
 
 /* A roda vive no palco, fora de #touchControls: aquele bloco só aparece em celular, e
    no computador a roda ficaria invisível justamente onde o teste é feito. Só depende de
@@ -5566,37 +5574,13 @@ body.editor-recolhido.modo-mundo #assetDock { transform: translateX(-100%); }
 .roda-combate { display: none; }
 body.jogando .roda-combate { display: block; }
 
-@media (max-width: 780px) {
-  .roda-combate { width: 148px; height: 148px; right: 14px; bottom: 18px; }
-  .btn-ataque { width: 80px; height: 80px; font-size: 33px; }
-  .btn-habilidade { width: 46px; height: 46px; font-size: 18px; }
-  .hab-1 { right: 90px; bottom: 12px; }
-  .hab-2 { right: 72px; bottom: 66px; }
-  .hab-3 { right: 18px; bottom: 90px; }
+/* Telas pequenas: tudo encolhe junto, mantendo o arranjo. */
+@media (max-width: 780px), (max-height: 460px) {
+  .roda-combate { width: 168px; height: 168px; right: 12px; bottom: 12px; }
+  .btn-ataque { width: 82px; height: 82px; font-size: 34px; }
+  .btn-habilidade { width: 48px; height: 48px; font-size: 19px; --raio: 64px; }
 }
-/* Recarga das habilidades: mesma leitura do botão grande, em escala menor. */
-.btn-habilidade { position: relative; overflow: hidden; }
-.btn-habilidade::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0;
-  height: var(--recarga, 0%);
-  background: rgba(8, 12, 20, 0.66);
-  pointer-events: none; transition: height .08s linear;
-}
-.btn-habilidade.recarregando { filter: grayscale(0.55) brightness(0.72); }
-/* A tecla de cada habilidade aparece no canto do botão: no computador, sem ela o
-   jogador não tem como descobrir que Q, R e F existem. */
-.btn-habilidade[data-tecla]::before {
-  content: attr(data-tecla);
-  position: absolute; top: 1px; right: 4px;
-  font-size: 9px; font-weight: 700; color: #fbbf24;
-  text-shadow: 0 1px 2px #000; z-index: 2;
-}
-.btn-ataque::before {
-  content: 'ESPAÇO';
-  position: absolute; bottom: 5px; left: 0; right: 0;
-  font-size: 8px; font-weight: 700; letter-spacing: .06em;
-  color: rgba(253,230,138,0.75); text-shadow: 0 1px 2px #000; z-index: 2;
-}
+
 /* Corrente viva: o botão pulsa enquanto a janela do combo está aberta. É o único aviso
    de que apertar AGORA encadeia em vez de recomeçar. */
 @keyframes pulso-combo {
