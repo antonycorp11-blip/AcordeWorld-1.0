@@ -6643,7 +6643,9 @@ function soltarItem(item, m, now) {
 function killMonster(m, now) {
   m.dead = true;
   m.hp = 0;
-  m.respawnAt = now + 12000; // comes back after 12s so the area stays farmable
+  // Numa corrida de dungeon o monstro não volta: o objetivo é limpar um número fixo de
+  // inimigos, e um respawn faria a conta nunca fechar.
+  m.respawnAt = corridaAtiva() && m.mapKey === corrida.mapa ? 0 : now + 12000;
   const def = monsterDef(m);
   // Aceita `drop` (um item) ou `drops` (lista com chance) — o monstro pode largar
   // fragmentos sempre e uma clave de vez em quando.
@@ -6697,6 +6699,8 @@ function damagePlayer(amount) {
   // modo jogo — o resultado era o combate parar de vez, sem dano e sem controle, e
   // nada na tela dizendo o porquê. Foi exatamente este o "funcionou e depois parou".
   // Quem está montando uma arena quer sentir a pancada, não recomeçar a cada erro.
+  // A corrida mede o dano sofrido, então ele é somado antes de qualquer desvio.
+  if (corridaAtiva()) corrida.danoSofrido += amount;
   if (combateNoEditor && !isPlayMode) {
     playerHp = Math.max(1, playerHp - amount);
     playerHurtUntil = now + 700;
@@ -6983,6 +6987,7 @@ function savePlayerData() {
       coins: playerCoins, owned: ownedItems, equipped, claves: claveCount,
       level, xp, attrPoints, skillPoints, attrs, skills: learnedSkills,
       passivas, habilidadesAbertas,
+      passesDeDungeon, dungeons: ultimaConclusaoDeDungeon,
       toolQuality, notas: notasPossuidas, escalas: escalasMontadas, acordes: acordesObtidos,
       // Progresso de jogo: no celular não há servidor, então tudo vive aqui.
       nome: playerName, heroi: selectedHeroId,
@@ -7041,6 +7046,8 @@ function loadPlayerData() {
     if (typeof d.skillPoints === 'number') skillPoints = d.skillPoints;
     carregarPassivas(d.passivas);
     carregarHabilidadesAbertas(d.habilidadesAbertas);
+    if (typeof d.passesDeDungeon === 'number') passesDeDungeon = d.passesDeDungeon;
+    if (d.dungeons) ultimaConclusaoDeDungeon = d.dungeons;
     if (d.attrs) {
       // Saves antigos guardam força/agilidade/capacidade. Converte em vez de descartar,
       // senão quem já jogou perde o progresso ao atualizar.
@@ -7065,6 +7072,7 @@ async function loadShopCatalog() {
     shopCatalog = await r.json();
   } catch (e) { return; }
   playerCoins = shopCatalog.coins_start ?? 300;
+  carregarDungeons();
   loadPlayerData(); // saved balance wins over the catalogue default
   abastecerBancaDeTestes();
   shopCatalog.items.forEach(it => {
@@ -11718,7 +11726,7 @@ let combateNoEditor = false;
 
 // Quem manda os monstros se mexerem, atacarem e receberem dano: o jogo de verdade, ou
 // o teste de combate dentro do editor.
-function monstrosVivos() { return isPlayMode || combateNoEditor; }
+function monstrosVivos() { return isPlayMode || combateNoEditor || corridaAtiva(); }
 
 function alternarCombateNoEditor(ligar) {
   combateNoEditor = ligar === undefined ? !combateNoEditor : !!ligar;
@@ -11957,6 +11965,11 @@ function loop(now){
   if(now-lastFPSTime>=1000){currentFPS=frameCount;frameCount=0;lastFPSTime=now;if(fpsDisplay)fpsDisplay.textContent=`${currentFPS} FPS`;if(statusFPS)statusFPS.textContent=`${currentFPS} FPS`;}
 
   if(engineMode==='worldmap')return;   // desenhado pelo editor de mundo, em canvas próprio
+
+  // A dungeon é vigiada aqui, fora de qualquer ramo de desenho: ela é regra de jogo, e
+  // estava dentro do bloco `outdoors`, que não roda em todos os modos — o portão nunca
+  // abria no modo andar do editor.
+  atualizarDungeon(now);
 
   const mapKey=isPlayMode?currentKey:(activeMapSelect?.value||currentKey);
   const isMegaWorld = mapKey === 'mega_world';
@@ -16267,3 +16280,304 @@ window.addEventListener('keydown', e => {
   if (e.key === 'c' || e.key === 'C') alternarFicha();
 });
 atualizarPontoDaFicha();
+
+// ══ Dungeons ══════════════════════════════════════════════════════════════════
+// Uma dungeon é um cenário comum com regras em volta: você entra por um portão, o relógio
+// começa, e ela só termina quando o último monstro cai. No fim vem a apuração — tempo,
+// dano sofrido e abates — e o prêmio sai da nota.
+//
+// Nada disso é escrito no código: `assets/dados/dungeons.json` diz qual mapa é dungeon,
+// quais são as metas e quanto paga. Transformar outro cenário em dungeon é acrescentar uma
+// entrada no arquivo.
+//
+// O passe já está implementado mas destravado (`passe.livre: true`), como foi pedido: dá
+// para atravessar o fluxo inteiro hoje e trancar depois virando uma chave.
+
+let DUNGEONS = [];
+let corrida = null;                 // a corrida em andamento, ou null
+let passesDeDungeon = 3;            // passes na mochila (só importam quando livre = false)
+let ultimaConclusaoDeDungeon = {};  // id → timestamp, para o relógio de reset
+
+async function carregarDungeons() {
+  try {
+    const r = await fetch(`assets/dados/dungeons.json?t=${Date.now()}`);
+    const d = await r.json();
+    DUNGEONS = d.dungeons || [];
+  } catch (e) { DUNGEONS = []; }
+}
+
+function dungeonDoMapa(key) { return DUNGEONS.find(d => d.mapa === key) || null; }
+function corridaAtiva() { return !!corrida && !corrida.fim; }
+function dungeonAtual() { return corrida ? dungeonDoMapa(corrida.mapa) : null; }
+
+// ── passe e reset ──
+// Duas maneiras de entrar: gastar um passe, ou esperar o relógio de reset virar. Enquanto
+// `livre` for true nenhuma das duas é cobrada.
+function esperaDeReset(d) {
+  const h = (d.passe?.resetHoras ?? 8) * 3600000;
+  const ultima = ultimaConclusaoDeDungeon[d.id] || 0;
+  if (!ultima) return 0;
+  return Math.max(0, ultima + h - Date.now());
+}
+function podeEntrarNaDungeon(d) {
+  if (d.passe?.livre) return { ok: true, livre: true };
+  const espera = esperaDeReset(d);
+  if (espera <= 0) return { ok: true, motivo: 'reset' };
+  if (passesDeDungeon >= (d.passe?.custo ?? 1)) return { ok: true, motivo: 'passe' };
+  return { ok: false, espera };
+}
+function textoDeEspera(ms) {
+  const t = Math.ceil(ms / 60000);
+  if (t < 60) return `${t} min`;
+  return `${Math.floor(t / 60)} h ${String(t % 60).padStart(2, '0')} min`;
+}
+
+// ── ciclo da corrida ──
+function monstrosDaDungeon(mapa) { return monsters.filter(m => m.mapKey === mapa); }
+
+function iniciarCorrida(d) {
+  const permissao = podeEntrarNaDungeon(d);
+  if (!permissao.ok) {
+    showToast(`Sem passe — a entrada libera em ${textoDeEspera(permissao.espera)}.`);
+    return false;
+  }
+  if (permissao.motivo === 'passe') passesDeDungeon -= (d.passe?.custo ?? 1);
+
+  // Todos os monstros voltam de pé e com vida cheia: uma corrida começa do zero, senão
+  // bastaria limpar o mapa uma vez e reentrar para concluir de graça.
+  const lista = monstrosDaDungeon(d.mapa);
+  lista.forEach(m => {
+    m.dead = false; m.respawnAt = 0;
+    m.hp = m.maxHp = (monsterDef(m).hp ?? 20);
+    m.x = m.homeX; m.y = m.homeY;
+    m.paralisadoAte = 0; m.dormindoAte = 0; m.hurtUntil = 0;
+  });
+  playerHp = playerMaxHp();
+
+  corrida = {
+    id: d.id, mapa: d.mapa, inicio: performance.now(),
+    danoSofrido: 0, abates: 0, total: lista.length, fim: 0,
+  };
+  fecharPortao();
+  anunciar(d.nome.toUpperCase(), 1600);
+  showToast(`${d.nome} — derrote ${lista.length} inimigos.`);
+  return true;
+}
+
+// Sair do mapa no meio abandona: sem isso daria para fugir do dano, voltar e concluir.
+function abandonarCorrida(motivo) {
+  if (!corridaAtiva()) return;
+  corrida = null;
+  showToast(motivo || 'Corrida abandonada.');
+}
+
+// ── apuração ──
+// Três eixos, uma medalha cada. O tempo mede execução, o dano mede domínio, os abates
+// medem se a dungeon foi de fato limpa.
+function medalhaDeTempo(d, ms) {
+  const m = d.metas || {};
+  if (ms <= (m.tempoOuro ?? 90000)) return 2;
+  if (ms <= (m.tempoPrata ?? 150000)) return 1;
+  return 0;
+}
+function medalhaDeDano(d, dano) {
+  const m = d.metas || {};
+  const frac = dano / Math.max(1, playerMaxHp());
+  if (frac <= (m.danoOuro ?? 0)) return 2;
+  if (frac <= (m.danoPrata ?? 0.25)) return 1;
+  return 0;
+}
+const NOME_DA_MEDALHA = ['BRONZE', 'PRATA', 'OURO'];
+// Índice = soma das duas medalhas (0 a 4). O S exige as DUAS de ouro: tempo no alvo e
+// nenhum dano. Com a curva anterior (0→C,1→B,2→A,3→S) bastava ouro no tempo e prata no
+// dano para tirar S, e a nota máxima deixava de significar corrida impecável.
+const RANK_POR_PONTO = ['C', 'C', 'B', 'A', 'S'];
+const MULT_DO_RANK = { S: 2, A: 1.5, B: 1.2, C: 1 };
+
+function avaliarCorrida(c) {
+  const d = dungeonDoMapa(c.mapa) || {};
+  const ms = c.fim - c.inicio;
+  const mt = medalhaDeTempo(d, ms);
+  const md = medalhaDeDano(d, c.danoSofrido);
+  const rank = RANK_POR_PONTO[mt + md] || 'C';
+  const mult = MULT_DO_RANK[rank] || 1;
+  const base = d.premio || { claves: 0, ouro: 0 };
+  return {
+    d, ms, medalhaTempo: mt, medalhaDano: md, rank, mult,
+    claves: Math.round((base.claves || 0) * mult),
+    ouro: Math.round((base.ouro || 0) * mult),
+  };
+}
+
+function concluirCorrida() {
+  if (!corridaAtiva()) return;
+  corrida.fim = performance.now();
+  const r = avaliarCorrida(corrida);
+  claveCount += r.claves;
+  playerCoins += r.ouro;
+  ultimaConclusaoDeDungeon[r.d.id] = Date.now();
+  savePlayerData();
+  mostrarApuracao(r, corrida);
+}
+
+// Chamado a cada quadro enquanto a corrida corre: é aqui que a dungeon percebe que
+// acabou, e que o jogador saiu do mapa.
+function atualizarCorrida(now) {
+  if (!corridaAtiva()) return;
+  if (currentKey !== corrida.mapa) { abandonarCorrida('Você saiu da dungeon — corrida perdida.'); return; }
+  const vivos = monstrosDaDungeon(corrida.mapa).filter(m => !m.dead).length;
+  corrida.abates = corrida.total - vivos;
+  if (vivos === 0) concluirCorrida();
+}
+
+// ── portão de entrada ──
+// Chegar num mapa de dungeon não começa a corrida sozinho: abre o portão, que diz o
+// objetivo, o prêmio e o estado do passe. É aqui que a tranca vai morar quando ligar.
+function abrirPortao(d) {
+  const el = document.getElementById('dgPortao');
+  if (!el) return;
+  const perm = podeEntrarNaDungeon(d);
+  const base = d.premio || {};
+  const m = d.metas || {};
+  const total = monstrosDaDungeon(d.mapa).length;
+
+  el.querySelector('.dg-nome').textContent = d.nome;
+  el.querySelector('.dg-sub').textContent = d.subtitulo || '';
+  el.querySelector('.dg-nivel').textContent = `NÍVEL ${d.nivel || 1}`;
+  el.querySelector('.dg-objetivo').innerHTML =
+    `Derrote <b>${total}</b> inimigo${total === 1 ? '' : 's'} sem sair do pátio.`;
+  el.querySelector('.dg-metas').innerHTML = `
+    <div class="dg-meta"><span>OURO</span><b>${(m.tempoOuro / 1000) | 0}s</b><small>sem tomar dano</small></div>
+    <div class="dg-meta"><span>PRATA</span><b>${(m.tempoPrata / 1000) | 0}s</b><small>até ${Math.round((m.danoPrata || 0) * 100)}% de dano</small></div>
+    <div class="dg-meta"><span>BRONZE</span><b>concluir</b><small>sem meta</small></div>`;
+  el.querySelector('.dg-premio').innerHTML =
+    `<span class="dg-moeda claves">${(base.claves || 0).toLocaleString('pt-BR')} claves</span>
+     <span class="dg-moeda ouro">${(base.ouro || 0).toLocaleString('pt-BR')} ouro</span>
+     <small>× o multiplicador da sua nota</small>`;
+
+  const passe = el.querySelector('.dg-passe');
+  if (d.passe?.livre) {
+    passe.className = 'dg-passe livre';
+    passe.textContent = 'Entrada liberada — o passe entra em uma versão futura.';
+  } else if (perm.ok) {
+    passe.className = 'dg-passe';
+    passe.textContent = perm.motivo === 'passe'
+      ? `Custa 1 passe (você tem ${passesDeDungeon}).`
+      : 'Entrada livre — o reset já virou.';
+  } else {
+    passe.className = 'dg-passe bloqueado';
+    passe.textContent = `Sem passe. Libera em ${textoDeEspera(perm.espera)}.`;
+  }
+  const btn = el.querySelector('.dg-entrar');
+  btn.disabled = !perm.ok;
+  btn.onclick = () => iniciarCorrida(d);
+  el.querySelector('.dg-sair').onclick = () => fecharPortao();
+
+  el.classList.remove('hidden');
+}
+function fecharPortao() { document.getElementById('dgPortao')?.classList.add('hidden'); }
+function portaoAberto() {
+  const el = document.getElementById('dgPortao');
+  return !!el && !el.classList.contains('hidden');
+}
+
+// ── tela de apuração ──
+// O pedido era uma tela no fim mostrando o que se ganhou. Ela mostra a nota, os três eixos
+// com a medalha de cada um, e o prêmio já multiplicado.
+function mostrarApuracao(r, c) {
+  const el = document.getElementById('dgFim');
+  if (!el) return;
+  const seg = (r.ms / 1000);
+  const medalha = i => `<i class="dg-med m${i}">${NOME_DA_MEDALHA[i]}</i>`;
+
+  el.querySelector('.dgf-rank').textContent = r.rank;
+  el.querySelector('.dgf-rank').className = `dgf-rank rank-${r.rank}`;
+  el.querySelector('.dgf-nome').textContent = r.d.nome || '';
+  el.querySelector('.dgf-linhas').innerHTML = `
+    <div class="dgf-linha">
+      <span>TEMPO</span><b>${Math.floor(seg / 60)}:${String(Math.floor(seg % 60)).padStart(2, '0')}</b>
+      ${medalha(r.medalhaTempo)}
+    </div>
+    <div class="dgf-linha">
+      <span>DANO SOFRIDO</span><b>${Math.round(c.danoSofrido)}</b>
+      ${medalha(r.medalhaDano)}
+    </div>
+    <div class="dgf-linha">
+      <span>ABATES</span><b>${c.abates} / ${c.total}</b>
+      <i class="dg-med m2">COMPLETO</i>
+    </div>`;
+  el.querySelector('.dgf-mult').textContent = `MULTIPLICADOR ×${r.mult.toFixed(2).replace('.', ',')}`;
+  el.querySelector('.dgf-premios').innerHTML = `
+    <div class="dgf-premio claves"><span>CLAVES</span><b>+${r.claves.toLocaleString('pt-BR')}</b></div>
+    <div class="dgf-premio ouro"><span>OURO</span><b>+${r.ouro.toLocaleString('pt-BR')}</b></div>`;
+  // Os itens entram depois, como combinado. O espaço fica reservado para o jogador
+  // entender que a lista de prêmios ainda vai crescer.
+  el.querySelector('.dgf-itens').innerHTML =
+    `<span>ITENS</span><small>os drops de dungeon entram em uma versão futura</small>`;
+
+  el.querySelector('.dgf-repetir').onclick = () => {
+    el.classList.add('hidden'); corrida = null;
+    const d = DUNGEONS.find(x => x.id === r.d.id);
+    if (d) abrirPortao(d);
+  };
+  el.querySelector('.dgf-sair').onclick = () => { el.classList.add('hidden'); corrida = null; };
+  el.classList.remove('hidden');
+}
+
+// ── HUD da corrida ──
+// Relógio, abates e dano no alto da tela: sem isso o jogador não sabe que está sendo
+// medido, e as metas viram surpresa no fim.
+function renderHudDaCorrida(now) {
+  const el = document.getElementById('dgHud');
+  if (!el) return;
+  const ativa = corridaAtiva();
+  el.classList.toggle('hidden', !ativa);
+  if (!ativa) return;
+  const d = dungeonAtual() || {};
+  const ms = now - corrida.inicio;
+  const seg = ms / 1000;
+  el.querySelector('.dgh-tempo').textContent =
+    `${Math.floor(seg / 60)}:${String(Math.floor(seg % 60)).padStart(2, '0')}`;
+  // O relógio muda de cor conforme as metas passam: é o aviso de que o ouro já foi.
+  el.querySelector('.dgh-tempo').className = 'dgh-tempo '
+    + (ms <= (d.metas?.tempoOuro ?? 9e9) ? 'ouro'
+     : ms <= (d.metas?.tempoPrata ?? 9e9) ? 'prata' : 'bronze');
+  el.querySelector('.dgh-abates').textContent = `${corrida.abates} / ${corrida.total}`;
+  el.querySelector('.dgh-dano').textContent = `${Math.round(corrida.danoSofrido)}`;
+}
+
+// Um ponto único por quadro: percebe a chegada num mapa de dungeon, corre a apuração e
+// mantém o HUD. Ficou como vigia em vez de gancho nas trocas de mapa porque `currentKey`
+// muda em quatro lugares diferentes (borda, placa, porta, carregar save) — vigiar o valor
+// pega todos de graça.
+let mapaVigiado = null;
+function atualizarDungeon(now) {
+  if (currentKey !== mapaVigiado) {
+    const anterior = mapaVigiado;
+    mapaVigiado = currentKey;
+    if (corridaAtiva() && corrida.mapa !== currentKey) {
+      abandonarCorrida('Você saiu da dungeon — corrida perdida.');
+    }
+    const d = dungeonDoMapa(currentKey);
+    // Só abre o portão quem está de fato jogando: durante a edição pura ele apareceria
+    // por cima das ferramentas a cada vez que o cenário fosse aberto.
+    if (d && anterior !== null && personagemAndando() && !corridaAtiva()) abrirPortao(d);
+    else if (!d) fecharPortao();
+  }
+  atualizarCorrida(now);
+  renderHudDaCorrida(now);
+}
+
+// Atalho para reabrir o portão da dungeon do mapa atual sem precisar sair e voltar.
+function abrirPortaoDaqui() {
+  const d = dungeonDoMapa(currentKey);
+  if (!d) { showToast('Este cenário não é uma dungeon.'); return; }
+  if (corridaAtiva()) { showToast('Corrida em andamento.'); return; }
+  abrirPortao(d);
+}
+window.addEventListener('keydown', e => {
+  if (e.repeat || e.key !== 'g' && e.key !== 'G') return;
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if (portaoAberto()) fecharPortao(); else abrirPortaoDaqui();
+});

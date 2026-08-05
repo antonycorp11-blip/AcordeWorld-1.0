@@ -1,0 +1,32 @@
+{
+  "_comentario": [
+    "Cada dungeon aponta para um cenário que já existe. Transformar um mapa em dungeon é",
+    "só acrescentar uma entrada aqui — nenhum código muda.",
+    "",
+    "metas: os tempos (em ms) e o dano sofrido que valem cada medalha. Ouro é o alvo",
+    "difícil, prata o alvo justo, bronze o piso. Passar do bronze ainda conclui, mas paga o",
+    "mínimo.",
+    "",
+    "passe.livre: true deixa entrar sempre. Quando virar false a entrada passa a exigir um",
+    "passe OU esperar o reset — o sistema já está pronto, é só virar a chave."
+  ],
+  "dungeons": [
+    {
+      "id": "patio_das_ruinas",
+      "mapa": "custom_1785900374897_630",
+      "nome": "Pátio das Ruínas",
+      "subtitulo": "Ruínas antigas onde os Ecos ainda ressoam",
+      "nivel": 1,
+      "metas": {
+        "tempoOuro": 90000,
+        "tempoPrata": 150000,
+        "tempoBronze": 240000,
+        "danoOuro": 0,
+        "danoPrata": 0.25,
+        "danoBronze": 0.6
+      },
+      "premio": { "claves": 1200, "ouro": 300 },
+      "passe": { "livre": true, "custo": 1, "resetHoras": 8 }
+    }
+  ]
+}

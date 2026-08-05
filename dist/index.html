@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=20260805155258">
+  <link rel="stylesheet" href="style.css?v=20260805165203">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -271,6 +271,51 @@
                   <div class="ficha-habs" id="fichaHabs"></div>
                   <p class="ficha-lema" id="fichaLema"></p>
                 </section>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ Dungeons ══ Portão de entrada, HUD da corrida e tela de apuração. -->
+          <div id="dgPortao" class="dg-overlay hidden">
+            <div class="dg-quadro">
+              <div class="dg-cab">
+                <span class="dg-nivel"></span>
+                <h2 class="dg-nome"></h2>
+                <p class="dg-sub"></p>
+              </div>
+              <p class="dg-objetivo"></p>
+              <div class="dg-metas"></div>
+              <div class="dg-premio"></div>
+              <p class="dg-passe"></p>
+              <div class="dg-botoes">
+                <button class="dg-sair">Ainda não</button>
+                <button class="dg-entrar">ENTRAR</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="dgHud" class="dg-hud hidden">
+            <div class="dgh-item"><span>TEMPO</span><b class="dgh-tempo">0:00</b></div>
+            <div class="dgh-item"><span>ABATES</span><b class="dgh-abates">0 / 0</b></div>
+            <div class="dgh-item"><span>DANO</span><b class="dgh-dano">0</b></div>
+          </div>
+
+          <div id="dgFim" class="dg-overlay hidden">
+            <div class="dg-quadro fim">
+              <div class="dgf-topo">
+                <div class="dgf-rank">S</div>
+                <div>
+                  <div class="dgf-titulo">DUNGEON CONCLUÍDA</div>
+                  <div class="dgf-nome"></div>
+                </div>
+              </div>
+              <div class="dgf-linhas"></div>
+              <div class="dgf-mult"></div>
+              <div class="dgf-premios"></div>
+              <div class="dgf-itens"></div>
+              <div class="dg-botoes">
+                <button class="dgf-sair">Sair</button>
+                <button class="dgf-repetir">REPETIR</button>
               </div>
             </div>
           </div>
@@ -719,7 +764,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="config.js?v=20260805155258"></script>
-<script src="game.js?v=20260805155258"></script>
+<script src="config.js?v=20260805165203"></script>
+<script src="game.js?v=20260805165203"></script>
 </body>
 </html>
