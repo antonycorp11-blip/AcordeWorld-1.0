@@ -5176,14 +5176,94 @@ const COMBO_REMATE_ESPERA = 900;
 // básico do Achilles, o que gastava o efeito mais bonito do jogo em cada golpe. Agora é
 // habilidade: ativa uma janela em que os golpes ganham a lâmina e ferem mais.
 const LAMINA_MS = 6000, LAMINA_ESPERA = 12000, LAMINA_BONUS = 1.6;
+const LAMINA_NOME = 'ESPADA DE DÓ MAIOR';
 let laminaAte = 0, laminaEsperaAte = 0;
+
+// Anúncio da habilidade em texto na tela. O aviso ia num `showToast`, que é um balão de
+// canto e serve para recado de sistema — não para dizer que um golpe especial acabou de
+// nascer. Aqui o nome sobe do personagem, em letra grande, e some sozinho.
+let anuncio = null;   // { texto, ate }
+
+function anunciar(texto, ms = 1500) {
+  anuncio = { texto, ate: performance.now() + ms };
+}
+
+function renderAnuncio(now) {
+  if (!anuncio || now > anuncio.ate) return;
+  const resta = anuncio.ate - now;
+  const t = 1 - resta / 1500;                       // 0 no começo, 1 no fim
+  // Coordenada de CENA, sem converter para tela: este desenho acontece DENTRO da câmera,
+  // então converter aplicaria o zoom duas vezes e jogaria o texto fora do lugar.
+  const p = { x: player.x, y: player.y - player.height - 34 };
+  const sobe = t * 16;                              // o texto sobe enquanto apaga
+  const alfa = Math.min(1, resta / 420);
+
+  ctx.save();
+  ctx.globalAlpha = alfa;
+  ctx.textAlign = 'center';
+  // Letra grande com contorno grosso: sem o contorno o texto desaparece em cenário claro.
+  ctx.font = 'bold 22px Outfit, sans-serif';
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = 'rgba(6,9,14,0.92)';
+  ctx.strokeText(anuncio.texto, p.x, p.y - sobe);
+  ctx.fillStyle = '#93c5fd';
+  ctx.fillText(anuncio.texto, p.x, p.y - sobe);
+  ctx.restore();
+}
+
+// Brilho azul enquanto a habilidade está desperta. É o único sinal NO PERSONAGEM de que a
+// janela está aberta — o botão aceso fica no canto da tela, longe de onde o olho está.
+function renderAuraDaLamina(now) {
+  if (!laminaAtiva()) return;
+  const resta = laminaAte - now;
+  // Coordenada de CENA e sem fator de zoom: o desenho acontece dentro da câmera, que já
+  // aplica a escala. Multiplicar aqui de novo inflaria o brilho junto com o zoom.
+  const p = { x: player.x, y: player.y };
+  const z = 1;
+  const pulso = (Math.sin(now * 0.008) + 1) / 2;
+  // Apaga nos últimos 700 ms: o brilho sumindo avisa que a janela está fechando.
+  const forca = Math.min(1, resta / 700) * (0.7 + pulso * 0.3);
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const cy = p.y - player.height * 0.45 * z;
+
+  // Halo largo, para o brilho vazar em volta do corpo.
+  const r = (player.height * 0.9) * z;
+  const g = ctx.createRadialGradient(p.x, cy, 4, p.x, cy, r);
+  g.addColorStop(0, `rgba(191,219,254,${0.62 * forca})`);
+  g.addColorStop(0.45, `rgba(96,165,250,${0.34 * forca})`);
+  g.addColorStop(1, 'rgba(37,99,235,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(p.x, cy, r, 0, Math.PI * 2); ctx.fill();
+
+  // Núcleo apertado e claro por cima. Só o halo largo se dissolvia no cenário — medido,
+  // ele subia dois por cento de azul e passava batido num mapa que já é roxo.
+  const rn = (player.height * 0.4) * z;
+  const gn = ctx.createRadialGradient(p.x, cy, 2, p.x, cy, rn);
+  gn.addColorStop(0, `rgba(224,242,254,${0.55 * forca})`);
+  gn.addColorStop(1, 'rgba(147,197,253,0)');
+  ctx.fillStyle = gn;
+  ctx.beginPath(); ctx.arc(p.x, cy, rn, 0, Math.PI * 2); ctx.fill();
+
+  // Anel no chão: marca o alcance ampliado do golpe enquanto a lâmina está desperta.
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.strokeStyle = `rgba(147,197,253,${0.5 * forca})`;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([7, 6]);
+  ctx.lineDashOffset = -now * 0.02;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 2 * z, ATTACK_RANGE * 1.35 * z, ATTACK_RANGE * 0.5 * z, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
 
 function ativarLamina() {
   const now = performance.now();
   if (now < laminaEsperaAte) return false;
   laminaAte = now + LAMINA_MS;
   laminaEsperaAte = now + LAMINA_ESPERA;
-  showToast('✦ Lâmina Ecoante desperta');
+  anunciar(LAMINA_NOME);
   return true;
 }
 function laminaAtiva() { return performance.now() < laminaAte; }
@@ -5217,7 +5297,9 @@ function addFloater(x, y, text, colour) {
 // mudar mas não sabe que está encadeando, nem em que ponto da corrente está.
 function renderCombo(now) {
   if (!comboMostrado || now > comboMostrado.ate) return;
-  const p = telaDoPonto(player.x, player.y - player.height - 20);
+  // Coordenada de CENA: este desenho acontece dentro da câmera, e converter para tela
+  // aplicava o zoom duas vezes — com zoom 1,6 o rótulo saía do lugar.
+  const p = { x: player.x, y: player.y - player.height - 20 };
   const alfa = Math.min(1, (comboMostrado.ate - now) / 320);
   const passo = comboMostrado.passo;
 
@@ -5442,13 +5524,27 @@ function atualizarBotaoDeAtaque(now) {
   // Ressoar aparece só quando há Eco aberto ao lado.
   document.getElementById('botaoRessoar')?.classList.toggle('disponivel', acao === 'ressoar');
 
-  // Recarga da Lâmina no botão da habilidade.
+  // Recarga da Lâmina no botão da habilidade: véu, anel de desperta e o CONTADOR em
+  // segundos. A barra sozinha não diz quanto falta — o número é o que evita ficar
+  // apertando no vazio para descobrir.
   const bl = document.getElementById('habilidade1');
   if (bl) {
-    const restaL = Math.max(0, laminaEsperaAte - now);
-    bl.classList.toggle('recarregando', restaL > 0);
-    bl.classList.toggle('ativa', laminaAtiva());
-    bl.style.setProperty('--recarga', (restaL / LAMINA_ESPERA * 100).toFixed(0) + '%');
+    const ativa = laminaAtiva();
+    // Enquanto está desperta, o número conta o que resta DELA; depois, o que resta da
+    // espera. São duas contagens diferentes e o jogador se importa com as duas.
+    const restaJanela = Math.max(0, laminaAte - now);
+    const restaEspera = Math.max(0, laminaEsperaAte - now);
+    bl.classList.toggle('recarregando', !ativa && restaEspera > 0);
+    bl.classList.toggle('ativa', ativa);
+    bl.style.setProperty('--recarga', (restaEspera / LAMINA_ESPERA * 100).toFixed(0) + '%');
+    const conta = document.getElementById('habConta1');
+    if (conta) {
+      const alvo = ativa ? restaJanela : restaEspera;
+      // Math.ceil e não round: mostrar "0" com meio segundo restando é mentir que já pode.
+      conta.textContent = alvo > 0 ? String(Math.ceil(alvo / 1000)) : '';
+      conta.style.display = alvo > 0 ? 'flex' : 'none';
+      conta.style.color = ativa ? '#fde68a' : '#fff';
+    }
   }
 
   const espera = attackCooldown();
@@ -11350,6 +11446,8 @@ function loop(now){
     atualizarCena(now);
     if (frameCount % 30 === 0) silenciarVideosDeInterior();
 
+    // A aura vem ANTES do herói: brilho é luz em volta do corpo, não um véu por cima.
+    renderAuraDaLamina(now);
     renderPlayer();
     if(!player.oculto){const pW=outdoors?player.width:HEROI_BASE.interiorW*heroiEscala,
                        pH=outdoors?player.height:HEROI_BASE.interiorH*heroiEscala;
@@ -11429,7 +11527,7 @@ function loop(now){
         ctx.restore();
       });
     }
-    if (outdoors) { renderMarcadoresDeNPC(now); renderCaptura(now); renderRessonancia(now); renderCombo(now); }
+    if (outdoors) { renderMarcadoresDeNPC(now); renderCaptura(now); renderRessonancia(now); renderCombo(now); renderAnuncio(now); }
     else { renderSpeech(now); renderFloaters(now); }
     if (!IS_PLAY_BUILD) renderMotivoDoTravamento();
     else renderMarcadoresDoInterior(now);
@@ -11453,7 +11551,7 @@ function loop(now){
     // há como ver se o caminho pintado dá passagem. Ele vem ANTES do teto: desenhado
     // depois, passava por cima de tudo e o teto pintado não parecia fazer efeito
     // nenhum — foi por isso que o trabalho de pintura sumia ao testar.
-    if (andarNoEditor && !player.oculto) renderPlayer();
+    if (andarNoEditor && !player.oculto) { renderAuraDaLamina(now); renderPlayer(); }
     const L=getLayers(mapKey);ctx.drawImage(L.fgCanvas,0,0);
     if (andarNoEditor) renderHeroiPorTras(mapKey);
     // TUDO do editor desenha DENTRO da câmera. renderSceneOverlay desenha os NPCs de
@@ -11596,7 +11694,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const btnLamina = document.getElementById('habilidade1');
   if (btnLamina) {
     btnLamina.disabled = false;
-    btnLamina.title = 'Lâmina Ecoante — os golpes ganham a lâmina gigante e ferem em volta';
+    btnLamina.title = `${LAMINA_NOME} — os golpes ganham a lâmina gigante e ferem em volta`;
     btnLamina.querySelector('.hab-ico').textContent = '⚔';
     btnLamina.dataset.tecla = 'Q';
     btnLamina.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); ativarLamina(); });

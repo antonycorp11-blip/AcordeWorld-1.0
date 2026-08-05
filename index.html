@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=202608051300">
+  <link rel="stylesheet" href="style.css?v=202608051500">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -856,12 +856,17 @@
           <div class="roda-combate" id="rodaCombate">
             <button class="btn-habilidade hab-1" id="habilidade1" disabled title="Habilidade 1">
               <span class="hab-ico">✦</span>
+              <!-- Segundos que faltam. A barra de recarga sozinha não diz QUANTO falta, e
+                   sem o número o jogador fica apertando no vazio para descobrir. -->
+              <span class="hab-conta" id="habConta1"></span>
             </button>
             <button class="btn-habilidade hab-2" id="habilidade2" disabled title="Habilidade 2">
               <span class="hab-ico">✧</span>
+              <span class="hab-conta" id="habConta2"></span>
             </button>
             <button class="btn-habilidade hab-3" id="habilidade3" disabled title="Habilidade 3">
               <span class="hab-ico">❈</span>
+              <span class="hab-conta" id="habConta3"></span>
             </button>
             <!-- Um botão só para ataque e ação: com monstro ao alcance ele bate, com
                  placa, porta ou NPC ele interage. Dois botões disputando o mesmo polegar
@@ -1446,7 +1451,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="game.js?v=202608051300"></script>
-<script src="pixelizador.js?v=202608051300"></script>
+<script src="game.js?v=202608051500"></script>
+<script src="pixelizador.js?v=202608051500"></script>
 </body>
 </html>

@@ -5507,7 +5507,9 @@ body.editor-recolhido.modo-mundo #assetDock { transform: translateX(-100%); }
 .roda-combate {
   position: absolute;
   right: 18px; bottom: 18px;
-  width: 196px; height: 196px;
+  /* Cresceu junto com o raio das habilidades: a 74px elas quase se tocavam, porque a
+     distância entre duas vizinhas a 45° era 57px e o botão tem 54px de largura. */
+  width: 244px; height: 244px;
   pointer-events: none;
   z-index: 34;
 }
@@ -5547,7 +5549,9 @@ body.editor-recolhido.modo-mundo #assetDock { transform: translateX(-100%); }
 .btn-habilidade {
   position: absolute;
   left: 50%; top: 50%;
-  --raio: 74px;
+  /* 100px: com 45° entre vizinhas, a distância entre dois centros passa a ser 77px para
+     botões de 54px — 23px de folga. Em 74px a folga era 3px e elas encostavam. */
+  --raio: 100px;
   transform: translate(-50%, -50%) rotate(var(--ang)) translateY(calc(-1 * var(--raio)))
              rotate(calc(-1 * var(--ang)));
   width: 54px; height: 54px;
@@ -5574,12 +5578,35 @@ body.editor-recolhido.modo-mundo #assetDock { transform: translateX(-100%); }
 .roda-combate { display: none; }
 body.jogando .roda-combate { display: block; }
 
-/* Telas pequenas: tudo encolhe junto, mantendo o arranjo. */
+/* Telas pequenas: tudo encolhe junto, mantendo o arranjo e a folga entre as habilidades. */
 @media (max-width: 780px), (max-height: 460px) {
-  .roda-combate { width: 168px; height: 168px; right: 12px; bottom: 12px; }
+  .roda-combate { width: 210px; height: 210px; right: 12px; bottom: 12px; }
   .btn-ataque { width: 82px; height: 82px; font-size: 34px; }
-  .btn-habilidade { width: 48px; height: 48px; font-size: 19px; --raio: 64px; }
+  .btn-habilidade { width: 48px; height: 48px; font-size: 19px; --raio: 86px; }
 }
+
+/* Contador de segundos, no meio do botão. Vem por cima do véu de recarga, senão ele
+   escurece justamente o número que se quer ler. */
+.hab-conta {
+  position: absolute; inset: 0;
+  display: none;
+  align-items: center; justify-content: center;
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 17px; font-weight: 800;
+  color: #fff; text-shadow: 0 1px 3px #000;
+  z-index: 4; pointer-events: none;
+}
+.btn-habilidade.recarregando .hab-conta { display: flex; }
+/* Com o número na frente, o ícone só polui. */
+.btn-habilidade.recarregando .hab-ico { opacity: 0.25; }
+
+/* Habilidade DESPERTA: anel âmbar pulsando. Diferente do estado recarregando, que é
+   apagado — aqui o botão precisa gritar que a janela está aberta. */
+@keyframes pulso-habilidade {
+  0%,100% { box-shadow: 0 4px 14px rgba(0,0,0,0.6), 0 0 0 0 rgba(251,191,36,0.75); }
+  50%     { box-shadow: 0 4px 14px rgba(0,0,0,0.6), 0 0 0 9px rgba(251,191,36,0); }
+}
+.btn-habilidade.ativa { animation: pulso-habilidade .85s ease-out infinite; }
 
 /* Corrente viva: o botão pulsa enquanto a janela do combo está aberta. É o único aviso
    de que apertar AGORA encadeia em vez de recomeçar. */
