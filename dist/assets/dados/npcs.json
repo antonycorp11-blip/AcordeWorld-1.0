@@ -593,6 +593,38 @@
       "triggered": false,
       "flipX": false,
       "scale": 0.35
+    },
+    {
+      "id": "signpost_1785900478157_src",
+      "name": "🪧 Placa → 🏰 floesta inicial",
+      "type": "signpost",
+      "mapKey": "custom_1785900374897_630",
+      "x": 466,
+      "y": 14,
+      "targetMapKey": "custom_1785881037059_214",
+      "targetX": 484,
+      "targetY": 564,
+      "triggerRadius": 70,
+      "dialogue": "none",
+      "triggered": false,
+      "flipX": false,
+      "scale": 0.4
+    },
+    {
+      "id": "signpost_1785900478157_dst",
+      "name": "🪧 Placa → 🏰 Ancient_ruins_courtyard_hunting__202608042325",
+      "type": "signpost",
+      "mapKey": "custom_1785881037059_214",
+      "x": 484,
+      "y": 564,
+      "targetMapKey": "custom_1785900374897_630",
+      "targetX": 512,
+      "targetY": 300,
+      "triggerRadius": 70,
+      "dialogue": "none",
+      "triggered": false,
+      "flipX": false,
+      "scale": 0.4
     }
   ]
 }

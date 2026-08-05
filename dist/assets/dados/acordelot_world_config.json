@@ -19,6 +19,10 @@
     "custom_1785884200706_430": {
       "col": 0,
       "row": 2
+    },
+    "custom_1785900374897_630": {
+      "col": 0,
+      "row": 4
     }
   },
   "spawns": {
@@ -61,6 +65,10 @@
     "custom_1785884200706_430": {
       "x": 512,
       "y": 300
+    },
+    "custom_1785900374897_630": {
+      "x": 512,
+      "y": 300
     }
   },
   "bgSources": {
@@ -72,7 +80,8 @@
     "custom_1785871568442_57": "assets/cenarios/mapas/bg_custom_1785871568442_57.png",
     "custom_1785880661560_858": "assets/cenarios/mapas/bg_custom_1785880661560_858.jpg",
     "custom_1785881037059_214": "assets/cenarios/mapas/bg_custom_1785881037059_214.jpg",
-    "custom_1785884200706_430": "assets/cenarios/mapas/bg_custom_1785884200706_430.jpg"
+    "custom_1785884200706_430": "assets/cenarios/mapas/bg_custom_1785884200706_430.jpg",
+    "custom_1785900374897_630": "assets/cenarios/mapas/bg_custom_1785900374897_630.jpg"
   },
   "sceneNames": {
     "custom_1785254196551_992": "🏰 Forest_Edge_Hunting_Ground_map_202607281154",
@@ -84,7 +93,8 @@
     "custom_1785871568442_57": "🏰 C3ntro Acordlot",
     "custom_1785880661560_858": "🏰 Pixel_art_medieval_city_gate_202608041747",
     "custom_1785881037059_214": "🏰 floesta inicial",
-    "custom_1785884200706_430": "🏰 Pixel_art_medieval_village_map_202608041851"
+    "custom_1785884200706_430": "🏰 Pixel_art_medieval_village_map_202608041851",
+    "custom_1785900374897_630": "🏰 Ancient_ruins_courtyard_hunting__202608042325"
   },
   "startMap": "custom_1785881037059_214",
   "ambience": {},
@@ -102,6 +112,6 @@
     }
   },
   "heroiEscala": 0.5,
-  "zoomCenario": 1.4,
+  "zoomCenario": 1.6,
   "TEMPO_LIGADO": false
 }
