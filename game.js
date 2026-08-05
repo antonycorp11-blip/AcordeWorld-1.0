@@ -11836,18 +11836,20 @@ window.testQuest = function(idx) {
 };
 
 async function finishInit(){
-  await loadWorldConfig();await loadLayers();await loadNPCs();await loadQuests();await loadShopCatalog();await loadMonsters();await loadObjetos();await loadMundo();await loadSkillTree();
+  // Nove `await` em fila esperavam um ao outro sem nenhum precisar do anterior: cada
+  // ida ao servidor só começava quando a de cima terminava, e o menu só aparecia no
+  // fim de todas. O config vem primeiro porque as camadas dependem da lista de
+  // cenários; o resto vai junto, em paralelo.
+  await loadWorldConfig();
+  await Promise.all([
+    loadLayers(), loadNPCs(), loadQuests(), loadShopCatalog(),
+    loadMonsters(), loadObjetos(), loadMundo(), loadSkillTree(),
+  ]);
   refreshMapSelect();
   renderQuestBuilderList();
-  // /edit entra direto no Criador de Mundo: é o app principal agora, e ninguém quer
-  // atravessar o editor de cenários antigo para chegar no mapa.
-  if (/^\/(edit|editor)\/?$/.test(location.pathname)) {
-    // Três tentativas: a aba do modo só existe depois que o cabeçalho é montado, e uma
-    // única chamada às vezes chegava antes disso — a página abria no editor antigo.
-    [200, 700, 1500].forEach(t => setTimeout(() => {
-      if (engineMode !== 'mundo') document.querySelector('[data-mode="mundo"]')?.click();
-    }, t));
-  }
+  // Aqui havia três tentativas, em 200/700/1500 ms, de clicar na aba do Criador de
+  // Mundo ao abrir /edit. Com o modo arquivado elas ficaram sem alvo — e eram elas que
+  // sequestravam a abertura para uma tela que não se usa mais.
   // A paleta de props precisa de duas passadas: uma agora, com o catálogo já lido, e
   // outra quando os PNGs terminarem de decodificar — só então há miniatura para mostrar.
   renderPaletaDeProps();
