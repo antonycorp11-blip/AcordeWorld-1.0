@@ -1,7 +1,7 @@
 {
   "id": "altar",
   "nome": "Cena 10 — O Altar das Escalas",
-  "mapa": "0_0",
+  "mapa": "custom_1785869541494_557",
   "autoStart": true,
   "gatilho": {
     "tipo": "falar",
@@ -191,6 +191,6 @@
       "tom": 2,
       "semitom": 1
     },
-    "mapa": "0_0"
+    "mapa": "custom_1785869541494_557"
   }
 }

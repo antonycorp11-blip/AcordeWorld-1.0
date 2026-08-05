@@ -1,7 +1,7 @@
 {
   "id": "ponte",
   "nome": "Cena 5 — A Ponte Quebrada",
-  "mapa": "0_0",
+  "mapa": "custom_1785869541494_557",
   "autoStart": true,
   "gatilho": {
     "tipo": "falar",

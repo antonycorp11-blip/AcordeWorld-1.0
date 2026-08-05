@@ -5358,3 +5358,142 @@ body.modo-mundo #viewport-area { padding-top: var(--barra-h, 44px); }
 }
 .party-slot.empty img { display: none; }
 .party-slot.empty .party-hp-mini { opacity: .25; }
+
+/* ═══ Pixelizador de cenários ═══ */
+.px-card {
+  background: #18130e; border: 1px solid #4a3a22; border-radius: 12px;
+  width: 92vw; max-width: 880px; max-height: 92vh; padding: 18px;
+  display: flex; flex-direction: column; gap: 12px; overflow-y: auto;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.85); color: #fde68a;
+}
+.px-linha-fonte { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+.px-zona {
+  flex: 1; min-width: 260px; display: flex; align-items: center; justify-content: center;
+  gap: 12px; padding: 14px; border: 2px dashed #4a3a22; border-radius: 10px;
+  color: #d1d5db; font-size: 13px; transition: border-color .15s, background .15s;
+}
+.px-zona.sobre { border-color: #fbbf24; background: rgba(251,191,36,0.08); }
+
+.px-previas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.px-previas figure { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.px-previas canvas {
+  width: 100%; height: auto; background: #0b0906;
+  border: 1px solid #33281a; border-radius: 8px;
+  /* A prévia processada precisa mostrar bloco de pixel, não uma versão amaciada pelo
+     navegador na hora de esticar o canvas para caber na caixa. */
+  image-rendering: pixelated;
+}
+.px-previas figcaption { font-size: 11px; color: #9ca3af; text-align: center; }
+
+.px-controles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.px-slider { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.px-slider b { color: #fbbf24; }
+.px-slider small { color: #9ca3af; font-size: 10px; }
+.px-slider input[type=range] { width: 100%; accent-color: #fbbf24; }
+
+.px-rodape { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.px-campo { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.px-campo.px-cresce { flex: 1; min-width: 200px; }
+.px-campo input, .px-campo select {
+  background: #0f0c08; border: 1px solid #4a3a22; border-radius: 6px;
+  color: #fde68a; padding: 7px 9px; font-size: 13px; font-family: inherit;
+}
+.px-avisos { display: flex; flex-direction: column; gap: 5px; }
+.px-aviso {
+  background: rgba(251,191,36,0.10); border-left: 3px solid #fbbf24;
+  padding: 7px 10px; border-radius: 4px; font-size: 11px; color: #fcd34d; line-height: 1.45;
+}
+.px-estado { font-size: 12px; color: #9ca3af; min-height: 16px; }
+.px-estado.ok { color: #4ade80; }
+.px-estado.erro { color: #ef4444; }
+
+@media (max-width: 720px) {
+  .px-previas, .px-controles { grid-template-columns: 1fr; }
+}
+
+/* ═══ HUD de time à direita, estilo Genshin ═══ */
+/* Sai da linha de cima do HUD e vira uma coluna colada na borda direita, na altura do
+   olhar. Em cima ela dividia espaço com vida, XP e moedas e ficava pequena demais para
+   ser o gesto principal que é: trocar de personagem no meio da luta. */
+/* Fora do #playerHud: aquele contêiner se apaga sozinho em diálogo, loja e inventário,
+   e levava o trocador de personagem junto — some justamente quando se quer trocar.
+   Agora ele é filho do palco e só depende de estar jogando. */
+.party-hud { display: none; }
+body.jogando .party-hud {
+  display: flex;
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  flex-direction: column;
+  gap: 12px;
+  z-index: 32;
+}
+.party-hud .party-slot { width: 54px; height: 54px; }
+/* O slot ativo cresce e ganha borda quente: dá para saber quem está em campo pelo
+   canto do olho, sem parar para ler. */
+.party-hud .party-slot.active {
+  transform: scale(1.12);
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 2px rgba(251,191,36,0.35), 0 6px 18px rgba(0,0,0,0.7);
+}
+
+/* ═══ Editor recolhível (drawer) ═══ */
+/* Esconde a lateral para dar espaço em volta do palco. O palco NÃO cresce: o jogo
+   mantém o mesmo tamanho aberto ou recolhido, porque é ele a referência para julgar
+   cenário e personagem. Transição no `margin-left` e não em `display`, para a barra
+   deslizar em vez de sumir num pulo. */
+#left-sidebar {
+  transition: margin-left 0.22s ease;
+}
+body.editor-recolhido #left-sidebar {
+  margin-left: -380px;
+}
+/* O Criador de Mundo tem a própria doca de assets, que não é o #left-sidebar. Recolher
+   só uma das duas deixaria o botão sem efeito visível justamente no modo em que o
+   usuário mais quer a tela cheia. */
+#assetDock { transition: transform 0.22s ease; }
+body.editor-recolhido #assetDock { transform: translateX(100%); }
+/* No Criador de Mundo a doca fica ancorada à ESQUERDA (regra `body.modo-mundo`), então
+   ela precisa sair para o outro lado — senão "recolher" a empurrava para dentro da tela. */
+body.editor-recolhido.modo-mundo #assetDock { transform: translateX(-100%); }
+#drawerToggle {
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
+  z-index: 40;
+  width: 22px; height: 66px;
+  border: 1px solid #283754; border-left: none;
+  border-radius: 0 8px 8px 0;
+  background: #182238; color: #fbbf24;
+  font-size: 13px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 3px 0 10px rgba(0,0,0,0.45);
+}
+#drawerToggle:hover { background: #22304d; }
+.px-check { display: flex; align-items: center; gap: 7px; font-size: 12px; margin-top: 8px; cursor: pointer; }
+.px-check input { accent-color: #fbbf24; }
+
+/* O palco NÃO muda de tamanho quando a lateral recolhe. Fazer o jogo esticar para a
+   tela cheia mudava a única referência estável que existe para julgar o cenário e o
+   tamanho do personagem — e recolher a barra virou "o jogo pulou de tamanho" em vez de
+   "ganhei espaço". Recolher esconde a lateral e ponto: o palco fica onde está. */
+/* Um herói só: a grade de quatro colunas deixava o cartão esticado e perdido no meio
+   da tela. */
+.hero-select-grid:has(.hero-select-card:only-child) { grid-template-columns: minmax(0, 220px); justify-content: center; }
+.hero-avatar-box img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+
+/* ═══ Alternar Editor/Jogo, agora na barra ao lado de Parar ═══ */
+/* As regras antigas de `.mobile-editor-toggle-btn` fixavam o botão flutuando no canto
+   superior direito, por cima do HUD. Ele passou a ser um botão de barra comum; o que
+   sobra aqui é só a cor que diferencia os dois estados. */
+#mobileEditorToggleBtn {
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  color: #fde68a; border: 1px solid rgba(253, 230, 138, 0.4); font-weight: 700;
+}
+#mobileEditorToggleBtn.in-editor {
+  /* Jogo em curso: o botão leva de volta ao trabalho. */
+  background: linear-gradient(135deg, #b45309, #92400e);
+  color: #fff; border-color: #fbbf24;
+}
+#mobileEditorToggleBtn:hover { filter: brightness(1.15); }

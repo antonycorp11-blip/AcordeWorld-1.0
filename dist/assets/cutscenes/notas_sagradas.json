@@ -1,7 +1,7 @@
 {
   "id": "notas_sagradas",
   "nome": "Cena 12 — O Lugar das Notas Sagradas",
-  "mapa": "0_0",
+  "mapa": "custom_1785869541494_557",
   "autoStart": true,
   "gatilho": { "tipo": "falar", "npc": "Lucian" },
   "requer": { "notasCondensadas": 3 },
@@ -10,7 +10,7 @@
     "forjar": ["hammer_ferro", "reson_cobre"], "qualidade": "ressonante",
     "itens": { "fragmento": 12, "tom": 3, "semitom": 1 },
     "notas": ["do", "re", "mi"],
-    "mapa": "0_0"
+    "mapa": "custom_1785869541494_557"
   },
   "passos": [
     { "cmd": "controle", "ativo": false },

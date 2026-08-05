@@ -6,16 +6,11 @@
 const SCREEN_W = 1024;
 const SCREEN_H = 571;
 
-const SCENE_NAMES = {
-  '0_0': '🏰 Vila Medieval',
-  '1_0': '🌲 Floresta Mágica',
-  '2_0': '🎹 Conservatório',
-  '0_1': '🏰 Portões Reais',
-  '1_1': '🌿 Entrada Floresta',
-  '2_1': '🌳 Bosque de Treino',
-  '3_1': '🍃 Clareira',
-  '3_0': '🌲 Floresta Profunda',
-};
+// Vazio de propósito. Os sete cenários do motor original (fotos JPG da grade antiga)
+// viviam escritos aqui, e por isso voltavam sozinhos a cada recarga mesmo depois de
+// excluídos no editor. Quem lista os cenários agora é o arquivo de configuração — os
+// arquivos de imagem continuam em assets/cenarios/mapas/, nada foi apagado do disco.
+const SCENE_NAMES = {};
 
 // ============================================================
 // DOM REFS
@@ -39,6 +34,13 @@ let bottomPanel, panelHandle;
 // ENGINE STATE
 // ============================================================
 let engineMode = 'scene';
+
+// ── Criador de Mundo ARQUIVADO ─────────────────────────────────────────────────
+// O modo continua no código, inteiro, mas desligado: não abre, não carrega os blocos
+// do mundo e não sincroniza em segundo plano. Ele custava memória e quadros o tempo
+// todo mesmo sem ninguém usá-lo, e vinha sequestrando a abertura do editor. Para
+// voltar a usar, troque para true — nada foi apagado.
+const CRIADOR_DE_MUNDO_ATIVO = false;
 let sceneSubTool = 'select';
 let collisionTool = 'road';
 let worldMapSubTool = 'drag';
@@ -58,17 +60,8 @@ let frameCount = 0, lastFPSTime = 0, currentFPS = 60;
 // ============================================================
 // WORLD SYSTEM
 // ============================================================
-let gridPos = {
-  '0_0': { col:0, row:0 }, '1_0': { col:1, row:0 }, '2_0': { col:2, row:0 },
-  '0_1': { col:0, row:1 }, '1_1': { col:1, row:1 },
-  // Training grounds east of the forest entrance — rearrange freely in Mapa-Múndi.
-  '2_1': { col:2, row:1 }, '3_1': { col:3, row:1 }, '3_0': { col:3, row:0 },
-};
-let spawns = {
-  '0_0': {x:512,y:300}, '1_0': {x:512,y:300}, '2_0': {x:512,y:300},
-  '0_1': {x:512,y:400}, '1_1': {x:512,y:420},
-  '2_1': {x:512,y:400}, '3_1': {x:512,y:400}, '3_0': {x:512,y:400},
-};
+let gridPos = {};
+let spawns = {};
 let worldGrid = {};
 function rebuildGrid() {
   worldGrid = {};
@@ -96,15 +89,17 @@ function getNeighbor(key, dir) {
 // ASSETS
 // ============================================================
 const bgImages = {};
-const bgSources = {
-  '0_0':'assets/background.jpg', '1_0':'assets/background2.jpg',
-  '2_0':'assets/conservatory.jpg', '0_1':'assets/gate.jpg', '1_1':'assets/forest_entry.jpg',
-  '2_1':'assets/forest_training.jpg', '3_1':'assets/forest_clearing.jpg', '3_0':'assets/forest_deep.jpg',
-};
+// Parâmetros de pixelização por cenário: { fator, cores, original, criadoEm }.
+// Guardar o caminho do ORIGINAL é o que permite reprocessar com outros valores sem
+// pedir o arquivo de novo — a imagem pixelizada já perdeu a informação, não dá para
+// voltar dela.
+const pixelArt = {};
+
+const bgSources = {};
 let spriteRaw = new Image(), processedSprite = null;
 let guardSpriteRaw = new Image(), processedGuard = null;
 let assetsLoaded = 0;
-const totalAssets = Object.keys(bgSources).length + 2; // +player sprite +guard sprite
+let totalAssets = Object.keys(bgSources).length + 2; // +player sprite +guard sprite
 
 function onAssetLoad() {
   assetsLoaded++;
@@ -122,9 +117,9 @@ for (const [k, src] of Object.entries(bgSources)) {
   bgImages[k] = img;
 }
 spriteRaw.onload = spriteRaw.onerror = onAssetLoad;
-spriteRaw.src = 'assets/spritesheet.jpg';
+spriteRaw.src = 'assets/referencias/spritesheet.jpg';
 guardSpriteRaw.onload = guardSpriteRaw.onerror = onAssetLoad;
-guardSpriteRaw.src = 'assets/guard_sprite.jpg';
+guardSpriteRaw.src = 'assets/personagens/npcs/guard_sprite.jpg';
 
 function processPlayerSprite() {
   try {
@@ -167,7 +162,7 @@ async function loadDialogue(id) {
 
 async function loadNPCs() {
   try {
-    const r = await fetch(`assets/npcs.json?t=${Date.now()}`);
+    const r = await fetch(`assets/dados/npcs.json?t=${Date.now()}`);
     npcData = (await r.json()).npcs || [];
   } catch(e) {
     npcData = [{ id:'city_guard', name:'Guarda Renaldo', type:'guard', mapKey:'0_1', x:440, y:320, triggerRadius:90, dialogue:'guard_intro', triggered:false, flipX:false, scale:1.0 }];
@@ -237,7 +232,7 @@ async function saveMonsters() {
   };
   const corpo = JSON.stringify(payload);
 
-  // O SERVIDOR VEM PRIMEIRO: assets/monsters.json é a fonte da verdade — é ele que o
+  // O SERVIDOR VEM PRIMEIRO: assets/dados/monsters.json é a fonte da verdade — é ele que o
   // jogo carrega e é ele que vai no deploy. O localStorage é só reserva e vive
   // estourando a cota (as camadas guardam imagens em base64), então nunca pode rodar
   // antes daqui nem derrubar o envio.
@@ -275,9 +270,13 @@ function loadLayerKey(k) {
   return new Promise(resolve => {
     const L=getLayers(k); let done=0;
     const items=[
-      {ctx:L.roadCtx, url:`assets/acordelot_road_${k}_mask.png`, ls:`wasd_road_${k}_v17`},
-      {ctx:L.fgCtx,   url:`assets/acordelot_fg_${k}_mask.png`,   ls:`wasd_fg_${k}_v17`},
-      {ctx:L.doorCtx, url:`assets/acordelot_door_${k}_mask.png`,  ls:`wasd_door_${k}_v17`},
+      // O servidor grava em assets/cenarios/mascaras/ desde a reorganização das pastas,
+      // mas a leitura continuou apontando para a raiz de assets/: 404 em toda máscara,
+      // e a colisão só sobrevivia no localStorage do navegador que a pintou. Trocar de
+      // máquina, limpar o cache ou abrir o build publicado era perder tudo.
+      {ctx:L.roadCtx, url:`assets/cenarios/mascaras/acordelot_road_${k}_mask.png`, ls:`wasd_road_${k}_v17`},
+      {ctx:L.fgCtx,   url:`assets/cenarios/mascaras/acordelot_fg_${k}_mask.png`,   ls:`wasd_fg_${k}_v17`},
+      {ctx:L.doorCtx, url:`assets/cenarios/mascaras/acordelot_door_${k}_mask.png`, ls:`wasd_door_${k}_v17`},
     ];
     items.forEach(item => {
       const img=new Image();
@@ -291,16 +290,41 @@ function loadLayerKey(k) {
     });
   });
 }
-async function saveAllLayers(notify=false) {
+// `alvo` diz QUAIS cenários serializar. O padrão é só o que está aberto, e a diferença
+// não é de refinamento: com 17 cenários, serializar todos são 51 PNGs de 1024x571, uns
+// 80 ms cada — 3,5 SEGUNDOS de tela travada. Como isto roda meio segundo depois de cada
+// pincelada e de cada área fechada, desenhar caminho ficou impossível. Só o botão 💾
+// pede 'todos', que é quando esperar faz sentido porque foi pedido.
+// Quais camadas de quais cenários mudaram desde o último salvamento. Converter um
+// canvas de 1024x571 em PNG custa ~80 ms, e o editor gravava as TRÊS camadas de cada
+// cenário sempre — inclusive as que ninguém tocou. Pintar caminho só suja `road`.
+const camadasSujas = new Set();
+function marcarCamadaSuja(k, tipo) { if (k) camadasSujas.add(`${tipo}:${k}`); }
+
+async function saveAllLayers(notify=false, alvo=null) {
   if (IS_PLAY_BUILD) return;
   rebuildGrid();
-  const wc={gridPos,spawns,bgSources,sceneNames:SCENE_NAMES,startMap,ambience,videoSources}, payload={worldConfig:wc};
-  for (const k of chavesDeCenario()) {
+  const wc={gridPos,spawns,bgSources,sceneNames:SCENE_NAMES,startMap,ambience,videoSources,pixelArt,heroiEscala,zoomCenario,TEMPO_LIGADO}, payload={worldConfig:wc};
+  const chaves = alvo === 'todos'
+    ? chavesDeCenario()
+    : [alvo || activeMapSelect?.value || currentKey].filter(k => k && cenarioExiste(k));
+  const tudo = alvo === 'todos';
+  for (const k of chaves) {
     const L=getLayers(k);
-    const rd=L.roadCanvas.toDataURL('image/png'), fg=L.fgCanvas.toDataURL('image/png'), dr=L.doorCanvas.toDataURL('image/png');
-    payload[`road_${k}`]=rd; payload[`fg_${k}`]=fg; payload[`door_${k}`]=dr;
-    try { localStorage.setItem(`wasd_road_${k}_v17`,rd); localStorage.setItem(`wasd_fg_${k}_v17`,fg); localStorage.setItem(`wasd_door_${k}_v17`,dr); localStorage.setItem('wasd_world_config_v17',JSON.stringify(wc)); } catch(e) {}
+    const camadas = [['road',L.roadCanvas],['fg',L.fgCanvas],['door',L.doorCanvas]];
+    for (const [tipo, cv] of camadas) {
+      // Sem mudança, sem trabalho. O 💾 grava tudo de qualquer jeito, que é quando
+      // esperar faz sentido porque foi pedido.
+      if (!tudo && !camadasSujas.has(`${tipo}:${k}`)) continue;
+      const png = cv.toDataURL('image/png');
+      payload[`${tipo}_${k}`] = png;
+      try { localStorage.setItem(`wasd_${tipo}_${k}_v17`, png); } catch(e) {}
+      camadasSujas.delete(`${tipo}:${k}`);
+    }
   }
+  // O config do mundo estava sendo gravado DENTRO do laço: sem cenário na lista ele não
+  // era salvo, e com 17 era regravado 17 vezes. Ele não depende de cenário nenhum.
+  try { localStorage.setItem('wasd_world_config_v17',JSON.stringify(wc)); } catch(e) {}
   if (podeSalvarLocalPython()) {
     try { await fetch('/save_layers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); if(notify)showToast('💾 Projeto salvo em disco!'); }
     catch(e) { if(notify)showToast('💾 Salvo no navegador!'); }
@@ -308,37 +332,73 @@ async function saveAllLayers(notify=false) {
 }
 async function loadWorldConfig() {
   try {
-    const r=await fetch(`assets/acordelot_world_config.json?t=${Date.now()}`);
+    const r=await fetch(`assets/dados/acordelot_world_config.json?t=${Date.now()}`);
     const c=await r.json();
-    if(c.gridPos)Object.assign(gridPos,c.gridPos);
-    if(c.spawns)Object.assign(spawns,c.spawns);
-    if(c.bgSources)Object.assign(bgSources,c.bgSources);
-    if(c.sceneNames)Object.assign(SCENE_NAMES,c.sceneNames);
-    if(c.startMap)startMap=c.startMap;
+    if(c.gridPos){
+      for(const k in gridPos) delete gridPos[k];
+      Object.assign(gridPos,c.gridPos);
+    }
+    // SUBSTITUI, não funde. Fundir era o motivo de um cenário excluído renascer a cada
+    // recarga: o arquivo salvo não tinha mais a chave, mas os padrões escritos aqui no
+    // código voltavam a somar. Apagar tem que ser para valer — se o arquivo lista os
+    // cenários, é ele quem manda.
+    if(c.bgSources){ for(const k in bgSources) delete bgSources[k]; Object.assign(bgSources,c.bgSources); }
+    if(c.sceneNames){ for(const k in SCENE_NAMES) delete SCENE_NAMES[k]; Object.assign(SCENE_NAMES,c.sceneNames); }
+    if(c.spawns){ for(const k in spawns) delete spawns[k]; Object.assign(spawns,c.spawns); }
+    if(c.startMap){ startMap=c.startMap; currentKey=c.startMap; }
+    // startMap apontando para cenário já excluído deixava currentKey num mapa
+    // inexistente enquanto o seletor do editor caía noutro: o jogo desenhava um
+    // e as ferramentas editavam o outro.
+    if(!bgSources[currentKey] && !videoSources[currentKey]){
+      const primeiro = Object.keys(bgSources)[0];
+      if(primeiro){ startMap=primeiro; currentKey=primeiro; }
+    }
     if(c.ambience)Object.assign(ambience,c.ambience);
     if(c.videoSources)Object.assign(videoSources,c.videoSources);
+    if(c.pixelArt)Object.assign(pixelArt,c.pixelArt);
+    if(c.heroiEscala)aplicarEscalaHeroi(c.heroiEscala,false);
+    if(c.zoomCenario)aplicarZoomCenario(c.zoomCenario,false);
+    if(typeof c.TEMPO_LIGADO==='boolean')TEMPO_LIGADO=c.TEMPO_LIGADO;
   } catch(e) {
     const ls=localStorage.getItem('wasd_world_config_v17');
     if(ls){
       try{
         const c=JSON.parse(ls);
-        if(c.gridPos)Object.assign(gridPos,c.gridPos);
+        if(c.gridPos){ for(const k in gridPos) delete gridPos[k]; Object.assign(gridPos,c.gridPos); }
         if(c.spawns)Object.assign(spawns,c.spawns);
         if(c.bgSources)Object.assign(bgSources,c.bgSources);
         if(c.sceneNames)Object.assign(SCENE_NAMES,c.sceneNames);
-        if(c.startMap)startMap=c.startMap;
+        if(c.startMap){ startMap=c.startMap; currentKey=c.startMap; }
+        // startMap apontando para cenário já excluído deixava currentKey num mapa
+        // inexistente enquanto o seletor do editor caía noutro: o jogo desenhava um
+        // e as ferramentas editavam o outro.
+        if(!bgSources[currentKey] && !videoSources[currentKey]){
+          const primeiro = Object.keys(bgSources)[0];
+          if(primeiro){ startMap=primeiro; currentKey=primeiro; }
+        }
         if(c.ambience)Object.assign(ambience,c.ambience);
         if(c.videoSources)Object.assign(videoSources,c.videoSources);
+        if(c.pixelArt)Object.assign(pixelArt,c.pixelArt);
+        if(c.heroiEscala)aplicarEscalaHeroi(c.heroiEscala,false);
+        if(c.zoomCenario)aplicarZoomCenario(c.zoomCenario,false);
+        if(typeof c.TEMPO_LIGADO==='boolean')TEMPO_LIGADO=c.TEMPO_LIGADO;
       }catch(ee){}
     }
   }
-  for (const [k, src] of Object.entries(bgSources)) {
-    if (!bgImages[k]) {
-      const img = new Image();
-      img.src = src;
-      bgImages[k] = img;
-    }
-  }
+  // O cenário aberto entra na hora; os outros esperam a tela ficar ociosa. Baixar os
+  // 17 de uma vez são ~30 MB antes de o editor responder a qualquer clique, e 16 deles
+  // não estão à vista. A galeria do Mapa-Múndi continua funcionando: quando ela desenha
+  // as miniaturas, as imagens já chegaram.
+  const carregarBg = k => {
+    if (bgImages[k] || !bgSources[k]) return;
+    const img = new Image();
+    img.src = bgSources[k];
+    bgImages[k] = img;
+  };
+  carregarBg(currentKey);
+  const restantes = Object.keys(bgSources).filter(k => k !== currentKey);
+  const ocioso = window.requestIdleCallback || (fn => setTimeout(fn, 300));
+  ocioso(() => restantes.forEach(carregarBg));
   rebuildGrid();
   refreshMapSelect();
 }
@@ -364,7 +424,36 @@ let startMap = '0_1';
 let ambience = {};
 // A folha do Achilles tem célula de 131x227 (proporção 1:1,73). Largura e altura
 // precisam seguir a mesma proporção, senão o personagem entra achatado ou esticado.
-const player = { x:512, y:400, width:52, height:90, speed:3.9, sprintSpeed:6.65, direction:'down', isMoving:false, animFrame:0, animTimer:0 };
+// Velocidade em pixels por quadro. Estava em 3,9 — a 60 quadros por segundo são 234
+// px/s, que atravessa a tela de 1024 em quatro segundos e meio. Com o zoom em 2x isso
+// dobra na percepção, e a passada passava rápido demais para ser vista. A animação é
+// contada por DISTÂNCIA percorrida, não por tempo, então baixar a velocidade baixa a
+// cadência junto e o pé continua plantando no lugar certo.
+const player = { x:512, y:400, width:60, height:90, speed:2.3, sprintSpeed:4.1, direction:'down', isMoving:false, animFrame:0, animTimer:0 };
+
+// Tamanho do herói na tela. A medida de base é a que casa com a proporção da célula da
+// folha do Achilles (131×227); a escala multiplica as duas dimensões juntas, porque
+// esticar só uma deforma o sprite. Mexer aqui move também a colisão — e é assim que
+// tem que ser: personagem que parece grande e passa por vão de pequeno é pior que
+// personagem do tamanho errado.
+// Proporção tirada da célula da folha (137x205 = 0,668). Se a caixa não acompanhar a
+// folha, o drawImage estica o sprite para caber e o personagem sai achatado ou magro.
+const HEROI_BASE = { width: 64, height: 90, interiorW: 83, interiorH: 117 };
+let heroiEscala = 1;
+
+function aplicarEscalaHeroi(v, salvar = true) {
+  heroiEscala = Math.max(0.5, Math.min(2, Number(v) || 1));
+  player.width = Math.round(HEROI_BASE.width * heroiEscala);
+  player.height = Math.round(HEROI_BASE.height * heroiEscala);
+  const rot = document.getElementById('heroiEscalaVal');
+  if (rot) rot.textContent = Math.round(heroiEscala * 100) + '%';
+  const ctrl = document.getElementById('heroiEscala');
+  if (ctrl && Number(ctrl.value) !== heroiEscala) ctrl.value = heroiEscala;
+  if (salvar) {
+    try { localStorage.setItem('acordelot_heroi_escala', String(heroiEscala)); } catch (e) {}
+    if (typeof saveAllLayers === 'function' && !IS_PLAY_BUILD) saveAllLayers(false);
+  }
+}
 let playerLocked = false, savedDoorPos = {x:512,y:380}, savedDoorMap = null, lastTransTime=0, bordaTravada=false, lastDoorTime=0, lastDeadEndToast=0 /* unused */;
 const keys = {w:false,a:false,s:false,d:false,shift:false};
 // Analog thumb stick — overrides the keys while held. Magnitude drives speed, so a
@@ -477,13 +566,13 @@ function fallbackGuard(ctx2, npc, t) {
 // a missing file just leaves the editor placeholder, it never breaks the load.
 // ============================================================
 const NPC_SPRITE_FILES = {
-  sr_antony:  'assets/npc_sr_antony.jpg',
-  bard:       'assets/npc_bard.jpg',
-  blacksmith: 'assets/npc_blacksmith.jpg',
-  child:      'assets/npc_child.jpg',
-  elder:      'assets/npc_elder.jpg',
-  merchant:   'assets/npc_merchant.jpg',
-  villager:   'assets/npc_villager.jpg',
+  sr_antony:  'assets/personagens/npcs/npc_sr_antony.jpg',
+  bard:       'assets/personagens/npcs/npc_bard.jpg',
+  blacksmith: 'assets/personagens/npcs/npc_blacksmith.jpg',
+  child:      'assets/personagens/npcs/npc_child.jpg',
+  elder:      'assets/personagens/npcs/npc_elder.jpg',
+  merchant:   'assets/personagens/npcs/npc_merchant.jpg',
+  villager:   'assets/personagens/npcs/npc_villager.jpg',
 };
 const npcSprites = {}; // type -> { canvas, sx, sy, sw, sh }
 
@@ -644,8 +733,8 @@ function drawSignpostNPC(ctx2, npc, t) {
 // Three variants per resource. Which one a spot uses is derived from its id, so a spot
 // keeps the same look across reloads while a row of them doesn't look cloned.
 const SPOT_SHEETS = {
-  spot_wood:  { src: 'assets/spot_wood.png',  boxes: [[40,112,452,385],[532,128,457,333],[281,558,446,354]] },
-  spot_stone: { src: 'assets/spot_stone.png', boxes: [[18,366,308,282],[353,360,316,304],[686,345,328,331]] },
+  spot_wood:  { src: 'assets/itens/spot_wood.png',  boxes: [[40,112,452,385],[532,128,457,333],[281,558,446,354]] },
+  spot_stone: { src: 'assets/itens/spot_stone.png', boxes: [[18,366,308,282],[353,360,316,304],[686,345,328,331]] },
 };
 const SPOT_HEIGHT = { spot_wood: 54, spot_stone: 58 };
 const spotSprites = {};   // `${type}_${i}` -> prepared sprite
@@ -1641,6 +1730,15 @@ function checkTransitions() {
     if (q) { pathGuide.waypoints = (q.path_waypoints?.[currentKey]) || []; pathGuide.particles = []; }
   }
   updateMapStatus();
+  // Atravessar andando NO EDITOR precisa manter o editor de pé: sem isto o seletor
+  // mudava de cenário mas a lista de NPCs, a hierarquia e o grupo de ferramentas
+  // ficavam apontando para o mapa anterior — a barra parecia ter sumido.
+  if (!isPlayMode) {
+    refreshMapSelect();
+    refreshNPCHierarchy?.();
+    setMode(engineMode || 'scene');
+    deselectNPC?.();
+  }
   showToast(SCENE_NAMES[destino] || destino);
   if (isPlayMode) talvezIniciarCenaDoMapa(destino);
 }
@@ -2169,12 +2267,13 @@ if (new URLSearchParams(window.location.search).get('recuperar') === '1') {
 
 // Sincroniza cooperativamente em segundo plano a cada 6 segundos no modo editor
 setInterval(() => {
-  if (typeof engineMode !== 'undefined' && engineMode === 'mundo' && !IS_PLAY_BUILD) {
+  if (CRIADOR_DE_MUNDO_ATIVO && typeof engineMode !== 'undefined' && engineMode === 'mundo' && !IS_PLAY_BUILD) {
     sincronizarComNuvemAgora(false);
   }
 }, 6000);
 
 async function loadMundo() {
+  if (!CRIADOR_DE_MUNDO_ATIVO) return;   // arquivado: nem baixa o mundo.json
   let loadedData = null;
 
   // Supabase é a fonte da verdade — carrega de lá primeiro
@@ -3879,7 +3978,7 @@ function mundoMoverJogador() {
   // cada folha nova.
   const quadros = personagemAtivo().cols || 4;
   player.animTimer += spd;
-  if (player.animTimer >= (sprint ? 13 : 19)) {
+  if (player.animTimer >= passoDaAnimacao(sprint)) {
     player.animTimer = 0;
     player.animFrame = (player.animFrame + 1) % quadros;
     if (player.animFrame === 0 || player.animFrame === Math.floor(quadros / 2)) playStep(sprint);
@@ -4136,7 +4235,7 @@ const propSprites = {};   // id -> sprite preparado
 async function loadObjetos() {
   let cfg = null;
   try {
-    const r = await fetch(`assets/objects.json?t=${Date.now()}`);
+    const r = await fetch(`assets/dados/objects.json?t=${Date.now()}`);
     if (r.ok) cfg = await r.json();
   } catch (e) {}
   if (!cfg) return;
@@ -4305,7 +4404,7 @@ const monsterSprites = {}; // type -> prepared sheet
 async function loadMonsters() {
   let cfg = null;
   try {
-    const r = await fetch(`assets/monsters.json?t=${Date.now()}`);
+    const r = await fetch(`assets/dados/monsters.json?t=${Date.now()}`);
     if (r.ok) cfg = await r.json();
   } catch (e) {}
 
@@ -4870,7 +4969,12 @@ function renderMonsters(now) {
 // never have to know where a bonus came from.
 // ============================================================
 const BASE_MAX_HP = 100, BASE_DAMAGE = 10, BASE_COOLDOWN = 480;
-const BASE_SPEED = 3.9, BASE_SPRINT = 6.65, BASE_CAPACITY = 40;
+// Velocidade base em pixels por quadro. Estava em 3,9 — a 60 quadros por segundo são
+// 234 px/s, atravessando a tela de 1024 em quatro segundos e meio; com zoom 2x isso
+// dobra na percepção e a passada some antes de dar para ver. `applyMovementStats`
+// multiplica isto pelos atributos, então é AQUI que a velocidade se ajusta: mexer no
+// objeto `player` não adiantava nada, era sobrescrito no primeiro cálculo de status.
+const BASE_SPEED = 2.3, BASE_SPRINT = 4.1, BASE_CAPACITY = 40;
 const POINTS_PER_LEVEL = 2;
 const SLOTS_DE_ACORDE = 2;        // igual para todos: o arsenal cresce por arco, não por build
 
@@ -4985,7 +5089,7 @@ function learnSkill(id) {
 
 async function loadSkillTree() {
   try {
-    const r = await fetch(`assets/skills.json?t=${Date.now()}`);
+    const r = await fetch(`assets/dados/skills.json?t=${Date.now()}`);
     skillTree = await r.json();
   } catch (e) {}
   applyMovementStats();
@@ -5568,7 +5672,7 @@ let claveSprite = null;
   const img = new Image();
   img.onload = () => { try { claveSprite = prepareSpriteCell(img, { cols: 6, rows: 3, cell: [0, 0] }); } catch (e) {} };
   img.onerror = () => {};
-  img.src = 'assets/clave.jpg';
+  img.src = 'assets/referencias/clave.jpg';
 })();
 
 function updateDrops(now) {
@@ -5687,7 +5791,7 @@ function renderDrops(now) {
 // ============================================================
 // SHOP / COINS / INVENTORY
 // The counter sits in the middle of the interior video; standing in front of it arms
-// the action button. Catalogue lives in assets/skins.json so items can be added
+// the action button. Catalogue lives in assets/dados/skins.json so items can be added
 // without touching code — an item whose PNG is missing shows as a coloured swatch.
 // ============================================================
 const SHOP_COUNTER = { x: 512, y: 330, r: 150 };
@@ -5702,7 +5806,7 @@ let forjadorInterior = null;
   const img = new Image();
   img.onload = () => { forjadorInterior = img; };
   img.onerror = () => {};
-  img.src = 'assets/interior_forjador.jpg';
+  img.src = 'assets/cenarios/mapas/interior_forjador.jpg';
 })();
 const SAVE_KEY = 'acordelot_player_v1';
 
@@ -5867,7 +5971,7 @@ function loadPlayerData() {
 
 async function loadShopCatalog() {
   try {
-    const r = await fetch(`assets/skins.json?t=${Date.now()}`);
+    const r = await fetch(`assets/dados/skins.json?t=${Date.now()}`);
     shopCatalog = await r.json();
   } catch (e) { return; }
   playerCoins = shopCatalog.coins_start ?? 300;
@@ -6930,8 +7034,8 @@ function renderAura(now, pH) {
 
 function renderPlayer() {
   if (player.oculto) return;      // entrou pela porta na cena: sai de cena de verdade
-  const pW=currentScene!=='world'?68:player.width;
-  const pH=currentScene!=='world'?92:player.height;
+  const pW=currentScene!=='world'?HEROI_BASE.interiorW*heroiEscala:player.width;
+  const pH=currentScene!=='world'?HEROI_BASE.interiorH*heroiEscala:player.height;
   
   // Sombra de chão do herói (impede a sensação de flutuar na foto estática)
   ctx.save();
@@ -6942,7 +7046,7 @@ function renderPlayer() {
   ctx.restore();
 
   renderWings(pW,pH); // behind the body
-  const sheet=activeSprite();
+  let sheet=activeSprite();
   if(sheet){
     // As colunas vêm da ficha do personagem. Antes eram adivinhadas pela largura da
     // folha ("entre 400 e 550 deve ser 6 colunas"), o que quebra no primeiro
@@ -6952,19 +7056,43 @@ function renderPlayer() {
     // era sempre frente/costas/lado/ataque — era daí que vinha sprite trocado e recorte
     // fora de lugar quando chegava uma folha com outro arranjo.
     const P = personagemAtivo();
-    const cols = P.cols || ((sheet.width > 400 && sheet.width < 550) ? 6 : 4);
     const rows = P.rows || 4;
     const LINHA = P.linhas || { down: 0, up: 1, side: 2, attack: 3 };
-    const fw = sheet.width / cols, fh = sheet.height / rows;
     const isAttacking = performance.now() < attackAnimUntil;
-    let row = player.direction === 'up' ? LINHA.up
-            : (player.direction === 'left' || player.direction === 'right') ? LINHA.side
-            : LINHA.down;
-    let frame = player.animFrame % cols;
+
+    // Parado usa outra folha, com outra contagem de quadros. Ela entra aqui, no lugar
+    // da folha processada, e a partir daí tudo é igual — mesma linha por direção,
+    // mesmos pés na mesma linha de base, porque as folhas foram casadas.
+    const troca = folhaAtualDoHeroi(isAttacking);
+    if (troca) sheet = troca.img;
+    const cols = troca ? troca.cols
+               : (P.cols || ((sheet.width > 400 && sheet.width < 550) ? 6 : 4));
+    const fw = sheet.width / cols, fh = sheet.height / rows;
+
+    // A folha manda. Se ela tem linha própria para `left` e `right` — como a do Achilles
+    // — cada lado usa a sua; se só tem `side`, o lado esquerdo é o direito espelhado.
+    // Pedir LINHA.side numa folha sem essa chave dava `undefined`, e `undefined * fh` é
+    // NaN: o drawImage não desenhava NADA e o personagem simplesmente sumia ao andar
+    // para os lados.
+    const temLadosProprios = LINHA.left !== undefined && LINHA.right !== undefined;
+    const espelharLado = !temLadosProprios && player.direction === 'left';
+    let row = LINHA[player.direction];
+    if (row === undefined) {
+      row = player.direction === 'up' ? LINHA.up
+          : (player.direction === 'left' || player.direction === 'right') ? LINHA.side
+          : LINHA.down;
+    }
+    // Na folha de parado o quadro vem do relógio, não da distância percorrida: a
+    // respiração acontece mesmo com o personagem imóvel, então contar passos não serve.
+    let frame = troca && troca.parado
+      ? Math.floor(performance.now() / 190) % cols
+      : player.animFrame % cols;
     let lungeX = 0, lungeY = 0;
 
-    // Se estiver atacando, usa a linha 4 (row 3 - poses de combate no spritesheet novo!) + investida
-    if (isAttacking) {
+    // Ataque só troca de linha se a folha TIVER uma linha de ataque. A do Achilles usa
+    // as quatro linhas para as quatro direções — sem esta guarda, atacar apagava o
+    // personagem pelo mesmo NaN.
+    if (isAttacking && LINHA.attack !== undefined) {
       row = LINHA.attack;
       const progress = Math.max(0, Math.min(1, 1 - (attackAnimUntil - performance.now()) / 180));
       frame = Math.min(cols - 1, Math.floor(progress * cols));
@@ -6983,7 +7111,7 @@ function renderPlayer() {
     const drawX = player.x + lungeX;
     const drawY = player.y + lungeY - Math.abs(stepBounce);
 
-    if (player.direction === 'left') {
+    if (espelharLado) {
       ctx.translate(drawX, drawY);
       ctx.rotate(-walkTilt);
       ctx.scale(-1, 1);
@@ -7003,6 +7131,8 @@ function renderPlayer() {
 const GCW=185,GCH=122,GPAD=10,GOX=18,GOY=50,GCOLS=5,GROWS=4;
 const SIDEX=GOX+GCOLS*(GCW+GPAD)+8, SIDEW=SCREEN_W-SIDEX-8, SIDECARDH=75;
 let wvDragKey=null, wvDragMouse={x:0,y:0};
+let selectedWorldMapCell=null, wvDragKeyPending=null, wvDragStartX=0, wvDragStartY=0;
+const bgThumbnails={};
 
 function getCell(mx,my){const col=Math.floor((mx-GOX)/(GCW+GPAD)),row=Math.floor((my-GOY)/(GCH+GPAD));if(col>=0&&col<GCOLS&&row>=0&&row<GROWS)return{col,row};return null;}
 function cellRect(col,row){return{x:GOX+col*(GCW+GPAD),y:GOY+row*(GCH+GPAD),w:GCW,h:GCH};}
@@ -7011,26 +7141,34 @@ function sideKeys(){const pl=new Set(Object.keys(gridPos).filter(k=>{const p=gri
   return chavesDeCenario().filter(k=>!pl.has(k));}
 function sideKeyAt(mx,my){if(mx<SIDEX||SIDEW<=0)return null;const sk=sideKeys();for(let i=0;i<sk.length;i++){const r={x:SIDEX,y:GOY+30+i*(SIDECARDH+5),w:SIDEW,h:SIDECARDH};if(mx>=r.x&&mx<=r.x+r.w&&my>=r.y&&my<=r.y+r.h)return sk[i];}return null;}
 
-function deleteScene(mx, my) {
-  const sideK = sideKeyAt(mx, my);
-  if (sideK) {
-    if (confirm(`Deseja EXCLUIR DEFINITIVAMENTE o cenário "${SCENE_NAMES[sideK] || sideK}" que está no banco sem uso? Ele será apagado do projeto.`)) {
-      delete bgSources[sideK]; delete videoSources[sideK]; delete bgImages[sideK];
-      delete SCENE_NAMES[sideK]; delete gridPos[sideK]; delete spawns[sideK]; delete ambience[sideK];
-      try { delete obstacles[sideK]; delete layers[sideK]; } catch(e) {}
-      rebuildGrid(); refreshMapSelect(); saveAllLayers(false);
+function deleteSceneByKey(k) {
+  if (!k) return;
+  const isPlaced = !!gridPos[k];
+  if (isPlaced) {
+    delete gridPos[k];
+    selectedWorldMapCell = null;
+    rebuildGrid(); refreshMapSelect(); weAtualizaGaleria(); saveAllLayers(false);
+    showToast(`🗑️ ${SCENE_NAMES[k] || k} movido para o BANCO (arquivado)`);
+  } else {
+    if (confirm(`Deseja EXCLUIR DEFINITIVAMENTE o cenário "${SCENE_NAMES[k] || k}"? Ele será totalmente removido.`)) {
+      delete bgSources[k]; delete videoSources[k]; delete bgImages[k];
+      delete SCENE_NAMES[k]; delete gridPos[k]; delete spawns[k]; delete ambience[k];
+      try { delete obstacles[k]; delete layers[k]; } catch(e) {}
+      selectedWorldMapCell = null;
+      rebuildGrid(); refreshMapSelect(); weAtualizaGaleria(); saveAllLayers(false);
       showToast('🗑️ Cenário excluído definitivamente do projeto!');
     }
-    return;
   }
+}
+
+function deleteScene(mx, my) {
+  const sideK = sideKeyAt(mx, my);
+  if (sideK) { deleteSceneByKey(sideK); return; }
   const cell = getCell(mx, my);
-  if (!cell) return;
-  const k = keyAtCell(cell.col, cell.row);
-  if (!k) return;
-  delete gridPos[k];      // back to the side bank; the image and its layers are kept
-  rebuildGrid(); refreshMapSelect();
-  showToast(`🗑️ ${SCENE_NAMES[k]} saiu do grid (no painel BANCO você pode excluí-lo em definitivo)`);
-  saveAllLayers(false);
+  if (cell) {
+    const k = keyAtCell(cell.col, cell.row);
+    if (k) deleteSceneByKey(k);
+  }
 }
 
 function renderWorldMap(now) {
@@ -7045,7 +7183,15 @@ function renderWorldMap(now) {
     ctx.fillStyle='#131c28';ctx.strokeStyle='#2d3748';ctx.lineWidth=1;ctx.setLineDash([3,3]);
     ctx.fillRect(r.x,r.y,r.w,r.h);ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.setLineDash([]);
     if(key&&key!==wvDragKey){
-      const img=bgImages[key];if(img?.complete)ctx.drawImage(img,r.x,r.y,r.w,r.h);
+      const img=bgImages[key];
+      if(img?.complete){
+        if(!bgThumbnails[key]){
+          const tcv=document.createElement('canvas');tcv.width=185;tcv.height=122;
+          tcv.getContext('2d',{alpha:false}).drawImage(img,0,0,185,122);
+          bgThumbnails[key]=tcv;
+        }
+        ctx.drawImage(bgThumbnails[key],r.x,r.y,r.w,r.h);
+      }
       if(cur){ctx.strokeStyle='#38bdf8';ctx.lineWidth=3;ctx.shadowColor='#38bdf8';ctx.shadowBlur=10;ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.shadowBlur=0;}
       [['north','▲'],['south','▼'],['east','▶'],['west','◀']].forEach(([d,sym])=>{
         if(!getNeighbor(key,d))return;
@@ -7062,6 +7208,17 @@ function renderWorldMap(now) {
       ctx.fillStyle='rgba(0,0,0,0.65)';ctx.fillRect(r.x,r.y+r.h-15,r.w,15);
       ctx.fillStyle='#e2e8f0';ctx.font='9px Outfit, sans-serif';ctx.textAlign='left';
       ctx.fillText(SCENE_NAMES[key]||key,r.x+3,r.y+r.h-4);
+
+      // Botão de Excluir / Arquivar visível e destacado em cada cartão do mapa-múndi
+      const isSel = selectedWorldMapCell === key;
+      if (isSel) {
+        ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 3;
+        ctx.strokeRect(r.x, r.y, r.w, r.h);
+      }
+      ctx.fillStyle = (worldMapSubTool === 'delete') ? 'rgba(239, 68, 68, 0.95)' : 'rgba(220, 38, 38, 0.88)';
+      ctx.fillRect(r.x + r.w - 32, r.y + 2, 30, 26);
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('🗑️', r.x + r.w - 17, r.y + 20);
     }else if(!key){ctx.fillStyle='#2d3748';ctx.font='9px Outfit, sans-serif';ctx.textAlign='left';ctx.fillText(`(${col},${row})`,r.x+4,r.y+11);}
   }}
   // Side panel
@@ -7070,7 +7227,15 @@ function renderWorldMap(now) {
   ctx.fillText('BANCO',SIDEX,GOY+11);ctx.font='8px Outfit, sans-serif';ctx.fillText('fora do mapa',SIDEX,GOY+22);
   sideKeys().forEach((k,i)=>{
     const r={x:SIDEX,y:GOY+28+i*(SIDECARDH+5),w:SIDEW,h:SIDECARDH};if(r.y+r.h>SCREEN_H)return;
-    const img=bgImages[k];if(img?.complete&&k!==wvDragKey)ctx.drawImage(img,r.x,r.y,r.w,r.h);
+    const img=bgImages[k];
+    if(img?.complete&&k!==wvDragKey){
+      if(!bgThumbnails[k]){
+         const tcv=document.createElement('canvas');tcv.width=185;tcv.height=122;
+         tcv.getContext('2d',{alpha:false}).drawImage(img,0,0,185,122);
+         bgThumbnails[k]=tcv;
+      }
+      ctx.drawImage(bgThumbnails[k],r.x,r.y,r.w,r.h);
+    }
     ctx.strokeStyle='#475569';ctx.lineWidth=1;ctx.strokeRect(r.x,r.y,r.w,r.h);
     ctx.fillStyle='rgba(0,0,0,0.65)';ctx.fillRect(r.x,r.y+r.h-13,r.w,13);
     ctx.fillStyle='#e2e8f0';ctx.font='8px Outfit, sans-serif';ctx.textAlign='left';
@@ -7154,6 +7319,115 @@ function renderSceneOverlay(now) {
 // COLLISION OVERLAY
 // ============================================================
 let isPainting=false, brushSize=40, paintPos={x:-100,y:-100}, paintSaveTimer=null;
+
+// ── Área caminhável por cliques ────────────────────────────────────────────────
+// Pincel é bom para retocar, ruim para declarar uma praça inteira: exige arrastar sem
+// falhar e sempre sobra buraco onde a mão tremeu. Aqui se marcam os CANTOS — clique a
+// clique, uma linha ligando o anterior ao novo — e o miolo do contorno vira caminho de
+// uma vez. É a diferença entre pintar o chão e desenhar a planta dele.
+const AREA_RAIO_FECHAR = 14;    // clicar dentro disto, sobre o 1º ponto, fecha a área
+let areaPontos = [];
+let areaSubtrai = false;        // segurando Alt, a área vira bloqueio em vez de caminho
+
+function areaAdicionarPonto(x, y) {
+  // Voltar ao primeiro ponto é o gesto natural de "fechei o contorno".
+  if (areaPontos.length >= 3) {
+    const p0 = areaPontos[0];
+    if (Math.hypot(x - p0.x, y - p0.y) <= AREA_RAIO_FECHAR) { areaFechar(); return; }
+  }
+  areaPontos.push({ x, y });
+}
+
+function areaDesfazerPonto() { areaPontos.pop(); }
+function areaCancelar() { areaPontos = []; }
+
+function areaFechar() {
+  if (areaPontos.length < 3) { showToast('⚠️ Uma área precisa de pelo menos 3 pontos.'); return; }
+  const k = activeMapSelect?.value || currentKey;
+  const L = getLayers(k);
+  const c = L.roadCtx;
+  c.save();
+  c.beginPath();
+  c.moveTo(areaPontos[0].x, areaPontos[0].y);
+  for (let i = 1; i < areaPontos.length; i++) c.lineTo(areaPontos[i].x, areaPontos[i].y);
+  c.closePath();
+  if (areaSubtrai) {
+    c.globalCompositeOperation = 'destination-out';
+    c.fill();
+  } else {
+    c.globalCompositeOperation = 'source-over';
+    c.fillStyle = '#22c55e';
+    c.fill();
+    // A borda entra junto e grossa: o preenchimento para no meio do pixel da linha, e
+    // sem isto sobra uma franja não-caminhável exatamente onde o jogador encosta.
+    c.strokeStyle = '#22c55e'; c.lineWidth = 2; c.lineJoin = 'round'; c.stroke();
+  }
+  c.restore();
+  invalidateRoadPaint(k);
+  marcarCamadaSuja(k, 'road');
+  const n = areaPontos.length;
+  areaPontos = [];
+  if (paintSaveTimer) clearTimeout(paintSaveTimer);
+  paintSaveTimer = setTimeout(() => saveAllLayers(false), 1500);
+  showToast(areaSubtrai ? `⛔ Área de ${n} pontos bloqueada.` : `🟢 Área de ${n} pontos virou caminho.`);
+}
+
+function renderAreaEmConstrucao() {
+  if (collisionTool !== 'area') return;
+  const c = ctx;
+  c.save();
+  if (areaPontos.length) {
+    // Prévia do miolo já preenchido: mostra o que vai virar caminho antes de confirmar.
+    if (areaPontos.length >= 2) {
+      c.beginPath();
+      c.moveTo(areaPontos[0].x, areaPontos[0].y);
+      for (let i = 1; i < areaPontos.length; i++) c.lineTo(areaPontos[i].x, areaPontos[i].y);
+      if (paintPos.x > 0) c.lineTo(paintPos.x, paintPos.y);
+      c.closePath();
+      c.fillStyle = areaSubtrai ? 'rgba(239,68,68,0.20)' : 'rgba(34,197,94,0.22)';
+      c.fill();
+    }
+    c.strokeStyle = areaSubtrai ? '#ef4444' : '#22c55e';
+    c.lineWidth = 2.5; c.lineJoin = 'round';
+    c.beginPath();
+    c.moveTo(areaPontos[0].x, areaPontos[0].y);
+    for (let i = 1; i < areaPontos.length; i++) c.lineTo(areaPontos[i].x, areaPontos[i].y);
+    c.stroke();
+    // Linha tracejada até o cursor: o próximo trecho, antes de existir.
+    if (paintPos.x > 0) {
+      c.setLineDash([6, 5]);
+      c.beginPath();
+      const u = areaPontos[areaPontos.length - 1];
+      c.moveTo(u.x, u.y); c.lineTo(paintPos.x, paintPos.y);
+      c.stroke();
+      c.setLineDash([]);
+    }
+    areaPontos.forEach((p, i) => {
+      const primeiro = i === 0;
+      c.beginPath();
+      c.arc(p.x, p.y, primeiro ? 7 : 4.5, 0, Math.PI * 2);
+      c.fillStyle = primeiro ? '#22c55e' : '#86efac';
+      c.fill();
+      c.strokeStyle = '#052e16'; c.lineWidth = 1.5; c.stroke();
+    });
+    // Anel no primeiro ponto quando fechar já é possível: o alvo fica visível.
+    if (areaPontos.length >= 3) {
+      c.beginPath();
+      c.arc(areaPontos[0].x, areaPontos[0].y, AREA_RAIO_FECHAR, 0, Math.PI * 2);
+      c.strokeStyle = 'rgba(34,197,94,0.85)'; c.lineWidth = 1.5; c.setLineDash([4, 4]);
+      c.stroke(); c.setLineDash([]);
+    }
+  }
+  c.fillStyle = '#bbf7d0';
+  c.font = 'bold 12px Outfit, sans-serif';
+  c.textAlign = 'left';
+  const dica = areaPontos.length
+    ? `${areaPontos.length} ponto(s) · clique no 1º ou Enter para fechar · Backspace apaga · Esc cancela`
+    : 'Clique para marcar o primeiro canto da área caminhável (Alt = bloquear)';
+  c.fillText(dica, 12, SCREEN_H - 14);
+  c.restore();
+}
+
 let lastPaint=null;
 
 // A drag only fires a handful of mousemove events, so stamping one circle per event
@@ -7180,7 +7454,13 @@ function paintAt(x,y,k){
   else if(collisionTool==='eraser'){[L.roadCtx,L.fgCtx,L.doorCtx].forEach(c=>{c.save();c.globalCompositeOperation='destination-out';c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();c.restore();});}
   if(collisionTool==='door'||collisionTool==='eraser')invalidateDoorMarkers(k);
   if(collisionTool==='road'||collisionTool==='eraser')invalidateRoadPaint(k);
-  if(paintSaveTimer)clearTimeout(paintSaveTimer);paintSaveTimer=setTimeout(()=>saveAllLayers(false),500);
+  if(collisionTool==='eraser'){marcarCamadaSuja(k,'road');marcarCamadaSuja(k,'fg');marcarCamadaSuja(k,'door');}
+  else if(collisionTool==='roof')marcarCamadaSuja(k,'fg');
+  else if(collisionTool==='door')marcarCamadaSuja(k,'door');
+  else marcarCamadaSuja(k,'road');
+  // Um segundo e meio: tempo de terminar o traço antes de gravar, em vez de gravar no
+  // meio dele e engasgar a mão.
+  if(paintSaveTimer)clearTimeout(paintSaveTimer);paintSaveTimer=setTimeout(()=>saveAllLayers(false),1500);
 }
 // Depth pass. In a top-down scene almost everything you can't walk on is scenery you
 // should be able to walk *behind*: copy those pixels into the foreground layer and they
@@ -7216,6 +7496,7 @@ function autoRoofFromRoad(k) {
 
   L.fgCtx.clearRect(0,0,SCREEN_W,SCREEN_H);
   L.fgCtx.drawImage(out, 0, 0);
+  marcarCamadaSuja(k,'fg');
   saveAllLayers(true);
   showToast('🏠 Teto gerado — refine com 🔵 Telhado e 🔴 Borracha');
 }
@@ -7232,6 +7513,7 @@ function renderCollisionOverlay(k){
   ctx.globalAlpha=0.5;
   ctx.drawImage(L.fgCanvas,0,0); // roof layer, so you can see what's already covered
   ctx.restore();
+  if(collisionTool==='area'){ renderAreaEmConstrucao(); ctx.restore(); return; }
   if(paintPos.x>0){const col=collisionTool==='road'?'#22c55e':collisionTool==='roof'?'#38bdf8':collisionTool==='door'?'#a855f7':'#ef4444';ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.globalAlpha=0.8;ctx.beginPath();ctx.arc(paintPos.x,paintPos.y,brushSize/2,0,Math.PI*2);ctx.stroke();ctx.restore();}
 }
 
@@ -7249,6 +7531,14 @@ function getM(e){
       x: megaCameraX + rx / megaMapZoom,
       y: megaCameraY + ry / megaMapZoom
     };
+  }
+  // Desfaz a câmera do zoom. Sem isto, com o cenário aproximado o clique caía onde o
+  // pixel estaria SEM zoom: pintar e plantar erravam o alvo por centenas de pixels, e
+  // era por isso que o zoom só valia jogando. Agora vale no editor também.
+  if (zoomCenario > 1.001) {
+    const c = camaraDoCenario();
+    return { x: (rx - SCREEN_W / 2) / zoomCenario + c.x,
+             y: (ry - SCREEN_H / 2) / zoomCenario + c.y };
   }
   return { x: rx, y: ry };
 }
@@ -7285,12 +7575,40 @@ function onPointerDown(m){
       showToast('⚠️ Clique em um mapa no grid para selecionar o destino');
       return;
     }
-    if(worldMapSubTool==='drag'){const cell=getCell(m.x,m.y);if(cell){const k=keyAtCell(cell.col,cell.row);if(k){wvDragKey=k;wvDragMouse={...m};delete gridPos[k];rebuildGrid();return;}}const sk=sideKeyAt(m.x,m.y);if(sk){wvDragKey=sk;wvDragMouse={...m};delete gridPos[sk];rebuildGrid();}}
+    if(worldMapSubTool==='drag' || worldMapSubTool==='delete'){
+      const cell=getCell(m.x,m.y);
+      if(cell){
+        const k=keyAtCell(cell.col,cell.row);
+        if(k){
+          const r=cellRect(cell.col,cell.row);
+          if(worldMapSubTool==='delete' || (m.x >= r.x+r.w-35 && m.y <= r.y+35)) {
+            deleteSceneByKey(k);
+            return;
+          }
+          selectedWorldMapCell=k;
+          weAtualizaGaleria();
+          wvDragKeyPending=k; wvDragStartX=m.x; wvDragStartY=m.y;
+          return;
+        }
+      }
+      const sk=sideKeyAt(m.x,m.y);
+      if(sk){
+        selectedWorldMapCell=sk;
+        weAtualizaGaleria();
+        wvDragKey=sk;wvDragMouse={...m};delete gridPos[sk];rebuildGrid();
+        return;
+      }
+      selectedWorldMapCell=null;
+      weAtualizaGaleria();
+    }
     else if(worldMapSubTool==='spawn'){const cell=getCell(m.x,m.y);if(cell){const k=keyAtCell(cell.col,cell.row);if(k){const r=cellRect(cell.col,cell.row);const nx=Math.round(((m.x-r.x)/r.w)*SCREEN_W),ny=Math.round(((m.y-r.y)/r.h)*SCREEN_H);spawns[k]={x:Math.max(30,Math.min(SCREEN_W-30,nx)),y:Math.max(30,Math.min(SCREEN_H-30,ny))};showToast(`📍 Spawn de ${SCENE_NAMES[k]} atualizado`);saveAllLayers(false);}}}
     else if(worldMapSubTool==='delete'){deleteScene(m.x,m.y);}
     return;
   }
-  if(engineMode==='collision'){isPainting=true;endStroke();paintStroke(m.x,m.y,activeMapSelect?.value||currentKey);return;}
+  if(engineMode==='collision'){
+    if(collisionTool==='area'){ areaSubtrai=!!m.alt; areaAdicionarPonto(m.x,m.y); return; }
+    isPainting=true;endStroke();paintStroke(m.x,m.y,activeMapSelect?.value||currentKey);return;
+  }
   if(engineMode==='scene'){
     if(isPlayMode){tryTalk();return;} // tapping near an NPC starts the conversation
     if(npcPlacingMode){placeNPC(m.x,m.y);return;}
@@ -7330,7 +7648,14 @@ function onPointerDown(m){
 function onPointerMove(m){
   if(engineMode==='mundo'){ mundoPointerMove(m); return; }
   if(capturaAtiva&&capturaAtiva.arrastando){arrastarVoz(m.x,m.y);return;}
-  if(engineMode==='worldmap'&&wvDragKey){wvDragMouse={...m};}
+  if(engineMode==='worldmap') {
+    if(wvDragKeyPending && Math.hypot(m.x-wvDragStartX, m.y-wvDragStartY) > 20) {
+      wvDragKey=wvDragKeyPending; wvDragMouse={...m};
+      delete gridPos[wvDragKey]; rebuildGrid();
+      wvDragKeyPending=null; selectedWorldMapCell=null;
+    }
+    if(wvDragKey) { wvDragMouse={...m}; }
+  }
   if(engineMode==='scene'&&!isPlayMode&&arrastandoObjeto){
     arrastandoObjeto.x=Math.round(Math.max(0,Math.min(SCREEN_W,m.x-dragOffX)));
     arrastandoObjeto.y=Math.round(Math.max(0,Math.min(SCREEN_H,m.y-dragOffY)));
@@ -7361,6 +7686,7 @@ function onPointerMove(m){
 
 function onPointerUp(){
   if(engineMode==='mundo'){ mundoPointerUp(); return; }
+  if(wvDragKeyPending) { wvDragKeyPending=null; }
   if(capturaAtiva&&capturaAtiva.arrastando){soltarVoz();return;}
   const m={x:mouseCanvasX,y:mouseCanvasY}; // touchend carries no coords — use the last known
   if(engineMode==='worldmap'&&wvDragKey){
@@ -7686,12 +8012,48 @@ const IS_PLAY_BUILD = (typeof window !== 'undefined' && window.ACORDELOT_BUILD =
 function wantsMobilePlay() {
   if (IS_PLAY_BUILD) return true;
   const q = new URLSearchParams(location.search);
+  // /edit é CAMINHO, não parâmetro. A checagem só olhava a query, então abrir
+  // localhost:8085/edit — o atalho combinado para cair no editor — não impedia o modo
+  // jogo gravado da sessão anterior de vencer. Resultado: o editor abria sem lateral e
+  // sem ferramenta, e nada na tela explicava o porquê.
+  if (location.pathname.replace(/\/+$/, '').endsWith('/edit')) return false;
   if (q.has('edit')) return false;
   if (q.has('play')) return true;
   const saved = localStorage.getItem('acordelot_mobile_mode');
   if (saved === 'play') return true;
   if (saved === 'edit') return false;
   return false; // Permitir modo editor em mobile e tablet por padrão
+}
+
+// Sair do jogo é mais do que devolver a barra lateral. Antes só a classe `mobile-play`
+// caía: o motor continuava com isPlayMode ligado, então todo clique ia para o jogo e a
+// impressão era de editor quebrado — "as ferramentas não aparecem". Aqui o retorno é
+// completo, e o modo de trabalho é reaplicado para o grupo de ferramentas certo abrir
+// na hora, sem precisar clicar de novo na aba.
+// O rótulo do botão é decidido num lugar só. Espalhado por cada caminho que liga ou
+// desliga o jogo, um deles sempre esquece — e um botão escrito "Modo Jogo" enquanto o
+// jogo já roda é pior que nenhum botão.
+function atualizarRotuloDeModo() {
+  const jogando = document.body.classList.contains('mobile-play') || isPlayMode;
+  const t = document.getElementById('mobileEditorToggleText');
+  const i = document.getElementById('mobileEditorToggleIcon');
+  if (t) t.textContent = jogando ? 'Modo Editor' : 'Modo Jogo';
+  if (i) i.textContent = jogando ? '✏️' : '🎮';
+}
+
+function voltarAoEditor() {
+  document.body.classList.remove('mobile-play');
+  document.getElementById('left-sidebar')?.classList.remove('hidden');
+  document.getElementById('engine-header')?.classList.remove('hidden');
+  document.getElementById('mainMenuOverlay')?.classList.add('hidden');
+  // Gaveta recolhida escondia a lateral inteira, e o editor parecia sem ferramenta.
+  document.body.classList.remove('editor-recolhido');
+  try { localStorage.setItem('acordelot_editor_recolhido', '0'); } catch (e) {}
+  const b = document.getElementById('drawerToggle'); if (b) b.textContent = '◀';
+  const alvo = isPlayMode ? (modoAntesDeJogar || 'scene') : (engineMode || 'scene');
+  if (isPlayMode) togglePlay();
+  setMode(alvo);
+  setTimeout(() => { if (typeof setupHighDPICanvas === 'function') setupHighDPICanvas(); }, 60);
 }
 
 function initMobileEditorToggle() {
@@ -7701,18 +8063,10 @@ function initMobileEditorToggle() {
   if (!toggleBtn) return;
 
   const updateToggleUI = () => {
-    const isMobilePlay = document.body.classList.contains('mobile-play');
-    if (isMobilePlay) {
-      if (icon) icon.textContent = '✏️';
-      if (text) text.textContent = 'Modo Editor';
-      toggleBtn.classList.remove('in-play');
-      toggleBtn.classList.add('in-editor');
-    } else {
-      if (icon) icon.textContent = '🎮';
-      if (text) text.textContent = 'Modo Jogo';
-      toggleBtn.classList.remove('in-editor');
-      toggleBtn.classList.add('in-play');
-    }
+    const jogando = document.body.classList.contains('mobile-play') || isPlayMode;
+    atualizarRotuloDeModo();
+    toggleBtn.classList.toggle('in-editor', jogando);
+    toggleBtn.classList.toggle('in-play', !jogando);
   };
 
   toggleBtn.addEventListener('click', (e) => {
@@ -7720,10 +8074,8 @@ function initMobileEditorToggle() {
     e.stopPropagation();
     initAudio();
     
-    if (document.body.classList.contains('mobile-play')) {
-      document.body.classList.remove('mobile-play');
-      document.getElementById('left-sidebar')?.classList.remove('hidden');
-      document.getElementById('engine-header')?.classList.remove('hidden');
+    if (document.body.classList.contains('mobile-play') || isPlayMode) {
+      voltarAoEditor();
       localStorage.setItem('acordelot_mobile_mode', 'edit');
       showToast('✏️ Modo Editor ativado');
     } else {
@@ -7872,7 +8224,9 @@ function enterMobilePlay() {
 
 function bindCanvasEvents(){
   const track=m=>{mouseCanvasX=m.x;mouseCanvasY=m.y;return m;};
-  canvas.addEventListener('mousedown', e=>{initAudio();onPointerDown(track(getM(e)));});
+  // `alt` viaja junto do ponto: onPointerDown recebe só coordenadas, e quem precisa da
+  // tecla (a área caminhável, para inverter em bloqueio) não tem o evento em mãos.
+  canvas.addEventListener('mousedown', e=>{initAudio();const m=track(getM(e));m.alt=e.altKey;onPointerDown(m);});
   canvas.addEventListener('mousemove', e=>onPointerMove(track(getM(e))));
   canvas.addEventListener('mouseleave', ()=>{hoveredNPC=null;canvas.className='';});
   window.addEventListener('mouseup', onPointerUp);
@@ -8123,7 +8477,7 @@ function renderPaletaDeProps() {
     if (propCategoria === 'novo') {
       grade.innerHTML = '<p class="hint">Nenhum asset na categoria <b>Novo</b> ainda. Quando você extrair sprites com a ferramenta de corte ou sincronizar da nuvem, eles aparecerão aqui!</p>';
     } else {
-      grade.innerHTML = '<p class="hint">Nenhum prop no catálogo. Coloque os PNGs em <code>assets/props/</code> e declare-os em <code>assets/objects.json</code>.</p>';
+      grade.innerHTML = '<p class="hint">Nenhum prop no catálogo. Coloque os PNGs em <code>assets/props/</code> e declare-os em <code>assets/dados/objects.json</code>.</p>';
     }
     return;
   }
@@ -8399,7 +8753,7 @@ function syncInspector(npc){
 
   if (npc.type === 'signpost') {
     signpostBox?.classList.remove('hidden');
-    if (inspTargetMap) inspTargetMap.value = npc.targetMapKey || '0_0';
+    if (inspTargetMap) inspTargetMap.value = npc.targetMapKey || chavesDeCenario()[0] || '';
     if (inspTargetX) inspTargetX.value = npc.targetX || 512;
     if (inspTargetY) inspTargetY.value = npc.targetY || 300;
   } else {
@@ -8476,7 +8830,7 @@ function placeNPC(x,y){
 }
 function refreshNPCHierarchy(){
   if(!npcHierarchyList)return;
-  const mapKey=activeMapSelect?.value||'0_0';
+  const mapKey=activeMapSelect?.value||currentKey;
   const filtered=npcData.filter(n=>n.mapKey===mapKey);
   if(!filtered.length){npcHierarchyList.innerHTML='<div class="empty-msg">Sem NPCs neste mapa</div>';return;}
   npcHierarchyList.innerHTML=filtered.map(npc=>`
@@ -8822,13 +9176,21 @@ function weAtualizaGaleria() {
   g.innerHTML = '';
   for (const id of chavesDeCenario()) {
     const p = gridPos[id];
+    const isSelected = selectedWorldMapCell === id;
     const card = document.createElement('div');
-    card.className = 'scene-card' + (p ? ' placed' : '');
+    card.className = 'scene-card' + (p ? ' placed' : '') + (isSelected ? ' selected' : '');
+    if (isSelected) {
+      card.style.border = '2px solid #fbbf24';
+      card.style.background = 'rgba(251, 191, 36, 0.15)';
+    }
     card.draggable = true;
     card.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', id));
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.scene-card-del-btn')) return;
+      selectedWorldMapCell = id;
+      weAtualizaGaleria();
+    });
 
-    // Cenário animado tem vídeo no lugar da imagem. E um arquivo quebrado nunca pode
-    // derrubar o desenho: um drawImage com imagem inválida lança e matava o Mapa-Múndi.
     const fonte = videoDoMapa(id) || (bgImages[id]?.complete && bgImages[id].naturalWidth ? bgImages[id] : null);
     let desenhou = false;
     if (fonte) {
@@ -8848,9 +9210,25 @@ function weAtualizaGaleria() {
     }
     const info = document.createElement('div');
     info.className = 'scene-card-info';
+    info.style.display = 'flex';
+    info.style.alignItems = 'center';
+    info.style.width = '100%';
     info.innerHTML =
+      `<div style="display:flex;flex-direction:column;flex:1;overflow:hidden;">` +
       `<span class="scene-card-name">${SCENE_NAMES[id] || id}</span>` +
-      `<span class="scene-card-pos">${p ? `no grid (${p.col}, ${p.row})` : 'fora do grid'}</span>`;
+      `<span class="scene-card-pos">${p ? `no grid (${p.col}, ${p.row})` : 'fora do grid'}</span></div>`;
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'scene-card-del-btn';
+    delBtn.title = 'Excluir cenário';
+    delBtn.innerHTML = '🗑️';
+    delBtn.style.cssText = 'background:rgba(220,38,38,0.85);border:none;color:#fff;border-radius:4px;padding:3px 7px;cursor:pointer;font-size:12px;margin-left:6px;flex-shrink:0;';
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteSceneByKey(id);
+    });
+    info.appendChild(delBtn);
+
     card.appendChild(info);
     card.addEventListener('dblclick', () => {
       if (!p) return;
@@ -9538,6 +9916,7 @@ function atualizarAmbiente() {
 }
 
 function renderAmbiente() {
+  if (!TEMPO_LIGADO) return;
   atualizarAmbiente();
   const a = ambienteAtual();
   if (!a || !(a.escuro > 0)) return;
@@ -9549,8 +9928,9 @@ function renderAmbiente() {
   c.fillRect(0, 0, SCREEN_W, SCREEN_H);
   c.restore();
   if (isPlayMode && a.halo !== false) {
-    const r = a.haloRaio || 210;
-    const g = c.createRadialGradient(player.x, player.y - 24, 10, player.x, player.y - 24, r);
+    const r = (a.haloRaio || 210) * zoomCenario;
+    const p = telaDoPonto(player.x, player.y - 24);
+    const g = c.createRadialGradient(p.x, p.y, 10, p.x, p.y, r);
     g.addColorStop(0, `rgba(253,230,138,${0.16 * a.escuro})`);
     g.addColorStop(1, 'rgba(0,0,0,0)');
     c.save();
@@ -9800,6 +10180,9 @@ function tremorCena(now) {
 }
 
 function setMode(mode){
+  // Arquivado: qualquer caminho que peça 'mundo' cai em 'scene'. É o que impedia o
+  // editor de abrir na tela errada sem que nada explicasse o porquê.
+  if(mode==='mundo' && !CRIADOR_DE_MUNDO_ATIVO) mode='scene';
   engineMode=mode;
   document.querySelectorAll('.mode-tab').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
   // O Mapa-Múndi tem área própria: troca o palco do jogo pelo editor de mundo em vez
@@ -9844,12 +10227,21 @@ function safeSpawn(key){
 }
 
 let jogoIniciado = false;          // já houve uma partida nesta sessão do editor
+let modoAntesDeJogar = 'scene';    // modo de trabalho a devolver quando o jogo parar
 let ultimaPosicaoDeJogo = null;    // onde o jogador estava quando você apertou Parar
 
 function togglePlay(){
   isPlayMode=!isPlayMode;
+  // O HUD de time é o único elemento que precisa saber disto pelo CSS: ele mora no
+  // palco, não dentro do HUD que se apaga em diálogo e loja.
+  document.body.classList.toggle('jogando', isPlayMode);
+  atualizarRotuloDeModo();
   if(isPlayMode){
     if(signpostWizard.active)resetSignpostWizard();
+    // Jogar exige o modo Cena, mas o modo de TRABALHO precisa voltar depois: quem
+    // estava pintando colisão e apertou ▶ voltava para o editor em Cena, sem os
+    // pincéis à vista, e parecia que a ferramenta tinha sumido.
+    modoAntesDeJogar = engineMode;
     setMode('scene');
     document.getElementById('bottom-panel')?.classList.add('collapsed');
     npcPlacingMode=false; canvas?.classList.remove('cursor-crosshair');
@@ -9902,12 +10294,35 @@ function togglePlay(){
     playerLocked=false; dlg.state=DLG_STATE.CLOSED; hideNameInput();
     keys.w=keys.a=keys.s=keys.d=false;
     atualizarRastreador();
+    // Reaplica o modo para o grupo de ferramentas do modo atual voltar a aparecer:
+    // entrar em jogo força 'scene' e esconde os outros, e sem isto quem estava em
+    // Colisão voltava para um editor sem os pincéis à vista.
+    setMode(modoAntesDeJogar || 'scene');
     showToast('⏹ Parado. Voltou ao editor.');
   }
 }
 function setSceneTool(t){sceneSubTool=t;npcPlacingMode=false;document.querySelectorAll('[data-stool]').forEach(b=>b.classList.toggle('active',b.dataset.stool===t));}
-function setCollisionTool(t){collisionTool=t;document.querySelectorAll('[data-ctool]').forEach(b=>b.classList.toggle('active',b.dataset.ctool===t));}
-function setWVTool(t){worldMapSubTool=t;document.querySelectorAll('[data-wvtool]').forEach(b=>b.classList.toggle('active',b.dataset.wvtool===t));}
+function setCollisionTool(t){
+  collisionTool=t;
+  document.querySelectorAll('[data-ctool]').forEach(b=>b.classList.toggle('active',b.dataset.ctool===t));
+  // Trocar de ferramenta no meio de um contorno abandonaria pontos invisíveis, que
+  // reapareceriam ao voltar para a área sem que ninguém lembrasse deles.
+  if(t!=='area') areaCancelar();
+  const mostrar = t==='area' ? '' : 'none';
+  const acoes=document.getElementById('areaAcoes'); if(acoes) acoes.style.display=mostrar;
+  const dica=document.getElementById('areaDica'); if(dica) dica.style.display=mostrar;
+}
+function setWVTool(t){
+  worldMapSubTool=t;
+  document.querySelectorAll('[data-wvtool]').forEach(b=>b.classList.toggle('active',b.dataset.wvtool===t));
+  if (t === 'delete') {
+    if (selectedWorldMapCell) {
+      deleteSceneByKey(selectedWorldMapCell);
+    } else {
+      showToast('ℹ️ Selecione um cenário no mapa ou na lista lateral e clique em Excluir.');
+    }
+  }
+}
 
 // The map picker was a hand-written list, so scenes added later never showed up in it.
 function refreshMapSelect(){
@@ -9921,7 +10336,18 @@ function refreshMapSelect(){
     o.textContent=`${SCENE_NAMES[k]||k}${p?` (${p.col},${p.row})`:' (fora do grid)'}`;
     activeMapSelect.appendChild(o);
   });
-  activeMapSelect.value=(bgSources[keep]||videoSources[keep])?keep:chavesDeCenario()[0];
+  // Quando o valor anterior não existe mais, o seletor caía no PRIMEIRO da lista — que
+  // raramente é o cenário desenhado na tela. O resultado é o editor trabalhando num
+  // mapa enquanto o jogo mostra outro: NPC posicionado no lugar errado, ferramenta
+  // pintando um cenário invisível. A referência certa é o cenário em cena.
+  const valido = k => k && (bgSources[k] || videoSources[k]);
+  activeMapSelect.value = valido(keep) ? keep
+                        : valido(currentKey) ? currentKey
+                        : chavesDeCenario()[0];
+  // E currentKey acompanha, para os dois nunca mais divergirem.
+  if (activeMapSelect.value && currentKey !== activeMapSelect.value && !isPlayMode) {
+    currentKey = activeMapSelect.value;
+  }
 }
 
 // ============================================================
@@ -9971,6 +10397,7 @@ const nuvensAtmosfericas = Array.from({length: 4}, (_, i) => ({
 }));
 
 function renderSombrasDeNuvem(now, mapKey) {
+  if (!TEMPO_LIGADO) return;
   if (currentScene !== 'world' || mapKey === 'mega_world' || engineMode === 'world') return;
   if (INTERIORS[mapKey] || (SCENE_NAMES[mapKey] && /caverna|masmorra|porão|interior/i.test(SCENE_NAMES[mapKey]))) return;
   ctx.save();
@@ -10004,6 +10431,7 @@ const vagalumesMundiais = Array.from({length: 22}, (_, i) => ({
 }));
 
 function renderVagalumesEPoeiras(now, mapKey) {
+  if (!TEMPO_LIGADO) return;
   if (currentScene !== 'world' || mapKey === 'mega_world' || engineMode === 'world') return;
   const ciclo = calculoDoCicloDiaNoite(now);
   const noiteOuMagico = ciclo.ehNoite || (SCENE_NAMES[mapKey] && /clareira|eco|floresta|bosque|mágic/i.test(SCENE_NAMES[mapKey]));
@@ -10043,6 +10471,82 @@ const FASES_CICLO = [
   { h: 24.0, r: 12,  g: 18,  b: 52,  a: 0.60, noite: true,  nome: '🌙 Madrugada Mágica' }
 ];
 
+// Passagem do tempo DESLIGADA. O ciclo rodava um dia inteiro em 120 segundos: a cor
+// da tela mudava sem parar, e o que era para ser atmosfera virava um piscar constante
+// por cima do mapa. Enquanto não houver um relógio de jogo de verdade — dia longo,
+// noite que significa alguma coisa — fica desligado, e o mapa aparece com a cor que
+// foi desenhada. `ambience` por cenário entra no mesmo interruptor: escurecer 86% um
+// cenário é mudar a cor dele tanto quanto o ciclo mudava.
+let TEMPO_LIGADO = false;
+
+// ── Zoom do cenário ─────────────────────────────────────────────────────────────
+// A câmera aproxima e segue o jogador, presa às bordas do cenário para nunca mostrar
+// o vazio de fora. É isto que deixa o personagem grande na tela sem precisar redesenhar
+// sprite nenhum: em vez de aumentar o herói, aproxima-se o mundo inteiro.
+// Só vale JOGANDO. No editor a tela continua mostrando o cenário inteiro, porque toda
+// a marcação de clique — plantar, arrastar, pintar — é feita em coordenada de cena, e
+// uma câmera móvel faria cada clique cair no lugar errado.
+let zoomCenario = 1;
+
+// Andar no cenário SEM entrar em jogo. Entrar em jogo arrasta junto HUD, monstros,
+// diálogos, cenas de abertura e reposiciona o personagem no spawn — quando tudo o que
+// se quer é conferir se o caminho recém-traçado dá passagem. Aqui só o personagem se
+// mexe: as ferramentas continuam ativas e o clique continua sendo do editor.
+let andarNoEditor = false;
+
+// Quem manda o personagem andar e a câmera aproximar: jogando de verdade, ou o modo
+// de caminhada do editor.
+function personagemAndando() { return isPlayMode || andarNoEditor; }
+
+
+function alternarAndarNoEditor(ligar) {
+  andarNoEditor = ligar === undefined ? !andarNoEditor : !!ligar;
+  ['andarEditorBtn','andarEditorBtn2'].forEach(id => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.classList.toggle('active', andarNoEditor);
+    b.textContent = andarNoEditor ? '🚶 Andando (clique para parar)' : '🚶 Andar no cenário';
+  });
+  if (!andarNoEditor) { keys.w = keys.a = keys.s = keys.d = false; player.isMoving = false; }
+  else showToast('🚶 WASD anda. As ferramentas continuam funcionando.');
+}
+
+function camaraDoCenario() {
+  const vw = SCREEN_W / zoomCenario, vh = SCREEN_H / zoomCenario;
+  return {
+    x: Math.max(vw / 2, Math.min(SCREEN_W - vw / 2, player.x)),
+    y: Math.max(vh / 2, Math.min(SCREEN_H - vh / 2, player.y - 20)),
+  };
+}
+
+function aplicarZoomDoCenario() {
+  const c = camaraDoCenario();
+  ctx.translate(SCREEN_W / 2, SCREEN_H / 2);
+  ctx.scale(zoomCenario, zoomCenario);
+  ctx.translate(-c.x, -c.y);
+}
+
+// Onde um ponto da cena cai na TELA. As camadas desenhadas por cima do zoom (halo de
+// luz, brilho) precisam disto, senão iluminam o canto errado quando a câmera anda.
+function telaDoPonto(x, y) {
+  if (!(zoomCenario > 1.001)) return { x, y };
+  const c = camaraDoCenario();
+  return { x: (x - c.x) * zoomCenario + SCREEN_W / 2,
+           y: (y - c.y) * zoomCenario + SCREEN_H / 2 };
+}
+
+function aplicarZoomCenario(v, salvar = true) {
+  zoomCenario = Math.max(1, Math.min(3, Number(v) || 1));
+  const rot = document.getElementById('zoomCenarioVal');
+  if (rot) rot.textContent = zoomCenario.toFixed(2).replace(/\.?0+$/, '') + '×';
+  const ctrl = document.getElementById('zoomCenario');
+  if (ctrl && Number(ctrl.value) !== zoomCenario) ctrl.value = zoomCenario;
+  if (salvar) {
+    try { localStorage.setItem('acordelot_zoom_cenario', String(zoomCenario)); } catch (e) {}
+    if (typeof saveAllLayers === 'function' && !IS_PLAY_BUILD) saveAllLayers(false);
+  }
+}
+
 function calculoDoCicloDiaNoite(now) {
   // Um ciclo completo dura 120 segundos para progredir gradualmente perante os olhos do jogador
   const T = (now % 120000) / 120000;
@@ -10073,16 +10577,30 @@ function calculoDoCicloDiaNoite(now) {
   return { r, g, b: b_val, alpha, ehNoite, nome, hora };
 }
 
+let _telaDaNoite = null;
+function telaDaNoite() {
+  if (!_telaDaNoite) {
+    _telaDaNoite = document.createElement('canvas');
+    _telaDaNoite.width = SCREEN_W; _telaDaNoite.height = SCREEN_H;
+  }
+  return _telaDaNoite;
+}
+
 function renderCicloDiaNoite(now, mapKey) {
+  if (!TEMPO_LIGADO) return;
   if (currentScene !== 'world' || mapKey === 'mega_world' || engineMode === 'world') return;
   const c = calculoDoCicloDiaNoite(now);
   if (c.alpha <= 0.005) return;
   
   ctx.save();
   if (c.ehNoite || c.alpha >= 0.30) {
-    const escuro = document.createElement('canvas');
-    escuro.width = SCREEN_W; escuro.height = SCREEN_H;
+    // Canvas reaproveitado. Antes era um `createElement('canvas')` de 1024×571 A CADA
+    // QUADRO — 60 alocações por segundo de um buffer de 2 MB, com o coletor de lixo
+    // correndo atrás. Sozinho, isso já explicava boa parte da travada.
+    const escuro = telaDaNoite();
     const eCtx = escuro.getContext('2d');
+    eCtx.clearRect(0, 0, SCREEN_W, SCREEN_H);
+    eCtx.globalCompositeOperation = 'source-over';
     eCtx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${c.alpha})`;
     eCtx.fillRect(0, 0, SCREEN_W, SCREEN_H);
     
@@ -10196,7 +10714,13 @@ function loop(now){
     return;
   }
   const camOn = isPlayMode && forcaDoDestaque(now) > 0.001;
-  if (camOn) { ctx.save(); aplicarCameraDeDestaque(now); }
+  const zoomOn = !isMegaWorld && zoomCenario > 1.001;
+  // Destaque tem prioridade: ele já é uma câmera com zoom próprio, e as duas somadas
+  // aproximariam duas vezes.
+  if (camOn || zoomOn) {
+    ctx.save();
+    if (camOn) aplicarCameraDeDestaque(now); else aplicarZoomDoCenario();
+  }
 
   if (isMegaWorld) {
     if (!bgImages['mega_world']) {
@@ -10231,6 +10755,30 @@ function loop(now){
       if (currentScene === 'world' && mapKey !== 'mega_world') renderSombrasDeNuvem(now, mapKey);
     }
     else { const st=interiorDef()?.still?.(); if(st)ctx.drawImage(st,0,0,SCREEN_W,SCREEN_H); }
+  }
+
+  // Caminhada do editor: só move o personagem e nada mais. Sem HUD, sem monstro, sem
+  // diálogo — e sem tirar o clique das ferramentas.
+  if(!isPlayMode && andarNoEditor && currentScene === 'world'){
+    let dx=0,dy=0;
+    if(keys.w)dy-=1;if(keys.s)dy+=1;if(keys.a)dx-=1;if(keys.d)dx+=1;
+    if(stick.active){dx=stick.x;dy=stick.y;}
+    const len=Math.hypot(dx,dy);
+    player.isMoving=len>0.15;
+    if(player.isMoving){
+      const sprint=keys.shift||len>0.92;
+      const spd=(sprint?player.sprintSpeed:player.speed)*Math.min(1,len);
+      dx/=len; dy/=len;
+      if(Math.abs(dx)>Math.abs(dy)) player.direction=dx<0?'left':'right';
+      else player.direction=dy<0?'up':'down';
+      const tx=player.x+dx*spd, ty=player.y+dy*spd;
+      // Respeita a colisão pintada: é justamente isso que se quer testar ao andar.
+      if(canMoveTo(tx,ty)){player.x=tx;player.y=ty;}
+      else if(canMoveTo(tx,player.y))player.x=tx;
+      else if(canMoveTo(player.x,ty))player.y=ty;
+      player.animTimer+=spd;
+      if(player.animTimer>passoDaAnimacao(sprint)){player.animTimer=0;player.animFrame=(player.animFrame+1)%(personagemAtivo().cols||4);}
+    } else { player.animFrame = quadroParado(); player.animTimer = 0; }
   }
 
   if(isPlayMode){
@@ -10273,7 +10821,7 @@ function loop(now){
         player.y = Math.max(32, Math.min(dims.h - 32, player.y));
         const quadros = personagemAtivo().cols || 4;
         player.animTimer += spd;
-        if (player.animTimer >= (sprint ? 13 : 19)) {
+        if (player.animTimer >= passoDaAnimacao(sprint)) {
           player.animTimer = 0;
           player.animFrame = (player.animFrame + 1) % quadros;
           // o pé encosta duas vezes por ciclo: é aí que sai poeira e som
@@ -10281,7 +10829,7 @@ function loop(now){
             spawnDust(player.x, player.y); playStep(sprint);
           }
         }
-      } else {player.animFrame=0;player.animTimer=0;}
+      } else {player.animFrame=quadroParado();player.animTimer=0;}
       checkTransitions();checkDoors();checkNPCProx();
     }
     updateRespawn(now);updateMonsters(now);updateDrops(now);
@@ -10362,7 +10910,8 @@ function loop(now){
       ctx.beginPath(); ctx.ellipse(player.x,player.y,46+pulse*10,20+pulse*5,0,0,Math.PI*2); ctx.stroke();
       ctx.restore();
     }
-    {const pW=outdoors?player.width:68,pH=outdoors?player.height:92;
+    {const pW=outdoors?player.width:HEROI_BASE.interiorW*heroiEscala,
+           pH=outdoors?player.height:HEROI_BASE.interiorH*heroiEscala;
      renderFerramenta(now,pW,pH,true);}      // atrás do corpo (andando para cima)
     // Fora do bloco de cenário externo: numa sala fechada a cena não avançava nunca,
     // congelava no primeiro `esperar` e deixava o jogador travado para sempre.
@@ -10370,7 +10919,8 @@ function loop(now){
     if (frameCount % 30 === 0) silenciarVideosDeInterior();
 
     renderPlayer();
-    if(!player.oculto){const pW=outdoors?player.width:68,pH=outdoors?player.height:92;
+    if(!player.oculto){const pW=outdoors?player.width:HEROI_BASE.interiorW*heroiEscala,
+                       pH=outdoors?player.height:HEROI_BASE.interiorH*heroiEscala;
      renderFerramenta(now,pW,pH,false);      // na frente, nas outras direções
      renderHat(pW,pH);renderAura(now,pH);}
     if(outdoors){
@@ -10451,22 +11001,37 @@ function loop(now){
     else { renderSpeech(now); renderFloaters(now); }
     if (!IS_PLAY_BUILD) renderMotivoDoTravamento();
     else renderMarcadoresDoInterior(now);
-    if (camOn) { ctx.restore(); renderRotuloDoDestaque(now); }
+    if (camOn || zoomOn) ctx.restore();
+    if (camOn) renderRotuloDoDestaque(now);
     renderAmbiente();
     renderDlg(now);
     renderNotasGuia(now);
     renderCena(now);
     if(statusPos)statusPos.textContent=`X: ${Math.round(player.x)}  Y: ${Math.round(player.y)}`;
   } else {
-    npcData.forEach(npc=>{if(npc.mapKey!==mapKey)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
+    // No modo Cena quem desenha os NPCs é renderSceneOverlay, que além do sprite mostra
+    // seleção, alça e raio de gatilho. Desenhar aqui TAMBÉM pintava cada NPC duas vezes
+    // por quadro: com zoom as duas passadas saíam em posições diferentes e apareciam
+    // dois personagens; sem zoom sobrepunham e escureciam as bordas transparentes.
+    if (engineMode !== 'scene') {
+      npcData.forEach(npc=>{if(npc.mapKey!==mapKey)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
+    }
     renderObjetos(now, 'todos');   // sem isto o editor não mostrava o que você plantou
     const L=getLayers(mapKey);ctx.drawImage(L.fgCanvas,0,0);
+    // O personagem aparece no editor enquanto a caminhada estiver ligada — sem ele não
+    // há como ver se o caminho pintado dá passagem.
+    if (andarNoEditor && !player.oculto) renderPlayer();
+    // TUDO do editor desenha DENTRO da câmera. renderSceneOverlay desenha os NPCs de
+    // novo (é ele quem mostra seleção, alça e raio de gatilho); com o `restore` antes
+    // dele, essa segunda passada saía sem zoom enquanto a primeira saía com — dois
+    // NPCs na tela, um por cima do outro, deslocados. O `restore` vai para o fim.
     if (engineMode === 'scene') {
       renderVagalumesEPoeiras(now, mapKey);
       renderCicloDiaNoite(now, mapKey);
       renderAmbiente();
       renderSceneOverlay(now);
     } else if (engineMode === 'collision') renderCollisionOverlay(mapKey);
+    if (camOn || zoomOn) ctx.restore();
     if(statusPos)statusPos.textContent=`X: ${Math.round(mouseCanvasX)}  Y: ${Math.round(mouseCanvasY)}`;
   }
 
@@ -10487,9 +11052,14 @@ function setupHighDPICanvas() {
   const r = canvas.getBoundingClientRect();
   const densidade = window.devicePixelRatio || 1;
   const larguraCss = r.width > 40 ? r.width : SCREEN_W;
-  // Quantos pixels reais existem para cada unidade lógica do jogo, com teto para não
-  // torrar memória em telas 4K.
-  const escala = Math.min(4, Math.max(2, (larguraCss * densidade) / SCREEN_W));
+  // Quantos pixels reais existem para cada unidade lógica do jogo. O piso era 2, o que
+  // obrigava um monitor comum (densidade 1) a desenhar 2048×1142 para exibir 1024×571:
+  // quatro vezes mais pixel do que a tela mostra, todo quadro. Como o canvas já é
+  // `image-rendering: pixelated`, um pixel de desenho por pixel de tela é o que dá a
+  // borda dura que a arte pede — supersampling aqui só amaciava o que não devia amaciar.
+  // O teto caiu de 4 para 2: acima disso é fôlego gasto num detalhe que ninguém vê,
+  // e em celular de densidade 3 era ele que derrubava a taxa de quadros.
+  const escala = Math.min(2, Math.max(1, (larguraCss * densidade) / SCREEN_W));
   const targetW = Math.round(SCREEN_W * escala);
   const targetH = Math.round(SCREEN_H * escala);
   if (canvas.width !== targetW || canvas.height !== targetH) {
@@ -10548,10 +11118,30 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Mode tabs
   document.querySelectorAll('.mode-tab').forEach(btn=>btn.addEventListener('click',()=>setMode(btn.dataset.mode)));
+  if(!CRIADOR_DE_MUNDO_ATIVO){
+    document.querySelector('.mode-tab[data-mode="mundo"]')?.style.setProperty('display','none');
+    document.getElementById('assetDock')?.style.setProperty('display','none');
+    document.body.classList.remove('modo-mundo');
+    setMode('scene');   // abre sempre no editor de cena, aconteça o que acontecer antes
+  }
   // Scene subtools
   document.querySelectorAll('[data-stool]').forEach(btn=>btn.addEventListener('click',()=>setSceneTool(btn.dataset.stool)));
   // Collision subtools
   document.querySelectorAll('[data-ctool]').forEach(btn=>btn.addEventListener('click',()=>setCollisionTool(btn.dataset.ctool)));
+  ['andarEditorBtn','andarEditorBtn2'].forEach(id =>
+    document.getElementById(id)?.addEventListener('click',()=>alternarAndarNoEditor()));
+  document.getElementById('areaFecharBtn')?.addEventListener('click',()=>areaFechar());
+  document.getElementById('areaDesfazerBtn')?.addEventListener('click',()=>areaDesfazerPonto());
+  // Teclado do contorno. Só responde com a ferramenta em uso e fora de campo de texto,
+  // senão Backspace apagaria ponto enquanto se escreve o nome de um NPC.
+  document.addEventListener('keydown',e=>{
+    if(engineMode!=='collision'||collisionTool!=='area')return;
+    const a=e.target;
+    if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.isContentEditable))return;
+    if(e.key==='Enter'){e.preventDefault();areaFechar();}
+    else if(e.key==='Backspace'){e.preventDefault();areaDesfazerPonto();}
+    else if(e.key==='Escape'){e.preventDefault();areaCancelar();}
+  });
   // WV subtools
   document.querySelectorAll('[data-wvtool]').forEach(btn=>btn.addEventListener('click',()=>setWVTool(btn.dataset.wvtool)));
 
@@ -10572,9 +11162,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   stopBtn?.addEventListener('click',()=>togglePlay());
   // Monstros entram aqui também: o botão diz "Salvar", e quem clica nele espera que
   // TUDO seja gravado. Faltar os monstros aqui já custou uma sessão de edição.
-  saveProjectBtn?.addEventListener('click',()=>{saveAllLayers(false);saveNPCs();saveMonsters();saveObjetos();showToast('💾 Projeto salvo!');});
-  saveLayersBtn?.addEventListener('click',()=>saveAllLayers(true));
-  saveWorldBtn?.addEventListener('click',()=>saveAllLayers(true));
+  saveProjectBtn?.addEventListener('click',()=>{saveAllLayers(false,'todos');saveNPCs();saveMonsters();saveObjetos();showToast('💾 Projeto salvo!');});
+  saveLayersBtn?.addEventListener('click',()=>saveAllLayers(true,'todos'));
+  saveWorldBtn?.addEventListener('click',()=>saveAllLayers(true,'todos'));
   brushSizeSelect?.addEventListener('change',e=>brushSize=parseInt(e.target.value));
   document.getElementById('autoRoofBtn')?.addEventListener('click',()=>{
     autoRoofFromRoad(activeMapSelect?.value||currentKey);
@@ -10583,15 +11173,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     const k=activeMapSelect?.value||currentKey;const L=getLayers(k);
     L.roadCtx.clearRect(0,0,SCREEN_W,SCREEN_H);L.fgCtx.clearRect(0,0,SCREEN_W,SCREEN_H);L.doorCtx.clearRect(0,0,SCREEN_W,SCREEN_H);
     L.roadCtx.fillStyle='#22c55e';L.roadCtx.fillRect(430,0,164,SCREEN_H);L.roadCtx.fillRect(0,230,SCREEN_W,140);
+    ['road','fg','door'].forEach(t=>marcarCamadaSuja(k,t));
+    invalidateRoadPaint(k);invalidateDoorMarkers(k);
     showToast('🪄 Caminho padrão criado!');saveAllLayers(false);
   });
   clearLayerBtn?.addEventListener('click',()=>{
     const k=activeMapSelect?.value||currentKey;const L=getLayers(k);
     L.roadCtx.clearRect(0,0,SCREEN_W,SCREEN_H);L.fgCtx.clearRect(0,0,SCREEN_W,SCREEN_H);L.doorCtx.clearRect(0,0,SCREEN_W,SCREEN_H);
+    ['road','fg','door'].forEach(t=>marcarCamadaSuja(k,t));
+    invalidateRoadPaint(k);invalidateDoorMarkers(k);
     showToast('🗑️ Camadas limpas!');saveAllLayers(false);
   });
   resetGridBtn?.addEventListener('click',()=>{
-    gridPos={'0_0':{col:0,row:0},'1_0':{col:1,row:0},'2_0':{col:2,row:0},'0_1':{col:0,row:1},'1_1':{col:1,row:1}};
+    gridPos={'1_0':{col:1,row:0},'2_0':{col:2,row:0},'0_1':{col:0,row:1},'1_1':{col:1,row:1}};
     rebuildGrid();showToast('🔄 Grid reorganizado!');saveAllLayers(false);
   });
   document.getElementById('resetGridBtn2')?.addEventListener('click',()=>resetGridBtn?.click());
@@ -10854,9 +11448,22 @@ const HERO_DEFINITIONS = {
     id: 'achilles', name: 'Achilles', class: 'Espadachim da Clave', gender: 'Masculino',
     // Folha normalizada: 8 quadros por fileira, quatro direções próprias (não há
     // espelhamento — o desenho de perfil direito é diferente do esquerdo).
-    src: 'assets/achilles.png', cols: 8, rows: 4,
+    // `src` é a folha padrão (a de caminhada). `folhas` lista as outras por estado —
+    // cada uma com a própria contagem de colunas, porque idle tem menos quadros que
+    // caminhada. Todas foram casadas na mesma escala e na mesma célula por
+    // ferramentas/casar_folhas_heroi.py: sem isso o herói mudava de tamanho ao parar.
+    src: 'assets/personagens/herois/achilles_caminhada.png', cols: 8, rows: 4,
+    folhas: {
+      andar:  { src: 'assets/personagens/herois/achilles_caminhada.png', cols: 8 },
+      parado: { src: 'assets/personagens/herois/achilles_parado.png',    cols: 4 },
+    },
     linhas: { down: 0, up: 1, left: 2, right: 3 },
-    face: 'assets/achilles_face.png', avatar: 'assets/achilles_face.png',
+    // Quadro em que cada direção fica ao PARAR. A folha é de caminhada e não tem pose
+    // parada de verdade, então usa-se o quadro de passagem — o único em que as pernas
+    // estão juntas. Voltar ao quadro 0 deixava o herói congelado com o pé no ar.
+    // Medido pela largura ocupada pelos pés em cada quadro.
+    parado: { down: 5, up: 5, left: 2, right: 3 },
+    face: 'assets/personagens/herois/achilles_face.png', avatar: 'assets/personagens/herois/achilles_face.png',
     weapon: 'Teclado Espada', clave: 'Sol', registro: 'Agudo',
     papel: 'Investida', raridade: 5, desbloqueado: true,
     base: { vida: 0, dano: 0, ritmo: 0, afinacao: 0 },
@@ -10866,6 +11473,22 @@ const HERO_DEFINITIONS = {
 let selectedHeroId = 'achilles';
 
 function personagemAtivo() { return HERO_DEFINITIONS[selectedHeroId] || HERO_DEFINITIONS.achilles; }
+
+// Em que quadro o herói descansa, por direção. Sem isto ele parava no quadro 0, que na
+// folha de caminhada é o CONTATO — perna esticada e pé no ar. Parecia travado no meio
+// do passo. Quando existir folha de parado (idle) de verdade, esta função sai de cena.
+// Distância percorrida entre um quadro e o próximo. Contar por distância e não por
+// tempo é o que impede o pé de deslizar: se o personagem anda mais devagar, a passada
+// desacelera junto. Antes eram 19 por quadro, 152 px por ciclo completo — quase três
+// alturas do personagem, e por isso ele parecia patinar.
+const PASSO_DA_CAMINHADA = 13, PASSO_DA_CORRIDA = 9;
+function passoDaAnimacao(sprint) { return sprint ? PASSO_DA_CORRIDA : PASSO_DA_CAMINHADA; }
+
+function quadroParado() {
+  const p = personagemAtivo().parado;
+  if (!p) return 0;
+  return p[player.direction] ?? p.down ?? 0;
+}
 function personagensDesbloqueados() {
   return Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado);
 }
@@ -10956,7 +11579,7 @@ function renderPartyHUD() {
 
     if (imgEl) {
       if (def) {
-        imgEl.src = def.face || def.avatar || 'assets/achilles_face.png';
+        imgEl.src = def.face || def.avatar || 'assets/personagens/herois/achilles_face.png';
         imgEl.alt = def.name;
         slotEl.title = `${def.name} · Clave de ${def.clave || '—'} · ${def.papel || def.class}`;
       } else {
@@ -10985,6 +11608,10 @@ function hero_isPNG(id) {
   return def && def.src && def.src.toLowerCase().endsWith('.png');
 }
 
+// Folhas extras por estado, guardadas por caminho. Ficam fora de processedHeroSprites
+// porque aquele mapa é por personagem, e um personagem agora tem várias folhas.
+const folhasDoHeroi = {};
+
 function loadHeroSprites() {
   for (const [id, hero] of Object.entries(HERO_DEFINITIONS)) {
     const img = new Image();
@@ -10994,7 +11621,28 @@ function loadHeroSprites() {
     };
     img.src = hero.src;
     heroImages[id] = img;
+
+    for (const estado of Object.values(hero.folhas || {})) {
+      if (folhasDoHeroi[estado.src]) continue;
+      const extra = new Image();
+      extra.src = estado.src;
+      folhasDoHeroi[estado.src] = extra;
+    }
   }
+}
+
+// Qual folha e quantas colunas usar AGORA. Parado só vale fora de combate e com a folha
+// já baixada — se ela ainda não chegou, continua a de caminhada em vez de piscar.
+function folhaAtualDoHeroi(atacando) {
+  const P = personagemAtivo();
+  const f = P.folhas;
+  if (!f) return null;
+  const querParado = !player.isMoving && !atacando && f.parado;
+  const alvo = querParado ? f.parado : (f.andar || null);
+  if (!alvo) return null;
+  const img = folhasDoHeroi[alvo.src];
+  if (!img || !img.complete || img.naturalWidth < 10) return null;
+  return { img, cols: alvo.cols, parado: querParado };
 }
 
 function processHeroSprite(id, imgRaw) {
@@ -11114,7 +11762,7 @@ function initMainMenu() {
       ? CUT.roteiros.find(r => r.id === escolha.slice(5)) : null;
 
     const modoLivre = escolha === 'livre';
-    const startMapKey = modoLivre ? '0_0'
+    const startMapKey = modoLivre ? ((startMap && cenarioExiste(startMap)) ? startMap : chavesDeCenario()[0])
       : (cenaEscolhida?.mapa
       || ((startMap && cenarioExiste(startMap)) ? startMap : 'custom_1785173102424_996'));
     if (cenarioExiste(startMapKey)) {
@@ -11265,18 +11913,20 @@ window.testQuest = function(idx) {
 };
 
 async function finishInit(){
-  await loadWorldConfig();await loadLayers();await loadNPCs();await loadQuests();await loadShopCatalog();await loadMonsters();await loadObjetos();await loadMundo();await loadSkillTree();
+  // Nove `await` em fila esperavam um ao outro sem nenhum precisar do anterior: cada
+  // ida ao servidor só começava quando a de cima terminava, e o menu só aparecia no
+  // fim de todas. O config vem primeiro porque as camadas dependem da lista de
+  // cenários; o resto vai junto, em paralelo.
+  await loadWorldConfig();
+  await Promise.all([
+    loadLayers(), loadNPCs(), loadQuests(), loadShopCatalog(),
+    loadMonsters(), loadObjetos(), loadMundo(), loadSkillTree(),
+  ]);
   refreshMapSelect();
   renderQuestBuilderList();
-  // /edit entra direto no Criador de Mundo: é o app principal agora, e ninguém quer
-  // atravessar o editor de cenários antigo para chegar no mapa.
-  if (/^\/(edit|editor)\/?$/.test(location.pathname)) {
-    // Três tentativas: a aba do modo só existe depois que o cabeçalho é montado, e uma
-    // única chamada às vezes chegava antes disso — a página abria no editor antigo.
-    [200, 700, 1500].forEach(t => setTimeout(() => {
-      if (engineMode !== 'mundo') document.querySelector('[data-mode="mundo"]')?.click();
-    }, t));
-  }
+  // Aqui havia três tentativas, em 200/700/1500 ms, de clicar na aba do Criador de
+  // Mundo ao abrir /edit. Com o modo arquivado elas ficaram sem alvo — e eram elas que
+  // sequestravam a abertura para uma tela que não se usa mais.
   // A paleta de props precisa de duas passadas: uma agora, com o catálogo já lido, e
   // outra quando os PNGs terminarem de decodificar — só então há miniatura para mostrar.
   renderPaletaDeProps();
@@ -11902,13 +12552,13 @@ function renderGrimorio() {
   const def = HERO_DEFINITIONS[selectedHeroId] || HERO_DEFINITIONS['achilles'];
   if (heroNameEl && def) heroNameEl.textContent = def.name || 'Áquiles';
   if (heroLevelEl) heroLevelEl.textContent = `Nível ${level || 25}`;
-  if (heroPort) heroPort.src = (def && def.face) ? def.face + '?v=1024' : 'assets/achilles_face.png';
+  if (heroPort) heroPort.src = (def && def.face) ? def.face + '?v=1024' : 'assets/personagens/herois/achilles_face.png';
   const temArmaEquipada = Object.values(equipped).includes('espada_teclado') || !!equipped.axe;
   if (heroBody) {
     if (selectedHeroId === 'achilles') {
-      heroBody.src = 'assets/achilles_face.png';
+      heroBody.src = 'assets/personagens/herois/achilles_face.png';
     } else {
-      heroBody.src = (def && def.avatar) ? def.avatar + '?v=1024' : 'assets/achilles_face.png';
+      heroBody.src = (def && def.avatar) ? def.avatar + '?v=1024' : 'assets/personagens/herois/achilles_face.png';
     }
   }
   
@@ -12049,6 +12699,44 @@ function renderAtributosNoDrawer() {
 // ============================================================
 // DRAG & DROP SCENARIO CREATION
 // ============================================================
+
+// Passo único por onde todo cenário novo entra no mundo, venha do arrastar-e-soltar
+// ou do pixelizador. Ter um caminho só é o que garante que um cenário importado por
+// qualquer porta apareça na galeria, no seletor e no arquivo salvo — antes isso era
+// uma sequência copiada, e sequência copiada é onde uma porta esquece um passo.
+function registrarCenario(customKey, savedUrl, nomeLimpo, targetCol = null, targetRow = null) {
+  bgSources[customKey] = savedUrl;
+  const img = new Image();
+  img.src = savedUrl;
+  bgImages[customKey] = img;
+  SCENE_NAMES[customKey] = `🏰 ${nomeLimpo || 'Novo Cenário'}`;
+  spawns[customKey] = { x: 512, y: 300 };
+
+  if (targetCol !== null && targetRow !== null) {
+    const occ = keyAtCell(targetCol, targetRow);
+    if (occ) delete gridPos[occ];
+    gridPos[customKey] = { col: targetCol, row: targetRow };
+  }
+
+  // Sem posição o cenário fica "fora do grid" e some da vista: acha a primeira célula
+  // livre à direita do que já existe.
+  if (!gridPos[customKey]) {
+    let col = 0;
+    const linhas = Object.values(gridPos);
+    if (linhas.length) col = Math.max(...linhas.map(p => p.col)) + 1;
+    while (keyAtCell(col, 0)) col++;
+    gridPos[customKey] = { col, row: 0 };
+  }
+
+  rebuildGrid();
+  refreshMapSelect();
+  if (typeof weAtualizaGaleria === 'function') weAtualizaGaleria();   // galeria do Mapa-Múndi
+  if (activeMapSelect) activeMapSelect.value = customKey;
+  currentKey = customKey;
+  saveAllLayers(false);
+  updateMapStatus();
+}
+
 function addCustomScenarioFromFile(file, targetCol = null, targetRow = null) {
   if (!file || !file.type.startsWith('image/')) {
     showToast('⚠️ Selecione um arquivo de imagem (.jpg, .png)!');
@@ -12074,37 +12762,7 @@ function addCustomScenarioFromFile(file, targetCol = null, targetRow = null) {
       }
     } catch(err) {}
 
-    bgSources[customKey] = savedUrl;
-    const img = new Image();
-    img.src = savedUrl;
-    bgImages[customKey] = img;
-    SCENE_NAMES[customKey] = `🏰 ${cleanName || 'Novo Cenário'}`;
-    spawns[customKey] = { x: 512, y: 300 };
-
-    if (targetCol !== null && targetRow !== null) {
-      const occ = keyAtCell(targetCol, targetRow);
-      if (occ) delete gridPos[occ];
-      gridPos[customKey] = { col: targetCol, row: targetRow };
-    }
-
-    // Sem posição o cenário fica "fora do grid" e some da vista: acha a primeira célula
-    // livre à direita do que já existe.
-    if (!gridPos[customKey]) {
-      let col = 0;
-      const linhas = Object.values(gridPos);
-      if (linhas.length) col = Math.max(...linhas.map(p => p.col)) + 1;
-      while (keyAtCell(col, 0)) col++;
-      gridPos[customKey] = { col, row: 0 };
-    }
-
-    rebuildGrid();
-    refreshMapSelect();
-    if (typeof weAtualizaGaleria === 'function') weAtualizaGaleria();   // galeria do Mapa-Múndi
-    if (activeMapSelect) activeMapSelect.value = customKey;
-    currentKey = customKey;
-    saveAllLayers(false);
-    updateMapStatus();
-
+    registrarCenario(customKey, savedUrl, cleanName, targetCol, targetRow);
     showToast(`🖼️ Cenário "${SCENE_NAMES[customKey]}" adicionado com sucesso!`);
   };
   reader.readAsDataURL(file);
@@ -12170,16 +12828,16 @@ function initScenarioUploader() {
 // and the pickaxes in a row, and the last two pickaxes have overlapping glows, so the
 // crops are declared explicitly rather than derived from a grid.
 const TOOL_SHEETS = {
-  axes: { src: 'assets/ref_axes.jpg', boxes: [
+  axes: { src: 'assets/referencias/ref_axes.jpg', boxes: [
     [51,46,252,446], [388,51,247,441], [727,46,246,451], [166,531,295,452], [576,527,270,462],
   ]},
-  ressonadores: { src: 'assets/ref_ressonadores.jpg', boxes: [
+  ressonadores: { src: 'assets/referencias/ref_ressonadores.jpg', boxes: [
     [48,255,270,545], [378,250,275,545], [700,250,300,545],
   ]},
-  hammers: { src: 'assets/ref_hammers.jpg', boxes: [
+  hammers: { src: 'assets/referencias/ref_hammers.jpg', boxes: [
     [40,55,300,420], [372,58,308,408], [698,58,272,404], [108,516,326,438], [556,492,404,470],
   ]},
-  pickaxes: { src: 'assets/ref_pickaxes.jpg', boxes: [
+  pickaxes: { src: 'assets/referencias/ref_pickaxes.jpg', boxes: [
     [30,35,175,970], [230,35,170,970], [430,35,164,970], [600,35,200,970], [800,35,215,970],
   ]},
 };
@@ -12259,17 +12917,17 @@ function podePagarNota(nota) {
 function notaPorId(id) { return CROMATICA.find(n => n.id === id) || null; }
 
 const MAGIA_SHEETS = {
-  fragmentos: { src: 'assets/ref_fragmentos.jpg', boxes: [
+  fragmentos: { src: 'assets/referencias/ref_fragmentos.jpg', boxes: [
     [45,330,275,365], [352,332,332,362], [762,332,206,372],
   ]},
-  notas: { src: 'assets/ref_notas_naturais.jpg', boxes: [
+  notas: { src: 'assets/referencias/ref_notas_naturais.jpg', boxes: [
     [20,95,215,360], [275,95,215,360], [530,95,215,360], [765,95,235,360],
     [20,565,215,400], [270,565,225,400], [545,565,215,400],
   ]},
-  sustenidas: { src: 'assets/ref_notas_sustenidas.jpg', boxes: [
+  sustenidas: { src: 'assets/referencias/ref_notas_sustenidas.jpg', boxes: [
     [65,415,160,200], [240,410,180,205], [445,405,140,215], [615,415,165,190], [845,410,135,205],
   ]},
-  acordes: { src: 'assets/ref_acordes.jpg', boxes: [] },   // recortado por grade 4x2 abaixo
+  acordes: { src: 'assets/referencias/ref_acordes.jpg', boxes: [] },   // recortado por grade 4x2 abaixo
 };
 const magiaSprites = {};   // 'fragmento' | 'tom' | 'semitom' | 'nota_do' | 'acorde_1'...
 
@@ -12343,13 +13001,13 @@ function loadToolSheets() {
       renderForgeItemsList();
     } catch(e){}
   };
-  swImg.src = 'assets/espada_teclado.png';
+  swImg.src = 'assets/itens/espada_teclado.png';
 
   window.swordAttackVFX = [];
   ['attack_vfx_1.png', 'attack_vfx_2.png', 'attack_vfx_3.png'].forEach((fn, idx) => {
     const vImg = new Image();
     vImg.onload = () => { window.swordAttackVFX[idx] = vImg; };
-    vImg.src = `assets/${fn}`;
+    vImg.src = `assets/itens/${fn}`;
   });
 }
 

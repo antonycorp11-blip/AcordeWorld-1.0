@@ -32,7 +32,16 @@ IDS_EDITOR = [
 ]
 
 # Pastas e arquivos de assets que o jogo realmente carrega.
-ASSETS_INCLUIR = ['cutscenes', 'dialogues', 'icons', 'monsters', 'mundo', 'props', 'quests', 'skins']
+# Pastas que o build publicado carrega. A lista estava parada desde a reorganização
+# dos assets: faltavam `dados` (onde vive o config do mundo) e `cenarios` (as imagens e
+# as máscaras de colisão), então o dist saía sem cenário nenhum. Ficam de FORA, de
+# propósito: `referencias` (38 MB de material de origem), `folhas_originais` (as folhas
+# cruas do herói, guardadas só para reprocessar), `_backups` e `mundo` (o Criador de
+# Mundo está arquivado).
+ASSETS_INCLUIR = [
+    'cenarios', 'dados', 'cutscenes', 'dialogues', 'icons', 'itens',
+    'monsters', 'personagens', 'props', 'quests', 'skins', 'texturas', 'ui',
+]
 EXT_ASSET = {'.jpg', '.jpeg', '.png', '.mp4', '.json', '.webp', '.ogg', '.mp3'}
 
 # Referências que existem no código mas cujo arquivo pode não estar na pasta.
@@ -95,11 +104,42 @@ def construir_html() -> str:
     return html
 
 
+# Vídeos citados no código. A pasta inteira tem 68 MB; copiar tudo enche o repositório
+# com material que nenhuma tela abre.
+VIDEOS_INCLUIR = ['ferraria_interno.mp4', 'loja_de_skins.mp4',
+                  'notas_sagradas.mp4', 'sorteio_acordes.mp4']
+
+
 def copiar_assets() -> tuple[int, list[str]]:
     destino = DIST / 'assets'
     destino.mkdir(parents=True, exist_ok=True)
     origem = RAIZ / 'assets'
     n = 0
+
+    # `referencias` tem 38 MB de material de origem, mas o jogo cita 10 arquivos dela
+    # (ícones de item, folha de referência) que somam 4 MB. Copiar a pasta inteira
+    # inchava o deploy; não copiar nada deixava o inventário cheio de 404. A lista sai
+    # do próprio código, então nunca fica desatualizada.
+    citados = set()
+    for fonte in ('game.js', 'pixelizador.js', 'index.html'):
+        caminho = RAIZ / fonte
+        if caminho.exists():
+            citados |= set(re.findall(r'assets/referencias/([A-Za-z0-9_.-]+)',
+                                      caminho.read_text(encoding='utf-8')))
+    if citados:
+        (destino / 'referencias').mkdir(exist_ok=True)
+        for nome in sorted(citados):
+            if (origem / 'referencias' / nome).exists():
+                shutil.copy2(origem / 'referencias' / nome, destino / 'referencias' / nome)
+                n += 1
+
+    pasta_video = origem / 'videos'
+    if pasta_video.is_dir():
+        (destino / 'videos').mkdir(exist_ok=True)
+        for nome in VIDEOS_INCLUIR:
+            if (pasta_video / nome).exists():
+                shutil.copy2(pasta_video / nome, destino / 'videos' / nome)
+                n += 1
     for item in origem.iterdir():
         if item.is_dir():
             if item.name in ASSETS_INCLUIR:
@@ -119,7 +159,10 @@ def copiar_assets() -> tuple[int, list[str]]:
             if not (destino / 'cutscenes' / f'{cid}.json').exists():
                 faltando_cenas.append(f'cena "{cid}" → assets/cutscenes/{cid}.json')
 
-    cfg = json.loads((origem / 'acordelot_world_config.json').read_text(encoding='utf-8'))
+    # O config mudou de lugar para assets/dados/ na reorganização e esta linha ficou
+    # apontando para a raiz de assets/ — o build quebrava aqui, depois de já ter
+    # apagado o dist.
+    cfg = json.loads((origem / 'dados' / 'acordelot_world_config.json').read_text(encoding='utf-8'))
     for chave, caminho in (cfg.get('bgSources') or {}).items():
         if not (DIST / caminho).exists():
             faltando.append(f'cenário "{chave}" → {caminho}')

@@ -9,7 +9,7 @@
           "id": "meet_mentor",
           "text": "Encontre seu mentor na Praça Central",
           "completed": false,
-          "trigger_map": "0_0",
+          "trigger_map": "custom_1785869541494_557",
           "trigger_x": 512,
           "trigger_y": 300,
           "trigger_radius": 120
@@ -30,7 +30,7 @@
             "y": 80
           }
         ],
-        "0_0": [
+        "custom_1785869541494_557": [
           {
             "x": 512,
             "y": 530

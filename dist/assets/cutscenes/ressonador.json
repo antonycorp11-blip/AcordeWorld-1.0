@@ -1,7 +1,7 @@
 {
   "id": "ressonador",
   "nome": "Cena 9 — O Som Que Se Perde",
-  "mapa": "0_0",
+  "mapa": "custom_1785869541494_557",
   "autoStart": true,
   "gatilho": {
     "tipo": "falar",

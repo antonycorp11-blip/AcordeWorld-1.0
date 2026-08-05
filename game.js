@@ -438,7 +438,7 @@ const player = { x:512, y:400, width:60, height:90, speed:2.3, sprintSpeed:4.1, 
 // personagem do tamanho errado.
 // Proporção tirada da célula da folha (137x205 = 0,668). Se a caixa não acompanhar a
 // folha, o drawImage estica o sprite para caber e o personagem sai achatado ou magro.
-const HEROI_BASE = { width: 60, height: 90, interiorW: 78, interiorH: 117 };
+const HEROI_BASE = { width: 64, height: 90, interiorW: 83, interiorH: 117 };
 let heroiEscala = 1;
 
 function aplicarEscalaHeroi(v, salvar = true) {
@@ -7046,7 +7046,7 @@ function renderPlayer() {
   ctx.restore();
 
   renderWings(pW,pH); // behind the body
-  const sheet=activeSprite();
+  let sheet=activeSprite();
   if(sheet){
     // As colunas vêm da ficha do personagem. Antes eram adivinhadas pela largura da
     // folha ("entre 400 e 550 deve ser 6 colunas"), o que quebra no primeiro
@@ -7056,11 +7056,18 @@ function renderPlayer() {
     // era sempre frente/costas/lado/ataque — era daí que vinha sprite trocado e recorte
     // fora de lugar quando chegava uma folha com outro arranjo.
     const P = personagemAtivo();
-    const cols = P.cols || ((sheet.width > 400 && sheet.width < 550) ? 6 : 4);
     const rows = P.rows || 4;
     const LINHA = P.linhas || { down: 0, up: 1, side: 2, attack: 3 };
-    const fw = sheet.width / cols, fh = sheet.height / rows;
     const isAttacking = performance.now() < attackAnimUntil;
+
+    // Parado usa outra folha, com outra contagem de quadros. Ela entra aqui, no lugar
+    // da folha processada, e a partir daí tudo é igual — mesma linha por direção,
+    // mesmos pés na mesma linha de base, porque as folhas foram casadas.
+    const troca = folhaAtualDoHeroi(isAttacking);
+    if (troca) sheet = troca.img;
+    const cols = troca ? troca.cols
+               : (P.cols || ((sheet.width > 400 && sheet.width < 550) ? 6 : 4));
+    const fw = sheet.width / cols, fh = sheet.height / rows;
 
     // A folha manda. Se ela tem linha própria para `left` e `right` — como a do Achilles
     // — cada lado usa a sua; se só tem `side`, o lado esquerdo é o direito espelhado.
@@ -7075,7 +7082,11 @@ function renderPlayer() {
           : (player.direction === 'left' || player.direction === 'right') ? LINHA.side
           : LINHA.down;
     }
-    let frame = player.animFrame % cols;
+    // Na folha de parado o quadro vem do relógio, não da distância percorrida: a
+    // respiração acontece mesmo com o personagem imóvel, então contar passos não serve.
+    let frame = troca && troca.parado
+      ? Math.floor(performance.now() / 190) % cols
+      : player.animFrame % cols;
     let lungeX = 0, lungeY = 0;
 
     // Ataque só troca de linha se a folha TIVER uma linha de ataque. A do Achilles usa
@@ -11437,7 +11448,15 @@ const HERO_DEFINITIONS = {
     id: 'achilles', name: 'Achilles', class: 'Espadachim da Clave', gender: 'Masculino',
     // Folha normalizada: 8 quadros por fileira, quatro direções próprias (não há
     // espelhamento — o desenho de perfil direito é diferente do esquerdo).
+    // `src` é a folha padrão (a de caminhada). `folhas` lista as outras por estado —
+    // cada uma com a própria contagem de colunas, porque idle tem menos quadros que
+    // caminhada. Todas foram casadas na mesma escala e na mesma célula por
+    // ferramentas/casar_folhas_heroi.py: sem isso o herói mudava de tamanho ao parar.
     src: 'assets/personagens/herois/achilles_caminhada.png', cols: 8, rows: 4,
+    folhas: {
+      andar:  { src: 'assets/personagens/herois/achilles_caminhada.png', cols: 8 },
+      parado: { src: 'assets/personagens/herois/achilles_parado.png',    cols: 4 },
+    },
     linhas: { down: 0, up: 1, left: 2, right: 3 },
     // Quadro em que cada direção fica ao PARAR. A folha é de caminhada e não tem pose
     // parada de verdade, então usa-se o quadro de passagem — o único em que as pernas
@@ -11589,6 +11608,10 @@ function hero_isPNG(id) {
   return def && def.src && def.src.toLowerCase().endsWith('.png');
 }
 
+// Folhas extras por estado, guardadas por caminho. Ficam fora de processedHeroSprites
+// porque aquele mapa é por personagem, e um personagem agora tem várias folhas.
+const folhasDoHeroi = {};
+
 function loadHeroSprites() {
   for (const [id, hero] of Object.entries(HERO_DEFINITIONS)) {
     const img = new Image();
@@ -11598,7 +11621,28 @@ function loadHeroSprites() {
     };
     img.src = hero.src;
     heroImages[id] = img;
+
+    for (const estado of Object.values(hero.folhas || {})) {
+      if (folhasDoHeroi[estado.src]) continue;
+      const extra = new Image();
+      extra.src = estado.src;
+      folhasDoHeroi[estado.src] = extra;
+    }
   }
+}
+
+// Qual folha e quantas colunas usar AGORA. Parado só vale fora de combate e com a folha
+// já baixada — se ela ainda não chegou, continua a de caminhada em vez de piscar.
+function folhaAtualDoHeroi(atacando) {
+  const P = personagemAtivo();
+  const f = P.folhas;
+  if (!f) return null;
+  const querParado = !player.isMoving && !atacando && f.parado;
+  const alvo = querParado ? f.parado : (f.andar || null);
+  if (!alvo) return null;
+  const img = folhasDoHeroi[alvo.src];
+  if (!img || !img.complete || img.naturalWidth < 10) return null;
+  return { img, cols: alvo.cols, parado: querParado };
 }
 
 function processHeroSprite(id, imgRaw) {
