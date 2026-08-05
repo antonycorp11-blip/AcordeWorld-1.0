@@ -5750,16 +5750,19 @@ function carregarPassivas(d) { if (d) Object.assign(passivas, d); }
 const HABILIDADES = {
   achilles: [
     { id: 'lamina', nome: LAMINA_NOME, ico: 'assets/icons/habilidades/akles_lamina.png', tecla: 'Q',
+      desc: 'A lâmina cresce e passa a cortar mais fundo por alguns segundos.',
       usar: () => ativarLamina(), ativa: () => laminaAtiva(),
       resta: () => Math.max(0, (laminaAtiva() ? laminaAte : laminaEsperaAte) - performance.now()),
       total: () => laminaAtiva() ? LAMINA_MS : LAMINA_ESPERA },
     { id: 'setima', nome: SETIMA_NOME, ico: 'assets/icons/habilidades/akles_setima.png', tecla: 'R',
+      desc: 'Arremessa a espada na direção mirada. Segure o ataque para mirar, solte para lançar.',
       usar: () => engatilharSetima(),
       ativa: () => setimaEngatilhada || mirandoSetima(),
       resta: () => Math.max(0, setimaEsperaAte - performance.now()),
       total: () => SETIMA_ESPERA,
       passivas: ['akles.setima.empurrao'] },
     { id: 'orbita', nome: ORBITA_NOME, ico: 'assets/icons/habilidades/akles_orbita.png', tecla: 'F', suprema: true,
+      desc: 'A espada solta gira em volta dele por 3,5 s. Ele continua atacando enquanto ela fere.',
       usar: () => ativarOrbita(), ativa: () => orbitaAtiva(),
       resta: () => Math.max(0, (orbitaAtiva() ? orbitaAte : orbitaEsperaAte) - performance.now()),
       total: () => orbitaAtiva() ? ORBITA_MS : ORBITA_ESPERA,
@@ -5767,13 +5770,16 @@ const HABILIDADES = {
   ],
   wins: [
     { id: 'chuva', nome: CHUVA_NOME, ico: 'assets/icons/habilidades/wins_chuva.png', tecla: 'Q',
+      desc: 'Chama uma saraivada de lanças do céu sobre a área à frente.',
       usar: () => ativarChuva(), ativa: () => !!chuva,
       resta: () => Math.max(0, chuvaEsperaAte - performance.now()), total: () => CHUVA_ESPERA },
     { id: 'grito', nome: GRITO_NOME, ico: 'assets/icons/habilidades/wins_grito.png', tecla: 'R',
+      desc: 'Um grito que paralisa tudo o que estiver no alcance.',
       usar: () => ativarGrito(), ativa: () => !!grito,
       resta: () => Math.max(0, gritoEsperaAte - performance.now()), total: () => GRITO_ESPERA,
       passivas: ['wins.grito.raio'] },
     { id: 'clarao', nome: SONO_NOME, ico: 'assets/icons/habilidades/wins_clarao.png', tecla: 'F', suprema: true,
+      desc: 'Ergue a lança, um clarão toma o mapa e todos os monstros adormecem.',
       usar: () => ativarSono(), ativa: () => !!clarao,
       resta: () => Math.max(0, sonoEsperaAte - performance.now()), total: () => SONO_ESPERA,
       passivas: ['wins.suprema.carga', 'wins.suprema.sono'] },
@@ -6942,6 +6948,7 @@ function savePlayerData() {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       coins: playerCoins, owned: ownedItems, equipped, claves: claveCount,
       level, xp, attrPoints, skillPoints, attrs, skills: learnedSkills,
+      passivas,
       toolQuality, notas: notasPossuidas, escalas: escalasMontadas, acordes: acordesObtidos,
       // Progresso de jogo: no celular não há servidor, então tudo vive aqui.
       nome: playerName, heroi: selectedHeroId,
@@ -6998,6 +7005,7 @@ function loadPlayerData() {
     if (typeof d.xp === 'number') xp = d.xp;
     if (typeof d.attrPoints === 'number') attrPoints = d.attrPoints;
     if (typeof d.skillPoints === 'number') skillPoints = d.skillPoints;
+    carregarPassivas(d.passivas);
     if (d.attrs) {
       // Saves antigos guardam força/agilidade/capacidade. Converte em vez de descartar,
       // senão quem já jogou perde o progresso ao atualizar.
@@ -11996,7 +12004,7 @@ function loop(now){
     // "jogar" hoje é justamente andar pelo mundo, deixar o HUD fora daqui tirava o
     // inventário do jogo inteiro.
     document.body.classList.add('jogando');
-    playerHud?.classList.toggle('hidden', shopOpen||inventoryOpen||charOpen);
+    playerHud?.classList.toggle('hidden', shopOpen||inventoryOpen||charOpen||fichaAberta());
     atualizarBotaoDeAtaque(now);
 
     // Os monstros só eram atualizados DENTRO do bloco de modo jogo. Soltá-los no editor
@@ -12088,7 +12096,7 @@ function loop(now){
       sair:'Sair',sortear:'Sortear',entrarPorta:'Entrar',forjarEscala:'Forjar Escala'};
     if(touchAction&&act)touchAction.textContent=ACT_LABEL[act];
     touchAction?.classList.toggle('disabled', !act);
-    playerHud?.classList.toggle('hidden', talking||shopOpen||inventoryOpen||charOpen);
+    playerHud?.classList.toggle('hidden', talking||shopOpen||inventoryOpen||charOpen||fichaAberta());
     atualizarBotaoDeAtaque(now);
     if(coinCount)coinCount.textContent=playerCoins;
     if(claveCountEl)claveCountEl.textContent=`${claveCount}`;
@@ -15836,3 +15844,269 @@ function atualizarBarraSelecaoMultipla() {
     }
   }
 }
+
+// ══ Ficha de personagem ═══════════════════════════════════════════════════════
+// Tela de retrato, classe, atributos e evolução das passivas. Foi desenhada a partir do
+// conceito do Antony: barra no topo, navegação vertical, retrato emoldurado à esquerda e
+// o painel de habilidades com a coluna de passivas à direita.
+//
+// Ela não guarda estado próprio: lê HERO_DEFINITIONS, HABILIDADES e `passivas`, e gasta
+// `skillPoints` — o mesmo ponto que a árvore antiga usa, ganho a cada nível. Assim a
+// evolução aqui é a mesma progressão do resto do jogo, não uma segunda moeda.
+
+// Retrato e leitura de atributos por herói. O retrato sai da própria folha de sprites
+// (ferramenta em assets/personagens/retratos), então nunca discorda de como o personagem
+// aparece andando no mapa. Os quatro valores são de 0 a 10 e descrevem o papel de cada um:
+// o Akles entra na frente e aguenta, a Wins bate de longe e controla.
+const FICHA_HEROIS = {
+  achilles: {
+    retrato: 'assets/personagens/retratos/akles.png',
+    perfil: [['ATAQUE', 8, true], ['DEFESA', 7, true], ['HABILIDADE', 6, false], ['SUPORTE', 3, false]],
+  },
+  wins: {
+    retrato: 'assets/personagens/retratos/wins.png',
+    perfil: [['ATAQUE', 6, true], ['DEFESA', 4, true], ['HABILIDADE', 9, false], ['SUPORTE', 8, false]],
+  },
+};
+
+// Catálogo das passivas. `valor(n)` devolve o efeito no nível n já em número legível —
+// é o que a dica mostra, para o clique de evolução não ser um salto no escuro. As fórmulas
+// são as mesmas que o combate usa (orbitaBonusDeDano, gritoRaio, sonoCarga…): se uma
+// mudar lá, muda aqui também.
+const FICHA_PASSIVAS_MAX = 5;
+const PASSIVAS_INFO = {
+  'akles.suprema.dano': {
+    nome: 'Ressonância Cortante', ico: '⚔',
+    desc: 'A espada girando aumenta o dano dele.',
+    valor: n => `+${Math.round(25 * n)}% de dano`,
+  },
+  'akles.suprema.cura': {
+    nome: 'Sangue em Compasso', ico: '✚',
+    desc: 'Cada golpe da espada girando devolve vida.',
+    valor: n => `+${n} de vida por golpe`,
+  },
+  'akles.setima.empurrao': {
+    nome: 'Impacto de Sétima', ico: '↷',
+    desc: 'O arremesso joga o alvo mais longe.',
+    valor: n => `${30 + 22 * n} px de empurrão`,
+  },
+  'wins.grito.raio': {
+    nome: 'Projeção de Voz', ico: '◎',
+    desc: 'O grito alcança mais longe.',
+    valor: n => `${90 + 22 * n} px de raio`,
+  },
+  'wins.suprema.carga': {
+    nome: 'Anacruse', ico: '⧗',
+    desc: 'Ela ergue a lança mais rápido.',
+    valor: n => `${(Math.max(240, 900 - 130 * n) / 1000).toFixed(2)} s de carga`,
+  },
+  'wins.suprema.sono': {
+    nome: 'Fermata', ico: '☾',
+    desc: 'Os monstros dormem por mais tempo.',
+    valor: n => `${((2500 + 900 * n) / 1000).toFixed(1)} s de sono`,
+  },
+};
+
+let fichaHeroiVisto = null;   // qual herói a ficha está mostrando (pode não ser o ativo)
+
+function fichaAberta() {
+  const el = document.getElementById('fichaHeroi');
+  return !!el && !el.classList.contains('hidden');
+}
+
+function abrirFicha(heroId) {
+  const el = document.getElementById('fichaHeroi');
+  if (!el) return;
+  fichaHeroiVisto = heroId || fichaHeroiVisto || selectedHeroId || partyState.party[partyState.activePartyIndex] || 'achilles';
+  el.classList.remove('hidden');
+  desenharFicha();
+}
+
+function fecharFicha() {
+  document.getElementById('fichaHeroi')?.classList.add('hidden');
+  esconderDicaDeFicha();
+}
+
+function alternarFicha() { fichaAberta() ? fecharFicha() : abrirFicha(); }
+
+// Uma barra de dez blocos acesos até o valor.
+function fichaBarraSegmentada(nome, valor, ouro) {
+  const segs = Array.from({ length: 10 },
+    (_, i) => `<i class="fb-seg${i < valor ? ' on' : ''}"></i>`).join('');
+  return `<div class="fb-linha${ouro ? ' ouro' : ''}">
+      <span class="fb-nome">${nome}</span>
+      <span class="fb-segs">${segs}</span>
+    </div>`;
+}
+
+function desenharFicha() {
+  const el = document.getElementById('fichaHeroi');
+  if (!el || el.classList.contains('hidden')) return;
+  const id = fichaHeroiVisto;
+  const def = HERO_DEFINITIONS[id];
+  const extra = FICHA_HEROIS[id];
+  if (!def || !extra) return;
+
+  // Cabeçalho e retrato.
+  const pts = document.getElementById('fichaPontos');
+  if (pts) {
+    pts.textContent = skillPoints
+      ? `✦ ${skillPoints} ponto${skillPoints > 1 ? 's' : ''}`
+      : 'sem pontos';
+    pts.classList.toggle('vazio', !skillPoints);
+  }
+  const ret = document.getElementById('fichaRetrato');
+  if (ret && ret.getAttribute('src') !== extra.retrato) ret.src = extra.retrato;
+  const nome = document.getElementById('fichaNome');
+  if (nome) nome.textContent = (def.name || id).toUpperCase();
+  const sub = document.getElementById('fichaSub');
+  if (sub) sub.textContent = def.class || '';
+  const cls = document.getElementById('fichaClasse');
+  if (cls) cls.textContent = `${def.class || '—'} · ${def.weapon || ''}`.trim();
+  const lema = document.getElementById('fichaLema');
+  if (lema) lema.textContent = def.lema ? `“${def.lema}”` : '';
+
+  const barras = document.getElementById('fichaBarras');
+  if (barras) {
+    barras.innerHTML = extra.perfil.map(([n, v, ouro]) => fichaBarraSegmentada(n, v, ouro)).join('');
+  }
+
+  // Trocador de herói: só quem já está desbloqueado aparece.
+  const chips = document.getElementById('fichaHerois');
+  if (chips) {
+    chips.innerHTML = '';
+    Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado !== false).forEach(h => {
+      const b = document.createElement('button');
+      b.className = 'ficha-heroi-chip' + (h.id === id ? ' ativo' : '');
+      b.title = h.name;
+      b.innerHTML = `<img src="${(FICHA_HEROIS[h.id] || {}).retrato || h.face || ''}" alt="${h.name}">`;
+      b.addEventListener('click', () => { fichaHeroiVisto = h.id; desenharFicha(); });
+      chips.appendChild(b);
+    });
+  }
+
+  // Habilidades: uma linha por habilidade, com a coluna de passivas à direita.
+  const lista = HABILIDADES[id] || [];
+  const alvo = document.getElementById('fichaHabs');
+  if (!alvo) return;
+  alvo.innerHTML = '';
+  lista.forEach((h, i) => {
+    const linha = document.createElement('div');
+    linha.className = 'ficha-hab' + (h.suprema ? ' suprema' : '');
+    const arte = /\.(png|jpe?g|webp)$/i.test(h.ico);
+    const selo = h.suprema ? 'ULT' : String(i + 1);
+    linha.innerHTML = `
+      <div class="fh-esq">
+        <div class="fh-ico">
+          ${arte ? `<img src="${h.ico}" alt="">` : `<span>${h.ico}</span>`}
+          <span class="fh-selo">${selo}</span>
+        </div>
+        <div class="fh-txt">
+          <div class="fh-nome">${h.nome}<span class="fh-tecla">${h.tecla}</span></div>
+          <div class="fh-desc">${h.desc || ''}</div>
+        </div>
+      </div>`;
+
+    const col = document.createElement('div');
+    const ids = h.passivas || [];
+    if (!ids.length) {
+      // Habilidade sem passiva mostra isso de propósito: assim fica claro que não é um
+      // painel que faltou carregar.
+      col.className = 'fh-sem-pass';
+      col.textContent = '—';
+    } else {
+      col.className = 'fh-passivas';
+      ids.forEach(pid => col.appendChild(fichaBotaoDePassiva(pid)));
+    }
+    linha.appendChild(col);
+    alvo.appendChild(linha);
+  });
+}
+
+function fichaBotaoDePassiva(pid) {
+  const info = PASSIVAS_INFO[pid] || { nome: pid, ico: '•', desc: '', valor: n => `nível ${n}` };
+  const n = nivelPassiva(pid);
+  const maximo = n >= FICHA_PASSIVAS_MAX;
+  const pode = !maximo && skillPoints > 0;
+
+  const b = document.createElement('button');
+  b.className = 'fh-pass' + (maximo ? ' maximo' : pode ? ' podeSubir' : '');
+  b.innerHTML = `<span>${info.ico}</span>
+    <span class="fh-pass-nivel">${maximo ? 'MÁX' : `${n}/${FICHA_PASSIVAS_MAX}`}</span>`;
+  b.disabled = maximo;
+  b.addEventListener('click', () => subirPassiva(pid));
+  // A dica é o que transforma o clique em decisão: mostra o efeito de agora e o do próximo.
+  const dica = () => mostrarDicaDeFicha(b, info, n, maximo);
+  b.addEventListener('mouseenter', dica);
+  b.addEventListener('focus', dica);
+  b.addEventListener('mouseleave', esconderDicaDeFicha);
+  b.addEventListener('blur', esconderDicaDeFicha);
+  return b;
+}
+
+function subirPassiva(pid) {
+  const n = nivelPassiva(pid);
+  if (n >= FICHA_PASSIVAS_MAX) { showToast('Essa passiva já está no máximo.'); return; }
+  if (skillPoints < 1) { showToast('⚠️ Sem pontos de habilidade — suba de nível.'); return; }
+  skillPoints -= 1;
+  passivas[pid] = n + 1;
+  const info = PASSIVAS_INFO[pid];
+  showToast(`✦ ${info ? info.nome : pid} → nível ${n + 1}`);
+  savePlayerData();
+  desenharFicha();
+  esconderDicaDeFicha();
+  atualizarPontoDaFicha();
+}
+
+// Marca o botão do HUD quando há ponto para gastar, para a evolução não passar batida.
+function atualizarPontoDaFicha() {
+  document.getElementById('fichaDot')?.classList.toggle('hidden', skillPoints < 1);
+}
+
+let fichaDicaEl = null;
+function mostrarDicaDeFicha(botao, info, n, maximo) {
+  if (!fichaDicaEl) {
+    fichaDicaEl = document.createElement('div');
+    fichaDicaEl.className = 'ficha-dica';
+    document.getElementById('fichaHeroi')?.appendChild(fichaDicaEl);
+  }
+  fichaDicaEl.innerHTML = `<b>${info.nome}</b>${info.desc}
+    <div class="fd-agora">Agora: ${info.valor(n)}</div>
+    ${maximo ? '' : `<div class="fd-prox">Nível ${n + 1}: ${info.valor(n + 1)}</div>`}`;
+  fichaDicaEl.classList.remove('hidden');
+  // Posiciona relativo ao quadro da ficha, não à página: o jogo vive dentro de um palco
+  // que pode estar escalado.
+  const pai = document.getElementById('fichaHeroi').getBoundingClientRect();
+  const r = botao.getBoundingClientRect();
+  fichaDicaEl.style.left = `${Math.max(6, r.left - pai.left - 190)}px`;
+  fichaDicaEl.style.top = `${Math.max(6, r.top - pai.top - 8)}px`;
+}
+function esconderDicaDeFicha() { fichaDicaEl?.classList.add('hidden'); }
+
+// ── ligação com o resto do jogo ──
+document.getElementById('fichaBtn')?.addEventListener('click', () => abrirFicha());
+document.getElementById('fichaVoltar')?.addEventListener('click', fecharFicha);
+document.getElementById('fichaAjuda')?.addEventListener('click', () => showToast(
+  'Clique num círculo de passiva para gastar um ponto de habilidade. Pontos vêm de subir de nível.'));
+document.getElementById('fichaHeroi')?.addEventListener('click', e => {
+  // Clicar fora do quadro fecha — o mesmo gesto dos outros painéis.
+  if (e.target.id === 'fichaHeroi') fecharFicha();
+});
+document.querySelectorAll('#fichaHeroi .ficha-aba').forEach(b => {
+  b.addEventListener('click', () => {
+    if (b.classList.contains('travada')) {
+      showToast(`${b.textContent.trim()} ainda não existe no jogo.`);
+      return;
+    }
+    document.querySelectorAll('#fichaHeroi .ficha-aba').forEach(o => o.classList.remove('ativa'));
+    b.classList.add('ativa');
+  });
+});
+window.addEventListener('keydown', e => {
+  if (e.repeat) return;
+  const alvo = e.target;
+  if (alvo && (alvo.tagName === 'INPUT' || alvo.tagName === 'TEXTAREA' || alvo.isContentEditable)) return;
+  if (e.key === 'Escape' && fichaAberta()) { fecharFicha(); return; }
+  if (e.key === 'c' || e.key === 'C') alternarFicha();
+});
+atualizarPontoDaFicha();

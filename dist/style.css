@@ -5749,3 +5749,263 @@ body.jogando .party-hud { top: 30%; }
 }
 .hab-ico { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
 .buff img { border-radius: 6px; }
+
+/* ══ Ficha de personagem ══════════════════════════════════════════════════════
+   Paleta do conceito: navy/indigo profundo, moldura dourada, acento ciano.
+   Tudo em em/% relativo ao quadro para o layout aguentar o celular em paisagem —
+   é onde o jogo é jogado de verdade. */
+.ficha-overlay {
+  position: absolute; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 40%, rgba(30,41,82,.82), rgba(4,6,14,.94));
+  backdrop-filter: blur(3px);
+  font-family: 'Outfit', sans-serif;
+}
+.ficha-overlay.hidden { display: none; }
+
+.ficha-quadro {
+  width: 96%; height: 94%;
+  display: flex; flex-direction: column;
+  background:
+    linear-gradient(160deg, rgba(35,48,96,.96), rgba(13,18,42,.98) 55%, rgba(8,11,26,.99));
+  border: 2px solid #a97e2c;
+  box-shadow: 0 0 0 1px rgba(250,222,150,.35) inset, 0 18px 50px rgba(0,0,0,.6);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* ── barra do topo ── */
+.ficha-topo {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 14px;
+  border-bottom: 1px solid rgba(169,126,44,.55);
+  background: linear-gradient(180deg, rgba(56,72,132,.55), rgba(10,14,32,0));
+}
+.ficha-voltar, .ficha-ajuda {
+  width: 30px; height: 30px; flex: 0 0 auto;
+  display: grid; place-items: center;
+  background: rgba(12,18,40,.8); color: #f4dfa4;
+  border: 1px solid rgba(169,126,44,.7); border-radius: 50%;
+  font-size: 18px; line-height: 1; cursor: pointer;
+  transition: background .15s, transform .15s;
+}
+.ficha-voltar:hover, .ficha-ajuda:hover { background: rgba(90,74,26,.85); transform: scale(1.08); }
+.ficha-titulo-topo {
+  margin: 0; font-size: 15px; font-weight: 700; letter-spacing: .34em;
+  color: #f2e3b6; text-shadow: 0 2px 0 rgba(0,0,0,.6);
+}
+.ficha-pontos {
+  margin-left: auto; font-size: 12px; font-weight: 700; letter-spacing: .06em;
+  color: #7dd3fc; padding: 4px 10px; border-radius: 999px;
+  background: rgba(12,32,58,.85); border: 1px solid rgba(125,211,252,.4);
+}
+.ficha-pontos.vazio { color: #64748b; border-color: rgba(100,116,139,.35); }
+
+/* ── corpo em três colunas ── */
+.ficha-corpo {
+  flex: 1 1 auto; min-height: 0;
+  display: grid; grid-template-columns: 132px minmax(180px, 1fr) minmax(280px, 1.5fr);
+  gap: 12px; padding: 12px 14px 14px;
+}
+
+/* ── navegação vertical ── */
+.ficha-nav { display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+.ficha-aba {
+  text-align: left; padding: 9px 10px;
+  font-size: 11.5px; font-weight: 700; letter-spacing: .13em;
+  color: #a9b4d4; background: rgba(12,18,40,.55);
+  border: 1px solid rgba(107,124,180,.28); border-left: 3px solid transparent;
+  cursor: pointer; transition: all .15s;
+}
+.ficha-aba:hover:not(.travada) { color: #f2e3b6; background: rgba(46,60,116,.7); }
+.ficha-aba.ativa {
+  color: #f8ecc4; background: linear-gradient(90deg, rgba(122,94,30,.55), rgba(24,32,66,.4));
+  border-left-color: #e8c469;
+}
+/* Abas sem sistema por trás ficam VISÍVEIS mas apagadas: a tela nasce inteira e a gente
+   preenche depois, em vez de um menu com um item só. */
+.ficha-aba.travada { color: #55618a; cursor: not-allowed; }
+.ficha-aba.travada::after { content: ' 🔒'; font-size: 9px; opacity: .7; }
+.ficha-aba-fim { margin-top: auto; }
+
+.ficha-herois {
+  display: flex; gap: 6px; padding-top: 10px;
+  border-top: 1px solid rgba(169,126,44,.35); margin-top: 8px;
+}
+.ficha-heroi-chip {
+  width: 42px; height: 42px; padding: 0; overflow: hidden;
+  border-radius: 50%; cursor: pointer;
+  border: 2px solid rgba(107,124,180,.45); background: rgba(12,18,40,.8);
+  transition: border-color .15s, transform .15s;
+}
+.ficha-heroi-chip img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.ficha-heroi-chip.ativo { border-color: #e8c469; transform: scale(1.06); box-shadow: 0 0 10px rgba(232,196,105,.5); }
+
+/* ── coluna do retrato ── */
+.ficha-esq { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; }
+.ficha-moldura {
+  flex: 1 1 auto; min-height: 60px; position: relative; overflow: hidden;
+  display: grid; place-items: end center;
+  padding: 8px;
+  background:
+    radial-gradient(ellipse at 50% 85%, rgba(96,132,220,.28), rgba(10,14,34,.9) 70%);
+  border: 2px solid #a97e2c;
+  box-shadow: 0 0 0 1px rgba(250,222,150,.28) inset;
+}
+/* Cantos ornamentados: quatro pseudo-elementos em L, o mesmo truque das janelas de diálogo. */
+.ficha-moldura::before, .ficha-moldura::after {
+  content: ''; position: absolute; width: 16px; height: 16px; pointer-events: none;
+  border: 2px solid #e8c469;
+}
+.ficha-moldura::before { top: 4px; left: 4px; border-right: 0; border-bottom: 0; }
+.ficha-moldura::after  { bottom: 4px; right: 4px; border-left: 0; border-top: 0; }
+/* Posicionado em absoluto de propósito: enquanto o retrato era um filho normal, a altura
+   natural do PNG (735 px) esticava a moldura e o painel de classe saía por baixo do quadro
+   em tela baixa. Assim ele se encaixa no espaço que sobra em vez de definir o espaço. */
+#fichaRetrato {
+  position: absolute; top: 8px; left: 8px; right: 8px; bottom: 8px;
+  margin: auto auto 0;                        /* apoiado no chão da moldura, centrado */
+  width: auto; height: auto;
+  max-width: 100%; max-height: 100%;
+  image-rendering: pixelated;                 /* pixel art grande tem de continuar quadrada */
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,.65));
+}
+
+.ficha-classe {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; background: rgba(12,18,40,.7);
+  border: 1px solid rgba(169,126,44,.45);
+}
+.fc-rotulo { font-size: 9.5px; letter-spacing: .2em; color: #8b96bb; font-weight: 700; }
+.fc-valor  { font-size: 13px; font-weight: 700; color: #f2e3b6; }
+
+/* Barras segmentadas: dez blocos, acesos até o valor. */
+.ficha-barras { display: flex; flex-direction: column; gap: 6px; }
+.fb-linha { display: grid; grid-template-columns: 74px 1fr; align-items: center; gap: 8px; }
+.fb-nome { font-size: 9.5px; font-weight: 700; letter-spacing: .13em; color: #a9b4d4; }
+.fb-segs { display: flex; gap: 2px; }
+.fb-seg {
+  flex: 1 1 0; height: 9px;
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.06);
+}
+.fb-seg.on { background: linear-gradient(180deg, #9fd7ff, #3b82f6); border-color: rgba(191,219,254,.6); }
+.fb-linha.ouro .fb-seg.on { background: linear-gradient(180deg, #ffe9ab, #d19a26); }
+
+/* ── coluna das habilidades ── */
+.ficha-dir { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; }
+.ficha-nome-caixa {
+  display: flex; align-items: center; gap: 10px; justify-content: center;
+  padding: 8px 4px;
+  border-top: 1px solid rgba(169,126,44,.55); border-bottom: 1px solid rgba(169,126,44,.55);
+  background: linear-gradient(90deg, rgba(12,18,40,0), rgba(52,68,128,.4), rgba(12,18,40,0));
+  text-align: center;
+}
+/* Losango dourado dos dois lados do nome, como no conceito. */
+.fnc-orn { width: 9px; height: 9px; background: #e8c469; transform: rotate(45deg); flex: 0 0 auto; }
+.ficha-nome {
+  font-size: 24px; font-weight: 800; letter-spacing: .16em; line-height: 1.05;
+  color: #f8ecc4; text-shadow: 0 2px 0 rgba(0,0,0,.55), 0 0 18px rgba(232,196,105,.35);
+}
+.ficha-subnome { font-size: 11px; letter-spacing: .16em; color: #93a2ca; margin-top: 2px; }
+
+.ficha-hab-cab {
+  display: grid; grid-template-columns: 1fr 108px; gap: 8px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .2em; color: #8b96bb;
+  padding: 0 4px;
+}
+.ficha-hab-cab span:last-child { text-align: center; }
+
+.ficha-habs { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.ficha-hab {
+  display: grid; grid-template-columns: 1fr 108px; gap: 8px; align-items: center;
+  padding: 8px; background: rgba(14,20,44,.72);
+  border: 1px solid rgba(107,124,180,.28); border-left: 3px solid rgba(232,196,105,.55);
+}
+.ficha-hab.suprema { border-left-color: #7dd3fc; background: rgba(14,28,54,.78); }
+.fh-esq { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.fh-ico {
+  position: relative; width: 54px; height: 54px; flex: 0 0 auto;
+  border-radius: 50%; overflow: visible;
+}
+.fh-ico img {
+  width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+  image-rendering: pixelated; box-shadow: 0 0 12px rgba(125,211,252,.3);
+}
+.fh-selo {
+  position: absolute; bottom: -3px; right: -3px;
+  min-width: 19px; height: 19px; padding: 0 4px;
+  display: grid; place-items: center; border-radius: 999px;
+  font-size: 10px; font-weight: 800; color: #21160a;
+  background: linear-gradient(180deg, #ffe9ab, #d19a26);
+  border: 1px solid rgba(0,0,0,.5);
+}
+.ficha-hab.suprema .fh-selo { background: linear-gradient(180deg, #cdeaff, #38bdf8); color: #06253a; }
+.fh-txt { min-width: 0; }
+.fh-nome { font-size: 12.5px; font-weight: 700; color: #f2e3b6; letter-spacing: .04em; }
+.fh-desc { font-size: 10.5px; line-height: 1.35; color: #9aa8cd; margin-top: 2px; }
+.fh-tecla {
+  font-size: 9px; font-weight: 700; color: #7dd3fc;
+  border: 1px solid rgba(125,211,252,.4); border-radius: 3px;
+  padding: 0 4px; margin-left: 6px; vertical-align: 1px;
+}
+
+/* Coluna das passivas: um círculo por passiva, clicável para subir de nível. */
+.fh-passivas { display: flex; gap: 6px; justify-content: center; }
+.fh-pass {
+  position: relative; width: 42px; height: 42px; padding: 0;
+  border-radius: 50%; cursor: pointer;
+  display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 35%, rgba(56,80,150,.9), rgba(10,14,34,.95));
+  border: 2px solid rgba(169,126,44,.6);
+  color: #f2e3b6; font-size: 15px; line-height: 1;
+  transition: transform .12s, border-color .15s, box-shadow .15s;
+}
+.fh-pass:hover:not(:disabled) {
+  transform: scale(1.1); border-color: #e8c469; box-shadow: 0 0 12px rgba(232,196,105,.55);
+}
+.fh-pass.podeSubir { border-color: #7dd3fc; box-shadow: 0 0 10px rgba(125,211,252,.5); animation: fhPulsa 1.6s ease-in-out infinite; }
+@keyframes fhPulsa { 50% { box-shadow: 0 0 18px rgba(125,211,252,.85); } }
+.fh-pass.maximo { border-color: #e8c469; }
+.fh-pass:disabled { cursor: default; }
+.fh-pass-nivel {
+  position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
+  font-size: 9px; font-weight: 800; letter-spacing: .02em;
+  padding: 0 4px; border-radius: 999px; white-space: nowrap;
+  background: #0b1024; border: 1px solid rgba(169,126,44,.7); color: #f4dfa4;
+}
+.fh-pass.maximo .fh-pass-nivel { color: #ffe9ab; border-color: #e8c469; }
+.fh-sem-pass { font-size: 10px; color: #4c5678; text-align: center; align-self: center; }
+
+.ficha-lema {
+  flex: 0 0 auto; margin: 0; padding-top: 6px;
+  font-size: 11px; font-style: italic; text-align: right; color: #8b96bb;
+  border-top: 1px solid rgba(107,124,180,.22);
+}
+
+/* Dica flutuante da passiva: o que o próximo nível muda, em número. */
+.ficha-dica {
+  position: absolute; z-index: 70; max-width: 230px;
+  padding: 8px 10px; pointer-events: none;
+  background: rgba(6,9,22,.97); border: 1px solid rgba(169,126,44,.7);
+  font-size: 10.5px; line-height: 1.4; color: #d7dfef;
+  box-shadow: 0 8px 24px rgba(0,0,0,.6);
+}
+.ficha-dica b { color: #f2e3b6; display: block; margin-bottom: 3px; font-size: 11.5px; }
+.ficha-dica .fd-agora { color: #7dd3fc; }
+.ficha-dica .fd-prox  { color: #86efac; }
+.ficha-dica.hidden { display: none; }
+
+/* Paisagem apertada de celular: encolhe tipografia e a coluna de passivas em vez de
+   deixar o layout estourar para fora do quadro. */
+@media (max-height: 460px) {
+  .ficha-corpo { grid-template-columns: 108px minmax(140px, .9fr) minmax(250px, 1.6fr); gap: 8px; padding: 8px; }
+  .ficha-nome { font-size: 18px; }
+  .ficha-aba { padding: 6px 8px; font-size: 10px; }
+  .ficha-hab { padding: 6px; grid-template-columns: 1fr 92px; }
+  .fh-ico { width: 44px; height: 44px; }
+  .fh-desc { font-size: 9.5px; }
+  .fh-pass { width: 36px; height: 36px; font-size: 13px; }
+  .ficha-heroi-chip { width: 34px; height: 34px; }
+  .fb-seg { height: 7px; }
+}

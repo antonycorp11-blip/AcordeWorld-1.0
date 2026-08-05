@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=202608052000">
+  <link rel="stylesheet" href="style.css?v=202608060900">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -949,6 +949,10 @@
                 <span class="hud-emoji">⚔️</span>
                 <span id="pointDot" class="dot hidden"></span>
               </button>
+              <button id="fichaBtn" class="icon-btn ficha-btn" title="Ficha do Personagem (C)">
+                <span class="hud-emoji">🎭</span>
+                <span id="fichaDot" class="dot hidden"></span>
+              </button>
               <button id="invBtn" class="icon-btn inv-btn" title="Mochila / Inventário">
                 <span id="invEmoji" class="hud-emoji">🎒</span>
               </button>
@@ -960,6 +964,57 @@
 
 <!-- Character sheet: attributes + skill tree -->
           <!-- ficha antiga removida: os atributos vivem no grimório -->
+
+          <!-- Ficha de personagem: retrato, classe, atributos e a árvore de passivas.
+               Layout desenhado a partir do conceito do Antony: barra no topo, navegação
+               vertical à esquerda, retrato emoldurado, e o painel de habilidades com a
+               coluna de passivas à direita. -->
+          <div id="fichaHeroi" class="ficha-overlay hidden">
+            <div class="ficha-quadro">
+              <header class="ficha-topo">
+                <button class="ficha-voltar" id="fichaVoltar" aria-label="Voltar">‹</button>
+                <h2 class="ficha-titulo-topo">PERSONAGEM</h2>
+                <span class="ficha-pontos" id="fichaPontos"></span>
+                <button class="ficha-ajuda" id="fichaAjuda" aria-label="Ajuda">?</button>
+              </header>
+              <div class="ficha-corpo">
+                <nav class="ficha-nav">
+                  <button class="ficha-aba ativa" data-aba="geral">VISÃO GERAL</button>
+                  <button class="ficha-aba travada" data-aba="equip">EQUIPAMENTO</button>
+                  <button class="ficha-aba travada" data-aba="hist">HISTÓRIA</button>
+                  <button class="ficha-aba travada" data-aba="afeicao">AFEIÇÃO</button>
+                  <button class="ficha-aba travada ficha-aba-fim" data-aba="musica">MÚSICA</button>
+                  <!-- Trocar de personagem sem sair da ficha. -->
+                  <div class="ficha-herois" id="fichaHerois"></div>
+                </nav>
+                <section class="ficha-esq">
+                  <div class="ficha-moldura">
+                    <img id="fichaRetrato" alt="">
+                  </div>
+                  <div class="ficha-classe">
+                    <span class="fc-rotulo">CLASSE</span>
+                    <span class="fc-valor" id="fichaClasse"></span>
+                  </div>
+                  <div class="ficha-barras" id="fichaBarras"></div>
+                </section>
+                <section class="ficha-dir">
+                  <div class="ficha-nome-caixa">
+                    <span class="fnc-orn esq"></span>
+                    <div>
+                      <div class="ficha-nome" id="fichaNome"></div>
+                      <div class="ficha-subnome" id="fichaSub"></div>
+                    </div>
+                    <span class="fnc-orn dir"></span>
+                  </div>
+                  <div class="ficha-hab-cab">
+                    <span>HABILIDADES</span><span>PASSIVAS</span>
+                  </div>
+                  <div class="ficha-habs" id="fichaHabs"></div>
+                  <p class="ficha-lema" id="fichaLema"></p>
+                </section>
+              </div>
+            </div>
+          </div>
 
           <!-- Shop / Inventory sheet -->
           <div id="storeOverlay" class="store-overlay hidden">
@@ -1455,7 +1510,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="game.js?v=202608052000"></script>
+<script src="game.js?v=202608060900"></script>
 <script src="pixelizador.js?v=202608052000"></script>
 </body>
 </html>
