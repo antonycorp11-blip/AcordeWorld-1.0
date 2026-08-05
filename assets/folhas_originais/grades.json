@@ -1,0 +1,30 @@
+{
+  "caminhada": [
+    8,
+    4
+  ],
+  "parado": [
+    4,
+    4
+  ],
+  "guarda": [
+    4,
+    4
+  ],
+  "ataque": [
+    6,
+    4
+  ],
+  "ataque_vertical": [
+    6,
+    4
+  ],
+  "estocada": [
+    5,
+    4
+  ],
+  "giro": [
+    6,
+    4
+  ]
+}

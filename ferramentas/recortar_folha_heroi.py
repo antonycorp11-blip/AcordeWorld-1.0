@@ -24,7 +24,7 @@ Três problemas que a folha crua sempre traz, e o que este script faz com cada u
 """
 import sys
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageChops, ImageFilter
 
 RAIZ = Path(__file__).resolve().parent.parent
 
@@ -41,73 +41,70 @@ def magentice(p):
 
 
 def separar_fundo(im, cor_fundo):
-    """Alfa binário. Pixel art não quer meio-tom: ou o pixel é do personagem ou não é."""
-    im = im.convert('RGBA')
-    larg, alt = im.size
-    dados = list(im.getdata())
-    fr, fg, fb = cor_fundo[:3]
-    limite_magenta = magentice(cor_fundo) * 0.55
+    """Alfa binário. Pixel art não quer meio-tom: ou o pixel é do personagem ou não é.
 
-    saida = []
-    for p in dados:
-        r, g, b = p[0], p[1], p[2]
-        dist = abs(r - fr) + abs(g - fg) + abs(b - fb)
-        # Duas provas: perto da cor do fundo OU puxando fortemente para o magenta.
-        # A segunda pega a franja, que está longe do magenta puro mas é magenta demais
-        # para ser couro, metal ou pele.
-        eh_fundo = dist < TOL_FUNDO or magentice(p) > limite_magenta
-        saida.append((r, g, b, 0) if eh_fundo else (r, g, b, 255))
-    nova = Image.new('RGBA', (larg, alt))
-    nova.putdata(saida)
-    return nova
+    Feito com operações de canal do PIL, que rodam em C. A versão anterior percorria a
+    lista de pixels em Python e levava dezenas de segundos numa folha de 1,5 milhão de
+    pixels — com sete folhas e algumas rodadas de ajuste, viravam minutos de espera a
+    cada tentativa.
+    """
+    im = im.convert('RGBA')
+    r, g, b, _ = im.split()
+    fr, fg, fb = cor_fundo[:3]
+
+    # distância |R-fr| + |G-fg| + |B-fb|, canal a canal
+    dist = ImageChops.add(
+        ImageChops.add(ImageChops.difference(r, Image.new('L', im.size, fr)),
+                       ImageChops.difference(g, Image.new('L', im.size, fg))),
+        ImageChops.difference(b, Image.new('L', im.size, fb)))
+    perto = dist.point(lambda v: 255 if v < TOL_FUNDO else 0)
+
+    # magentice = min(R,B) - G, positiva onde puxa para o magenta
+    minrb = ImageChops.darker(r, b)
+    mag = ImageChops.subtract(minrb, g)
+    limite = int(magentice(cor_fundo) * 0.55)
+    magenta = mag.point(lambda v: 255 if v > limite else 0)
+
+    fundo = ImageChops.lighter(perto, magenta)        # é fundo por um critério ou pelo outro
+    alfa = ImageChops.invert(fundo)
+    im.putalpha(alfa)
+    return im
 
 
 def limpar_franja(im, passadas=1):
-    """Apaga o anel de pixels opacos que encosta no fundo. Só o anel: erodir demais
-    come o contorno escuro, que é o que dá a leitura de pixel art."""
-    larg, alt = im.size
+    """Apaga o anel de pixels opacos que encosta no fundo. Só o anel: erodir demais come
+    o contorno escuro, que é o que dá a leitura de pixel art.
+
+    Erodir o alfa é exatamente um MinFilter 3x3 — cada pixel vira o menor do seu
+    vizinhado, então quem tem um vizinho transparente fica transparente. O laço em
+    Python que fazia isso à mão custava um terço do tempo total do script.
+    """
+    alfa = im.getchannel('A')
     for _ in range(passadas):
-        px = im.load()
-        remover = []
-        for y in range(alt):
-            for x in range(larg):
-                if px[x, y][3] == 0:
-                    continue
-                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                    vx, vy = x + dx, y + dy
-                    if not (0 <= vx < larg and 0 <= vy < alt) or px[vx, vy][3] == 0:
-                        remover.append((x, y))
-                        break
-        for x, y in remover:
-            r, g, b, _ = px[x, y]
-            px[x, y] = (r, g, b, 0)
+        alfa = alfa.filter(ImageFilter.MinFilter(3))
+    im.putalpha(alfa)
     return im
 
 
 def sangrar_cor(im):
-    """Preenche a cor por baixo dos pixels transparentes com a média dos vizinhos
-    opacos. O alfa continua zero — isto é só para a interpolação do navegador não
-    puxar cor de pixel vazio e desenhar um halo em volta do sprite."""
-    larg, alt = im.size
-    px = im.load()
+    """Preenche a cor por baixo dos pixels transparentes com a dos vizinhos opacos. O
+    alfa continua zero — isto é só para a interpolação do navegador não puxar cor de
+    pixel vazio e desenhar um halo em volta do sprite.
+
+    Truque: espalhar a cor é dilatar. Um MaxFilter no RGB alarga as cores para fora da
+    silhueta; depois o alfa original é recolocado por cima, então nada do que era
+    transparente vira opaco — só ganha uma cor sensata por baixo.
+    """
+    alfa = im.getchannel('A')
+    rgb = im.convert('RGB')
+    espalhado = rgb
     for _ in range(2):
-        mudancas = []
-        for y in range(alt):
-            for x in range(larg):
-                if px[x, y][3] != 0:
-                    continue
-                sr = sg = sb = n = 0
-                for dx in (-1, 0, 1):
-                    for dy in (-1, 0, 1):
-                        vx, vy = x + dx, y + dy
-                        if 0 <= vx < larg and 0 <= vy < alt and px[vx, vy][3] != 0:
-                            sr += px[vx, vy][0]; sg += px[vx, vy][1]; sb += px[vx, vy][2]
-                            n += 1
-                if n:
-                    mudancas.append((x, y, (sr // n, sg // n, sb // n, 0)))
-        for x, y, c in mudancas:
-            px[x, y] = c
-    return im
+        espalhado = espalhado.filter(ImageFilter.MaxFilter(3))
+    # onde já era opaco, mantém a cor original; onde era vazio, entra a espalhada
+    saida = Image.composite(rgb, espalhado, alfa.point(lambda v: 255 if v else 0))
+    saida = saida.convert('RGBA')
+    saida.putalpha(alfa)
+    return saida
 
 
 def curar_pontos_de_fundo(im, limite=60):
@@ -194,8 +191,11 @@ def processar(entrada, saida, cols=None, linhas=None):
     px = rec.load()
 
     # Perfil de densidade: quantos pixels opacos há em cada coluna e em cada linha.
-    perfil_x = [sum(1 for y in range(alt) if px[x, y][3]) for x in range(larg)]
-    perfil_y = [sum(1 for x in range(larg) if px[x, y][3]) for y in range(alt)]
+    # Reduzir a imagem para 1 pixel de altura com filtro BOX é somar cada coluna — em C,
+    # e não num laço aninhado de um milhão e meio de iterações.
+    binario = rec.getchannel('A').point(lambda v: 255 if v else 0)
+    perfil_x = list(binario.resize((larg, 1), Image.BOX).getdata())
+    perfil_y = list(binario.resize((1, alt), Image.BOX).getdata())
 
     if cols and linhas:
         # Com a grade conhecida, o corte é o VALE de densidade perto de cada divisa

@@ -489,9 +489,14 @@ window.addEventListener('keydown', e => {
   if(k==='s'||k==='arrowdown'){keys.s=true;keyS?.classList.add('active');}
   if(k==='d'||k==='arrowright'){keys.d=true;keyD?.classList.add('active');}
   if(k==='e'){e.preventDefault();keyE?.classList.add('active');doAction();}
-  // Espaço ataca: é a tecla que a mão já procura, e libera o mouse para outra coisa.
-  if(e.code==='Space'&&(isPlayMode||andarNoEditor)&&dlg.state===DLG_STATE.CLOSED){
-    e.preventDefault(); doAttack();
+  // Teclas de combate. Espaço é o corte básico — a tecla que a mão já procura. Q, R e
+  // F são as três habilidades, na mesma ordem da roda de botões, de baixo para cima.
+  // No celular a roda basta; no computador, sem tecla para cada golpe só dava para
+  // testar um deles, e os outros três ficavam inalcançáveis fora do clique no botão.
+  const TECLAS_DE_GOLPE = { Space:'basico', KeyQ:'estocada', KeyR:'vertical', KeyF:'giro' };
+  const golpeDaTecla = TECLAS_DE_GOLPE[e.code];
+  if(golpeDaTecla&&(isPlayMode||andarNoEditor)&&dlg.state===DLG_STATE.CLOSED){
+    e.preventDefault(); doAttack(golpeDaTecla);
   }
   if(k==='1'){e.preventDefault();trocarHeroiDoTime(0);}
   if(k==='2'){e.preventDefault();trocarHeroiDoTime(1);}
@@ -5123,6 +5128,13 @@ const GOLPES = {
 };
 let golpeEmCurso = null;
 const esperaDoGolpe = {};   // id -> instante em que fica pronto de novo
+
+// Depois de golpear, o herói fica EM GUARDA por um tempo antes de voltar a respirar.
+// Sem isso ele passa de um corte de espada para a pose relaxada no mesmo quadro, e a
+// luta perde o peso — parece que nada aconteceu. Andar cancela na hora: quem se move
+// não está mais esperando o inimigo.
+const GUARDA_MS = 2600;
+let guardaAte = 0;
 const floaters = []; // damage numbers
 
 function addFloater(x, y, text, colour) {
@@ -5339,6 +5351,7 @@ function doAttack(idGolpe = 'basico') {
   lastAttack = now;
   golpeEmCurso = g;
   attackAnimUntil = now + g.ms;
+  guardaAte = now + g.ms + GUARDA_MS;
 
   const m = attackTarget(g.alcance);
   if (!m || m.pronto) return;   // sem alvo, ou já se abriu: aí é ressoar, não bater
@@ -10901,7 +10914,7 @@ function loop(now){
       if(stick.active){dx=stick.x;dy=stick.y;}
       const len=Math.hypot(dx,dy);
       player.isMoving=len>0.15;
-      if(player.isMoving){
+      if(player.isMoving){ guardaAte = 0;
         // Full deflection on the stick sprints, same as holding Shift on a keyboard.
         const sprint=keys.shift||len>0.92;
         const spd=(sprint?player.sprintSpeed:player.speed)*Math.min(1,len);
@@ -11241,7 +11254,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     const b = document.getElementById(id);
     if (!b) return;
     b.disabled = false;
-    b.title = GOLPES[golpe].rotulo;
+    const TECLA = { estocada: 'Q', vertical: 'R', giro: 'F' };
+    b.title = `${GOLPES[golpe].rotulo} — tecla ${TECLA[golpe]}`;
+    b.dataset.tecla = TECLA[golpe];
     b.dataset.golpe = golpe;
     b.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); doAttack(golpe); });
     b.addEventListener('contextmenu', e => e.preventDefault());
@@ -11780,8 +11795,10 @@ function folhaAtualDoHeroi(atacando) {
   if (!f) return null;
 
   const golpe = atacando && golpeEmCurso ? f[golpeEmCurso.folha] : null;
-  const querParado = !player.isMoving && !atacando && f.parado;
-  const alvo = golpe || (querParado ? f.parado : (f.andar || null));
+  // Parado tem duas caras: em guarda logo depois de um golpe, relaxado depois disso.
+  const emGuarda = !player.isMoving && !atacando && performance.now() < guardaAte && f.guarda;
+  const querParado = !player.isMoving && !atacando && !emGuarda && f.parado;
+  const alvo = golpe || (emGuarda ? f.guarda : (querParado ? f.parado : (f.andar || null)));
   if (!alvo) return null;
 
   const img = folhasDoHeroi[alvo.src];
@@ -11789,8 +11806,10 @@ function folhaAtualDoHeroi(atacando) {
   const m = medidasDasFolhas[alvo.src.split('/').pop()];
   if (!m) return null;
 
+  // `parado` liga o relógio da respiração; vale também para a guarda, que também é um
+  // ciclo no tempo e não uma pose congelada.
   return { img, m, cols: m.cols, rows: m.rows,
-           parado: alvo === f.parado, atacando: !!golpe };
+           parado: alvo === f.parado || alvo === f.guarda, atacando: !!golpe };
 }
 
 function processHeroSprite(id, imgRaw) {

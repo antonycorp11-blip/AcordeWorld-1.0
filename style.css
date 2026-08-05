@@ -5583,3 +5583,17 @@ body.jogando .roda-combate { display: block; }
   pointer-events: none; transition: height .08s linear;
 }
 .btn-habilidade.recarregando { filter: grayscale(0.55) brightness(0.72); }
+/* A tecla de cada habilidade aparece no canto do botão: no computador, sem ela o
+   jogador não tem como descobrir que Q, R e F existem. */
+.btn-habilidade[data-tecla]::before {
+  content: attr(data-tecla);
+  position: absolute; top: 1px; right: 4px;
+  font-size: 9px; font-weight: 700; color: #fbbf24;
+  text-shadow: 0 1px 2px #000; z-index: 2;
+}
+.btn-ataque::before {
+  content: 'ESPAÇO';
+  position: absolute; bottom: 5px; left: 0; right: 0;
+  font-size: 8px; font-weight: 700; letter-spacing: .06em;
+  color: rgba(253,230,138,0.75); text-shadow: 0 1px 2px #000; z-index: 2;
+}

@@ -32,20 +32,22 @@ def altura_do_corpo(q):
     O truque é que a espada é FINA e a cabeça é LARGA. Descendo do topo, a primeira
     linha que ocupa mais de um terço da largura do corpo é o alto do cabelo; tudo acima
     disso é lâmina, rastro ou mecha solta.
+
+    A largura de cada linha sai de um `resize` para 1 pixel de largura com filtro BOX,
+    que soma a linha inteira em C. O laço em Python equivalente custava segundos por
+    folha, multiplicados por sete folhas e por cada tentativa de ajuste.
     """
     if not q:
         return 0
-    px = q.load()
-    larguras = []
-    for y in range(q.height):
-        xs = [x for x in range(q.width) if px[x, y][3] > 0]
-        larguras.append((max(xs) - min(xs) + 1) if xs else 0)
-    corpo = max(larguras) if larguras else 0
+    binario = q.getchannel('A').point(lambda v: 255 if v else 0)
+    # média por linha * largura = quantidade de pixels opacos naquela linha
+    somas = [v * q.width / 255 for v in binario.resize((1, q.height), Image.BOX).getdata()]
+    corpo = max(somas) if somas else 0
     if not corpo:
         return 0
     limite = corpo * 0.34
-    topo = next((y for y, w in enumerate(larguras) if w >= limite), 0)
-    base = max((y for y, w in enumerate(larguras) if w > 0), default=q.height - 1)
+    topo = next((y for y, w in enumerate(somas) if w >= limite), 0)
+    base = max((y for y, w in enumerate(somas) if w > 0), default=q.height - 1)
     return base - topo + 1
 
 
