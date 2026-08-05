@@ -5679,3 +5679,9 @@ body.jogando .party-hud { top: 30%; }
   background: radial-gradient(circle at 35% 30%, #b45309, #7c2d12 72%);
   box-shadow: 0 0 16px rgba(251,191,36,0.7);
 }
+/* Mira armada: o botão de ataque acende, porque é nele que o polegar solta o arremesso. */
+.btn-ataque.mirando {
+  background: radial-gradient(circle at 35% 30%, #e0f2fe, #7dd3fc 72%);
+  border-color: #fff; color: #0c4a6e;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.6), 0 0 22px rgba(224,242,254,0.95);
+}

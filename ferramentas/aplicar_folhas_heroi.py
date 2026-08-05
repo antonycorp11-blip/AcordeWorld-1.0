@@ -34,6 +34,29 @@ FERR = Path(__file__).resolve().parent
 GRADES = ORIG / 'grades.json'
 
 
+def herio_de(nome):
+    """Personagem a que a folha pertence. O nome pedido vem como 'wins_caminhada' ou
+    'caminhada'; o que estiver antes do primeiro sublinhado e for um personagem conhecido
+    manda. Sem isto o prefixo era 'achilles' fixo, e a segunda heroína ganhava folhas
+    chamadas achilles_wins_*."""
+    for h in ('achilles', 'wins'):
+        if nome == h or nome.startswith(h + '_'):
+            return h
+    return 'achilles'
+
+
+def arquivo_de(nome):
+    h = herio_de(nome)
+    resto = nome[len(h) + 1:] if nome.startswith(h + '_') else nome
+    return f'{h}_{resto}.png'
+
+
+def original_de(nome):
+    h = herio_de(nome)
+    resto = nome[len(h) + 1:] if nome.startswith(h + '_') else nome
+    return f'{h}_{resto}_original.png'
+
+
 def grades_salvas():
     """A grade de cada folha fica GRAVADA, não adivinhada.
 
@@ -73,7 +96,7 @@ def main(pedidos):
                      f'na primeira vez e fica registrada para as próximas.')
         gravar_grade(nome, cols, lins)
         ORIG.mkdir(parents=True, exist_ok=True)
-        guardado = ORIG / f'achilles_{nome}_original.png'
+        guardado = ORIG / original_de(nome)
         if Path(arquivo).resolve() != guardado.resolve():
             shutil.copy(arquivo, guardado)
         aplicadas.append((nome, cols, lins))
@@ -81,8 +104,8 @@ def main(pedidos):
     # Todas as folhas já existentes entram no casamento: a régua sai do conjunto, então
     # processar só as novas desalinharia as antigas.
     conhecidas = dict((n, (c, l)) for n, c, l in aplicadas)
-    for orig in sorted(ORIG.glob('achilles_*_original.png')):
-        nome = re.sub(r'^achilles_|_original\.png$', '', orig.name)
+    for orig in sorted(ORIG.glob('*_original.png')):
+        nome = re.sub(r'_original\.png$', '', orig.name)
         if nome in conhecidas:
             continue
         salvas = grades_salvas()
@@ -94,18 +117,18 @@ def main(pedidos):
     print()
     for nome, (cols, lins) in conhecidas.items():
         subprocess.run([sys.executable, str(FERR / 'recortar_folha_heroi.py'),
-                        str(ORIG / f'achilles_{nome}_original.png'),
-                        str(DEST / f'achilles_{nome}.png'), str(cols), str(lins)],
+                        str(ORIG / original_de(nome)),
+                        str(DEST / arquivo_de(nome)), str(cols), str(lins)],
                        check=True, stdout=subprocess.DEVNULL)
-        print(f'  recortada: achilles_{nome}.png ({cols}x{lins})')
+        print(f'  recortada: {arquivo_de(nome)} ({cols}x{lins})')
 
     print()
-    args = [f'{DEST}/achilles_{n}.png:{c}:{l}' for n, (c, l) in conhecidas.items()]
+    args = [f'{DEST}/{arquivo_de(n)}:{c}:{l}' for n, (c, l) in conhecidas.items()]
     subprocess.run([sys.executable, str(FERR / 'casar_folhas_heroi.py')] + args, check=True)
 
     print('\nPara ligar uma folha nova no jogo, acrescente a linha em HERO_DEFINITIONS:')
     for nome in conhecidas:
-        print(f"      {nome+':':11} {{ src: 'assets/personagens/herois/achilles_{nome}.png' }},")
+        print(f"      {nome+':':16} {{ src: 'assets/personagens/herois/{arquivo_de(nome)}' }},")
 
 
 if __name__ == '__main__':

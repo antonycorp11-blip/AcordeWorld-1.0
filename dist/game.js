@@ -499,6 +499,9 @@ window.addEventListener('keydown', e => {
   if(e.code==='KeyQ'&&(isPlayMode||andarNoEditor)&&dlg.state===DLG_STATE.CLOSED){
     e.preventDefault(); ativarLamina();
   }
+  if(e.code==='KeyR'&&(isPlayMode||andarNoEditor)&&dlg.state===DLG_STATE.CLOSED){
+    e.preventDefault(); armarSetima();
+  }
   if(k==='1'){e.preventDefault();trocarHeroiDoTime(0);}
   if(k==='2'){e.preventDefault();trocarHeroiDoTime(1);}
   if(e.key==='Shift')keys.shift=true;
@@ -5154,7 +5157,10 @@ const ATAQUE_MS = 360;
 // de cima para fechar a guarda, estocada que AVANÇA e empurra, e o giro como remate que
 // pega todo mundo em volta. Cada elo bate mais forte que o anterior, então largar o
 // combo no meio custa dano — é o que faz valer arriscar a sequência inteira.
-const COMBO = [
+// Corrente padrão, usada por quem não declara a própria. O combo é POR PERSONAGEM: cada
+// um tem armas, alcances e ritmos diferentes, e uma corrente global obrigaria a espada e a
+// lança a golpearem igual.
+const COMBO_PADRAO = [
   { folha: 'ataque',   ms: 340, alcance: 1.00, dano: 1.0, rotulo: 'Corte' },
   { folha: 'vertical', ms: 460, alcance: 1.05, dano: 1.4, rotulo: 'Corte Vertical' },
   { folha: 'estocada', ms: 400, alcance: 1.50, dano: 1.7, rotulo: 'Estocada',
@@ -5162,6 +5168,9 @@ const COMBO = [
   { folha: 'giro',     ms: 600, alcance: 1.35, dano: 2.4, rotulo: 'Giro da Clave',
     emVolta: true, remate: true },
 ];
+
+// A corrente do personagem em campo. Trocar de herói troca o moveset inteiro.
+function comboAtual() { return personagemAtivo().combo || COMBO_PADRAO; }
 
 // Depois de um elo, esta é a folga para encadear o próximo. Curta demais e a corrente
 // escapa da mão; longa demais e o combo dispara sozinho quando o jogador só queria dar
@@ -5246,15 +5255,9 @@ function renderAuraDaLamina(now) {
   ctx.fillStyle = gn;
   ctx.beginPath(); ctx.arc(p.x, cy, rn, 0, Math.PI * 2); ctx.fill();
 
-  // Anel no chão: marca o alcance ampliado do golpe enquanto a lâmina está desperta.
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.strokeStyle = `rgba(147,197,253,${0.5 * forca})`;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([7, 6]);
-  ctx.lineDashOffset = -now * 0.02;
-  ctx.beginPath();
-  ctx.ellipse(p.x, p.y + 2 * z, ATTACK_RANGE * 1.35 * z, ATTACK_RANGE * 0.5 * z, 0, 0, Math.PI * 2);
-  ctx.stroke();
+  // Aqui havia um anel tracejado no chão marcando o alcance. Saiu: a aura já diz que a
+  // habilidade está desperta, e o anel virava um segundo aviso para a mesma informação —
+  // dois sinais competindo em vez de um claro.
   ctx.restore();
 }
 
@@ -5267,6 +5270,147 @@ function ativarLamina() {
   return true;
 }
 function laminaAtiva() { return performance.now() < laminaAte; }
+
+
+// ── Acorde de Sétima: a espada arremessada, com mira ────────────────────────────
+// A sétima é o acorde que não se sustenta em si — cria tensão e pede resolução em OUTRO
+// ponto. É exatamente o gesto: a lâmina sai da mão e vai resolver longe.
+//
+// O alcance começa curto de propósito. A habilidade sobe de nível depois; largar já com
+// alcance grande não deixaria espaço para ela crescer.
+const SETIMA_NOME = 'ACORDE DE SÉTIMA';
+const SETIMA_ESPERA = 9000;
+const SETIMA_ALCANCE = 190;      // em pixels de cena, do pé do personagem
+const SETIMA_DANO = 2.0;
+const SETIMA_VOO_MS = 620;       // devagar de propósito: é para ver a lâmina girar
+const SETIMA_RAIO_DANO = 34;
+
+let setimaEsperaAte = 0;
+let mira = null;      // { x, y } — para onde se está apontando, em coordenada de cena
+let laminaVoando = null;  // { de:{x,y}, para:{x,y}, inicio, acertados:Set }
+
+function setimaPronta() { return performance.now() >= setimaEsperaAte; }
+function mirandoSetima() { return !!mira; }
+
+// Arma a mira. Daqui em diante o toque na tela aponta, e soltar dispara.
+function armarSetima() {
+  if (!setimaPronta() || laminaVoando) return false;
+  mira = { x: player.x, y: player.y - 1 };
+  anunciar(SETIMA_NOME, 1100);
+  return true;
+}
+
+function apontarSetima(x, y) {
+  if (!mira) return;
+  // Preso ao alcance: mirar além do limite apontaria para um lugar onde a lâmina nunca
+  // chega, e o jogador só descobriria depois de gastar a habilidade.
+  const dx = x - player.x, dy = y - player.y;
+  const d = Math.hypot(dx, dy);
+  if (d <= SETIMA_ALCANCE || d === 0) { mira = { x, y }; return; }
+  mira = { x: player.x + dx / d * SETIMA_ALCANCE, y: player.y + dy / d * SETIMA_ALCANCE };
+}
+
+function soltarSetima() {
+  if (!mira) return;
+  const alvo = mira;
+  mira = null;
+  setimaEsperaAte = performance.now() + SETIMA_ESPERA;
+  laminaVoando = { de: { x: player.x, y: player.y - player.height * 0.45 },
+                   para: alvo, inicio: performance.now(), acertados: new Set() };
+  // A direção do arremesso também vira a direção do personagem: ele joga para onde olha.
+  const dx = alvo.x - player.x, dy = alvo.y - player.y;
+  player.direction = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right')
+                                                 : (dy < 0 ? 'up' : 'down');
+}
+
+// A lâmina em voo machuca quem ela cruza, uma vez por monstro. Sem o registro de quem já
+// foi acertado, um monstro no caminho levaria dano a cada quadro do voo.
+function atualizarLaminaVoando(now) {
+  if (!laminaVoando) return;
+  const t = (now - laminaVoando.inicio) / SETIMA_VOO_MS;
+  if (t >= 1) { laminaVoando = null; return; }
+
+  const x = laminaVoando.de.x + (laminaVoando.para.x - laminaVoando.de.x) * t;
+  const y = laminaVoando.de.y + (laminaVoando.para.y - laminaVoando.de.y) * t;
+  laminaVoando.x = x; laminaVoando.y = y;
+
+  if (!monstrosVivos()) return;
+  const s = derivedStats();
+  liveMonsters().forEach(m => {
+    if (m.pronto || laminaVoando.acertados.has(m.id)) return;
+    if (Math.hypot(m.x - x, m.y - (y + player.height * 0.45)) > SETIMA_RAIO_DANO + monsterBounds(m).w * 0.3) return;
+    laminaVoando.acertados.add(m.id);
+    const crit = s.crit > 0 && Math.random() * 100 < s.crit;
+    const dmg = Math.round(playerDamage() * SETIMA_DANO * (crit ? 2 : 1));
+    m.hp -= dmg;
+    m.hurtUntil = now + 260;
+    addFloater(m.x, monsterBounds(m).y - 12, crit ? `${dmg}!` : `-${dmg}`, crit ? '#fde047' : '#c4b5fd');
+    if (m.hp <= 0) killMonster(m, now);
+  });
+}
+
+// Faixa de mira: sai do PÉ do personagem e vai até onde se aponta, com a ponta marcada.
+// Translúcida e branca de propósito — precisa ler sobre cenário claro e escuro sem virar
+// uma mancha que esconde o mapa.
+function renderMira(now) {
+  if (!mira) return;
+  const ang = Math.atan2(mira.y - player.y, mira.x - player.x);
+  const d = Math.hypot(mira.x - player.x, mira.y - player.y);
+  const larg = 26;
+
+  ctx.save();
+  ctx.translate(player.x, player.y);
+  ctx.rotate(ang);
+  const g = ctx.createLinearGradient(0, 0, d, 0);
+  g.addColorStop(0, 'rgba(255,255,255,0.06)');
+  g.addColorStop(1, 'rgba(255,255,255,0.30)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, -larg / 2, d, larg);
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0, -larg / 2, d, larg);
+  ctx.restore();
+
+  // Alvo na ponta, pulsando: diz exatamente onde a lâmina vai parar.
+  const pulso = (Math.sin(now * 0.012) + 1) / 2;
+  ctx.save();
+  ctx.strokeStyle = `rgba(255,255,255,${0.65 + pulso * 0.3})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(mira.x, mira.y, 20 + pulso * 3, 9 + pulso * 2, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(mira.x - 7, mira.y); ctx.lineTo(mira.x + 7, mira.y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(mira.x, mira.y - 5); ctx.lineTo(mira.x, mira.y + 5); ctx.stroke();
+  ctx.restore();
+}
+
+// A lâmina arremessada, girando. A rotação é o que faz o arremesso ler como arremesso.
+function renderLaminaVoando(now) {
+  if (!laminaVoando || laminaVoando.x === undefined) return;
+  const vImg = window.swordAttackVFX && window.swordAttackVFX[0];
+  const t = (now - laminaVoando.inicio) / SETIMA_VOO_MS;
+
+  ctx.save();
+  ctx.translate(laminaVoando.x, laminaVoando.y + player.height * 0.45);
+  // Duas voltas e meia no percurso: giro visível sem virar um borrão.
+  ctx.rotate(t * Math.PI * 5);
+  if (vImg && vImg.complete && vImg.naturalWidth > 5) {
+    const dw = 96, dh = dw * (vImg.naturalHeight / vImg.naturalWidth);
+    ctx.drawImage(vImg, -dw / 2, -dh / 2, dw, dh);
+  } else {
+    ctx.fillStyle = '#e0f2fe';
+    ctx.fillRect(-34, -4, 68, 8);
+  }
+  ctx.restore();
+
+  // Rastro no chão por onde ela passou.
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.strokeStyle = '#bfdbfe'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(laminaVoando.de.x, laminaVoando.de.y + player.height * 0.45);
+  ctx.lineTo(laminaVoando.x, laminaVoando.y + player.height * 0.45);
+  ctx.stroke();
+  ctx.restore();
+}
 
 // Painel de "som capturado" aberto: nenhum ataque sai. Sem isto, o toque em Guardar
 // atravessava para o botão de ataque e o golpe saía junto — o jogador não conseguia
@@ -5312,7 +5456,7 @@ function renderCombo(now) {
   ctx.fillStyle = 'rgba(6,9,14,0.75)';
   ctx.fillRect(p.x - larg / 2, p.y - 15, larg, 19);
   // O remate ganha cor própria: é o elo que fecha a corrente e o que mais dói.
-  ctx.fillStyle = passo === COMBO.length - 1 ? '#fbbf24' : '#bfdbfe';
+  ctx.fillStyle = passo === comboAtual().length - 1 ? '#fbbf24' : '#bfdbfe';
   ctx.fillText(txt, p.x, p.y - 1);
   ctx.restore();
 }
@@ -5379,28 +5523,41 @@ function renderAttackSwing(now) {
     }
   }
 
-  // Efeito especial Exclusivo do Teclado Espada / Harmonia de ÁQUILES
-  if (laminaAtiva() && t > 0.05) {
-    if (window.swordAttackVFX && window.swordAttackVFX.length >= 3) {
-      const vIdx = Math.min(2, Math.floor(t * 3));
-      const vImg = window.swordAttackVFX[vIdx];
-      if (vImg && vImg.complete && vImg.naturalWidth > 5) {
-        ctx.save();
-        const dw = 142, dh = dw * (vImg.naturalHeight / vImg.naturalWidth);
-        if (dir === 'left') {
-          ctx.scale(-1, 1);
-          ctx.drawImage(vImg, 6, -dh / 2, dw, dh);
-        } else if (dir === 'up') {
-          ctx.rotate(-Math.PI / 2);
-          ctx.drawImage(vImg, 6, -dh / 2, dw, dh);
-        } else if (dir === 'down') {
-          ctx.rotate(Math.PI / 2);
-          ctx.drawImage(vImg, 6, -dh / 2, dw, dh);
-        } else {
-          ctx.drawImage(vImg, 6, -dh / 2, dw, dh);
-        }
-        ctx.restore();
-      }
+  // Espada gigante da Lâmina Ecoante.
+  //
+  // Dois defeitos que se somavam. Primeiro, `t` era medido contra 180 ms fixos, enquanto o
+  // golpe hoje dura de 340 a 600 — `t` passava de 1 quase de imediato e o índice do quadro
+  // grudava no último. Só o terceiro quadro aparecia, e por um instante.
+  //
+  // Segundo, os três quadros não têm a mesma orientação: o primeiro aponta para a direita
+  // com o cabo à esquerda, o terceiro aponta para baixo com o cabo em cima. Alternar entre
+  // eles não é um golpe, é a espada trocando de ângulo sozinha — e como só o terceiro
+  // aparecia, ela ficava sempre virada para baixo, como se atacasse com a ponta.
+  //
+  // A correção usa UM quadro só, o que tem orientação limpa, e faz o golpe pela ROTAÇÃO
+  // dele em volta do cabo. Assim a espada sempre sai na direção que o personagem encara e
+  // o arco acompanha a duração real do golpe.
+  if (laminaAtiva()) {
+    const vImg = window.swordAttackVFX && window.swordAttackVFX[0];
+    if (vImg && vImg.complete && vImg.naturalWidth > 5) {
+      // Tempo próprio, contado contra a duração real — é o que deixa o golpe LENTO o
+      // suficiente para o olho acompanhar a lâmina passando.
+      const dur = (golpeEmCurso && golpeEmCurso.ms) || ATAQUE_MS;
+      const tl = Math.max(0, Math.min(1, 1 - (attackAnimUntil - now) / dur));
+      // Ângulo base pela direção; o arco varre 110° em volta dele.
+      const baseAng = dir === 'left' ? Math.PI : dir === 'up' ? -Math.PI / 2
+                    : dir === 'down' ? Math.PI / 2 : 0;
+      const varre = (-0.95 + tl * 1.9);
+      const dw = 150, dh = dw * (vImg.naturalHeight / vImg.naturalWidth);
+
+      ctx.save();
+      // Aparece e desaparece suave nas pontas, para não piscar do nada.
+      ctx.globalAlpha = Math.sin(Math.min(1, tl) * Math.PI) * 0.95 + 0.05;
+      ctx.rotate(baseAng + varre);
+      // Cabo na origem: o desenho começa na MÃO e cresce para fora, em vez de ficar
+      // centrado no corpo com a ponta encostando no personagem.
+      ctx.drawImage(vImg, 10, -dh / 2, dw, dh);
+      ctx.restore();
     }
     ctx.font = 'bold 20px Outfit, serif';
     const notas = ['♫', '♪', '♩', '♬', '𝄞'];
@@ -5547,6 +5704,22 @@ function atualizarBotaoDeAtaque(now) {
     }
   }
 
+  // Botão da Sétima: acende enquanto a mira está armada, e conta a espera depois.
+  const bs = document.getElementById('habilidade2');
+  if (bs) {
+    const restaS = Math.max(0, setimaEsperaAte - now);
+    bs.classList.toggle('recarregando', restaS > 0 && !mirandoSetima());
+    bs.classList.toggle('ativa', mirandoSetima());
+    bs.style.setProperty('--recarga', (restaS / SETIMA_ESPERA * 100).toFixed(0) + '%');
+    const cs = document.getElementById('habConta2');
+    if (cs) {
+      cs.textContent = restaS > 0 ? String(Math.ceil(restaS / 1000)) : '';
+      cs.style.display = restaS > 0 ? 'flex' : 'none';
+    }
+  }
+  // O botão de ataque acende junto: é ele que o polegar procura para soltar o arremesso.
+  _btnAtaque.classList.toggle('mirando', mirandoSetima());
+
   const espera = attackCooldown();
   const falta = Math.max(0, espera - (now - lastAttack));
   const pct = espera > 0 ? (falta / espera) * 100 : 0;
@@ -5571,7 +5744,8 @@ function doAttack() {
   // Zerar por tempo — e não por soltar o botão — é o que deixa o combo ser interrompido
   // por uma esquiva ou por um passo para trás sem precisar de regra extra.
   if (now > comboAte) comboPasso = 0;
-  const g = COMBO[comboPasso] || COMBO[0];
+  const corrente = comboAtual();
+  const g = corrente[comboPasso] || corrente[0];
 
   // O GOLPE SAI SEMPRE. Antes a função voltava sem fazer nada quando não havia alvo por
   // perto, então apertar no vazio não produzia reação e parecia botão quebrado. Errar
@@ -6303,6 +6477,16 @@ function loadPlayerData() {
       if (Array.isArray(d.partyState.party)) partyState.party = d.partyState.party;
       if (typeof d.partyState.activePartyIndex === 'number') partyState.activePartyIndex = d.partyState.activePartyIndex;
       if (d.partyState.heroStates) partyState.heroStates = { ...partyState.heroStates, ...d.partyState.heroStates };
+    }
+    // Vaga vazia no save recebe quem já está desbloqueado no elenco. O save foi gravado
+    // quando só existia um personagem, e restaurá-lo tal e qual deixava a segunda vaga em
+    // `null` para sempre — a heroína nova existia no jogo mas não tinha como entrar em
+    // campo. Vale para qualquer personagem que venha depois, não só para ela.
+    for (let i = 0; i < partyState.party.length; i++) {
+      if (partyState.party[i]) continue;
+      const livre = Object.keys(HERO_DEFINITIONS)
+        .find(h => HERO_DEFINITIONS[h].desbloqueado && !partyState.party.includes(h));
+      if (livre) partyState.party[i] = livre;
     }
     if (d.heroi) {
       selectedHeroId = HERO_DEFINITIONS[d.heroi] ? d.heroi : 'achilles';
@@ -7997,6 +8181,9 @@ function onPointerDown(m){
   // da ferramenta (plantar, pintar, selecionar), senão não daria para trabalhar. Vem
   // depois da captura e do diálogo de propósito: quem está ressoando ou escolhendo uma
   // resposta não quer sacar a espada.
+  // Mira armada: o toque aponta, não golpeia. Sem esta saída, tocar na tela para mirar
+  // disparava um golpe e a mira era descartada no mesmo gesto.
+  if (mirandoSetima()) { apontarSetima(m.x, m.y); return; }
   if ((isPlayMode || combateNoEditor) && !playerLocked && !shopOpen && !inventoryOpen && !charOpen && !forging) {
     doAttack();
     return;
@@ -8102,6 +8289,8 @@ function onPointerDown(m){
 
 function onPointerMove(m){
   if(engineMode==='mundo'){ mundoPointerMove(m); return; }
+  // Mira armada: o dedo (ou o mouse) aponta, e nada mais responde ao movimento.
+  if(mirandoSetima()){ apontarSetima(m.x, m.y); return; }
   if(capturaAtiva&&capturaAtiva.arrastando){arrastarVoz(m.x,m.y);return;}
   if(engineMode==='worldmap') {
     if(wvDragKeyPending && Math.hypot(m.x-wvDragStartX, m.y-wvDragStartY) > 20) {
@@ -8141,6 +8330,8 @@ function onPointerMove(m){
 
 function onPointerUp(){
   if(engineMode==='mundo'){ mundoPointerUp(); return; }
+  // Soltar com a mira armada é o disparo: apontou, largou, foi.
+  if(mirandoSetima()){ soltarSetima(); return; }
   if(wvDragKeyPending) { wvDragKeyPending=null; }
   if(capturaAtiva&&capturaAtiva.arrastando){soltarVoz();return;}
   const m={x:mouseCanvasX,y:mouseCanvasY}; // touchend carries no coords — use the last known
@@ -11527,7 +11718,11 @@ function loop(now){
         ctx.restore();
       });
     }
-    if (outdoors) { renderMarcadoresDeNPC(now); renderCaptura(now); renderRessonancia(now); renderCombo(now); renderAnuncio(now); }
+    if (outdoors) {
+      renderMarcadoresDeNPC(now); renderCaptura(now); renderRessonancia(now);
+      renderCombo(now); renderAnuncio(now);
+      atualizarLaminaVoando(now); renderLaminaVoando(now); renderMira(now);
+    }
     else { renderSpeech(now); renderFloaters(now); }
     if (!IS_PLAY_BUILD) renderMotivoDoTravamento();
     else renderMarcadoresDoInterior(now);
@@ -11699,7 +11894,17 @@ document.addEventListener('DOMContentLoaded',()=>{
     btnLamina.dataset.tecla = 'Q';
     btnLamina.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); ativarLamina(); });
   }
-  ['habilidade2','habilidade3'].forEach(id => {
+  // Habilidade 2: Acorde de Sétima. Ela ARMA a mira em vez de golpear na hora — depois é
+  // apontar na tela e soltar.
+  const btnSetima = document.getElementById('habilidade2');
+  if (btnSetima) {
+    btnSetima.disabled = false;
+    btnSetima.title = `${SETIMA_NOME} — mire na tela e solte para arremessar a lâmina`;
+    btnSetima.querySelector('.hab-ico').textContent = '➤';
+    btnSetima.dataset.tecla = 'R';
+    btnSetima.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); armarSetima(); });
+  }
+  ['habilidade3'].forEach(id => {
     const b = document.getElementById(id);
     if (!b) return;
     b.disabled = true;
@@ -12067,6 +12272,46 @@ const HERO_DEFINITIONS = {
     base: { vida: 0, dano: 0, ritmo: 0, afinacao: 0 },
     lema: 'Quem entra primeiro é quem dá o tom.',
   },
+
+  'wins': {
+    id: 'wins', name: 'Wins', class: 'Cantora das Escalas', gender: 'Feminino',
+    src: 'assets/personagens/herois/wins_caminhada.png', cols: 7, rows: 4,
+    // Mesma ficha de medidas do Achilles: as doze folhas dos dois personagens foram
+    // casadas juntas, então ambos têm corpo de 124 px e os pés na mesma linha. É isso que
+    // impede o herói de mudar de tamanho ao trocar de personagem.
+    medidas: 'assets/personagens/herois/achilles_folhas.json',
+    folhas: {
+      andar:     { src: 'assets/personagens/herois/wins_caminhada.png' },
+      // Ela ainda não tem folha de parado nem de guarda. Sem elas o desenho cai na de
+      // caminhada e o quadro de descanso abaixo segura a pose — a mesma muleta que o
+      // Achilles usou até a folha de idle dele chegar.
+      estocada:  { src: 'assets/personagens/herois/wins_estocada.png' },
+      varredura: { src: 'assets/personagens/herois/wins_varredura.png' },
+      vertical:  { src: 'assets/personagens/herois/wins_vertical.png' },
+      giro:      { src: 'assets/personagens/herois/wins_giro.png' },
+    },
+    linhas: { down: 0, up: 1, left: 2, right: 3 },
+    // Medido pela largura que os pés ocupam em cada quadro da folha de caminhada.
+    parado: { down: 1, up: 5, left: 3, right: 5 },
+    // Corrente própria. A lança alcança mais que a espada e pesa menos, então ela abre
+    // rasteira para desequilibrar, sobe na nota alta, avança na estocada e remata girando
+    // com as ondas em volta. Os números são diferentes dos do Achilles de propósito: é a
+    // diferença de moveset que faz trocar de personagem significar alguma coisa.
+    combo: [
+      { folha: 'varredura', ms: 360, alcance: 1.30, dano: 0.9, rotulo: 'Varredura' },
+      { folha: 'vertical',  ms: 480, alcance: 1.15, dano: 1.3, rotulo: 'Nota Alta' },
+      { folha: 'estocada',  ms: 400, alcance: 1.80, dano: 1.6, rotulo: 'Estocada Cantada',
+        empurrao: 34 },
+      { folha: 'giro',      ms: 620, alcance: 1.45, dano: 2.2, rotulo: 'Uníssono',
+        emVolta: true, remate: true },
+    ],
+    face: 'assets/personagens/herois/wins_face.png',
+    avatar: 'assets/personagens/herois/wins_face.png',
+    weapon: 'Lança-Microfone', clave: 'Fá', registro: 'Médio',
+    papel: 'Alcance', raridade: 5, desbloqueado: true,
+    base: { vida: 0, dano: 0, ritmo: 0, afinacao: 0 },
+    lema: 'A nota certa alcança mais longe que o braço.',
+  },
 };
 let selectedHeroId = 'achilles';
 
@@ -12097,9 +12342,12 @@ function personagensDesbloqueados() {
 const partyState = {
   // O segundo lugar nasce VAZIO de propósito: o time de dois é a promessa, e a vaga
   // aberta no HUD é o que faz o jogador querer o primeiro sorteio.
-  party: ['achilles', null],
+  // Time de dois: Achilles em campo, Wins na reserva. A tecla 2 (ou o segundo retrato)
+  // troca quem está jogando — e como o combo é por personagem, trocar muda o moveset
+  // inteiro, não só o sprite.
+  party: ['achilles', 'wins'],
   activePartyIndex: 0,
-  heroStates: { 'achilles': { hp: 100 } }
+  heroStates: { 'achilles': { hp: 100 }, 'wins': { hp: 100 } }
 };
 
 function heroiNoSlot(slotIdx) {
@@ -12136,6 +12384,13 @@ function trocarHeroiDoTime(slotIndex, silent = false) {
   if (typeof processedHeroSprites !== 'undefined' && processedHeroSprites[novoHeroId]) {
     processedSprite = processedHeroSprites[novoHeroId];
   }
+
+  // 4b. A corrente do combo ZERA na troca. Cada personagem tem a própria sequência, e
+  // carregar o passo 3 do Achilles para dentro do moveset da Wins faria o golpe seguinte
+  // sair da folha errada — ou de folha que ela nem tem.
+  comboPasso = 0; comboAte = 0; comboTravaAte = 0;
+  golpeEmCurso = null; attackAnimUntil = 0; guardaAte = 0;
+  mira = null;                 // mira armada não atravessa a troca
 
   // 5. Partículas visuais de troca instantânea (Poof)
   if (typeof spawnDust === 'function') {

@@ -1,29 +1,49 @@
 {
-  "caminhada": [
+  "achilles_caminhada": [
     8,
     4
   ],
-  "parado": [
+  "achilles_parado": [
     4,
     4
   ],
-  "guarda": [
+  "achilles_guarda": [
     4,
     4
   ],
-  "ataque": [
+  "achilles_ataque": [
     6,
     4
   ],
-  "ataque_vertical": [
+  "achilles_ataque_vertical": [
     6,
     4
   ],
-  "estocada": [
+  "achilles_estocada": [
     5,
     4
   ],
-  "giro": [
+  "achilles_giro": [
+    6,
+    4
+  ],
+  "wins_caminhada": [
+    7,
+    4
+  ],
+  "wins_estocada": [
+    6,
+    4
+  ],
+  "wins_vertical": [
+    6,
+    4
+  ],
+  "wins_varredura": [
+    6,
+    4
+  ],
+  "wins_giro": [
     6,
     4
   ]
