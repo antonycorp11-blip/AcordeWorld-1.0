@@ -431,7 +431,9 @@ const player = { x:512, y:400, width:52, height:90, speed:3.9, sprintSpeed:6.65,
 // esticar só uma deforma o sprite. Mexer aqui move também a colisão — e é assim que
 // tem que ser: personagem que parece grande e passa por vão de pequeno é pior que
 // personagem do tamanho errado.
-const HEROI_BASE = { width: 52, height: 90, interiorW: 68, interiorH: 92 };
+// Proporção tirada da célula da folha (137x205 = 0,668). Se a caixa não acompanhar a
+// folha, o drawImage estica o sprite para caber e o personagem sai achatado ou magro.
+const HEROI_BASE = { width: 60, height: 90, interiorW: 78, interiorH: 117 };
 let heroiEscala = 1;
 
 function aplicarEscalaHeroi(v, salvar = true) {
@@ -11425,7 +11427,7 @@ const HERO_DEFINITIONS = {
     id: 'achilles', name: 'Achilles', class: 'Espadachim da Clave', gender: 'Masculino',
     // Folha normalizada: 8 quadros por fileira, quatro direções próprias (não há
     // espelhamento — o desenho de perfil direito é diferente do esquerdo).
-    src: 'assets/personagens/herois/achilles.png', cols: 8, rows: 4,
+    src: 'assets/personagens/herois/achilles_caminhada.png', cols: 8, rows: 4,
     linhas: { down: 0, up: 1, left: 2, right: 3 },
     face: 'assets/personagens/herois/achilles_face.png', avatar: 'assets/personagens/herois/achilles_face.png',
     weapon: 'Teclado Espada', clave: 'Sol', registro: 'Agudo',
