@@ -489,14 +489,11 @@ window.addEventListener('keydown', e => {
   if(k==='s'||k==='arrowdown'){keys.s=true;keyS?.classList.add('active');}
   if(k==='d'||k==='arrowright'){keys.d=true;keyD?.classList.add('active');}
   if(k==='e'){e.preventDefault();keyE?.classList.add('active');doAction();}
-  // Teclas de combate. Espaço é o corte básico — a tecla que a mão já procura. Q, R e
-  // F são as três habilidades, na mesma ordem da roda de botões, de baixo para cima.
-  // No celular a roda basta; no computador, sem tecla para cada golpe só dava para
-  // testar um deles, e os outros três ficavam inalcançáveis fora do clique no botão.
-  const TECLAS_DE_GOLPE = { Space:'basico', KeyQ:'estocada', KeyR:'vertical', KeyF:'giro' };
-  const golpeDaTecla = TECLAS_DE_GOLPE[e.code];
-  if(golpeDaTecla&&(isPlayMode||andarNoEditor)&&dlg.state===DLG_STATE.CLOSED){
-    e.preventDefault(); doAttack(golpeDaTecla);
+  // Espaço é o ataque, e ele sozinho percorre a corrente inteira: apertar de novo dentro
+  // da janela leva ao próximo elo. Não há tecla por golpe porque não há golpe avulso —
+  // os quatro são um ataque só, encadeado.
+  if(e.code==='Space'&&(isPlayMode||andarNoEditor)&&dlg.state===DLG_STATE.CLOSED){
+    e.preventDefault(); doAttack();
   }
   if(k==='1'){e.preventDefault();trocarHeroiDoTime(0);}
   if(k==='2'){e.preventDefault();trocarHeroiDoTime(1);}
@@ -5120,14 +5117,38 @@ const ATAQUE_MS = 360;
 // Catálogo de golpes. Cada um aponta para a folha que o desenha, quanto tempo dura na
 // tela e quanto espera para poder repetir. Ter isto como DADO — e não espalhado em
 // ifs — é o que faz um golpe novo ser três linhas aqui, e não uma caçada pelo arquivo.
-const GOLPES = {
-  basico:   { folha: 'ataque',   ms: 360, espera: 0,    alcance: 1.0, dano: 1.0,  rotulo: 'Corte' },
-  vertical: { folha: 'vertical', ms: 520, espera: 4200, alcance: 1.1, dano: 1.8,  rotulo: 'Corte Vertical' },
-  estocada: { folha: 'estocada', ms: 420, espera: 3200, alcance: 1.5, dano: 1.5,  rotulo: 'Estocada' },
-  giro:     { folha: 'giro',     ms: 620, espera: 8000, alcance: 1.3, dano: 2.2,  rotulo: 'Giro da Clave' },
-};
+// ── Combo do ataque básico ──────────────────────────────────────────────────────
+// Os quatro golpes não são habilidades separadas: são ELOS de uma corrente. Apertar de
+// novo dentro da janela leva ao próximo, e é isso que transforma quatro botões numa
+// única leitura — o jogador só precisa saber "aperta de novo".
+//
+// A ordem conta uma história de corpo: corte lateral rápido para abrir, corte vertical
+// de cima para fechar a guarda, estocada que AVANÇA e empurra, e o giro como remate que
+// pega todo mundo em volta. Cada elo bate mais forte que o anterior, então largar o
+// combo no meio custa dano — é o que faz valer arriscar a sequência inteira.
+const COMBO = [
+  { folha: 'ataque',   ms: 340, alcance: 1.00, dano: 1.0, rotulo: 'Corte' },
+  { folha: 'vertical', ms: 460, alcance: 1.05, dano: 1.4, rotulo: 'Corte Vertical' },
+  { folha: 'estocada', ms: 400, alcance: 1.50, dano: 1.7, rotulo: 'Estocada',
+    empurrao: 46 },
+  { folha: 'giro',     ms: 600, alcance: 1.35, dano: 2.4, rotulo: 'Giro da Clave',
+    emVolta: true, remate: true },
+];
+
+// Depois de um elo, esta é a folga para encadear o próximo. Curta demais e a corrente
+// escapa da mão; longa demais e o combo dispara sozinho quando o jogador só queria dar
+// um golpe. Meio segundo depois do fim da animação é o que dá tempo de ver o golpe
+// anterior acabar e ainda assim exigir intenção.
+const COMBO_JANELA_MS = 520;
+// Pausa depois do remate: o giro é o golpe mais forte e precisa custar alguma coisa,
+// senão a corrente vira um moinho sem risco.
+const COMBO_REMATE_ESPERA = 900;
+
+let comboMostrado = null;  // { passo, rotulo, ate } — o que a tela está anunciando
+let comboPasso = 0;        // qual elo vem agora
+let comboAte = 0;          // até quando a corrente aceita o próximo elo
+let comboTravaAte = 0;     // pausa após o remate
 let golpeEmCurso = null;
-const esperaDoGolpe = {};   // id -> instante em que fica pronto de novo
 
 // Depois de golpear, o herói fica EM GUARDA por um tempo antes de voltar a respirar.
 // Sem isso ele passa de um corte de espada para a pose relaxada no mesmo quadro, e a
@@ -5140,6 +5161,28 @@ const floaters = []; // damage numbers
 function addFloater(x, y, text, colour) {
   floaters.push({ x, y, text, colour, born: performance.now() });
 }
+// Nome do elo acima do herói. Sem ele o combo é invisível: o jogador vê a animação
+// mudar mas não sabe que está encadeando, nem em que ponto da corrente está.
+function renderCombo(now) {
+  if (!comboMostrado || now > comboMostrado.ate) return;
+  const p = telaDoPonto(player.x, player.y - player.height - 20);
+  const alfa = Math.min(1, (comboMostrado.ate - now) / 320);
+  const passo = comboMostrado.passo;
+
+  ctx.save();
+  ctx.globalAlpha = alfa;
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 13px Outfit, sans-serif';
+  const txt = `${'✦'.repeat(passo + 1)} ${comboMostrado.rotulo}`;
+  const larg = ctx.measureText(txt).width + 16;
+  ctx.fillStyle = 'rgba(6,9,14,0.75)';
+  ctx.fillRect(p.x - larg / 2, p.y - 15, larg, 19);
+  // O remate ganha cor própria: é o elo que fecha a corrente e o que mais dói.
+  ctx.fillStyle = passo === COMBO.length - 1 ? '#fbbf24' : '#bfdbfe';
+  ctx.fillText(txt, p.x, p.y - 1);
+  ctx.restore();
+}
+
 function renderFloaters(now) {
   for (let i = floaters.length - 1; i >= 0; i--) {
     const f = floaters[i];
@@ -5319,62 +5362,97 @@ function atualizarBotaoDeAtaque(now) {
   if (_velAtaque) _velAtaque.style.height = pct.toFixed(0) + '%';
   _btnAtaque.classList.toggle('recarregando', falta > 0);
 
-  // As habilidades têm espera própria e bem mais longa: sem sinal na tela, o jogador
-  // aperta no vazio e acha que o botão não funciona.
-  document.querySelectorAll('.btn-habilidade[data-golpe]').forEach(b => {
-    const g = GOLPES[b.dataset.golpe];
-    if (!g) return;
-    const resta = Math.max(0, (esperaDoGolpe[b.dataset.golpe] || 0) - now);
-    b.classList.toggle('recarregando', resta > 0);
-    b.style.setProperty('--recarga', g.espera ? (resta / g.espera * 100).toFixed(0) + '%' : '0%');
-  });
+  // Trava do remate: o único momento em que o ataque fica indisponível por outro motivo
+  // que não a cadência normal.
+  if (now < comboTravaAte) _btnAtaque.classList.add('recarregando');
+  // Enquanto a corrente está viva o botão pulsa: é o aviso de que apertar AGORA leva ao
+  // próximo elo, em vez de recomeçar do primeiro.
+  _btnAtaque.classList.toggle('encadeando', now < comboAte);
 }
 
-function doAttack(idGolpe = 'basico') {
+function doAttack() {
   const now = performance.now();
-  const g = GOLPES[idGolpe] || GOLPES.basico;
+  if (now < comboTravaAte) return;                       // pausa após o remate
+  if (now - lastAttack < attackCooldown()) return;
 
-  // Duas esperas diferentes: a do ataque básico vem dos atributos do personagem, a das
-  // habilidades é fixa por golpe. Um golpe forte não pode ficar barato porque o jogador
-  // subiu velocidade de ataque.
-  if (idGolpe === 'basico') {
-    if (now - lastAttack < attackCooldown()) return;
-  } else {
-    if (now < (esperaDoGolpe[idGolpe] || 0)) return;
-    esperaDoGolpe[idGolpe] = now + g.espera;
-  }
+  // Dentro da janela, o aperto avança na corrente; fora dela, recomeça do primeiro elo.
+  // Zerar por tempo — e não por soltar o botão — é o que deixa o combo ser interrompido
+  // por uma esquiva ou por um passo para trás sem precisar de regra extra.
+  if (now > comboAte) comboPasso = 0;
+  const g = COMBO[comboPasso] || COMBO[0];
 
   // O GOLPE SAI SEMPRE. Antes a função voltava sem fazer nada quando não havia alvo por
-  // perto, então apertar o botão no vazio não produzia reação nenhuma — parecia botão
-  // quebrado. Errar o golpe é parte do jogo, e é a única forma de testar a animação sem
-  // monstro na tela.
+  // perto, então apertar no vazio não produzia reação e parecia botão quebrado. Errar
+  // faz parte, e é a única forma de treinar a corrente sem monstro na tela.
   lastAttack = now;
   golpeEmCurso = g;
   attackAnimUntil = now + g.ms;
   guardaAte = now + g.ms + GUARDA_MS;
+  comboMostrado = { passo: comboPasso, rotulo: g.rotulo, ate: now + g.ms + 700 };
 
-  const m = attackTarget(g.alcance);
-  if (!m || m.pronto) return;   // sem alvo, ou já se abriu: aí é ressoar, não bater
+  if (g.remate) {
+    comboPasso = 0;
+    comboAte = 0;
+    comboTravaAte = now + COMBO_REMATE_ESPERA;
+  } else {
+    comboPasso += 1;
+    comboAte = now + g.ms + COMBO_JANELA_MS;
+  }
+
+  // O giro pega todo mundo em volta; os outros elos batem num alvo só.
+  const alvos = g.emVolta ? alvosEmVolta(g.alcance)
+                          : [attackTarget(g.alcance)].filter(Boolean);
+  if (!alvos.length) return;
+
   const s = derivedStats();
+  for (const m of alvos) {
+    if (m.pronto) continue;   // já se abriu: agora é ressoar, não bater
 
-  const crit = s.crit > 0 && Math.random() * 100 < s.crit;
-  const dmg = Math.round(playerDamage() * g.dano * (crit ? 2 : 1));
-  m.hp -= dmg;
-  m.hurtUntil = now + 260;
-  addFloater(m.x, monsterBounds(m).y - 12, crit ? `${dmg}!` : `-${dmg}`, crit ? '#fde047' : '#fca5a5');
+    const crit = s.crit > 0 && Math.random() * 100 < s.crit;
+    const dmg = Math.round(playerDamage() * g.dano * (crit ? 2 : 1));
+    m.hp -= dmg;
+    m.hurtUntil = now + 260;
+    addFloater(m.x, monsterBounds(m).y - 12, crit ? `${dmg}!` : `-${dmg}`,
+               crit ? '#fde047' : '#fca5a5');
 
-  if (s.lifesteal > 0 && playerHp < playerMaxHp()) {
-    const heal = Math.max(1, Math.round(dmg * s.lifesteal / 100));
-    playerHp = Math.min(playerMaxHp(), playerHp + heal);
-    addFloater(player.x, player.y - player.height - 6, `+${heal}`, '#86efac');
+    if (g.empurrao) empurrarMonstro(m, g.empurrao);
+
+    if (s.lifesteal > 0 && playerHp < playerMaxHp()) {
+      const heal = Math.max(1, Math.round(dmg * s.lifesteal / 100));
+      playerHp = Math.min(playerMaxHp(), playerHp + heal);
+      addFloater(player.x, player.y - player.height - 6, `+${heal}`, '#86efac');
+    }
+
+    if (m.hp <= 0) {
+      // Eco não morre de pancada: ele se abre e pede para ser afinado.
+      if (monsterDef(m).exigeRessonador && ressonadorEmUso() && !capturaAtiva) abrirEco(m, now);
+      else killMonster(m, now);
+    }
   }
-
   playHitSound();
-  if (m.hp <= 0) {
-    // Eco não morre de pancada: ele se abre e pede para ser afinado.
-    if (monsterDef(m).exigeRessonador && ressonadorEmUso() && !capturaAtiva) abrirEco(m, now);
-    else killMonster(m, now);
+}
+
+// Todos os monstros ao alcance, para o remate girar de verdade em vez de escolher um.
+function alvosEmVolta(mult = 1) {
+  if (!isPlayMode || playerLocked || currentScene !== 'world' || playerHp <= 0) return [];
+  const alcance = ATTACK_RANGE * mult;
+  return liveMonsters().filter(m => Math.hypot(player.x - m.x, player.y - m.y) < alcance);
+}
+
+// Empurrão da estocada: afasta o monstro na direção em que o golpe foi dado, parando em
+// parede. Sem a checagem de colisão, um empurrão forte enfia o inimigo dentro do cenário
+// e ele fica preso lá — inalcançável e imortal.
+function empurrarMonstro(m, forca) {
+  let dx = m.x - player.x, dy = m.y - player.y;
+  const d = Math.hypot(dx, dy) || 1;
+  dx /= d; dy /= d;
+  const passo = 4;
+  for (let andado = 0; andado < forca; andado += passo) {
+    const nx = m.x + dx * passo, ny = m.y + dy * passo;
+    if (!canMoveTo(nx, ny)) break;
+    m.x = nx; m.y = ny;
   }
+  m.empurradoAte = performance.now() + 220;   // breve atordoamento, para ler o impacto
 }
 
 // ── Ressonância do mapa ──────────────────────────────────────────────────────────
@@ -11107,7 +11185,7 @@ function loop(now){
         ctx.restore();
       });
     }
-    if (outdoors) { renderMarcadoresDeNPC(now); renderCaptura(now); renderRessonancia(now); }
+    if (outdoors) { renderMarcadoresDeNPC(now); renderCaptura(now); renderRessonancia(now); renderCombo(now); }
     else { renderSpeech(now); renderFloaters(now); }
     if (!IS_PLAY_BUILD) renderMotivoDoTravamento();
     else renderMarcadoresDoInterior(now);
@@ -11248,18 +11326,15 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   // As três habilidades ainda não fazem nada: ficam desabilitadas no HTML em vez de
   // abrirem um aviso de "em breve" a cada toque.
-  // Cada habilidade é um golpe do catálogo. A ordem segue a da roda, de baixo para cima.
-  const HABILIDADES = { habilidade1: 'estocada', habilidade2: 'vertical', habilidade3: 'giro' };
-  Object.entries(HABILIDADES).forEach(([id, golpe]) => {
+  // Os três botões pequenos voltaram a ser vagas. Os quatro golpes viraram uma corrente
+  // no botão grande, e ocupá-los com os mesmos golpes seria oferecer duas portas para a
+  // mesma coisa. Ficam reservados para habilidades de verdade.
+  ['habilidade1','habilidade2','habilidade3'].forEach(id => {
     const b = document.getElementById(id);
     if (!b) return;
-    b.disabled = false;
-    const TECLA = { estocada: 'Q', vertical: 'R', giro: 'F' };
-    b.title = `${GOLPES[golpe].rotulo} — tecla ${TECLA[golpe]}`;
-    b.dataset.tecla = TECLA[golpe];
-    b.dataset.golpe = golpe;
-    b.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); doAttack(golpe); });
-    b.addEventListener('contextmenu', e => e.preventDefault());
+    b.disabled = true;
+    b.title = 'Habilidade ainda não desbloqueada';
+    b.addEventListener('pointerdown', e => e.preventDefault());
   });
 
   ['andarEditorBtn','andarEditorBtn2'].forEach(id =>
