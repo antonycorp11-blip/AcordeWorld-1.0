@@ -7247,6 +7247,32 @@ function renderAura(now, pH) {
   ctx.restore();
 }
 
+// O herói ATRÁS do teto, visto por transparência.
+//
+// A camada de teto é desenhada por cima do personagem — é ela que dá a profundidade.
+// Só que por cima significa ESCONDIDO: entrar sob um beiral fazia o herói sumir por
+// completo, e sumir não é passar atrás, é desaparecer. Aqui, quando há teto sobre a
+// cabeça dele, o personagem é redesenhado por cima com pouca opacidade: continua legível
+// e fica claro que está atrás, não na frente.
+const TETO_ALFA = 0.42;
+
+function cabecaSobCoberta(mapKey) {
+  const L = screenLayers[mapKey];
+  if (!L) return false;
+  // Amostra o peito/cabeça, não os pés: os pés ficam no chão, que quase nunca é teto.
+  const x = Math.floor(player.x), y = Math.floor(player.y - player.height * 0.55);
+  if (x < 0 || y < 0 || x >= SCREEN_W || y >= SCREEN_H) return false;
+  try { return L.fgCtx.getImageData(x, y, 1, 1).data[3] > 40; } catch (e) { return false; }
+}
+
+function renderHeroiPorTras(mapKey) {
+  if (player.oculto || !cabecaSobCoberta(mapKey)) return;
+  ctx.save();
+  ctx.globalAlpha = TETO_ALFA;
+  renderPlayer();
+  ctx.restore();
+}
+
 function renderPlayer() {
   if (player.oculto) return;      // entrou pela porta na cena: sai de cena de verdade
   const pW=currentScene!=='world'?HEROI_BASE.interiorW*heroiEscala:player.width;
@@ -7496,6 +7522,12 @@ function renderSceneOverlay(now) {
   // e sem caixa de seleção. Ver o bicho com moldura vermelha e o nome flutuando não diz
   // nada sobre como a arena se comporta — é justamente disso que se quer sair ao soltar.
   if (combateNoEditor) {
+    // Os NPCs continuam na tela. O `return` daqui pulava o laço que os desenha, e
+    // soltar os monstros fazia a cidade inteira ficar sem gente.
+    npcData.forEach(npc => {
+      if (npc.mapKey !== mapKey) return;
+      (NPC_DRAW[npc.type] || DEFAULT_NPC_DRAW)(ctx, npc, now);
+    });
     renderMonsters(now);
     return;
   }
@@ -8475,7 +8507,16 @@ function enterMobilePlay() {
   document.body.classList.add('mobile-play');
   document.getElementById('left-sidebar')?.classList.add('hidden');
   document.getElementById('engine-header')?.classList.add('hidden');
+  // No site publicado NÃO há menu: abrir e já estar andando. O menu existia para
+  // escolher personagem e ponto de partida, e hoje há um personagem só e um mapa inicial
+  // definido — ele virou uma porta a mais entre o jogador e o jogo. No editor ele
+  // continua, porque ali serve para testar começos diferentes.
   const menu = document.getElementById('mainMenuOverlay');
+  if (IS_PLAY_BUILD) {
+    menu?.classList.add('hidden');
+    if (!isPlayMode) togglePlay();
+    return;
+  }
   if (menu) {
     menu.classList.remove('hidden');
     renderHeroAvatars();
@@ -10813,6 +10854,7 @@ function alternarAndarNoEditor(ligar) {
   });
   if (!andarNoEditor) {
     keys.w = keys.a = keys.s = keys.d = false; player.isMoving = false;
+    if (!isPlayMode) { document.body.classList.remove('jogando'); playerHud?.classList.add('hidden'); }
     // Parar de andar recolhe os monstros: deixá-los soltos com o personagem parado
     // vira um cerco que atrapalha justamente quem voltou para editar.
     if (combateNoEditor) alternarCombateNoEditor(false);
@@ -11089,6 +11131,13 @@ function loop(now){
       if(player.animTimer>passoDaAnimacao(sprint)){player.animTimer=0;player.animFrame=(player.animFrame+1)%(personagemAtivo().cols||4);}
     } else { player.animFrame = quadroParado(); player.animTimer = 0; }
 
+    // Mochila e atributos existem enquanto se ANDA, não só no antigo modo jogo. Como
+    // "jogar" hoje é justamente andar pelo mundo, deixar o HUD fora daqui tirava o
+    // inventário do jogo inteiro.
+    document.body.classList.add('jogando');
+    playerHud?.classList.toggle('hidden', shopOpen||inventoryOpen||charOpen);
+    atualizarBotaoDeAtaque(now);
+
     // Os monstros só eram atualizados DENTRO do bloco de modo jogo. Soltá-los no editor
     // os deixava vivos para o dano mas parados no lugar — metade do teste.
     // updateRespawn entra junto: sem ele, um herói que tenha caído por qualquer outro
@@ -11243,7 +11292,7 @@ function loop(now){
       renderObjetos(now, 'frente');  // pé abaixo do jogador: cobre o personagem
       renderAttackSwing(now);
       renderGatherSwing(now);
-      ctx.drawImage(L.fgCanvas,0,0);renderDoorMarkers(now);updateLeaves();renderLeaves();
+      ctx.drawImage(L.fgCanvas,0,0);renderHeroiPorTras(currentKey);renderDoorMarkers(now);updateLeaves();renderLeaves();
       renderVagalumesEPoeiras(now, currentKey);
       renderCicloDiaNoite(now, currentKey);
       updatePath();renderPath(now);
@@ -11333,10 +11382,13 @@ function loop(now){
       npcData.forEach(npc=>{if(npc.mapKey!==mapKey)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
     }
     renderObjetos(now, 'todos');   // sem isto o editor não mostrava o que você plantou
-    const L=getLayers(mapKey);ctx.drawImage(L.fgCanvas,0,0);
     // O personagem aparece no editor enquanto a caminhada estiver ligada — sem ele não
-    // há como ver se o caminho pintado dá passagem.
+    // há como ver se o caminho pintado dá passagem. Ele vem ANTES do teto: desenhado
+    // depois, passava por cima de tudo e o teto pintado não parecia fazer efeito
+    // nenhum — foi por isso que o trabalho de pintura sumia ao testar.
     if (andarNoEditor && !player.oculto) renderPlayer();
+    const L=getLayers(mapKey);ctx.drawImage(L.fgCanvas,0,0);
+    if (andarNoEditor) renderHeroiPorTras(mapKey);
     // TUDO do editor desenha DENTRO da câmera. renderSceneOverlay desenha os NPCs de
     // novo (é ele quem mostra seleção, alça e raio de gatilho); com o `restore` antes
     // dele, essa segunda passada saía sem zoom enquanto a primeira saía com — dois

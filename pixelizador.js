@@ -480,9 +480,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // jogo sem ferramenta e sem pista do motivo. Recolher é um gesto do momento.
   try { localStorage.removeItem('acordelot_editor_recolhido'); } catch (e) {}
 
-  // Tecla E recolhe, desde que não esteja escrevendo em campo nenhum.
+  // TAB recolhe a gaveta. Era o E, que já era a tecla de AGIR no jogo — falar, entrar,
+  // coletar. Uma tecla com dois donos sempre atende ao dono errado.
   document.addEventListener('keydown', e => {
-    if (e.key !== 'e' && e.key !== 'E') return;
+    if (e.key !== 'Tab') return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const alvo = e.target;
     if (alvo && (alvo.tagName === 'INPUT' || alvo.tagName === 'TEXTAREA' || alvo.isContentEditable)) return;

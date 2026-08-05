@@ -522,8 +522,8 @@
       "x": 477,
       "y": 18,
       "targetMapKey": "custom_1785869541494_557",
-      "targetX": 512,
-      "targetY": 300,
+      "targetX": 476,
+      "targetY": 565,
       "triggerRadius": 70,
       "dialogue": "none",
       "triggered": false,
@@ -554,8 +554,8 @@
       "x": 486,
       "y": 18,
       "targetMapKey": "custom_1785884200706_430",
-      "targetX": 512,
-      "targetY": 300,
+      "targetX": 477,
+      "targetY": 571,
       "triggerRadius": 70,
       "dialogue": "none",
       "triggered": false,
@@ -625,6 +625,46 @@
       "triggered": false,
       "flipX": false,
       "scale": 0.4
+    },
+    {
+      "id": "npc_1785934757115",
+      "name": "Guarda Renaldo",
+      "type": "guard",
+      "mapKey": "custom_1785880661560_858",
+      "x": 450,
+      "y": 329,
+      "triggerRadius": 80,
+      "dialogue": "none",
+      "triggered": false,
+      "flipX": false,
+      "scale": 0.75
+    },
+    {
+      "id": "npc_1785934813320",
+      "name": "Ferreiro Dorn",
+      "type": "blacksmith",
+      "mapKey": "custom_1785880661560_858",
+      "x": 741,
+      "y": 373,
+      "triggerRadius": 80,
+      "dialogue": "none",
+      "triggered": false,
+      "flipX": false,
+      "scale": 0.75
+    },
+    {
+      "id": "npc_1785934855575",
+      "name": "Porta",
+      "type": "porta",
+      "mapKey": "custom_1785880661560_858",
+      "x": 334,
+      "y": 121,
+      "triggerRadius": 80,
+      "dialogue": "none",
+      "triggered": false,
+      "flipX": false,
+      "scale": 0.45,
+      "interior": "ferraria"
     }
   ]
 }
