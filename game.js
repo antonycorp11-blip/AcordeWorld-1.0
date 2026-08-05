@@ -424,7 +424,12 @@ let startMap = '0_1';
 let ambience = {};
 // A folha do Achilles tem célula de 131x227 (proporção 1:1,73). Largura e altura
 // precisam seguir a mesma proporção, senão o personagem entra achatado ou esticado.
-const player = { x:512, y:400, width:52, height:90, speed:3.9, sprintSpeed:6.65, direction:'down', isMoving:false, animFrame:0, animTimer:0 };
+// Velocidade em pixels por quadro. Estava em 3,9 — a 60 quadros por segundo são 234
+// px/s, que atravessa a tela de 1024 em quatro segundos e meio. Com o zoom em 2x isso
+// dobra na percepção, e a passada passava rápido demais para ser vista. A animação é
+// contada por DISTÂNCIA percorrida, não por tempo, então baixar a velocidade baixa a
+// cadência junto e o pé continua plantando no lugar certo.
+const player = { x:512, y:400, width:60, height:90, speed:2.3, sprintSpeed:4.1, direction:'down', isMoving:false, animFrame:0, animTimer:0 };
 
 // Tamanho do herói na tela. A medida de base é a que casa com a proporção da célula da
 // folha do Achilles (131×227); a escala multiplica as duas dimensões juntas, porque
@@ -3973,7 +3978,7 @@ function mundoMoverJogador() {
   // cada folha nova.
   const quadros = personagemAtivo().cols || 4;
   player.animTimer += spd;
-  if (player.animTimer >= (sprint ? 13 : 19)) {
+  if (player.animTimer >= passoDaAnimacao(sprint)) {
     player.animTimer = 0;
     player.animFrame = (player.animFrame + 1) % quadros;
     if (player.animFrame === 0 || player.animFrame === Math.floor(quadros / 2)) playStep(sprint);
@@ -4964,7 +4969,12 @@ function renderMonsters(now) {
 // never have to know where a bonus came from.
 // ============================================================
 const BASE_MAX_HP = 100, BASE_DAMAGE = 10, BASE_COOLDOWN = 480;
-const BASE_SPEED = 3.9, BASE_SPRINT = 6.65, BASE_CAPACITY = 40;
+// Velocidade base em pixels por quadro. Estava em 3,9 — a 60 quadros por segundo são
+// 234 px/s, atravessando a tela de 1024 em quatro segundos e meio; com zoom 2x isso
+// dobra na percepção e a passada some antes de dar para ver. `applyMovementStats`
+// multiplica isto pelos atributos, então é AQUI que a velocidade se ajusta: mexer no
+// objeto `player` não adiantava nada, era sobrescrito no primeiro cálculo de status.
+const BASE_SPEED = 2.3, BASE_SPRINT = 4.1, BASE_CAPACITY = 40;
 const POINTS_PER_LEVEL = 2;
 const SLOTS_DE_ACORDE = 2;        // igual para todos: o arsenal cresce por arco, não por build
 
@@ -10756,8 +10766,8 @@ function loop(now){
       else if(canMoveTo(tx,player.y))player.x=tx;
       else if(canMoveTo(player.x,ty))player.y=ty;
       player.animTimer+=spd;
-      if(player.animTimer>(sprint?13:19)){player.animTimer=0;player.animFrame=(player.animFrame+1)%(personagemAtivo().cols||4);}
-    } else { player.animFrame=0; player.animTimer=0; }
+      if(player.animTimer>passoDaAnimacao(sprint)){player.animTimer=0;player.animFrame=(player.animFrame+1)%(personagemAtivo().cols||4);}
+    } else { player.animFrame = quadroParado(); player.animTimer = 0; }
   }
 
   if(isPlayMode){
@@ -10800,7 +10810,7 @@ function loop(now){
         player.y = Math.max(32, Math.min(dims.h - 32, player.y));
         const quadros = personagemAtivo().cols || 4;
         player.animTimer += spd;
-        if (player.animTimer >= (sprint ? 13 : 19)) {
+        if (player.animTimer >= passoDaAnimacao(sprint)) {
           player.animTimer = 0;
           player.animFrame = (player.animFrame + 1) % quadros;
           // o pé encosta duas vezes por ciclo: é aí que sai poeira e som
@@ -10808,7 +10818,7 @@ function loop(now){
             spawnDust(player.x, player.y); playStep(sprint);
           }
         }
-      } else {player.animFrame=0;player.animTimer=0;}
+      } else {player.animFrame=quadroParado();player.animTimer=0;}
       checkTransitions();checkDoors();checkNPCProx();
     }
     updateRespawn(now);updateMonsters(now);updateDrops(now);
@@ -11429,6 +11439,11 @@ const HERO_DEFINITIONS = {
     // espelhamento — o desenho de perfil direito é diferente do esquerdo).
     src: 'assets/personagens/herois/achilles_caminhada.png', cols: 8, rows: 4,
     linhas: { down: 0, up: 1, left: 2, right: 3 },
+    // Quadro em que cada direção fica ao PARAR. A folha é de caminhada e não tem pose
+    // parada de verdade, então usa-se o quadro de passagem — o único em que as pernas
+    // estão juntas. Voltar ao quadro 0 deixava o herói congelado com o pé no ar.
+    // Medido pela largura ocupada pelos pés em cada quadro.
+    parado: { down: 5, up: 5, left: 2, right: 3 },
     face: 'assets/personagens/herois/achilles_face.png', avatar: 'assets/personagens/herois/achilles_face.png',
     weapon: 'Teclado Espada', clave: 'Sol', registro: 'Agudo',
     papel: 'Investida', raridade: 5, desbloqueado: true,
@@ -11439,6 +11454,22 @@ const HERO_DEFINITIONS = {
 let selectedHeroId = 'achilles';
 
 function personagemAtivo() { return HERO_DEFINITIONS[selectedHeroId] || HERO_DEFINITIONS.achilles; }
+
+// Em que quadro o herói descansa, por direção. Sem isto ele parava no quadro 0, que na
+// folha de caminhada é o CONTATO — perna esticada e pé no ar. Parecia travado no meio
+// do passo. Quando existir folha de parado (idle) de verdade, esta função sai de cena.
+// Distância percorrida entre um quadro e o próximo. Contar por distância e não por
+// tempo é o que impede o pé de deslizar: se o personagem anda mais devagar, a passada
+// desacelera junto. Antes eram 19 por quadro, 152 px por ciclo completo — quase três
+// alturas do personagem, e por isso ele parecia patinar.
+const PASSO_DA_CAMINHADA = 13, PASSO_DA_CORRIDA = 9;
+function passoDaAnimacao(sprint) { return sprint ? PASSO_DA_CORRIDA : PASSO_DA_CAMINHADA; }
+
+function quadroParado() {
+  const p = personagemAtivo().parado;
+  if (!p) return 0;
+  return p[player.direction] ?? p.down ?? 0;
+}
 function personagensDesbloqueados() {
   return Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado);
 }
