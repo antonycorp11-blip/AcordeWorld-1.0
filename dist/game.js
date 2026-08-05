@@ -7066,6 +7066,7 @@ async function loadShopCatalog() {
   } catch (e) { return; }
   playerCoins = shopCatalog.coins_start ?? 300;
   loadPlayerData(); // saved balance wins over the catalogue default
+  abastecerBancaDeTestes();
   shopCatalog.items.forEach(it => {
     if (!it.sprite) return;
     const img = new Image();
@@ -15927,6 +15928,32 @@ function custoDaPassiva(n) { return PASSIVA_CUSTO[n - 1] ?? null; }
 const HABILIDADE_CUSTO = { 2: 6000, 3: 12000 };
 let habilidadesAbertas = ['lamina', 'chuva'];
 function habilidadeAberta(id) { return habilidadesAbertas.includes(id); }
+// ── Banca de testes ───────────────────────────────────────────────────────────
+// As habilidades continuam TRANCADAS de propósito: o pedido foi testar o fluxo inteiro de
+// desbloqueio, não pular ele. O que esta banca faz é encher a carteira, e ENCHER DE NOVO a
+// cada abertura do jogo — então é possível gastar tudo, recarregar e repetir o teste sem
+// zerar o save.
+//
+// Para desligar quando o fluxo estiver aprovado, basta esta linha virar false.
+const BANCA_DE_TESTES = true;
+const BANCA_CLAVES = 400000;   // dá para abrir as 4 habilidades e maximizar as 7 passivas
+const BANCA_PONTOS  = 40;      // 7 passivas × 4 níveis = 28; sobra folga
+
+function abastecerBancaDeTestes() {
+  if (!BANCA_DE_TESTES) return;
+  // Completa até o mínimo em vez de somar: recarregar a página não infla sem limite, e o
+  // que já foi gasto volta a estar disponível.
+  const faltaClave = BANCA_CLAVES - claveCount;
+  const faltaPonto = BANCA_PONTOS - skillPoints;
+  if (faltaClave <= 0 && faltaPonto <= 0) return;
+  if (faltaClave > 0) claveCount = BANCA_CLAVES;
+  if (faltaPonto > 0) skillPoints = BANCA_PONTOS;
+  savePlayerData();
+  // Aviso na tela para não se confundir com progresso real de jogo.
+  setTimeout(() => showToast(
+    `Banca de testes: ${BANCA_CLAVES.toLocaleString('pt-BR')} claves e ${BANCA_PONTOS} pontos`), 1200);
+}
+
 function carregarHabilidadesAbertas(d) {
   if (Array.isArray(d) && d.length) habilidadesAbertas = d.slice();
 }
