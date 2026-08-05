@@ -4448,6 +4448,13 @@ async function loadMonsters() {
           for (let i = 0; i < (def.attackFrames || def.cols || 4); i++)
             monsterAtaque[type].push(prepareSpriteCell(img, { ...def, cell: [i, def.attackRow] }));
         }
+        // Fileira de PARADO. Sem ela o monstro só se anima enquanto anda ou golpeia, e
+        // fica um boneco congelado no resto do tempo — que é a maior parte do tempo.
+        if (def.idleRow != null) {
+          monsterParado[type] = [];
+          for (let i = 0; i < (def.idleFrames || def.cols || 4); i++)
+            monsterParado[type].push(prepareSpriteCell(img, { ...def, cell: [i, def.idleRow] }));
+        }
         // A miniatura da paleta vem do recorte pronto, então só pode ser desenhada
         // depois que o PNG decodificou. Redesenhar aqui evita a paleta nascer com
         // quadrados vazios e nunca mais se corrigir.
@@ -4512,6 +4519,7 @@ function monsterAt(mx, my) {
 
 
 
+const monsterParado = {};   // quadros de respiração, usados quando o bicho está parado
 const monsterWalk = {}, monsterAtaque = {};
 
 // Quantos podem avançar ao mesmo tempo. Sem isto o bando inteiro cola no jogador e
@@ -4955,6 +4963,11 @@ function renderMonsters(now) {
       spr = golpes[Math.min(golpes.length - 1, Math.floor(t * golpes.length))];
     } else if (andando) {
       spr = quadros[Math.floor(now / 130) % quadros.length];
+    } else if (monsterParado[m.type]?.length) {
+      // Parado também respira. O deslocamento por `phase` evita que todos os bichos do
+      // mesmo tipo pulsem juntos, o que denuncia na hora que é o mesmo boneco repetido.
+      const q = monsterParado[m.type];
+      spr = q[Math.floor((now + m.phase * 400) / 220) % q.length];
     }
     const b = monsterBounds(m);
     const hop = Math.abs(Math.sin(now * 0.004 + m.phase)) * (andando ? 5 : 3);
@@ -5346,13 +5359,22 @@ function darMartelada() {
 // `mult` estica o alcance por golpe: a estocada avança e alcança mais longe que o corte
 // básico, o giro pega em volta. Sem isto todo golpe teria o mesmo raio e a diferença
 // entre eles seria só a animação.
+// O alcance conta a partir da BORDA do monstro, não do centro dele. Com distância de
+// centro a centro, um bicho grande é impossível de acertar: o Colosso tem 88 px de
+// altura e o alcance eram 62 px fixos, então era preciso estar praticamente dentro dele
+// para o golpe pegar — e parecia que ele não tomava dano.
+function alcanceAte(m, mult = 1) {
+  const b = monsterBounds(m);
+  const corpo = Math.max(b.w, b.h) * 0.42;     // raio aproximado do bicho
+  return ATTACK_RANGE * mult + corpo;
+}
+
 function attackTarget(mult = 1) {
   if (!isPlayMode || playerLocked || currentScene !== 'world' || playerHp <= 0) return null;
   let best = null, bestD = Infinity;
-  const alcance = ATTACK_RANGE * mult;
   liveMonsters().forEach(m => {
     const d = Math.hypot(player.x - m.x, player.y - m.y);
-    if (d < alcance && d < bestD) { best = m; bestD = d; }
+    if (d < alcanceAte(m, mult) && d < bestD) { best = m; bestD = d; }
   });
   return best;
 }
@@ -5445,8 +5467,7 @@ function doAttack() {
 // Todos os monstros ao alcance, para o remate girar de verdade em vez de escolher um.
 function alvosEmVolta(mult = 1) {
   if (!isPlayMode || playerLocked || currentScene !== 'world' || playerHp <= 0) return [];
-  const alcance = ATTACK_RANGE * mult;
-  return liveMonsters().filter(m => Math.hypot(player.x - m.x, player.y - m.y) < alcance);
+  return liveMonsters().filter(m => Math.hypot(player.x - m.x, player.y - m.y) < alcanceAte(m, mult));
 }
 
 // Empurrão da estocada: afasta o monstro na direção em que o golpe foi dado, parando em
