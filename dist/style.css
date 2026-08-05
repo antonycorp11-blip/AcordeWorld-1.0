@@ -5606,3 +5606,11 @@ body.jogando .roda-combate { display: block; }
                         0 0 0 7px rgba(251,191,36,0); }
 }
 .btn-ataque.encadeando { animation: pulso-combo .5s ease-out infinite; border-color: #fbbf24; }
+/* Cartão de monstro armado: o cursor virou cruz e o próximo clique no mapa posiciona.
+   Sem marcar qual está escolhido, dá para armar um e achar que armou outro. */
+.npc-gallery-card.armado {
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 2px rgba(251,191,36,0.35);
+  background: rgba(251,191,36,0.10);
+}
+.npc-gallery-card.armado .btn-card-add { background: #b45309; color: #fff; }

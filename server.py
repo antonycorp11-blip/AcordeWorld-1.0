@@ -191,8 +191,32 @@ class GameHandler(http.server.SimpleHTTPRequestHandler):
             os.makedirs(dados_dir, exist_ok=True)
             path = os.path.join(dados_dir, 'monsters.json')
             self._backup(path)
+
+            # Os TIPOS são FUNDIDOS, não substituídos. Uma aba aberta guarda em memória a
+            # lista de tipos de quando ela carregou; ao salvar posições de monstro, ela
+            # mandava essa lista inteira e APAGAVA do arquivo qualquer tipo criado
+            # depois. Foi assim que três monstros recém-adicionados sumiram sem aviso.
+            # As posições (spawns) continuam sendo substituídas, que é o certo: quem
+            # está editando o mapa sabe quais bichos estão nele.
+            anterior = {}
+            if os.path.exists(path):
+                try:
+                    with open(path, encoding='utf-8') as f:
+                        anterior = json.load(f)
+                except (ValueError, OSError):
+                    anterior = {}
+
+            tipos = dict(anterior.get('types') or {})
+            tipos.update(data.get('types') or {})
+            saida = dict(data)
+            saida['types'] = tipos
+
+            novos = set(tipos) - set(anterior.get('types') or {})
+            if novos:
+                print(f"[Server] Tipos novos preservados: {', '.join(sorted(novos))}")
+
             with open(path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
+                json.dump(saida, f, indent=2, ensure_ascii=False)
             count = len(data.get('spawns', []))
             print(f"[Server] Monsters saved: {count} spawn(s).")
             self._ok({'status': 'ok', 'count': count})

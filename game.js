@@ -498,6 +498,12 @@ window.addEventListener('keydown', e => {
   if(k==='1'){e.preventDefault();trocarHeroiDoTime(0);}
   if(k==='2'){e.preventDefault();trocarHeroiDoTime(1);}
   if(e.key==='Shift')keys.shift=true;
+  // Esc desarma o monstro escolhido: sem saída, o cursor fica em cruz para sempre e
+  // todo clique no mapa vira um bicho novo.
+  if(e.key==='Escape'&&monstroParaColocar){
+    monstroParaColocar=null; canvas?.classList.remove('cursor-crosshair');
+    renderPaletaDeMonstros(); showToast('Colocação cancelada');
+  }
   if(e.key==='Escape'&&engineMode==='mundo'){
     e.preventDefault();
     // Esc primeiro solta a estrada em andamento; só depois sai do modo andar.
@@ -4442,6 +4448,10 @@ async function loadMonsters() {
           for (let i = 0; i < (def.attackFrames || def.cols || 4); i++)
             monsterAtaque[type].push(prepareSpriteCell(img, { ...def, cell: [i, def.attackRow] }));
         }
+        // A miniatura da paleta vem do recorte pronto, então só pode ser desenhada
+        // depois que o PNG decodificou. Redesenhar aqui evita a paleta nascer com
+        // quadrados vazios e nunca mais se corrigir.
+        if (typeof renderPaletaDeMonstros === 'function') renderPaletaDeMonstros();
       } catch (e) {}
     };
     img.onerror = () => {};
@@ -7796,6 +7806,15 @@ function onPointerDown(m){
     if(collisionTool==='area'){ areaSubtrai=!!m.alt; areaAdicionarPonto(m.x,m.y); return; }
     isPainting=true;endStroke();paintStroke(m.x,m.y,activeMapSelect?.value||currentKey);return;
   }
+  // Monstro armado tem prioridade sobre selecionar e arrastar: o gesto foi explícito.
+  if(engineMode==='scene' && monstroParaColocar && !isPlayMode){
+    if (colocarMonstro(m.x, m.y)) {
+      monstroParaColocar = null;
+      canvas?.classList.remove('cursor-crosshair');
+      renderPaletaDeMonstros();
+      return;
+    }
+  }
   if(engineMode==='scene'){
     if(isPlayMode){tryTalk();return;} // tapping near an NPC starts the conversation
     if(npcPlacingMode){placeNPC(m.x,m.y);return;}
@@ -10552,6 +10571,9 @@ function initBottomPanel(){
       const target=tab.dataset.btab;
       document.querySelectorAll('.btab-content').forEach(c=>c.classList.add('hidden'));
       document.getElementById(`btab-${target}`)?.classList.remove('hidden');
+      if (target === 'mobgallery' && typeof renderPaletaDeMonstros === 'function') {
+        renderPaletaDeMonstros();
+      }
     });
   });
 }
@@ -12320,6 +12342,94 @@ async function testDialogueFromEditor() {
   if (selectedNPC) {
     setTimeout(() => startDialogue(selectedNPC), 150);
   }
+}
+
+// ============================================================
+// PALETA DE MONSTROS
+// ============================================================
+// Até aqui só dava para DUPLICAR um monstro que já estivesse no mapa: um tipo novo em
+// monsters.json não tinha porta de entrada nenhuma. Esta paleta se monta a partir dos
+// próprios tipos, então bicho novo no arquivo aparece aqui sozinho — ninguém precisa
+// lembrar de acrescentar um cartão à mão.
+
+let monstroParaColocar = null;   // tipo armado, esperando o clique no mapa
+
+function renderPaletaDeMonstros() {
+  const grade = document.getElementById('mobGalleryGrid');
+  if (!grade || !monsterDefs) return;
+  grade.innerHTML = '';
+
+  for (const [tipo, def] of Object.entries(monsterDefs)) {
+    const card = document.createElement('div');
+    card.className = 'npc-gallery-card' + (monstroParaColocar === tipo ? ' armado' : '');
+    card.title = `${def.name} — ${def.hp} de vida, ${def.damage} de dano`;
+
+    // A miniatura sai do MESMO recorte que o jogo usa, e não da folha inteira: assim o
+    // que se vê na paleta é exatamente o que vai para o mapa.
+    const spr = monsterSprites[tipo];
+    if (spr) {
+      const cv = document.createElement('canvas');
+      cv.width = 64; cv.height = 64;
+      const cx = cv.getContext('2d');
+      cx.imageSmoothingEnabled = false;
+      const esc = Math.min(64 / spr.sw, 64 / spr.sh);
+      const w = spr.sw * esc, h = spr.sh * esc;
+      cx.drawImage(spr.canvas, spr.sx, spr.sy, spr.sw, spr.sh, (64 - w) / 2, 64 - h, w, h);
+      cv.className = 'gallery-thumb';
+      card.appendChild(cv);
+    } else {
+      const d = document.createElement('div');
+      d.className = 'thumb-empty'; d.textContent = '👾';
+      card.appendChild(d);
+    }
+
+    const info = document.createElement('div');
+    info.className = 'npc-card-info';
+    info.innerHTML = `<span class="npc-card-name">${def.name || tipo}</span>` +
+                     `<span class="npc-card-type">${def.hp} vida · ${def.damage} dano</span>`;
+    card.appendChild(info);
+
+    const b = document.createElement('button');
+    b.className = 'btn-card-add';
+    b.textContent = monstroParaColocar === tipo ? '✓ clique no mapa' : '＋ Colocar';
+    card.appendChild(b);
+
+    // Armar e clicar no mapa, como os props. Largar tudo no centro da tela obrigaria a
+    // caçar o bicho e arrastar, e ele cairia em cima do que já estivesse ali.
+    card.addEventListener('click', () => {
+      if (engineMode !== 'scene') setMode('scene');
+      monstroParaColocar = (monstroParaColocar === tipo) ? null : tipo;
+      npcPlacingMode = false;
+      propParaColocar = null;
+      canvas?.classList.toggle('cursor-crosshair', !!monstroParaColocar);
+      renderPaletaDeMonstros();
+      if (monstroParaColocar) showToast(`👾 ${def.name}: clique no mapa para posicionar`);
+    });
+
+    grade.appendChild(card);
+  }
+}
+
+function colocarMonstro(x, y) {
+  const tipo = monstroParaColocar;
+  const def = monsterDefs[tipo];
+  if (!def) return false;
+  const mapa = activeMapSelect?.value || currentKey;
+  const novo = {
+    id: `${tipo}_${Date.now()}`,
+    type: tipo, mapKey: mapa,
+    x: Math.round(x), y: Math.round(y),
+    homeX: Math.round(x), homeY: Math.round(y),
+    hp: def.hp, maxHp: def.hp,
+    escala: 1, flipX: false, dead: false,
+  };
+  monsters.push(novo);
+  selectedMonster = novo;
+  mostrarInspetorDeMonstro?.(novo);
+  refreshNPCHierarchy?.();
+  saveMonsters();
+  showToast(`👾 ${def.name} posicionado`);
+  return true;
 }
 
 // ============================================================

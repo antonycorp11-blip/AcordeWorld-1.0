@@ -357,6 +357,79 @@
           "chance": 0.5
         }
       ]
+    },
+    "tambor_selvagem": {
+      "name": "Tambor Selvagem",
+      "sprite": "assets/monsters/tambor_selvagem.jpg",
+      "cols": 4,
+      "rows": 3,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 66,
+      "hp": 95,
+      "damage": 9,
+      "speed": 0.75,
+      "aggroRange": 165,
+      "touchRange": 40,
+      "persegue": true,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 2,
+          "max": 4
+        }
+      ]
+    },
+    "espectro_do_cello": {
+      "name": "Espectro do Violoncelo",
+      "sprite": "assets/monsters/espectro_do_cello.jpg",
+      "cols": 6,
+      "rows": 3,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 72,
+      "hp": 45,
+      "damage": 6,
+      "speed": 1.9,
+      "aggroRange": 260,
+      "touchRange": 34,
+      "persegue": true,
+      "exigeRessonador": true,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 3
+        }
+      ]
+    },
+    "colosso_grave": {
+      "name": "Colosso Grave",
+      "sprite": "assets/monsters/colosso_grave.jpg",
+      "cols": 4,
+      "rows": 3,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 88,
+      "hp": 160,
+      "damage": 13,
+      "speed": 0.65,
+      "aggroRange": 190,
+      "touchRange": 46,
+      "persegue": true,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 3,
+          "max": 6
+        }
+      ]
     }
   },
   "spawns": [
@@ -646,6 +719,15 @@
       "x": 872,
       "y": 208,
       "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "colosso_grave_1785902739184",
+      "type": "colosso_grave",
+      "mapKey": "custom_1785881037059_214",
+      "x": 400,
+      "y": 320,
+      "escala": 1,
       "flipX": false
     }
   ]
