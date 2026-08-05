@@ -177,6 +177,10 @@ def main() -> int:
     (DIST / 'index.html').write_text(construir_html(), encoding='utf-8')
     shutil.copy2(RAIZ / 'game.js', DIST / 'game.js')
     shutil.copy2(RAIZ / 'style.css', DIST / 'style.css')
+    # O manifesto vai junto: sem ele o atalho do celular nao e um app, e o iOS entrega a
+    # pagina do cache a cada abertura.
+    if (RAIZ / 'manifest.webmanifest').exists():
+        shutil.copy2(RAIZ / 'manifest.webmanifest', DIST / 'manifest.webmanifest')
     (DIST / 'config.js').write_text(
         '// Gerado por build.py — marca esta cópia como build de jogo (sem editor).\n'
         "window.ACORDELOT_BUILD = 'play';\n", encoding='utf-8')
