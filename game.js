@@ -5374,6 +5374,12 @@ function attackTarget(mult = 1) {
   if (!monstrosVivos() || playerLocked || currentScene !== 'world' || playerHp <= 0) return null;
   let best = null, bestD = Infinity;
   liveMonsters().forEach(m => {
+    // Eco ABERTO não é alvo. Ele para de ser combate no instante em que se abre — vira
+    // uma oferta esperando ressonância. Enquanto ele contava como alvo, bastava um Eco
+    // aberto ao lado do jogador para ELE ser escolhido como o mais próximo e o golpe
+    // morrer ali: nenhum monstro ao redor tomava dano, e parecia que o ataque tinha
+    // parado de funcionar do nada.
+    if (m.pronto) return;
     const d = Math.hypot(player.x - m.x, player.y - m.y);
     if (d < alcanceAte(m, mult) && d < bestD) { best = m; bestD = d; }
   });
@@ -5457,9 +5463,15 @@ function doAttack() {
     }
 
     if (m.hp <= 0) {
-      // Eco não morre de pancada: ele se abre e pede para ser afinado.
-      if (monsterDef(m).exigeRessonador && ressonadorEmUso() && !capturaAtiva) abrirEco(m, now);
-      else killMonster(m, now);
+      // Eco não morre de pancada: ele se abre e pede para ser afinado. Mas no teste
+      // dentro do editor não há como ressoar, então um Eco aberto ficaria ali para
+      // sempre — travando o lugar e, antes da correção acima, o combate inteiro. No
+      // editor ele simplesmente cai e volta, que é o que interessa para provar a arena.
+      if (!combateNoEditor && monsterDef(m).exigeRessonador && ressonadorEmUso() && !capturaAtiva) {
+        abrirEco(m, now);
+      } else {
+        killMonster(m, now);
+      }
     }
   }
   playHitSound();
@@ -5468,7 +5480,7 @@ function doAttack() {
 // Todos os monstros ao alcance, para o remate girar de verdade em vez de escolher um.
 function alvosEmVolta(mult = 1) {
   if (!monstrosVivos() || playerLocked || currentScene !== 'world' || playerHp <= 0) return [];
-  return liveMonsters().filter(m => Math.hypot(player.x - m.x, player.y - m.y) < alcanceAte(m, mult));
+  return liveMonsters().filter(m => !m.pronto && Math.hypot(player.x - m.x, player.y - m.y) < alcanceAte(m, mult));
 }
 
 // Empurrão da estocada: afasta o monstro na direção em que o golpe foi dado, parando em
@@ -10759,7 +10771,7 @@ function alternarCombateNoEditor(ligar) {
     // mortos da tentativa anterior não diz nada.
     monsters.forEach(m => {
       if (m.mapKey !== currentKey) return;
-      m.dead = false; m.hp = m.maxHp; m.pronto = false;
+      m.dead = false; m.hp = m.maxHp; m.pronto = false; m.abertoAte = 0;
       m.x = m.homeX ?? m.x; m.y = m.homeY ?? m.y; m.respawnAt = 0;
     });
     showToast('👾 Monstros soltos — espaço ataca, ESC para parar');
