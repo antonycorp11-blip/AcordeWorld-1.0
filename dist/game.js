@@ -6707,6 +6707,7 @@ function colheitaDoEco(m, qualidade = 0) {
 
 // Vai direto para a bolsa: fragmento capturado não fica no chão esperando ser pisado.
 function receberDaCaptura(id, n) {
+  registrarNaCorrida(id, n);
   if (id === 'clave') { claveCount += n; return; }
   // Fragmento comum cai já pertencendo a uma nota. É o que dá cor ao chão e o que faz o
   // jogador reparar em qual nota ele está juntando — o pó genérico não ensinava nada.
@@ -6715,7 +6716,9 @@ function receberDaCaptura(id, n) {
       const nota = CROMATICA[Math.floor(Math.random() * CROMATICA.length)];
       const k = 'frag_' + nota.id;
       playerInventory[k] = (playerInventory[k] || 0) + 1;
+      registrarNaCorrida(k, 1);
     }
+    corrida && corrida.coletado && delete corrida.coletado.fragmento;  // já contado por nota
     progressoDeMissao('coletar', 'fragmento', n);
     return;
   }
@@ -7026,7 +7029,7 @@ function updateDrops(now) {
         // jogador vai juntar centenas. Teto de bolsa aqui só produzia "bolsa cheia" e
         // drops apodrecendo no chão.
         dropItems.splice(i, 1);
-        claveCount++;
+        claveCount++; registrarNaCorrida('clave', 1);
         addFloater(player.x, player.y - player.height - 6, '+1 clave', '#fcd34d');
       } else {
         // Fragmentos, tons e semitons: itens de mochila, sem limite de claves.
@@ -7040,6 +7043,7 @@ function updateDrops(now) {
           rotulo = `Fragmento de ${nota.nome}`;
         }
         playerInventory[chave] = (playerInventory[chave] || 0) + 1;
+        registrarNaCorrida(chave, 1);
         const info = ITENS_DE_MAGIA[d.item];
         addFloater(player.x, player.y - player.height - 6,
           `+1 ${rotulo || info?.nome || d.item}`, info?.cor || '#fcd34d');
@@ -16939,6 +16943,12 @@ function concluirCorrida() {
   if (!corridaAtiva()) return;
   corrida.fim = performance.now();
   const r = avaliarCorrida(corrida);
+  // Escrito direto: `corrida.fim` já foi marcado acima, então `registrarNaCorrida` sairia
+  // fora por achar que a corrida acabou — e o prêmio de conclusão, que é a maior parte do
+  // ganho, ficaria fora da lista.
+  corrida.coletado = corrida.coletado || {};
+  corrida.coletado.clave = (corrida.coletado.clave || 0) + r.claves;
+  corrida.coletado.ouro = (corrida.coletado.ouro || 0) + r.ouro;
   claveCount += r.claves;
   playerCoins += r.ouro;
   ultimaConclusaoDeDungeon[r.d.id] = Date.now();
@@ -17159,11 +17169,10 @@ function mostrarApuracao(r, c) {
   el.querySelector('.dgf-premios').innerHTML = `
     <div class="dgf-premio claves"><span>CLAVES</span><b>+${r.claves.toLocaleString('pt-BR')}</b></div>
     <div class="dgf-premio ouro"><span>OURO</span><b>+${r.ouro.toLocaleString('pt-BR')}</b></div>`;
-  // Os itens entram depois, como combinado. O espaço fica reservado para o jogador
-  // entender que a lista de prêmios ainda vai crescer.
-  el.querySelector('.dgf-itens').innerHTML =
-    `<span>ITENS</span><small>os drops de dungeon entram em uma versão futura</small>`;
+  el.querySelector('.dgf-itens').innerHTML = listaDoQueCaiu(c);
 
+  el.querySelector('.dgf-repetir').textContent = 'REPETIR';
+  el.querySelector('.dgf-titulo').textContent = 'DUNGEON CONCLUÍDA';
   el.querySelector('.dgf-repetir').onclick = () => {
     el.classList.add('hidden'); corrida = null;
     const d = DUNGEONS.find(x => x.id === r.d.id);
@@ -17300,6 +17309,15 @@ const PREMIO_DO_BAU = {
 
 let sorteioDeBaus = {};   // id do objeto → { raridade, aberto } — vale só pela corrida
 
+// Tudo que a corrida rendeu, para a tela de fim poder prestar contas. Guardado por
+// chave de item, porque é assim que o inventário já pensa — e assim vale para clave,
+// fragmento de nota, poção, nota inteira e ouro sem cada um precisar de um campo próprio.
+function registrarNaCorrida(chave, n) {
+  if (!corridaAtiva() || !n) return;
+  corrida.coletado = corrida.coletado || {};
+  corrida.coletado[chave] = (corrida.coletado[chave] || 0) + n;
+}
+
 function ehBau(o) { return !!(propDef(o) || {}).bau; }
 function bausDoMapa(mapa) { return objetosDoMapa(mapa).filter(ehBau); }
 
@@ -17411,7 +17429,7 @@ function abrirBau(o) {
   const ganhos = [];
 
   const claves = entre(t.claves);
-  claveCount += claves;
+  claveCount += claves; registrarNaCorrida('clave', claves);
   ganhos.push({ nome: 'Claves', qtd: claves, arte: 'assets/itens/clave_1.png' });
 
   const frags = entre(t.fragmentos);
@@ -17433,6 +17451,7 @@ function abrirBau(o) {
   if (Math.random() < t.nota) {
     const nota = CROMATICA[Math.floor(Math.random() * CROMATICA.length)];
     notasPossuidas[nota.id] = (notasPossuidas[nota.id] || 0) + 1;
+    registrarNaCorrida('nota_' + nota.id, 1);
     ganhos.push({ nome: `Nota ${nota.nome}`, qtd: 1,
                   arte: `assets/itens/notas/${ARTE_DA_NOTA[nota.id] || 'C'}.png` });
   }
@@ -18730,10 +18749,10 @@ function expulsarDaDungeon() {
     updateMapStatus();
   }
   anunciar('EXPULSO DA DUNGEON', 2000);
-  const espera = d ? esperaDeReset(d) : 0;
-  showToast(d && !d.passe?.livre && passesDeDungeon <= 0 && espera > 0
-    ? `Você caiu. Sem passe — a entrada volta em ${textoDeEspera(espera)}.`
-    : 'Você caiu. A corrida foi perdida — tente de novo quando estiver mais forte.');
+  const espera = d && !d.passe?.livre && passesDeDungeon <= 0 ? esperaDeReset(d) : 0;
+  // A prestação de contas vem depois da viagem de volta, para a tela não abrir no mapa
+  // errado e piscar quando o cenário troca.
+  setTimeout(() => mostrarDerrota(c, d, espera), 900);
 }
 
 // ── Farol dos baús ────────────────────────────────────────────────────────────
@@ -18800,4 +18819,91 @@ function renderFaroisDeBau(now) {
     ctx.closePath(); ctx.fill();
     ctx.restore();
   });
+}
+
+// ── Prestação de contas da corrida ────────────────────────────────────────────
+// Tudo o que entrou na bolsa, com arte e quantidade. Vale para a vitória e para a derrota:
+// mesmo perdendo, o que foi apanhado no caminho é do jogador, e ele precisa ver o que
+// levou antes de decidir se tenta de novo.
+function nomeDoItemColetado(chave) {
+  if (chave === 'clave') return { nome: 'Claves', arte: 'assets/itens/clave_1.png' };
+  if (chave === 'ouro') return { nome: 'Ouro', ico: '🪙' };
+  if (chave === 'potions') return { nome: 'Poções', ico: '🧪' };
+  if (chave === 'fragmento_puro') return { nome: 'Fragmentos puros', arte: 'assets/itens/fragmentos/tom.png' };
+  if (chave === 'tom') return { nome: 'Tons', arte: 'assets/itens/fragmentos/tom.png' };
+  if (chave === 'semitom') return { nome: 'Semitons', arte: 'assets/itens/fragmentos/semitom.png' };
+  if (chave.startsWith('frag_')) {
+    const n = notaPorId(chave.slice(5));
+    return { nome: `Frag. ${n ? n.nome : chave.slice(5)}`, arte: caminhoFrag(chave.slice(5)) };
+  }
+  if (chave.startsWith('nota_')) {
+    const n = notaPorId(chave.slice(5));
+    return { nome: `Nota ${n ? n.nome : chave.slice(5)}`, arte: caminhoNota(chave.slice(5)) };
+  }
+  return { nome: chave, ico: '✦' };
+}
+
+// Ordem: moedas primeiro, depois notas inteiras, depois fragmentos, o resto no fim.
+function pesoDaChave(k) {
+  if (k === 'clave') return 0;
+  if (k === 'ouro') return 1;
+  if (k.startsWith('nota_')) return 2;
+  if (k === 'fragmento_puro') return 3;
+  if (k.startsWith('frag_')) return 4;
+  return 5;
+}
+
+function listaDoQueCaiu(c) {
+  const col = (c && c.coletado) || {};
+  const chaves = Object.keys(col).filter(k => col[k] > 0)
+    .sort((a, b) => pesoDaChave(a) - pesoDaChave(b) || col[b] - col[a]);
+  if (!chaves.length) {
+    return '<span>O QUE CAIU</span><small>nada foi recolhido nesta corrida</small>';
+  }
+  return `<span>O QUE CAIU</span>
+    <div class="dgf-drops">
+      ${chaves.map(k => {
+        const i = nomeDoItemColetado(k);
+        return `<div class="dgf-drop">
+          ${i.arte ? `<img src="${i.arte}" alt="">` : `<em>${i.ico}</em>`}
+          <b>${col[k].toLocaleString('pt-BR')}</b>
+          <small>${i.nome}</small>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ── Tela de derrota ──
+// A corrida perdida também presta contas. Antes só havia um aviso passando na tela, e o
+// jogador não fazia ideia se tinha levado alguma coisa das duas câmaras que limpou.
+function mostrarDerrota(c, d, espera) {
+  const el = document.getElementById('dgFim');
+  if (!el) { return; }
+  const seg = (performance.now() - c.inicio) / 1000;
+  el.querySelector('.dgf-rank').textContent = '✕';
+  el.querySelector('.dgf-rank').className = 'dgf-rank rank-derrota';
+  el.querySelector('.dgf-titulo').textContent = 'VOCÊ CAIU';
+  el.querySelector('.dgf-nome').textContent = (d && d.nome) || '';
+  el.querySelector('.dgf-linhas').innerHTML = `
+    <div class="dgf-linha"><span>TEMPO ATÉ CAIR</span>
+      <b>${Math.floor(seg / 60)}:${String(Math.floor(seg % 60)).padStart(2, '0')}</b>
+      <i class="dg-med m0">—</i></div>
+    <div class="dgf-linha"><span>ABATES</span>
+      <b>${c.abates} / ${c.abatesAnteriores + c.total}</b>
+      <i class="dg-med m0">INCOMPLETO</i></div>
+    ${c.estagios > 1 ? `<div class="dgf-linha"><span>CÂMARAS</span>
+      <b>${c.estagio} / ${c.estagios}</b><i class="dg-med m0">INCOMPLETO</i></div>` : ''}`;
+  el.querySelector('.dgf-mult').textContent = espera
+    ? `A ENTRADA VOLTA EM ${textoDeEspera(espera).toUpperCase()}`
+    : 'SEM PRÊMIO DE CONCLUSÃO';
+  el.querySelector('.dgf-premios').innerHTML = '';
+  el.querySelector('.dgf-itens').innerHTML = listaDoQueCaiu(c);
+  el.querySelector('.dgf-repetir').textContent = 'TENTAR DE NOVO';
+  el.querySelector('.dgf-repetir').onclick = () => {
+    el.classList.add('hidden');
+    const dd = DUNGEONS.find(x => x.id === (d && d.id));
+    if (dd) abrirPortao(dd);
+  };
+  el.querySelector('.dgf-sair').onclick = () => el.classList.add('hidden');
+  el.classList.remove('hidden');
 }

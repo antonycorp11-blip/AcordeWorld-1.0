@@ -7053,3 +7053,33 @@ body.jogando .party-hud.calmo { opacity: .62; }
 
 /* Requisito recomendado (não trava) tem cor própria: nem verde nem vermelho. */
 .dgx.aviso { color: #fbbf24; border-color: rgba(251,191,36,.5); background: rgba(70,52,10,.4); }
+
+/* Lista do que caiu na corrida — mesma no fim vitorioso e no derrotado. */
+.dgf-itens { flex-direction: column; align-items: stretch; gap: 6px; border-style: solid;
+             border-color: rgba(169,126,44,.35); }
+.dgf-itens > span { text-align: center; }
+.dgf-drops {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+  gap: 5px; max-height: 132px; overflow-y: auto;
+}
+.dgf-drop {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 5px 3px; background: rgba(10,14,32,.75);
+  border: 1px solid rgba(107,124,180,.25);
+}
+.dgf-drop img { width: 26px; height: 26px; object-fit: contain; }
+.dgf-drop em { font-size: 20px; font-style: normal; line-height: 26px; }
+.dgf-drop b { font-size: 13px; color: #f2e3b6; }
+.dgf-drop small { font-size: 8px; letter-spacing: .04em; color: #8b96bb; text-align: center; }
+
+/* Nota da derrota: vermelha, sem medalha. */
+.dgf-rank.rank-derrota {
+  background: linear-gradient(180deg, #fca5a5, #b91c1c); color: #2b0707;
+  border-color: #f87171; box-shadow: 0 0 24px rgba(248,113,113,.45);
+}
+
+@media (max-height: 460px) {
+  .dgf-drops { max-height: 88px; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); }
+  .dgf-drop img { width: 20px; height: 20px; }
+  .dgf-drop b { font-size: 11px; }
+}
