@@ -6301,3 +6301,7 @@ html.abrindo, html.abrindo body { overflow: hidden; }
   .bp-item img { width: 30px; height: 30px; }
   .bp-item b { font-size: 13px; }
 }
+
+/* Um item do HUD da corrida pode se esconder sozinho (a câmara só aparece em dungeon
+   de vários estágios). */
+.dgh-item.hidden { display: none; }

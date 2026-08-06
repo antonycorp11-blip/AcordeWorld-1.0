@@ -1,19 +1,19 @@
 {
   "_comentario": [
-    "Cada dungeon aponta para um cenário que já existe. Transformar um mapa em dungeon é",
-    "só acrescentar uma entrada aqui — nenhum código muda.",
+    "Cada dungeon aponta para um ou mais cenários que já existem.",
     "",
-    "metas: os tempos (em ms) e o dano sofrido que valem cada medalha. Ouro é o alvo",
-    "difícil, prata o alvo justo, bronze o piso. Passar do bronze ainda conclui, mas paga o",
-    "mínimo.",
+    "Uma dungeon de UM mapa usa `mapa`. Uma de vários usa `estagios`: cada estágio é um",
+    "mapa, percorridos em sequência. O cronômetro, o dano e os abates são da corrida",
+    "inteira — os estágios não zeram nada, só mudam de sala.",
+    "",
+    "metas: tempos (ms) e dano sofrido que valem cada medalha, para a corrida toda.",
     "",
     "passe.livre: true deixa entrar sempre. Quando virar false a entrada passa a exigir um",
     "passe OU esperar o reset — o sistema já está pronto, é só virar a chave.",
     "",
-    "baus: tabela de sorteio da dungeon. Ao ENTRAR, cada baú posicionado no cenário",
-    "sorteia uma raridade desta lista (peso relativo) — ou nenhuma, se cair em vazio.",
-    "A posição, o tamanho e a quantidade são os que você definir no editor; o código",
-    "só troca a arte e o conteúdo."
+    "baus: tabela de sorteio. Ao entrar em CADA estágio, os baús plantados naquele mapa",
+    "sorteiam raridade nesta lista (peso relativo) — ou nada, se caírem em vazio.",
+    "Posição, tamanho e quantidade são os definidos no editor; o código só troca a arte."
   ],
   "dungeons": [
     {
@@ -64,21 +64,34 @@
     },
     {
       "id": "cavernas_da_clave",
-      "mapa": "custom_1785967453140_198",
       "nome": "Cavernas da Clave",
-      "subtitulo": "Um labirinto de pedra onde o eco não encontra saída",
+      "subtitulo": "Três câmaras fundas. Só se sai pelo fim.",
       "nivel": 2,
+      "estagios": [
+        {
+          "mapa": "custom_1785967453140_198",
+          "nome": "Galerias"
+        },
+        {
+          "mapa": "custom_1785976286672_61",
+          "nome": "Salão em Ruínas"
+        },
+        {
+          "mapa": "custom_1785976318486_785",
+          "nome": "Arena do Selo"
+        }
+      ],
       "metas": {
-        "tempoOuro": 120000,
-        "tempoPrata": 190000,
-        "tempoBronze": 300000,
+        "tempoOuro": 330000,
+        "tempoPrata": 480000,
+        "tempoBronze": 720000,
         "danoOuro": 0,
-        "danoPrata": 0.25,
-        "danoBronze": 0.6
+        "danoPrata": 0.3,
+        "danoBronze": 0.7
       },
       "premio": {
-        "claves": 1800,
-        "ouro": 420
+        "claves": 5200,
+        "ouro": 1200
       },
       "passe": {
         "livre": true,
@@ -88,7 +101,7 @@
       "baus": [
         {
           "raridade": "comum",
-          "peso": 40
+          "peso": 22
         },
         {
           "raridade": "raro",
@@ -96,153 +109,15 @@
         },
         {
           "raridade": "epico",
-          "peso": 14
+          "peso": 24
         },
         {
           "raridade": "lendario",
-          "peso": 5
+          "peso": 16
         },
         {
           "raridade": "mitico",
-          "peso": 1
-        }
-      ]
-    },
-    {
-      "id": "bosque_cristalino",
-      "mapa": "custom_1785976237901_373",
-      "nome": "Bosque Cristalino",
-      "subtitulo": "A grande árvore guarda o cristal que ainda canta",
-      "nivel": 3,
-      "metas": {
-        "tempoOuro": 140000,
-        "tempoPrata": 210000,
-        "tempoBronze": 330000,
-        "danoOuro": 0,
-        "danoPrata": 0.25,
-        "danoBronze": 0.6
-      },
-      "premio": {
-        "claves": 2400,
-        "ouro": 560
-      },
-      "passe": {
-        "livre": true,
-        "custo": 1,
-        "resetHoras": 8
-      },
-      "baus": [
-        {
-          "raridade": "comum",
-          "peso": 31
-        },
-        {
-          "raridade": "raro",
-          "peso": 30
-        },
-        {
-          "raridade": "epico",
-          "peso": 18
-        },
-        {
-          "raridade": "lendario",
           "peso": 8
-        },
-        {
-          "raridade": "mitico",
-          "peso": 3
-        }
-      ]
-    },
-    {
-      "id": "salao_em_ruinas",
-      "mapa": "custom_1785976286672_61",
-      "nome": "Salão em Ruínas",
-      "subtitulo": "O que sobrou do conservatório antigo",
-      "nivel": 4,
-      "metas": {
-        "tempoOuro": 160000,
-        "tempoPrata": 240000,
-        "tempoBronze": 360000,
-        "danoOuro": 0,
-        "danoPrata": 0.25,
-        "danoBronze": 0.6
-      },
-      "premio": {
-        "claves": 3200,
-        "ouro": 700
-      },
-      "passe": {
-        "livre": true,
-        "custo": 1,
-        "resetHoras": 8
-      },
-      "baus": [
-        {
-          "raridade": "comum",
-          "peso": 22
-        },
-        {
-          "raridade": "raro",
-          "peso": 30
-        },
-        {
-          "raridade": "epico",
-          "peso": 22
-        },
-        {
-          "raridade": "lendario",
-          "peso": 11
-        },
-        {
-          "raridade": "mitico",
-          "peso": 5
-        }
-      ]
-    },
-    {
-      "id": "arena_do_selo",
-      "mapa": "custom_1785976318486_785",
-      "nome": "Arena do Selo",
-      "subtitulo": "O selo da clave arde no chão e chama quem ousa",
-      "nivel": 5,
-      "metas": {
-        "tempoOuro": 180000,
-        "tempoPrata": 270000,
-        "tempoBronze": 400000,
-        "danoOuro": 0,
-        "danoPrata": 0.25,
-        "danoBronze": 0.6
-      },
-      "premio": {
-        "claves": 4200,
-        "ouro": 900
-      },
-      "passe": {
-        "livre": true,
-        "custo": 1,
-        "resetHoras": 8
-      },
-      "baus": [
-        {
-          "raridade": "comum",
-          "peso": 13
-        },
-        {
-          "raridade": "raro",
-          "peso": 30
-        },
-        {
-          "raridade": "epico",
-          "peso": 26
-        },
-        {
-          "raridade": "lendario",
-          "peso": 14
-        },
-        {
-          "raridade": "mitico",
-          "peso": 7
         }
       ]
     }

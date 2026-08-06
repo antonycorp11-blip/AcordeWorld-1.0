@@ -8001,6 +8001,15 @@ function tryTalk() {
           npc.targetY = destY;
         }
 
+        // Placa que aponta para a entrada de uma dungeon não teleporta direto: mostra a
+        // arte e as metas primeiro, e só viaja se o jogador aceitar. Antes o portão
+        // aparecia sozinho ao chegar no mapa, o que dava o susto de abrir uma tela cheia
+        // na cara de quem só estava passando.
+        const dgAlvo = dungeonQueComecaEm(npc.targetMapKey);
+        if (dgAlvo && !corridaAtiva()) {
+          abrirPortao(dgAlvo, { mapa: npc.targetMapKey, x: destX, y: destY });
+          return;
+        }
         changeMapWithFade(npc.targetMapKey, destX, destY);
         return;
       }
@@ -16446,7 +16455,19 @@ async function carregarDungeons() {
   } catch (e) { DUNGEONS = []; }
 }
 
-function dungeonDoMapa(key) { return DUNGEONS.find(d => d.mapa === key) || null; }
+// Os mapas de uma dungeon: um só (`mapa`) ou vários (`estagios`).
+function mapasDaDungeon(d) {
+  return d.estagios ? d.estagios.map(e => e.mapa) : [d.mapa];
+}
+// O portão só abre no PRIMEIRO mapa. Entrar pela porta do meio pularia estágios — e a
+// corrida é do conjunto, não de uma sala.
+function dungeonQueComecaEm(key) {
+  return DUNGEONS.find(d => mapasDaDungeon(d)[0] === key) || null;
+}
+function dungeonDoMapa(key) {
+  return DUNGEONS.find(d => mapasDaDungeon(d).includes(key)) || null;
+}
+function estagioAtual(d) { return d.estagios ? d.estagios[corrida.estagio] : null; }
 function corridaAtiva() { return !!corrida && !corrida.fim; }
 function dungeonAtual() { return corrida ? dungeonDoMapa(corrida.mapa) : null; }
 
@@ -16483,26 +16504,35 @@ function iniciarCorrida(d) {
   }
   if (permissao.motivo === 'passe') passesDeDungeon -= (d.passe?.custo ?? 1);
 
-  // Todos os monstros voltam de pé e com vida cheia: uma corrida começa do zero, senão
-  // bastaria limpar o mapa uma vez e reentrar para concluir de graça.
-  const lista = monstrosDaDungeon(d.mapa);
+  playerHp = playerMaxHp();
+  const mapas = mapasDaDungeon(d);
+  corrida = {
+    id: d.id, mapa: mapas[0], estagio: 0, estagios: mapas.length,
+    inicio: performance.now(),
+    danoSofrido: 0, abates: 0, abatesAnteriores: 0, total: 0, fim: 0,
+  };
+  prepararEstagio(d);
+  fecharPortao();
+  anunciar(d.nome.toUpperCase(), 1600);
+  return true;
+}
+
+// Põe de pé o estágio em que a corrida está: monstros repostos, baús sorteados de novo.
+// Repor é o que impede limpar a sala, sair e voltar para concluir de graça.
+function prepararEstagio(d) {
+  const mapa = corrida.mapa;
+  const lista = monstrosDaDungeon(mapa);
   lista.forEach(m => {
     m.dead = false; m.respawnAt = 0;
     m.hp = m.maxHp = (monsterDef(m).hp ?? 20);
     m.x = m.homeX; m.y = m.homeY;
     m.paralisadoAte = 0; m.dormindoAte = 0; m.hurtUntil = 0;
   });
-  playerHp = playerMaxHp();
-
-  corrida = {
-    id: d.id, mapa: d.mapa, inicio: performance.now(),
-    danoSofrido: 0, abates: 0, total: lista.length, fim: 0,
-  };
-  sortearBausDaDungeon(d);
-  fecharPortao();
-  anunciar(d.nome.toUpperCase(), 1600);
-  showToast(`${d.nome} — derrote ${lista.length} inimigos.`);
-  return true;
+  corrida.total = lista.length;
+  sortearBausDaDungeon(d, mapa);
+  const e = estagioAtual(d);
+  if (e) showToast(`Estágio ${corrida.estagio + 1}/${corrida.estagios} — ${e.nome}: ${lista.length} inimigos.`);
+  else showToast(`${d.nome} — derrote ${lista.length} inimigos.`);
 }
 
 // Sair do mapa no meio abandona: sem isso daria para fugir do dano, voltar e concluir.
@@ -16565,28 +16595,67 @@ function concluirCorrida() {
 // acabou, e que o jogador saiu do mapa.
 function atualizarCorrida(now) {
   if (!corridaAtiva()) return;
-  if (currentKey !== corrida.mapa) { abandonarCorrida('Você saiu da dungeon — corrida perdida.'); return; }
+  // Durante a passagem de estágio o mapa muda de propósito — não é fuga.
+  if (currentKey !== corrida.mapa && !corrida.trocando) {
+    abandonarCorrida('Você saiu da dungeon — corrida perdida.'); return;
+  }
+  if (corrida.trocando) return;
   const vivos = monstrosDaDungeon(corrida.mapa).filter(m => !m.dead).length;
-  corrida.abates = corrida.total - vivos;
-  if (vivos === 0) concluirCorrida();
+  corrida.abates = corrida.abatesAnteriores + (corrida.total - vivos);
+  if (vivos > 0) return;
+
+  const d = dungeonDoMapa(corrida.mapa);
+  const ultimo = !d.estagios || corrida.estagio >= d.estagios.length - 1;
+  if (ultimo) { concluirCorrida(); return; }
+  avancarEstagio(d);
+}
+
+// Sala limpa e ainda há câmara adiante: leva o jogador para a próxima sem parar o
+// cronômetro. O tempo, o dano e os abates são da corrida inteira.
+function avancarEstagio(d) {
+  corrida.trocando = true;
+  corrida.abatesAnteriores = corrida.abates;
+  corrida.estagio += 1;
+  const prox = d.estagios[corrida.estagio];
+  anunciar(`ESTÁGIO ${corrida.estagio + 1} — ${prox.nome.toUpperCase()}`, 1800);
+  // Meio segundo de respiro antes de trocar de sala: sem isso a passagem acontece no mesmo
+  // quadro do último golpe e parece falha.
+  setTimeout(() => {
+    if (!corridaAtiva()) return;
+    corrida.mapa = prox.mapa;
+    const p = pousoSeguro(prox.mapa, SCREEN_W / 2, SCREEN_H - 120);
+    currentKey = prox.mapa;
+    player.x = p.x; player.y = p.y;
+    if (activeMapSelect && cenarioExiste(prox.mapa)) activeMapSelect.value = prox.mapa;
+    mapaVigiado = prox.mapa;          // o vigia não deve ler isto como fuga
+    updateMapStatus();
+    prepararEstagio(d);
+    corrida.trocando = false;
+  }, 900);
 }
 
 // ── portão de entrada ──
 // Chegar num mapa de dungeon não começa a corrida sozinho: abre o portão, que diz o
 // objetivo, o prêmio e o estado do passe. É aqui que a tranca vai morar quando ligar.
-function abrirPortao(d) {
+// `viagem` (opcional) diz de onde o jogador veio: quando o portão é aberto por uma placa,
+// aceitar precisa TELEPORTAR antes de começar a corrida.
+function abrirPortao(d, viagem) {
   const el = document.getElementById('dgPortao');
   if (!el) return;
+  portaoViagem = viagem || null;
   const perm = podeEntrarNaDungeon(d);
   const base = d.premio || {};
   const m = d.metas || {};
-  const total = monstrosDaDungeon(d.mapa).length;
+  const mapas = mapasDaDungeon(d);
+  const total = mapas.reduce((n, k) => n + monstrosDaDungeon(k).length, 0);
 
   el.querySelector('.dg-nome').textContent = d.nome;
   el.querySelector('.dg-sub').textContent = d.subtitulo || '';
   el.querySelector('.dg-nivel').textContent = `NÍVEL ${d.nivel || 1}`;
-  el.querySelector('.dg-objetivo').innerHTML =
-    `Derrote <b>${total}</b> inimigo${total === 1 ? '' : 's'} sem sair do pátio.`;
+  el.querySelector('.dg-objetivo').innerHTML = mapas.length > 1
+    ? `<b>${mapas.length}</b> câmaras em sequência · <b>${total}</b> inimigos ao todo.`
+      + `<br><small>O cronômetro não para entre elas. Sair no meio perde a corrida.</small>`
+    : `Derrote <b>${total}</b> inimigo${total === 1 ? '' : 's'} sem sair do pátio.`;
   el.querySelector('.dg-metas').innerHTML = `
     <div class="dg-meta"><span>OURO</span><b>${(m.tempoOuro / 1000) | 0}s</b><small>sem tomar dano</small></div>
     <div class="dg-meta"><span>PRATA</span><b>${(m.tempoPrata / 1000) | 0}s</b><small>até ${Math.round((m.danoPrata || 0) * 100)}% de dano</small></div>
@@ -16611,12 +16680,31 @@ function abrirPortao(d) {
   }
   const btn = el.querySelector('.dg-entrar');
   btn.disabled = !perm.ok;
-  btn.onclick = () => iniciarCorrida(d);
+  btn.onclick = () => entrarNaDungeon(d);
   el.querySelector('.dg-sair').onclick = () => fecharPortao();
 
   el.classList.remove('hidden');
 }
-function fecharPortao() { document.getElementById('dgPortao')?.classList.add('hidden'); }
+let portaoViagem = null;
+
+function entrarNaDungeon(d) {
+  if (!podeEntrarNaDungeon(d).ok) { iniciarCorrida(d); return; }
+  const v = portaoViagem;
+  if (!v) { iniciarCorrida(d); return; }
+  // Veio de uma placa: primeiro a viagem, e a corrida começa já dentro da dungeon —
+  // senão o cronômetro contaria o tempo de carregar o mapa.
+  fecharPortao();
+  changeMapWithFade(v.mapa, v.x, v.y);
+  setTimeout(() => {
+    mapaVigiado = v.mapa;
+    iniciarCorrida(d);
+  }, 700);
+}
+
+function fecharPortao() {
+  portaoViagem = null;
+  document.getElementById('dgPortao')?.classList.add('hidden');
+}
 function portaoAberto() {
   const el = document.getElementById('dgPortao');
   return !!el && !el.classList.contains('hidden');
@@ -16644,9 +16732,13 @@ function mostrarApuracao(r, c) {
       ${medalha(r.medalhaDano)}
     </div>
     <div class="dgf-linha">
-      <span>ABATES</span><b>${c.abates} / ${c.total}</b>
+      <span>ABATES</span><b>${c.abates} / ${c.abatesAnteriores + c.total}</b>
       <i class="dg-med m2">COMPLETO</i>
-    </div>`;
+    </div>
+    ${c.estagios > 1 ? `<div class="dgf-linha">
+      <span>CÂMARAS</span><b>${c.estagios} / ${c.estagios}</b>
+      <i class="dg-med m2">COMPLETO</i>
+    </div>` : ''}`;
   el.querySelector('.dgf-mult').textContent = `MULTIPLICADOR ×${r.mult.toFixed(2).replace('.', ',')}`;
   el.querySelector('.dgf-premios').innerHTML = `
     <div class="dgf-premio claves"><span>CLAVES</span><b>+${r.claves.toLocaleString('pt-BR')}</b></div>
@@ -16659,7 +16751,17 @@ function mostrarApuracao(r, c) {
   el.querySelector('.dgf-repetir').onclick = () => {
     el.classList.add('hidden'); corrida = null;
     const d = DUNGEONS.find(x => x.id === r.d.id);
-    if (d) abrirPortao(d);
+    if (!d) return;
+    // Repetir recomeça da PRIMEIRA câmara: a corrida é do conjunto.
+    const inicio = mapasDaDungeon(d)[0];
+    if (currentKey !== inicio) {
+      const p = pousoSeguro(inicio, SCREEN_W / 2, SCREEN_H - 120);
+      currentKey = inicio; player.x = p.x; player.y = p.y;
+      mapaVigiado = inicio;
+      if (activeMapSelect && cenarioExiste(inicio)) activeMapSelect.value = inicio;
+      updateMapStatus();
+    }
+    abrirPortao(d);
   };
   el.querySelector('.dgf-sair').onclick = () => { el.classList.add('hidden'); corrida = null; };
   el.classList.remove('hidden');
@@ -16683,7 +16785,13 @@ function renderHudDaCorrida(now) {
   el.querySelector('.dgh-tempo').className = 'dgh-tempo '
     + (ms <= (d.metas?.tempoOuro ?? 9e9) ? 'ouro'
      : ms <= (d.metas?.tempoPrata ?? 9e9) ? 'prata' : 'bronze');
-  el.querySelector('.dgh-abates').textContent = `${corrida.abates} / ${corrida.total}`;
+  const totalGeral = corrida.abatesAnteriores + corrida.total;
+  el.querySelector('.dgh-abates').textContent = `${corrida.abates} / ${totalGeral}`;
+  const est = el.querySelector('.dgh-estagio');
+  if (est) {
+    est.parentElement.classList.toggle('hidden', corrida.estagios <= 1);
+    est.textContent = `${corrida.estagio + 1} / ${corrida.estagios}`;
+  }
   el.querySelector('.dgh-dano').textContent = `${Math.round(corrida.danoSofrido)}`;
 }
 
@@ -16694,16 +16802,14 @@ function renderHudDaCorrida(now) {
 let mapaVigiado = null;
 function atualizarDungeon(now) {
   if (currentKey !== mapaVigiado) {
-    const anterior = mapaVigiado;
     mapaVigiado = currentKey;
-    if (corridaAtiva() && corrida.mapa !== currentKey) {
+    if (corridaAtiva() && corrida.mapa !== currentKey && !corrida.trocando) {
       abandonarCorrida('Você saiu da dungeon — corrida perdida.');
     }
-    const d = dungeonDoMapa(currentKey);
-    // Só abre o portão quem está de fato jogando: durante a edição pura ele apareceria
-    // por cima das ferramentas a cada vez que o cenário fosse aberto.
-    if (d && anterior !== null && personagemAndando() && !corridaAtiva()) abrirPortao(d);
-    else if (!d) fecharPortao();
+    // Chegar num mapa de dungeon NÃO abre mais o portão. Quem abre é a PLACA do mapa
+    // anterior, antes de teleportar — assim o jogador escolhe entrar em vez de levar uma
+    // tela cheia na cara ao atravessar. A tecla G continua abrindo à força, para testar.
+    if (!dungeonQueComecaEm(currentKey)) fecharPortao();
   }
   atualizarCorrida(now);
   renderHudDaCorrida(now);
@@ -16711,7 +16817,7 @@ function atualizarDungeon(now) {
 
 // Atalho para reabrir o portão da dungeon do mapa atual sem precisar sair e voltar.
 function abrirPortaoDaqui() {
-  const d = dungeonDoMapa(currentKey);
+  const d = dungeonQueComecaEm(currentKey);
   if (!d) { showToast('Este cenário não é uma dungeon.'); return; }
   if (corridaAtiva()) { showToast('Corrida em andamento.'); return; }
   abrirPortao(d);
@@ -16772,9 +16878,9 @@ function sortearRaridade(tabela) {
   return tabela[tabela.length - 1].raridade;
 }
 
-function sortearBausDaDungeon(d) {
+function sortearBausDaDungeon(d, mapa) {
   sorteioDeBaus = {};
-  bausDoMapa(d.mapa).forEach(o => {
+  bausDoMapa(mapa || d.mapa).forEach(o => {
     const vazio = Math.random() < CHANCE_DE_BAU_VAZIO;
     sorteioDeBaus[o.id] = {
       raridade: vazio ? null : sortearRaridade(d.baus),
