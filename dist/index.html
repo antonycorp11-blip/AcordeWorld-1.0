@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=20260805231058">
+  <link rel="stylesheet" href="style.css?v=20260805234543">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -294,6 +294,11 @@
                 <span class="hud-emoji">⚔️</span>
                 <span id="pointDot" class="dot hidden"></span>
               </button>
+              <!-- Temporário: os forjadores vão viver em pontos fixos do mapa. Enquanto
+                   isso, este botão abre os dois para poder testar. -->
+              <button id="forjaBtn" class="icon-btn" title="Forjadores (F2 nota · F3 escala)">
+                <span class="hud-emoji">⚒️</span>
+              </button>
               <button id="fichaBtn" class="icon-btn ficha-btn" title="Ficha do Personagem (C)">
                 <span class="hud-emoji">🎭</span>
                 <span id="fichaDot" class="dot hidden"></span>
@@ -412,6 +417,76 @@
             <div class="bp-quadro">
               <div class="bp-cab">BAÚ <b class="bp-raridade"></b></div>
               <div class="bp-itens"></div>
+            </div>
+          </div>
+
+          <!-- ══ Sintetizador de Notas ══ Fragmentos viram uma nota condensada.
+               A lógica é a que já existia no altar (condensarNota / custoDaNota); aqui é
+               a tela desenhada a partir da referência do Antony. -->
+          <div id="sintetizador" class="fj-overlay hidden">
+            <div class="fj-quadro">
+              <header class="fj-topo">
+                <span class="fj-selo">𝄞</span>
+                <h2 class="fj-titulo">Altar de Síntese de Notas</h2>
+                <button class="fj-fechar" data-fechar="sintetizador">✕</button>
+              </header>
+              <div class="fj-corpo fj-corpo-3">
+                <section class="fj-col">
+                  <div class="fj-cab">Fragmentos</div>
+                  <div class="fj-frags" id="sintFrags"></div>
+                  <p class="fj-dica"><i>ⓘ</i> Escolha a nota que quer condensar. O custo sai
+                    dos fragmentos que você coletou dos Ecos.</p>
+                </section>
+                <section class="fj-col fj-centro">
+                  <div class="fj-cab">Síntese</div>
+                  <div class="fj-circulo" id="sintCirculo"></div>
+                  <div class="fj-receita" id="sintReceita"></div>
+                </section>
+                <section class="fj-col">
+                  <div class="fj-cab">Resultado</div>
+                  <div class="fj-resultado" id="sintResultado"></div>
+                  <button class="fj-agir" id="sintBotao">SINTETIZAR</button>
+                </section>
+              </div>
+              <div class="fj-notas" id="sintNotas"></div>
+            </div>
+          </div>
+
+          <!-- ══ Forjador de Escalas ══ Notas + Tons e Semitons viram uma escala maior.
+               Usa a montagem que já existe (iniciarMontagem / colocarIntervalo). -->
+          <div id="forjadorEscalas" class="fj-overlay hidden">
+            <div class="fj-quadro">
+              <header class="fj-topo">
+                <span class="fj-selo">𝄞</span>
+                <h2 class="fj-titulo">Forjar Escalas Maiores</h2>
+                <button class="fj-fechar" data-fechar="forjadorEscalas">✕</button>
+              </header>
+              <p class="fj-sub">Combine Notas com Tons (T) e Semitons (S) para forjar uma escala maior.</p>
+              <div class="fj-corpo fj-corpo-3">
+                <section class="fj-col">
+                  <div class="fj-cab">Inventário</div>
+                  <div class="fj-subcab">Notas</div>
+                  <div class="fj-notas-grade" id="escNotas"></div>
+                  <div class="fj-subcab">Intervalos</div>
+                  <div class="fj-intervalos" id="escIntervalos"></div>
+                </section>
+                <section class="fj-col fj-centro">
+                  <div class="fj-cab">Altar de Forja</div>
+                  <div class="fj-passo">1. Escolha a nota raiz</div>
+                  <div class="fj-raiz" id="escRaiz"></div>
+                  <div class="fj-passo">2. Construa a escala maior</div>
+                  <div class="fj-escada" id="escEscada"></div>
+                  <div class="fj-padrao" id="escPadrao"></div>
+                  <div class="fj-legenda"><b>T</b> = Tom &nbsp;·&nbsp; <b>S</b> = Semitom</div>
+                </section>
+                <section class="fj-col">
+                  <div class="fj-cab">Resultado</div>
+                  <div class="fj-escala-res" id="escResultado"></div>
+                  <div class="fj-cab">Recompensas</div>
+                  <div class="fj-acordes" id="escAcordes"></div>
+                </section>
+              </div>
+              <button class="fj-agir fj-agir-largo" id="escBotao">FORJAR ESCALA</button>
             </div>
           </div>
 
@@ -859,7 +934,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="config.js?v=20260805231058"></script>
-<script src="game.js?v=20260805231058"></script>
+<script src="config.js?v=20260805234543"></script>
+<script src="game.js?v=20260805234543"></script>
 </body>
 </html>

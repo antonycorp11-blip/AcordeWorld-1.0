@@ -16226,6 +16226,9 @@ function habilidadeAberta(id) { return habilidadesAbertas.includes(id); }
 const BANCA_DE_TESTES = true;
 const BANCA_CLAVES = 400000;   // dá para abrir as 4 habilidades e maximizar as 7 passivas
 const BANCA_PONTOS  = 40;      // 7 passivas × 4 níveis = 28; sobra folga
+// Matéria-prima dos forjadores. Sem ela as duas telas abrem vazias e não dá para
+// experimentar a síntese nem a montagem de escala.
+const BANCA_MATERIAL = { fragmento: 120, fragmento_puro: 20, tom: 40, semitom: 24 };
 
 function abastecerBancaDeTestes() {
   if (!BANCA_DE_TESTES) return;
@@ -16233,13 +16236,17 @@ function abastecerBancaDeTestes() {
   // que já foi gasto volta a estar disponível.
   const faltaClave = BANCA_CLAVES - claveCount;
   const faltaPonto = BANCA_PONTOS - skillPoints;
-  if (faltaClave <= 0 && faltaPonto <= 0) return;
+  const faltaMat = Object.entries(BANCA_MATERIAL).some(([k, v]) => (playerInventory[k] || 0) < v);
+  if (faltaClave <= 0 && faltaPonto <= 0 && !faltaMat) return;
   if (faltaClave > 0) claveCount = BANCA_CLAVES;
   if (faltaPonto > 0) skillPoints = BANCA_PONTOS;
+  Object.entries(BANCA_MATERIAL).forEach(([k, v]) => {
+    if ((playerInventory[k] || 0) < v) playerInventory[k] = v;
+  });
   savePlayerData();
   // Aviso na tela para não se confundir com progresso real de jogo.
   setTimeout(() => showToast(
-    `Banca de testes: ${BANCA_CLAVES.toLocaleString('pt-BR')} claves e ${BANCA_PONTOS} pontos`), 1200);
+    `Banca de testes: ${BANCA_CLAVES.toLocaleString('pt-BR')} claves, ${BANCA_PONTOS} pontos e material de forja`), 1200);
 }
 
 function carregarHabilidadesAbertas(d) {
@@ -17302,3 +17309,255 @@ function renderInvocacoes(now) {
     ctx.restore();
   });
 }
+
+// ══ Forjadores ════════════════════════════════════════════════════════════════
+// Duas telas desenhadas a partir das referências do Antony. NENHUMA delas inventa
+// economia nova: o sintetizador chama `condensarNota`, que já existia no altar, e o
+// forjador de escalas usa `iniciarMontagem` / `colocarIntervalo` / `selarEscala`, que já
+// existiam também. O que muda é a cara e a clareza — o custo, o que falta e o que vem
+// depois ficam visíveis antes de gastar.
+//
+// Os altares vão morar em pontos fixos do mapa. Enquanto não moram, o botão ⚒️ do HUD
+// (e F2 / F3) abre os dois para testar.
+
+const ARTE_FRAG = {
+  do:'C', do_s:'Cs', re:'D', re_s:'Ds', mi:'E', fa:'F', fa_s:'Fs',
+  sol:'G', sol_s:'Gs', la:'A', la_s:'As', si:'B',
+};
+const caminhoFrag = id => `assets/itens/fragmentos/${ARTE_FRAG[id] || 'C'}.png`;
+const caminhoNota = id => `assets/itens/notas/${ARTE_FRAG[id] || 'C'}.png`;
+
+let notaEscolhida = 'do';
+
+function abrirForjador(qual) {
+  document.getElementById(qual)?.classList.remove('hidden');
+  if (qual === 'sintetizador') desenharSintetizador();
+  else { if (!montagem) iniciarMontagem(notaEscolhida); desenharForjadorDeEscalas(); }
+}
+function fecharForjador(qual) { document.getElementById(qual)?.classList.add('hidden'); }
+function forjadorAberto() {
+  return ['sintetizador', 'forjadorEscalas'].some(id =>
+    !document.getElementById(id)?.classList.contains('hidden'));
+}
+
+// ── Sintetizador de Notas ──
+function desenharSintetizador() {
+  const nota = notaPorId(notaEscolhida) || CROMATICA[0];
+  const c = custoDaNota(nota);
+  const disp = fragmentosDisponiveis();
+
+  // Fragmentos disponíveis, com o que falta em vermelho.
+  const frags = document.getElementById('sintFrags');
+  if (frags) {
+    const linhas = [
+      ['Fragmento', playerInventory.fragmento || 0, caminhoFrag('do'), false],
+      ['Puro (vale 3)', playerInventory.fragmento_puro || 0, 'assets/itens/fragmentos/tom.png', false],
+      ['Tom', playerInventory.tom || 0, 'assets/itens/fragmentos/tom.png', false],
+      ['Semitom', playerInventory.semitom || 0, 'assets/itens/fragmentos/semitom.png', false],
+    ];
+    frags.innerHTML = linhas.map(([n, q, arte]) => `
+      <div class="fj-frag"><img src="${arte}" alt=""><b>${q}</b><small>${n}</small></div>`).join('')
+      + `<div class="fj-frag${disp < c.fragmentos ? ' falta' : ''}" style="grid-column:1/-1">
+           <b>${disp}</b><small>TOTAL EM FRAGMENTOS · precisa de ${c.fragmentos}</small></div>`
+      + `<div class="fj-frag${claveCount < c.claves ? ' falta' : ''}" style="grid-column:1/-1">
+           <b>${claveCount.toLocaleString('pt-BR')}</b><small>CLAVES · precisa de ${c.claves}</small></div>`;
+  }
+
+  // Círculo arcano: três fragmentos convergindo na nota.
+  const circ = document.getElementById('sintCirculo');
+  if (circ) {
+    const cor = nota.natural ? '#7dd3fc' : '#c084fc';
+    circ.innerHTML = `
+      <svg viewBox="0 0 240 220" xmlns="http://www.w3.org/2000/svg">
+        <g fill="none" stroke="${cor}" stroke-opacity=".28">
+          <circle cx="120" cy="150" r="66"/><circle cx="120" cy="150" r="52"/>
+        </g>
+        <!-- Feixes saindo dos três fragmentos e caindo no núcleo. -->
+        <g fill="none" stroke="${cor}" stroke-width="2" stroke-opacity=".75">
+          <path d="M60 62 Q72 118 108 128"/>
+          <path d="M120 42 Q120 96 120 124"/>
+          <path d="M180 62 Q168 118 132 128"/>
+        </g>
+        <g stroke="${cor}" fill="rgba(6,16,40,.9)" stroke-width="2">
+          <circle cx="60" cy="62" r="21"/><circle cx="120" cy="42" r="21"/><circle cx="180" cy="62" r="21"/>
+          <circle cx="120" cy="150" r="38" stroke-width="3"/>
+        </g>
+        <image href="${caminhoFrag(nota.id)}" x="45" y="47" width="30" height="30"/>
+        <image href="${caminhoFrag(nota.id)}" x="105" y="27" width="30" height="30"/>
+        <image href="${caminhoFrag(nota.id)}" x="165" y="47" width="30" height="30"/>
+        <image href="${caminhoNota(nota.id)}" x="90" y="120" width="60" height="60"/>
+      </svg>`;
+  }
+
+  const rec = document.getElementById('sintReceita');
+  if (rec) rec.innerHTML =
+    `<img src="${caminhoFrag(nota.id)}" alt=""><b>${c.fragmentos}</b>
+     <span>+</span><b>${c.claves} clave${c.claves > 1 ? 's' : ''}</b>
+     <span>→</span><img src="${caminhoNota(nota.id)}" alt=""><b>${nota.nome}</b>`;
+
+  const res = document.getElementById('sintResultado');
+  if (res) {
+    const tem = notasPossuidas[nota.id] || 0;
+    res.innerHTML = `
+      <img src="${caminhoNota(nota.id)}" alt="">
+      <div class="fj-res-nome">${nota.nome}</div>
+      <div class="fj-res-tipo">${nota.natural ? 'Natural' : 'Sustenida'}</div>
+      ${tem ? `<div class="fj-res-tem">você já tem ${tem}</div>` : ''}`;
+  }
+
+  const btn = document.getElementById('sintBotao');
+  if (btn) {
+    const pode = podePagarNota(nota);
+    btn.disabled = !pode;
+    btn.textContent = pode ? 'SINTETIZAR'
+      : (disp < c.fragmentos ? `FALTAM ${c.fragmentos - disp} FRAGMENTOS` : 'FALTAM CLAVES');
+  }
+
+  const sel = document.getElementById('sintNotas');
+  if (sel) {
+    sel.innerHTML = CROMATICA.map(n => `
+      <button class="fj-nota-btn${n.id === notaEscolhida ? ' ativo' : ''}" data-nota="${n.id}">
+        <img src="${caminhoNota(n.id)}" alt=""><span>${n.nome}</span>
+        ${notasPossuidas[n.id] ? `<small>×${notasPossuidas[n.id]}</small>` : ''}
+      </button>`).join('');
+    sel.querySelectorAll('.fj-nota-btn').forEach(b =>
+      b.addEventListener('click', () => { notaEscolhida = b.dataset.nota; desenharSintetizador(); }));
+  }
+}
+
+// ── Forjador de Escalas ──
+const ROMANOS = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'];
+
+function desenharForjadorDeEscalas() {
+  // Inventário de notas.
+  const inv = document.getElementById('escNotas');
+  if (inv) inv.innerHTML = CROMATICA.map(n => {
+    const q = notasPossuidas[n.id] || 0;
+    return `<div class="fj-nota-inv${q ? '' : ' zero'}">
+      <img src="${caminhoNota(n.id)}" alt=""><span>${n.nome}</span><b>${q}</b></div>`;
+  }).join('');
+
+  // Intervalos: clicar coloca o passo, é o gesto da montagem.
+  const iv = document.getElementById('escIntervalos');
+  if (iv) {
+    const t = playerInventory.tom || 0, sm = playerInventory.semitom || 0;
+    iv.innerHTML = `
+      <button class="fj-interv${t ? '' : ' zero'}" data-passo="T">
+        <img src="assets/itens/fragmentos/tom.png" alt=""><b>×${t}</b><small>TOM (T)</small></button>
+      <button class="fj-interv${sm ? '' : ' zero'}" data-passo="S">
+        <img src="assets/itens/fragmentos/semitom.png" alt=""><b>×${sm}</b><small>SEMITOM (S)</small></button>`;
+    iv.querySelectorAll('.fj-interv').forEach(b => b.addEventListener('click', () => {
+      if (b.classList.contains('zero')) return;
+      colocarIntervalo(b.dataset.passo);
+      desenharForjadorDeEscalas();
+    }));
+  }
+
+  // Raiz: trocar reinicia a montagem, então só antes do primeiro passo.
+  const raiz = document.getElementById('escRaiz');
+  if (raiz) {
+    raiz.innerHTML = CROMATICA.map(n =>
+      `<button class="fj-raiz-btn${montagem && montagem.tonica === n.id ? ' ativo' : ''}"
+         data-raiz="${n.id}">${n.nome}</button>`).join('');
+    raiz.querySelectorAll('.fj-raiz-btn').forEach(b => b.addEventListener('click', () => {
+      if (montagem && montagem.passos.length) {
+        showToast('Termine ou reinicie a escala antes de trocar a raiz.');
+        return;
+      }
+      notaEscolhida = b.dataset.raiz;
+      iniciarMontagem(b.dataset.raiz);
+      desenharForjadorDeEscalas();
+    }));
+  }
+
+  // A escada: os graus já pisados, e os que faltam apagados.
+  const esc = document.getElementById('escEscada');
+  if (esc && montagem) {
+    let p = montagem.iTonica;
+    const partes = [`<div class="fj-grau raiz">${notaNaPosicao(p).nome}</div>`];
+    FORMULA_MAIOR.forEach((passo, i) => {
+      const feito = i < montagem.passos.length;
+      partes.push(`<span class="fj-liga ${passo === 'S' ? 's' : ''}${feito ? '' : ' futuro'}">${passo}</span>`);
+      if (feito) { p += (montagem.passos[i] === 'T' ? 2 : 1);
+                   partes.push(`<div class="fj-grau">${notaNaPosicao(p).nome}</div>`); }
+      else partes.push('<div class="fj-grau vazio">?</div>');
+    });
+    esc.innerHTML = partes.join('');
+  }
+
+  const pad = document.getElementById('escPadrao');
+  if (pad && montagem) pad.innerHTML = FORMULA_MAIOR.map((x, i) => {
+    const feito = i < montagem.passos.length;
+    const agora = i === montagem.passos.length;
+    return `<b class="${x === 'T' ? 't' : 's'}${feito ? ' feito' : ''}${agora ? ' agora' : ''}">${x}</b>`;
+  }).join('');
+
+  // Resultado: a última escala forjada.
+  const res = document.getElementById('escResultado');
+  if (res) {
+    const ultima = escalasMontadas[escalasMontadas.length - 1];
+    if (!ultima) res.innerHTML = '<p class="vazio">Nenhuma escala forjada ainda.</p>';
+    else {
+      const raizN = notaPorId(ultima.tonica);
+      let q = CROMATICA.findIndex(n => n.id === ultima.tonica);
+      const seq = [CROMATICA[q].nome];
+      FORMULA_MAIOR.forEach(t => { q += (t === 'T' ? 2 : 1); seq.push(notaNaPosicao(q).nome); });
+      res.innerHTML = `<div class="clef">𝄞</div>
+        <div class="nome">${raizN ? raizN.nome : ''} Maior</div>
+        <div class="seq">${seq.join(' ')}</div>`;
+    }
+  }
+
+  // Acordes do campo harmônico: a recompensa de ter fechado a escala.
+  const ac = document.getElementById('escAcordes');
+  if (ac) ac.innerHTML = ROMANOS.map((r, i) => {
+    const tem = (acordesObtidos[i + 1] || 0) > 0;
+    return `<div class="fj-acorde${tem ? '' : ' travado'}">
+      <div class="grau">${r}</div><div class="rom">grau ${i + 1}</div></div>`;
+  }).join('');
+
+  // A escala já sela sozinha ao receber o último intervalo (é `colocarIntervalo` quem
+  // chama `selarEscala`). O botão, então, não é um segundo caminho para selar — seria um
+  // jeito de selar duas vezes. Ele mostra o que falta e, quando não falta nada, vira o
+  // começo da próxima.
+  const btn = document.getElementById('escBotao');
+  if (btn) {
+    const completa = !montagem || montagem.passos.length >= FORMULA_MAIOR.length;
+    btn.disabled = false;
+    btn.dataset.acao = completa ? 'nova' : 'faltam';
+    if (completa) btn.textContent = 'FORJAR OUTRA ESCALA';
+    else {
+      const faltam = FORMULA_MAIOR.length - montagem.passos.length;
+      btn.textContent = `COLOQUE MAIS ${faltam} INTERVALO${faltam > 1 ? 'S' : ''}`;
+      btn.disabled = true;
+    }
+  }
+}
+
+// ── ligação ──
+document.getElementById('forjaBtn')?.addEventListener('click', () => abrirForjador('sintetizador'));
+document.getElementById('sintBotao')?.addEventListener('click', () => {
+  const nota = notaPorId(notaEscolhida);
+  if (nota) { condensarNota(nota); setTimeout(desenharSintetizador, 60); }
+});
+document.getElementById('escBotao')?.addEventListener('click', e => {
+  if (e.currentTarget.dataset.acao !== 'nova') return;
+  iniciarMontagem(notaEscolhida);
+  desenharForjadorDeEscalas();
+});
+document.querySelectorAll('[data-fechar]').forEach(b =>
+  b.addEventListener('click', () => fecharForjador(b.dataset.fechar)));
+['sintetizador', 'forjadorEscalas'].forEach(id =>
+  document.getElementById(id)?.addEventListener('click', e => {
+    if (e.target.id === id) fecharForjador(id);
+  }));
+window.addEventListener('keydown', e => {
+  if (e.repeat) return;
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if (e.key === 'F2') { e.preventDefault(); abrirForjador('sintetizador'); }
+  if (e.key === 'F3') { e.preventDefault(); abrirForjador('forjadorEscalas'); }
+  if (e.key === 'Escape' && forjadorAberto()) {
+    fecharForjador('sintetizador'); fecharForjador('forjadorEscalas');
+  }
+});

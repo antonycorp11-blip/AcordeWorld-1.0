@@ -6316,3 +6316,252 @@ html.abrindo, html.abrindo body { overflow: hidden; }
 .insp-chefe-ops { margin-top: 6px; padding-left: 4px; }
 .insp-chefe-ops.hidden { display: none; }
 .insp-chefe-ops small { display: block; margin-top: 3px; font-size: 10px; color: #8b96bb; }
+
+/* ══ Forjadores ═══════════════════════════════════════════════════════════════
+   Desenhados a partir das duas referências: azul-marinho profundo, moldura dourada
+   ornamentada, três colunas, e o centro como um altar arcano iluminado. */
+.fj-overlay {
+  position: absolute; inset: 0; z-index: 64;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 40%, rgba(10,24,58,.9), rgba(2,5,14,.97));
+  backdrop-filter: blur(3px); font-family: 'Outfit', sans-serif;
+}
+.fj-overlay.hidden { display: none; }
+
+.fj-quadro {
+  width: 96%; height: 94%;
+  display: flex; flex-direction: column;
+  padding: 10px 14px 12px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(24,52,110,.55), transparent 60%),
+    linear-gradient(170deg, rgba(11,26,58,.98), rgba(4,9,24,.99));
+  border: 2px solid #a97e2c;
+  box-shadow: 0 0 0 1px rgba(250,222,150,.28) inset, 0 20px 60px rgba(0,0,0,.75);
+}
+
+.fj-topo {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 12px;
+  padding-bottom: 8px; border-bottom: 1px solid rgba(169,126,44,.5);
+}
+.fj-selo {
+  width: 32px; height: 32px; flex: 0 0 auto;
+  display: grid; place-items: center; border-radius: 50%;
+  font-size: 17px; color: #7dd3fc;
+  background: rgba(8,20,48,.9); border: 2px solid rgba(169,126,44,.7);
+}
+.fj-titulo {
+  flex: 1; margin: 0; text-align: center;
+  font-size: 20px; font-weight: 700; letter-spacing: .1em; color: #f4e2b0;
+  text-shadow: 0 2px 0 rgba(0,0,0,.6), 0 0 22px rgba(232,196,105,.28);
+}
+.fj-fechar {
+  width: 30px; height: 30px; flex: 0 0 auto; border-radius: 50%;
+  background: rgba(8,20,48,.9); color: #f4dfa4; cursor: pointer;
+  border: 2px solid rgba(169,126,44,.7); font-size: 14px;
+}
+.fj-fechar:hover { background: rgba(90,74,26,.9); }
+.fj-sub {
+  flex: 0 0 auto; margin: 7px 0 0; text-align: center;
+  font-size: 11.5px; color: #93a7d4;
+}
+
+.fj-corpo-3 {
+  flex: 1 1 auto; min-height: 0; margin-top: 9px;
+  display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 10px;
+}
+.fj-col {
+  display: flex; flex-direction: column; gap: 7px; min-height: 0; min-width: 0;
+  padding: 9px; overflow-y: auto;
+  background: rgba(6,14,36,.6); border: 1px solid rgba(107,140,200,.28);
+}
+.fj-centro {
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(30,70,150,.32), transparent 65%),
+    rgba(6,14,36,.55);
+  align-items: center;
+}
+.fj-cab {
+  flex: 0 0 auto; text-align: center;
+  font-size: 10px; font-weight: 800; letter-spacing: .24em; color: #e8c469;
+  padding-bottom: 5px; border-bottom: 1px solid rgba(169,126,44,.38);
+}
+.fj-subcab {
+  font-size: 9px; font-weight: 800; letter-spacing: .2em; color: #7f92c0;
+  margin-top: 3px;
+}
+
+/* ── cartas de fragmento ── */
+.fj-frags { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.fj-frag {
+  position: relative; padding: 7px 4px; text-align: center;
+  background: rgba(10,20,48,.8); border: 1px solid rgba(107,140,200,.3);
+}
+.fj-frag img { width: 40px; height: 40px; object-fit: contain; display: block; margin: 0 auto; }
+.fj-frag b { display: block; font-size: 15px; color: #f2e3b6; line-height: 1.1; }
+.fj-frag small { font-size: 8.5px; letter-spacing: .08em; color: #8298c6; }
+.fj-frag.falta { border-color: rgba(248,113,113,.5); }
+.fj-frag.falta b { color: #fca5a5; }
+
+.fj-dica {
+  margin: auto 0 0; font-size: 10px; line-height: 1.4; color: #8298c6;
+  padding-top: 7px; border-top: 1px solid rgba(107,140,200,.2);
+}
+.fj-dica i { color: #7dd3fc; font-style: normal; }
+
+/* ── círculo arcano do centro ── */
+.fj-circulo {
+  flex: 1 1 auto; min-height: 150px; width: 100%;
+  display: grid; place-items: center; position: relative;
+}
+.fj-circulo svg { max-width: 100%; max-height: 100%; }
+.fj-receita {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 9px;
+  padding: 7px 14px; font-size: 13px; color: #dbe6ff;
+  background: rgba(8,18,44,.85); border: 1px solid rgba(169,126,44,.45);
+}
+.fj-receita img { width: 26px; height: 26px; object-fit: contain; }
+.fj-receita b { color: #f2e3b6; }
+
+/* ── coluna de resultado ── */
+.fj-resultado {
+  flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+  padding: 10px;
+  background: radial-gradient(ellipse at 50% 42%, rgba(30,70,150,.35), transparent 70%);
+  border: 1px solid rgba(169,126,44,.4);
+}
+.fj-resultado img { width: 96px; height: 96px; object-fit: contain; filter: drop-shadow(0 6px 18px rgba(125,211,252,.4)); }
+.fj-res-nome { font-size: 18px; font-weight: 800; letter-spacing: .06em; color: #f4e2b0; }
+.fj-res-tipo { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #7dd3fc; }
+.fj-res-tem { font-size: 10.5px; color: #86efac; }
+
+.fj-agir {
+  flex: 0 0 auto; padding: 11px; cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 800; letter-spacing: .2em;
+  color: #06253a; background: linear-gradient(180deg, #9fe3ff, #38bdf8);
+  border: 2px solid #7dd3fc; box-shadow: 0 0 18px rgba(125,211,252,.4);
+  transition: transform .12s, filter .12s;
+}
+.fj-agir:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.1); }
+.fj-agir:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+.fj-agir-largo {
+  margin-top: 9px; align-self: center; width: min(420px, 70%);
+  color: #21160a; background: linear-gradient(180deg, #ffe9ab, #d19a26); border-color: #e8c469;
+  box-shadow: 0 0 20px rgba(232,196,105,.4);
+}
+
+/* ── seletor de nota do sintetizador ── */
+.fj-notas {
+  flex: 0 0 auto; margin-top: 9px; display: flex; gap: 4px; justify-content: center; flex-wrap: wrap;
+}
+.fj-nota-btn {
+  width: 46px; padding: 4px 2px; cursor: pointer; text-align: center;
+  background: rgba(10,20,48,.85); border: 1px solid rgba(107,140,200,.32);
+  color: #a9bbe0; font-family: inherit; transition: all .13s;
+}
+.fj-nota-btn img { width: 26px; height: 26px; object-fit: contain; display: block; margin: 0 auto; }
+.fj-nota-btn span { font-size: 10px; font-weight: 700; }
+.fj-nota-btn small { display: block; font-size: 8.5px; color: #86efac; }
+.fj-nota-btn:hover { border-color: rgba(232,196,105,.6); }
+.fj-nota-btn.ativo {
+  border-color: #7dd3fc; background: rgba(20,52,96,.9); color: #f2e3b6;
+  box-shadow: 0 0 12px rgba(125,211,252,.45);
+}
+
+/* ── forjador de escalas ── */
+.fj-notas-grade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.fj-nota-inv {
+  padding: 4px 2px; text-align: center;
+  background: rgba(10,20,48,.8); border: 1px solid rgba(107,140,200,.28);
+}
+.fj-nota-inv img { width: 28px; height: 28px; object-fit: contain; display: block; margin: 0 auto; }
+.fj-nota-inv span { font-size: 9.5px; font-weight: 700; color: #dbe6ff; }
+.fj-nota-inv b { display: block; font-size: 10px; color: #86efac; }
+.fj-nota-inv.zero { opacity: .34; }
+
+.fj-intervalos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.fj-interv {
+  padding: 8px 4px; text-align: center; cursor: pointer;
+  background: rgba(10,20,48,.85); border: 1px solid rgba(107,140,200,.35);
+  transition: all .13s;
+}
+.fj-interv:hover:not(.zero) { border-color: #7dd3fc; transform: translateY(-1px); }
+.fj-interv img { width: 34px; height: 34px; object-fit: contain; display: block; margin: 0 auto; }
+.fj-interv b { display: block; font-size: 13px; color: #f2e3b6; }
+.fj-interv small { font-size: 8.5px; letter-spacing: .1em; color: #8298c6; }
+.fj-interv.zero { opacity: .35; cursor: not-allowed; }
+
+.fj-passo {
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; color: #93a7d4; margin-top: 4px;
+}
+.fj-raiz { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.fj-raiz-btn {
+  width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+  background: rgba(10,20,48,.9); border: 2px solid rgba(107,140,200,.4);
+  color: #c3d2f0; font-family: inherit; font-size: 10px; font-weight: 800;
+  transition: all .13s;
+}
+.fj-raiz-btn:hover { border-color: rgba(232,196,105,.7); }
+.fj-raiz-btn.ativo {
+  border-color: #f87171; color: #fff;
+  background: radial-gradient(circle at 50% 35%, rgba(220,60,60,.9), rgba(60,10,20,.95));
+  box-shadow: 0 0 14px rgba(248,113,113,.55);
+}
+
+.fj-escada { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; justify-content: center; }
+.fj-grau {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 800; color: #dbe6ff;
+  background: rgba(8,18,44,.9); border: 2px solid rgba(125,211,252,.5);
+  box-shadow: 0 0 12px rgba(56,189,248,.25) inset;
+}
+.fj-grau.vazio { color: #46557e; border-color: rgba(70,85,126,.5); box-shadow: none; }
+.fj-grau.raiz { border-color: #f87171; color: #fecaca; }
+.fj-liga { font-size: 9px; font-weight: 800; color: #7dd3fc; padding: 0 1px; }
+.fj-liga.s { color: #c084fc; }
+.fj-liga.futuro { color: #46557e; }
+
+.fj-padrao {
+  display: flex; gap: 5px; padding: 5px 12px;
+  background: rgba(8,18,44,.8); border: 1px solid rgba(169,126,44,.35);
+}
+.fj-padrao b { font-size: 12px; font-weight: 800; }
+.fj-padrao b.t { color: #7dd3fc; }
+.fj-padrao b.s { color: #c084fc; }
+.fj-padrao b.feito { text-shadow: 0 0 10px currentColor; }
+.fj-padrao b.agora { outline: 1px solid currentColor; outline-offset: 2px; }
+.fj-legenda { font-size: 9.5px; color: #8298c6; }
+
+.fj-escala-res {
+  flex: 0 0 auto; padding: 10px; text-align: center;
+  background: radial-gradient(ellipse at 50% 40%, rgba(30,70,150,.32), transparent 70%);
+  border: 1px solid rgba(169,126,44,.4);
+}
+.fj-escala-res .clef { font-size: 30px; color: #7dd3fc; line-height: 1; }
+.fj-escala-res .nome { font-size: 16px; font-weight: 800; color: #f4e2b0; margin-top: 3px; }
+.fj-escala-res .seq { font-size: 11px; letter-spacing: .22em; color: #a9bbe0; margin-top: 3px; }
+.fj-escala-res .vazio { font-size: 10.5px; color: #6b7ba6; font-style: italic; }
+
+.fj-acordes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.fj-acorde {
+  padding: 5px 2px; text-align: center;
+  background: rgba(10,20,48,.8); border: 1px solid rgba(107,140,200,.28);
+}
+.fj-acorde .grau { font-size: 12px; font-weight: 800; color: #f2e3b6; }
+.fj-acorde .rom { font-size: 8.5px; color: #8298c6; }
+.fj-acorde.travado { opacity: .3; }
+
+@media (max-height: 460px) {
+  .fj-titulo { font-size: 15px; }
+  .fj-quadro { padding: 7px 9px 9px; }
+  .fj-corpo-3 { gap: 7px; }
+  .fj-col { padding: 6px; }
+  .fj-resultado img { width: 64px; height: 64px; }
+  .fj-res-nome { font-size: 14px; }
+  .fj-grau { width: 30px; height: 30px; font-size: 10px; }
+  .fj-raiz-btn { width: 27px; height: 27px; font-size: 9px; }
+  .fj-nota-btn { width: 38px; }
+  .fj-nota-btn img { width: 20px; height: 20px; }
+  .fj-agir { padding: 8px; font-size: 11px; }
+}
