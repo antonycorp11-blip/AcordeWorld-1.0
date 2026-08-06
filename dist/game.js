@@ -4803,7 +4803,9 @@ function updateMonsters(now) {
     if (m.golpeEm && now >= m.golpeEm) {
       m.golpeEm = 0;
       if (!playerLocked && playerHp > 0 && dist < (def.touchRange ?? 34) * 1.25) {
-        damagePlayer(Math.round((def.damage ?? 5) * forcaDeChefe(m)));
+        // Dano do inimigo sobe com a dificuldade escolhida na porta.
+        damagePlayer(Math.round((def.damage ?? 5) * forcaDeChefe(m)
+                     * (corridaAtiva() ? dificuldadeDaCorrida().monstro : 1)));
         m.impactoAte = now + 140;
       }
     }
@@ -6962,6 +6964,9 @@ function damagePlayer(amount) {
   if (playerHp <= 0) {
     deadUntil = now + 1400;
     playerLocked = true;
+    // Cair DENTRO de uma dungeon expulsa. É a punição que dá peso a escolher uma
+    // dificuldade acima do próprio poder: pode tentar, mas perde a tentativa.
+    if (corridaAtiva()) { expulsarDaDungeon(); return; }
     showToast('💀 Você desmaiou... voltando ao início.');
   }
 }
@@ -16813,12 +16818,9 @@ function podeEntrarNaDungeon(d) {
   if (level < (d.nivelMinimo || 1)) {
     return { ok: false, nivel: d.nivelMinimo };
   }
-  // O poder é a margem real: nível diz há quanto tempo se joga, poder diz o quanto o
-  // personagem aguenta agora. Uma dungeon mais dura pede mais poder, não mais nível.
-  const poder = nivelDePoder();
-  if (poder < (d.poderMinimo || 0)) {
-    return { ok: false, poder: d.poderMinimo, seuPoder: poder };
-  }
+  // O poder NÃO tranca mais. Cada dificuldade tem um poder recomendado; entrar abaixo é
+  // permitido e avisado — quem quer tentar tem o direito de apanhar. A punição real é
+  // morrer e ser expulso, que é o que decide de verdade se dava ou não dava.
   if (d.passe?.livre) return { ok: true, livre: true };
   const espera = esperaDeReset(d);
   if (espera <= 0) return { ok: true, motivo: 'reset' };
@@ -16839,8 +16841,6 @@ function iniciarCorrida(d) {
   if (!permissao.ok) {
     showToast(permissao.nivel
       ? `${d.nome} exige nível ${permissao.nivel}. Você está no ${level}.`
-      : permissao.poder
-      ? `${d.nome} exige ${permissao.poder.toLocaleString('pt-BR')} de poder. Você tem ${permissao.seuPoder.toLocaleString('pt-BR')}.`
       : `Sem passe — a entrada libera em ${textoDeEspera(permissao.espera)}.`);
     return false;
   }
@@ -16850,6 +16850,7 @@ function iniciarCorrida(d) {
   const mapas = mapasDaDungeon(d);
   corrida = {
     id: d.id, mapa: mapas[0], estagio: 0, estagios: mapas.length,
+    dificuldade: dificuldadeEscolhida,
     inicio: performance.now(),
     danoSofrido: 0, abates: 0, abatesAnteriores: 0, total: 0, fim: 0,
   };
@@ -16871,7 +16872,7 @@ function prepararEstagio(d) {
   lista.forEach(m => {
     m.dead = false; m.respawnAt = 0;
     // A vida do chefe sai do GRAU da corrida — mesmo sorteio que define o baú.
-    m.maxHp = Math.round((monsterDef(m).hp ?? 20) * forcaDeChefe(m));
+    m.maxHp = Math.round((monsterDef(m).hp ?? 20) * forcaDeChefe(m) * dificuldadeDaCorrida().monstro);
     m.hp = m.maxHp;
     m.x = m.homeX; m.y = m.homeY;
     m.paralisadoAte = 0; m.dormindoAte = 0; m.hurtUntil = 0;
@@ -16922,10 +16923,11 @@ function avaliarCorrida(c) {
   const rank = RANK_POR_PONTO[mt + md] || 'C';
   const mult = MULT_DO_RANK[rank] || 1;
   const base = d.premio || { claves: 0, ouro: 0 };
+  const dif = (d.dificuldades || []).find(x => x.id === c.dificuldade) || { premio: 1, nome: 'Normal' };
   return {
-    d, ms, medalhaTempo: mt, medalhaDano: md, rank, mult,
-    claves: Math.round((base.claves || 0) * mult),
-    ouro: Math.round((base.ouro || 0) * mult),
+    d, ms, medalhaTempo: mt, medalhaDano: md, rank, mult, dif,
+    claves: Math.round((base.claves || 0) * mult * (dif.premio || 1)),
+    ouro: Math.round((base.ouro || 0) * mult * (dif.premio || 1)),
   };
 }
 
@@ -16992,6 +16994,22 @@ function confirmarEstagio(d) {
 // `viagem` (opcional) diz de onde o jogador veio: quando o portão é aberto por uma placa,
 // aceitar precisa TELEPORTAR antes de começar a corrida.
 let sorteioDoPortao = null;   // { dungeonId, grau } — vale até a corrida começar
+let dificuldadeEscolhida = 'normal';
+
+function dificuldadesDe(d) {
+  return d.dificuldades || [{ id: 'normal', nome: 'Normal', poder: 0, premio: 1, monstro: 1, grauBonus: 0 }];
+}
+function dificuldadeAtual(d) {
+  const l = dificuldadesDe(d);
+  return l.find(x => x.id === dificuldadeEscolhida) || l[0];
+}
+// A dificuldade da corrida em andamento, para o combate e o prêmio consultarem.
+function dificuldadeDaCorrida() {
+  if (!corrida) return { premio: 1, monstro: 1, grauBonus: 0 };
+  const d = dungeonDoMapa(corrida.mapa);
+  if (!d) return { premio: 1, monstro: 1, grauBonus: 0 };
+  return (d.dificuldades || []).find(x => x.id === corrida.dificuldade) || dificuldadesDe(d)[0];
+}
 
 function abrirPortao(d, viagem) {
   const el = document.getElementById('dgPortao');
@@ -17010,21 +17028,33 @@ function abrirPortao(d, viagem) {
   el.querySelector('.dg-nome').textContent = d.nome;
   el.querySelector('.dg-sub').textContent = d.subtitulo || '';
   const poderAgora = nivelDePoder();
+  const dif = dificuldadeAtual(d);
   el.querySelector('.dg-nivel').textContent = `DUNGEON NÍVEL ${d.nivel || 1}`;
   // A exigência ganhou bloco próprio, com ✓ ou ✕ em cada requisito. Escondida numa linha
   // de texto corrida ela passava batida — foi o relato.
   const okNivel = level >= (d.nivelMinimo || 1);
-  const okPoder = poderAgora >= (d.poderMinimo || 0);
+  const okPoder = poderAgora >= (dif.poder || 0);
   el.querySelector('#dgExige').innerHTML = `
     <div class="dgx ${okNivel ? 'ok' : 'nao'}">
       <b>${okNivel ? '✓' : '✕'}</b>
       <span>NÍVEL ${d.nivelMinimo || 1}</span><small>você: ${level}</small>
     </div>
-    <div class="dgx ${okPoder ? 'ok' : 'nao'}">
-      <b>${okPoder ? '✓' : '✕'}</b>
-      <span>${(d.poderMinimo || 0).toLocaleString('pt-BR')} DE PODER</span>
-      <small>você: ${poderAgora.toLocaleString('pt-BR')}</small>
+    <div class="dgx ${okPoder ? 'ok' : 'aviso'}">
+      <b>${okPoder ? '✓' : '⚠'}</b>
+      <span>${(dif.poder || 0).toLocaleString('pt-BR')} DE PODER</span>
+      <small>recomendado · você: ${poderAgora.toLocaleString('pt-BR')}</small>
     </div>`;
+
+  // Seletor de dificuldade. O poder recomendado sobe junto com o prêmio.
+  el.querySelector('#dgDificuldades').innerHTML = dificuldadesDe(d).map(x => `
+    <button class="dgd${x.id === dif.id ? ' ativa' : ''}${poderAgora < x.poder ? ' arriscada' : ''}"
+            data-dif="${x.id}">
+      <b>${x.nome}</b>
+      <small>${x.poder.toLocaleString('pt-BR')} de poder</small>
+      <i>×${x.premio.toString().replace('.', ',')} prêmio · inimigos ×${x.monstro.toString().replace('.', ',')}</i>
+    </button>`).join('');
+  el.querySelectorAll('#dgDificuldades .dgd').forEach(b2 =>
+    b2.addEventListener('click', () => { dificuldadeEscolhida = b2.dataset.dif; abrirPortao(d, portaoViagem); }));
   el.querySelector('.dg-objetivo').innerHTML = mapas.length > 1
     ? `<b>${mapas.length}</b> câmaras em sequência · <b>${total}</b> inimigos ao todo.`
       + `<br><small>O cronômetro não para entre elas. Sair no meio perde a corrida.</small>`
@@ -17047,9 +17077,6 @@ function abrirPortao(d, viagem) {
   if (perm.nivel) {
     passe.className = 'dg-passe bloqueado';
     passe.textContent = `Exige nível ${perm.nivel} — você está no ${level}.`;
-  } else if (perm.poder) {
-    passe.className = 'dg-passe bloqueado';
-    passe.textContent = `Exige ${perm.poder.toLocaleString('pt-BR')} de poder — você tem ${perm.seuPoder.toLocaleString('pt-BR')}.`;
   } else if (d.passe?.livre) {
     passe.className = 'dg-passe livre';
     passe.textContent = 'Entrada liberada — o passe entra em uma versão futura.';
@@ -17309,8 +17336,11 @@ function sortearBausDaDungeon(d, mapa) {
   sorteioDeBaus = {};
   bausDoMapa(mapa || d.mapa).forEach(o => {
     const vazio = Math.random() < CHANCE_DE_BAU_VAZIO;
+    // A dificuldade empurra o piso de raridade para cima: extremo nunca dá baú comum.
+    const bonus = dificuldadeDaCorrida().grauBonus || 0;
+    const piso = GRAUS[Math.min(GRAUS.length - 1, GRAUS.indexOf(corrida.grau || 'comum') + bonus)];
     sorteioDeBaus[o.id] = {
-      raridade: vazio ? null : raridadeComPiso(d, corrida.grau || 'comum'),
+      raridade: vazio ? null : raridadeComPiso(d, piso),
       aberto: false,
     };
   });
@@ -17335,6 +17365,23 @@ function bauVisivel(o) {
   return { prop: propDoBauSorteado(o), fantasma: s.aberto };
 }
 
+// ── guarda ──
+// O baú é vigiado. Não abre enquanto houver monstro vivo montando guarda em volta dele —
+// as posições foram escolhidas junto dos grupos justamente para isso, e sem a regra bastava
+// entrar na dungeon e sair correndo com o prêmio sem lutar.
+//
+// O chefe é caso à parte: enquanto ele estiver de pé, a SALA INTEIRA fica fechada. Numa
+// câmara de chefe não existe canto seguro, e um baú aberto no meio da briga tiraria o
+// sentido de derrubá-lo.
+const RAIO_DE_GUARDA = 200;
+
+function guardasDoBau(o) {
+  const vivos = monsters.filter(m => !m.dead && m.mapKey === o.mapKey);
+  if (vivos.some(m => ehChefe(m))) return vivos.filter(m => ehChefe(m)).length + 100;
+  return vivos.filter(m => Math.hypot(m.x - o.x, m.y - o.y) <= RAIO_DE_GUARDA).length;
+}
+function bauGuardado(o) { return guardasDoBau(o) > 0; }
+
 // ── abrir ──
 function bauMaisPerto() {
   if (!corridaAtiva()) return null;
@@ -17342,6 +17389,7 @@ function bauMaisPerto() {
   bausDoMapa(corrida.mapa).forEach(o => {
     const s = sorteioDeBaus[o.id];
     if (!s || !s.raridade || s.aberto) return;
+    if (bauGuardado(o)) return;                 // os guardas primeiro
     const d = Math.hypot(player.x - o.x, player.y - o.y);
     if (d < 76 && d < dist) { dist = d; melhor = o; }
   });
@@ -17416,13 +17464,85 @@ function renderBrilhoDoBau(o, b, now) {
   if (!s || !s.raridade) return;
   const cor = COR_DA_RARIDADE[s.raridade] || '#cbd5e1';
   const pulso = 0.5 + 0.5 * Math.sin(now * 0.004 + o.x);
-  ctx.save();
-  ctx.globalAlpha = 0.30 + pulso * 0.28;
-  ctx.strokeStyle = cor; ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.ellipse(o.x, o.y, b.w * 0.42 + pulso * 3, b.w * 0.18 + pulso * 2, 0, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
+  const guardas = guardasDoBau(o);
+
+  // Guardado: o baú fica acinzentado com um cadeado, e o brilho da raridade só acende
+  // quando os guardas caem. É a recompensa visual de ter limpado o canto.
+  if (guardas > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.45 + pulso * 0.2;
+    ctx.strokeStyle = 'rgba(148,163,184,.9)'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.ellipse(o.x, o.y, b.w * 0.42, b.w * 0.18, 0, 0, Math.PI * 2);
+    ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+    if (Math.hypot(player.x - o.x, player.y - o.y) < 110) {
+      ctx.save();
+      ctx.font = 'bold 11px Outfit, sans-serif'; ctx.textAlign = 'center';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
+      const txt = guardas > 99 ? '🔒 o chefe guarda esta sala'
+                : `🔒 ${guardas} guarda${guardas > 1 ? 's' : ''} por perto`;
+      ctx.strokeText(txt, o.x, b.y - 8); 
+      ctx.fillStyle = '#cbd5e1'; ctx.fillText(txt, o.x, b.y - 8);
+      ctx.restore();
+    }
+    return;
+  }
+
+  // O COMUM não brilha. Se todo baú brilhasse, o brilho não diria nada — é justamente a
+  // ausência dele que faz o azul, o roxo, o dourado e o vermelho valerem alguma coisa do
+  // outro lado da sala. Quanto mais raro, mais forte e mais alto sobe a luz.
+  const forca = { comum: 0, raro: 1, epico: 1.5, lendario: 2.1, mitico: 2.8 }[s.raridade] || 0;
+  if (forca > 0) {
+    ctx.save();
+    // Halo no chão, pintado por adição para a cor realmente acender sobre a pedra escura.
+    ctx.globalCompositeOperation = 'lighter';
+    const raio = b.w * (0.55 + forca * 0.12) + pulso * 4;
+    const g = ctx.createRadialGradient(o.x, o.y, 1, o.x, o.y, raio);
+    g.addColorStop(0, cor);
+    g.addColorStop(0.45, cor + '66');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalAlpha = (0.16 + pulso * 0.12) * forca;
+    ctx.beginPath();
+    ctx.ellipse(o.x, o.y, raio, raio * 0.42, 0, 0, Math.PI * 2);
+    ctx.fillStyle = g; ctx.fill();
+
+    // Coluna curta de luz subindo pela caixa: é o que se enxerga de longe, quando o halo
+    // do chão já ficou pequeno na tela.
+    const alt = b.h * (0.7 + forca * 0.25);
+    const gv = ctx.createLinearGradient(0, o.y, 0, o.y - alt);
+    gv.addColorStop(0, cor + '55');
+    gv.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalAlpha = (0.10 + pulso * 0.10) * forca;
+    ctx.fillStyle = gv;
+    ctx.fillRect(o.x - b.w * 0.30, o.y - alt, b.w * 0.60, alt);
+
+    // Fagulhas nos dois graus mais altos: o lendário e o mítico precisam se distinguir
+    // entre si, e a cor sozinha não basta.
+    if (forca >= 2) {
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = cor;
+      const n = forca >= 2.5 ? 4 : 2;
+      for (let i = 0; i < n; i++) {
+        const t = ((now * 0.0006) + i / n) % 1;
+        const ang = (i * 2.4) + o.x;
+        ctx.beginPath();
+        ctx.arc(o.x + Math.cos(ang + t * 3) * b.w * 0.34,
+                o.y - t * alt, 1.8 * (1 - t) + 0.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+
+    // Anel de contorno, já sem composição aditiva, para não estourar em branco.
+    ctx.save();
+    ctx.globalAlpha = 0.28 + pulso * 0.30;
+    ctx.strokeStyle = cor; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(o.x, o.y, b.w * 0.42 + pulso * 3, b.w * 0.18 + pulso * 2, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
 
   if (Math.hypot(player.x - o.x, player.y - o.y) < 76) {
     ctx.save();
@@ -18575,4 +18695,36 @@ function desenharAchadosDoPortao(d, grau) {
           </div>
         </div>`).join('')}
     </div>`;
+}
+
+// Morreu na dungeon: a corrida acaba, o jogador volta para fora, e a tentativa CONTA.
+// Com passe dá para voltar na hora; sem passe, espera o relógio de reset — é isso que
+// impede escolher Extremo e ficar batendo cabeça de graça.
+function expulsarDaDungeon() {
+  const c = corrida;
+  const d = dungeonDoMapa(c.mapa);
+  const origem = c.origem;
+  corrida = null;
+  playerLocked = false; deadUntil = 0;
+  playerHp = Math.max(1, Math.round(playerMaxHp() * 0.35));
+
+  if (d) {
+    // A tentativa foi gasta: liga o relógio de reset desta dungeon.
+    ultimaConclusaoDeDungeon[d.id] = Date.now();
+    if (!d.passe?.livre && passesDeDungeon > 0) passesDeDungeon -= 1;
+  }
+  savePlayerData();
+
+  if (origem && cenarioExiste(origem)) {
+    const p = pousoSeguro(origem, SCREEN_W / 2, SCREEN_H / 2);
+    currentKey = origem; player.x = p.x; player.y = p.y;
+    mapaVigiado = origem;
+    if (activeMapSelect && cenarioExiste(origem)) activeMapSelect.value = origem;
+    updateMapStatus();
+  }
+  anunciar('EXPULSO DA DUNGEON', 2000);
+  const espera = d ? esperaDeReset(d) : 0;
+  showToast(d && !d.passe?.livre && passesDeDungeon <= 0 && espera > 0
+    ? `Você caiu. Sem passe — a entrada volta em ${textoDeEspera(espera)}.`
+    : 'Você caiu. A corrida foi perdida — tente de novo quando estiver mais forte.');
 }

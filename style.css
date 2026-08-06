@@ -7030,3 +7030,26 @@ body.jogando .party-hud.calmo { opacity: .62; }
   font-size: 7.5px; font-weight: 800; letter-spacing: .04em; text-align: center;
   background: rgba(251,191,36,.92); color: #3b2503;
 }
+
+/* Seletor de dificuldade no portão. */
+.dg-dificuldades { display: flex; gap: 7px; margin-bottom: 10px; }
+.dgd {
+  flex: 1; padding: 8px 6px; cursor: pointer; font-family: inherit;
+  display: flex; flex-direction: column; gap: 2px; align-items: center;
+  background: rgba(10,14,32,.8); border: 1px solid rgba(107,124,180,.32);
+  color: #8b96bb; transition: all .14s;
+}
+.dgd b { font-size: 12px; letter-spacing: .1em; }
+.dgd small { font-size: 9px; }
+.dgd i { font-size: 8.5px; font-style: normal; opacity: .8; }
+.dgd:hover { color: #dbe6ff; border-color: rgba(232,196,105,.5); }
+.dgd.ativa {
+  color: #f4e2b0; border-color: #e8c469;
+  background: linear-gradient(180deg, rgba(122,94,30,.55), rgba(24,32,66,.5));
+}
+/* Acima do seu poder: entra, mas avisado. */
+.dgd.arriscada b::after { content: ' ⚠'; color: #fca5a5; font-size: 10px; }
+.dgd.ativa.arriscada { border-color: #fca5a5; }
+
+/* Requisito recomendado (não trava) tem cor própria: nem verde nem vermelho. */
+.dgx.aviso { color: #fbbf24; border-color: rgba(251,191,36,.5); background: rgba(70,52,10,.4); }

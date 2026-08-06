@@ -1101,8 +1101,8 @@
       "id": "maestro_esqueleto_1785982669834",
       "type": "maestro_esqueleto",
       "mapKey": "custom_1785967453140_198",
-      "x": 658,
-      "y": 222,
+      "x": 653,
+      "y": 220,
       "escala": 0.5,
       "flipX": false
     },
@@ -1119,7 +1119,7 @@
       "id": "aranha_da_pauta_1785982709467",
       "type": "aranha_da_pauta",
       "mapKey": "custom_1785967453140_198",
-      "x": 273,
+      "x": 287,
       "y": 129,
       "escala": 0.5000000000000001,
       "flipX": false

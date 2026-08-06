@@ -3,20 +3,21 @@
     "Cada dungeon aponta para um ou mais cenários que já existem.",
     "",
     "Uma dungeon de UM mapa usa `mapa`. Uma de vários usa `estagios`: cada estágio é um",
-    "mapa, percorridos em sequência. O cronômetro, o dano e os abates são da corrida",
-    "inteira — os estágios não zeram nada, só mudam de sala.",
+    "mapa, percorridos em sequência. O cronômetro, o dano e os abates são da corrida inteira.",
+    "",
+    "nivelMinimo: trava dura. Abaixo disso a porta não abre.",
+    "",
+    "dificuldades: o jogador escolhe na porta. `poder` é RECOMENDADO, não exigido — dá para",
+    "entrar abaixo e tentar, com aviso. `monstro` multiplica vida e dano dos inimigos,",
+    "`premio` multiplica claves e ouro, e `grauBonus` empurra o sorteio dos baús para cima.",
     "",
     "metas: tempos (ms) e dano sofrido que valem cada medalha, para a corrida toda.",
     "",
-    "passe.livre: true deixa entrar sempre. Quando virar false a entrada passa a exigir um",
-    "nivelMinimo: nivel do heroi exigido para entrar. O portao mostra e recusa abaixo disso.",
-    "poderMinimo: nivel de poder exigido. E a margem real: um heroi de nivel alto mas mal",
-    "equipado nao entra, e um bem equipado entra mais cedo.",
-    "passe OU esperar o reset — o sistema já está pronto, é só virar a chave.",
+    "passe.livre: true deixa entrar sempre. Com false, morrer gasta a tentativa: volta com",
+    "passe, ou espera o reset.",
     "",
-    "baus: tabela de sorteio. Ao entrar em CADA estágio, os baús plantados naquele mapa",
-    "sorteiam raridade nesta lista (peso relativo) — ou nada, se caírem em vazio.",
-    "Posição, tamanho e quantidade são os definidos no editor; o código só troca a arte."
+    "baus: tabela de sorteio. Ao entrar em cada estágio, os baús plantados naquele mapa",
+    "sorteiam raridade nesta lista — e o baú só ABRE quando os monstros que o guardam caem."
   ],
   "dungeons": [
     {
@@ -65,7 +66,32 @@
         }
       ],
       "nivelMinimo": 3,
-      "poderMinimo": 320
+      "dificuldades": [
+        {
+          "id": "normal",
+          "nome": "Normal",
+          "poder": 320,
+          "premio": 1.0,
+          "monstro": 1.0,
+          "grauBonus": 0
+        },
+        {
+          "id": "dificil",
+          "nome": "Difícil",
+          "poder": 608,
+          "premio": 2.0,
+          "monstro": 1.7,
+          "grauBonus": 1
+        },
+        {
+          "id": "extremo",
+          "nome": "Extremo",
+          "poder": 992,
+          "premio": 3.6,
+          "monstro": 2.6,
+          "grauBonus": 2
+        }
+      ]
     },
     {
       "id": "cavernas_da_clave",
@@ -126,7 +152,32 @@
         }
       ],
       "nivelMinimo": 6,
-      "poderMinimo": 1200
+      "dificuldades": [
+        {
+          "id": "normal",
+          "nome": "Normal",
+          "poder": 1200,
+          "premio": 1.0,
+          "monstro": 1.0,
+          "grauBonus": 0
+        },
+        {
+          "id": "dificil",
+          "nome": "Difícil",
+          "poder": 2280,
+          "premio": 2.0,
+          "monstro": 1.7,
+          "grauBonus": 1
+        },
+        {
+          "id": "extremo",
+          "nome": "Extremo",
+          "poder": 3720,
+          "premio": 3.6,
+          "monstro": 2.6,
+          "grauBonus": 2
+        }
+      ]
     }
   ]
 }
