@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=20260805200550">
+  <link rel="stylesheet" href="style.css?v=20260805202749">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -53,59 +53,57 @@
   el.hidden = false;
   document.documentElement.classList.add('abrindo');
 
-  // Conta as imagens que ainda não terminaram. Em vez de listar à mão o que carregar —
-  // são dezenas de folhas espalhadas pelo código — o construtor de Image é embrulhado
-  // aqui, ANTES do game.js, e passa a avisar sozinho. Erro também conta como resolvida:
-  // um arquivo que falta não pode prender a abertura para sempre.
-  var pendentes = 0, jaVistas = 0, Nativo = window.Image;
-  function resolveu() { pendentes = Math.max(0, pendentes - 1); }
-  window.Image = function () {
-    var img = new Nativo(arguments[0], arguments[1]);
-    var src = Object.getOwnPropertyDescriptor(Nativo.prototype, 'src')
-           || Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
-    Object.defineProperty(img, 'src', {
-      configurable: true,
-      get: function () { return src.get.call(this); },
-      set: function (v) {
-        pendentes++; jaVistas++;
-        this.addEventListener('load', resolveu, { once: true });
-        this.addEventListener('error', resolveu, { once: true });
-        src.set.call(this, v);
-      },
-    });
-    return img;
-  };
-  window.Image.prototype = Nativo.prototype;
+  // Como o carregamento é medido, e por que NÃO se mexe no construtor de Image.
+  //
+  // A primeira versão embrulhava `window.Image` para contar o que estava pendente. Era
+  // preciso, mas punha código meu no caminho de TODA imagem que o jogo carrega — e só no
+  // celular, que é justamente onde não dá para depurar. Ao primeiro relato de cenário que
+  // não aparecia no aparelho, essa peça virou a principal suspeita e saiu.
+  //
+  // Agora a medição é só de leitura: o PerformanceObserver avisa quando cada imagem
+  // TERMINA, sem interferir em nenhuma. A abertura fecha quando as chegadas param —
+  // um período de silêncio é sinal melhor de "assentou" do que qualquer contagem.
+  var chegaram = 0, ultima = Date.now(), inicio = Date.now();
+  try {
+    new PerformanceObserver(function (lista) {
+      lista.getEntries().forEach(function (e) {
+        if (e.initiatorType === 'img' || /\.(png|jpe?g|webp|gif)(\?|$)/i.test(e.name)) {
+          chegaram++; ultima = Date.now();
+        }
+      });
+    }).observe({ type: 'resource', buffered: true });
+  } catch (err) { /* navegador antigo: sobra o tempo mínimo e o teto */ }
 
-  var inicio = Date.now();
-  var MINIMO = 1400;     // tempo de tela mínimo, para a logo não dar um flash e sumir
-  var TETO = 20000;      // nunca prende o jogador, aconteça o que acontecer
-  var quieto = 0;
+  var carregou = false;
+  addEventListener('load', function () { carregou = true; });
+
+  var MINIMO = 1600;    // tempo de tela mínimo, para a logo não dar um flash
+  var SILENCIO = 900;   // sem imagem nova por este tempo = assentou
+  var TETO = 25000;     // nunca prende o jogador, aconteça o que acontecer
   var barra = el.querySelector('#aberturaBarra i');
   var texto = document.getElementById('aberturaTexto');
+  var maior = 0;
 
   var t = setInterval(function () {
     var passou = Date.now() - inicio;
-    // A barra mostra o que já resolveu do que foi pedido — e nunca anda para trás.
-    var frac = jaVistas ? (jaVistas - pendentes) / jaVistas : 0;
-    var alvo = Math.max(passou / TETO, frac) * 100;
-    barra.style.width = Math.min(98, alvo).toFixed(1) + '%';
-    if (jaVistas) texto.textContent = 'carregando… ' + (jaVistas - pendentes) + '/' + jaVistas;
+    var quieto = Date.now() - ultima;
+    // A barra combina o tempo decorrido com o silêncio já acumulado, e nunca anda para
+    // trás: uma barra que recua parece travamento.
+    var alvo = Math.max(passou / TETO, carregou ? 0.55 : 0.25, quieto / SILENCIO * 0.4 + 0.55);
+    maior = Math.max(maior, Math.min(0.97, alvo));
+    barra.style.width = (maior * 100).toFixed(1) + '%';
+    texto.textContent = 'carregando… ' + chegaram;
 
-    quieto = pendentes === 0 ? quieto + 1 : 0;
-    // Pronto quando nada mais está pendente há uns instantes: sem essa carência a
-    // abertura fecharia no vão entre uma folha terminar e a próxima começar.
-    var pronto = quieto >= 5 && jaVistas > 0 && passou >= MINIMO;
+    var pronto = carregou && quieto >= SILENCIO && passou >= MINIMO;
     if (!pronto && passou < TETO) return;
     clearInterval(t);
-    window.Image = Nativo;
     barra.style.width = '100%';
     el.classList.add('saindo');
     setTimeout(function () {
       el.remove();
       document.documentElement.classList.remove('abrindo');
     }, 420);
-  }, 100);
+  }, 120);
 })();
 </script>
 
@@ -849,7 +847,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="config.js?v=20260805200550"></script>
-<script src="game.js?v=20260805200550"></script>
+<script src="config.js?v=20260805202749"></script>
+<script src="game.js?v=20260805202749"></script>
 </body>
 </html>
