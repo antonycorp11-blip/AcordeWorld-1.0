@@ -6666,6 +6666,9 @@ function colheitaDoEco(m, qualidade = 0) {
     if (drop.item === 'fragmento') {
       let n = (drop.min ?? 1) + Math.floor(Math.random() * (((drop.max ?? 1) - (drop.min ?? 1)) + 1));
       n += tier - 1;                                   // Ressonador melhor, mais som
+      // Um empurrão de 40%: com a nota custando 30 pontos, o ritmo antigo pedia moer
+      // longe demais para uma nota só.
+      n = Math.max(1, Math.round(n * 1.4));
       if (!tinha) n = Math.max(1, Math.floor(n / 3));  // lugar silenciado rende pouco
       // Cada fragmento sorteado sai PURO ou comum. Um puro vale três na síntese, então
       // trocar um pelo outro é o prêmio de quem juntou as vozes depressa — antes eu
@@ -6687,6 +6690,17 @@ function colheitaDoEco(m, qualidade = 0) {
 // Vai direto para a bolsa: fragmento capturado não fica no chão esperando ser pisado.
 function receberDaCaptura(id, n) {
   if (id === 'clave') { claveCount += n; return; }
+  // Fragmento comum cai já pertencendo a uma nota. É o que dá cor ao chão e o que faz o
+  // jogador reparar em qual nota ele está juntando — o pó genérico não ensinava nada.
+  if (id === 'fragmento') {
+    for (let i = 0; i < n; i++) {
+      const nota = CROMATICA[Math.floor(Math.random() * CROMATICA.length)];
+      const k = 'frag_' + nota.id;
+      playerInventory[k] = (playerInventory[k] || 0) + 1;
+    }
+    progressoDeMissao('coletar', 'fragmento', n);
+    return;
+  }
   playerInventory[id] = (playerInventory[id] || 0) + n;
   if (id === 'fragmento_puro') progressoDeMissao('coletar', 'fragmento', n * VALOR_FRAGMENTO_PURO);
   else progressoDeMissao('coletar', id, n);
@@ -6884,7 +6898,9 @@ function killMonster(m, now) {
   tabela.forEach(drop => {
     if (drop.chance != null && Math.random() > drop.chance) return;
     let n = (drop.min ?? 1) + Math.floor(Math.random() * (((drop.max ?? 1) - (drop.min ?? 1)) + 1));
-    if (drop.item === 'fragmento') n += bonusResson;
+    // O mesmo empurrão de 40% do outro caminho de drop: os dois têm que render igual,
+    // senão o ganho depende de por onde o fragmento veio.
+    if (drop.item === 'fragmento') n = Math.max(1, Math.round((n + bonusResson) * 1.4));
     for (let i = 0; i < n; i++) {
       dropItems.push({
         item: drop.item || 'clave',
@@ -6994,9 +7010,18 @@ function updateDrops(now) {
       } else {
         // Fragmentos, tons e semitons: itens de mochila, sem limite de claves.
         dropItems.splice(i, 1);
-        playerInventory[d.item] = (playerInventory[d.item] || 0) + 1;
+        // Fragmento comum vira fragmento DE UMA NOTA ao ser recolhido — é aqui que ele
+        // ganha cor e passa a valer o dobro na nota certa.
+        let chave = d.item, rotulo = null;
+        if (d.item === 'fragmento') {
+          const nota = CROMATICA[Math.floor(Math.random() * CROMATICA.length)];
+          chave = 'frag_' + nota.id;
+          rotulo = `Fragmento de ${nota.nome}`;
+        }
+        playerInventory[chave] = (playerInventory[chave] || 0) + 1;
         const info = ITENS_DE_MAGIA[d.item];
-        addFloater(player.x, player.y - player.height - 6, `+1 ${info?.nome || d.item}`, info?.cor || '#fcd34d');
+        addFloater(player.x, player.y - player.height - 6,
+          `+1 ${rotulo || info?.nome || d.item}`, info?.cor || '#fcd34d');
         // Um Fragmento Puro vale três na síntese, então vale três na missão também —
         // senão afinar bem pareceria render menos progresso do que bater de qualquer jeito.
         if (d.item === 'fragmento_puro') progressoDeMissao('coletar', 'fragmento', VALOR_FRAGMENTO_PURO);
@@ -7268,6 +7293,7 @@ function loadPlayerData() {
     if (typeof d.skillPoints === 'number') skillPoints = d.skillPoints;
     carregarPassivas(d.passivas);
     carregarHabilidadesAbertas(d.habilidadesAbertas);
+    if (typeof sincronizarBotoesDeHabilidade === 'function') sincronizarBotoesDeHabilidade();
     if (typeof d.passesDeDungeon === 'number') passesDeDungeon = d.passesDeDungeon;
     if (d.dungeons) ultimaConclusaoDeDungeon = d.dungeons;
     if (d.itensPossuidos) itensPossuidos = d.itensPossuidos;
@@ -8661,7 +8687,7 @@ function renderSceneOverlay(now) {
       if (npc.mapKey !== mapKey) return;
       (NPC_DRAW[npc.type] || DEFAULT_NPC_DRAW)(ctx, npc, now);
     });
-    renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now);
+    renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now); renderRotaDaProximaCamara(now);
     return;
   }
 
@@ -12500,7 +12526,7 @@ function loop(now){
     if(outdoors){
       npcData.forEach(npc=>{if(npc.mapKey!==currentKey||npc.oculto)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
       renderDrops(now);   // on the ground, under everyone
-      renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now);
+      renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now); renderRotaDaProximaCamara(now);
       renderObjetos(now, 'atras');   // pé acima do jogador: ele passa na frente
     }
     const L=getLayers(currentKey);
@@ -14776,6 +14802,41 @@ function fragmentosDisponiveis() {
 }
 
 // Gasta os puros primeiro: o jogador não precisa administrar duas moedas na cabeça.
+// ── Fragmentos por nota ───────────────────────────────────────────────────────
+// O fragmento deixou de ser um pó genérico: cada um pertence a uma nota, e usar o
+// fragmento CERTO rende mais. Um fragmento de Ré vale 2 pontos ao condensar um Ré, e 1
+// ponto em qualquer outra — então a nota que você mais coleta é a que sai mais barata,
+// e vale a pena caçar o Eco certo em vez de moer qualquer monstro.
+const VALOR_FRAG_CERTO = 2;
+const VALOR_FRAG_QUALQUER = 1;
+
+function fragDaNota(id) { return playerInventory['frag_' + id] || 0; }
+
+// Quantos PONTOS de fragmento existem para condensar esta nota.
+function pontosDeFragmentoPara(notaId) {
+  let p = fragDaNota(notaId) * VALOR_FRAG_CERTO;
+  p += (playerInventory.fragmento_puro || 0) * VALOR_FRAGMENTO_PURO;
+  p += (playerInventory.fragmento || 0) * VALOR_FRAG_QUALQUER;
+  CROMATICA.forEach(n => { if (n.id !== notaId) p += fragDaNota(n.id) * VALOR_FRAG_QUALQUER; });
+  return p;
+}
+
+// Gasta na ordem que favorece o jogador: primeiro os da nota certa (valem o dobro),
+// depois os puros, e só então os avulsos de outras notas.
+function gastarPontosDeFragmento(notaId, custo) {
+  let falta = custo;
+  const tira = (chave, valor) => {
+    while (falta > 0 && (playerInventory[chave] || 0) > 0) {
+      playerInventory[chave]--; falta -= valor;
+    }
+  };
+  tira('frag_' + notaId, VALOR_FRAG_CERTO);
+  tira('fragmento_puro', VALOR_FRAGMENTO_PURO);
+  tira('fragmento', VALOR_FRAG_QUALQUER);
+  CROMATICA.forEach(n => { if (n.id !== notaId) tira('frag_' + n.id, VALOR_FRAG_QUALQUER); });
+  return falta <= 0;
+}
+
 function gastarFragmentos(n) {
   let falta = n;
   while (falta >= VALOR_FRAGMENTO_PURO && (playerInventory.fragmento_puro || 0) > 0) {
@@ -16856,7 +16917,7 @@ function atualizarCorrida(now) {
   if (currentKey !== corrida.mapa && !corrida.trocando) {
     abandonarCorrida('Você saiu da dungeon — corrida perdida.'); return;
   }
-  if (corrida.trocando) return;
+  if (corrida.trocando || corrida.aguardando) return;
   const vivos = monstrosDaDungeon(corrida.mapa).filter(m => !m.dead).length;
   corrida.abates = corrida.abatesAnteriores + (corrida.total - vivos);
   if (vivos > 0) return;
@@ -16867,28 +16928,31 @@ function atualizarCorrida(now) {
   avancarEstagio(d);
 }
 
-// Sala limpa e ainda há câmara adiante: leva o jogador para a próxima sem parar o
-// cronômetro. O tempo, o dano e os abates são da corrida inteira.
+// Sala limpa e ainda há câmara adiante. O jogador NÃO é teleportado: ele fica onde está,
+// recolhe o que caiu, e vai até a placa quando quiser. Arrastar todo mundo para a próxima
+// sala no instante do último golpe fazia perder as claves e os fragmentos que acabaram de
+// cair no chão — e ninguém escolheu isso.
 function avancarEstagio(d) {
-  corrida.trocando = true;
+  corrida.aguardando = true;
+  // `abatesAnteriores` só muda quando a próxima câmara COMEÇA. Somar aqui inflava o
+  // denominador enquanto o jogador ainda recolhia o chão: aparecia 19/38 numa sala que
+  // ele tinha acabado de limpar.
+  corrida.proximoMapa = d.estagios[corrida.estagio + 1].mapa;
+  const prox = d.estagios[corrida.estagio + 1];
+  anunciar('CÂMARA LIMPA', 1500);
+  showToast(`Recolha o que caiu. A placa leva para ${prox.nome}.`);
+}
+
+// A passagem só acontece de fato quando o jogador chega no mapa seguinte pela placa.
+function confirmarEstagio(d) {
   corrida.abatesAnteriores = corrida.abates;
   corrida.estagio += 1;
-  const prox = d.estagios[corrida.estagio];
-  anunciar(`ESTÁGIO ${corrida.estagio + 1} — ${prox.nome.toUpperCase()}`, 1800);
-  // Meio segundo de respiro antes de trocar de sala: sem isso a passagem acontece no mesmo
-  // quadro do último golpe e parece falha.
-  setTimeout(() => {
-    if (!corridaAtiva()) return;
-    corrida.mapa = prox.mapa;
-    const p = pousoSeguro(prox.mapa, SCREEN_W / 2, SCREEN_H - 120);
-    currentKey = prox.mapa;
-    player.x = p.x; player.y = p.y;
-    if (activeMapSelect && cenarioExiste(prox.mapa)) activeMapSelect.value = prox.mapa;
-    mapaVigiado = prox.mapa;          // o vigia não deve ler isto como fuga
-    updateMapStatus();
-    prepararEstagio(d);
-    corrida.trocando = false;
-  }, 900);
+  corrida.mapa = corrida.proximoMapa;
+  corrida.proximoMapa = null;
+  corrida.aguardando = false;
+  const e = d.estagios[corrida.estagio];
+  anunciar(`ESTÁGIO ${corrida.estagio + 1} — ${e.nome.toUpperCase()}`, 1800);
+  prepararEstagio(d);
 }
 
 // ── portão de entrada ──
@@ -16909,10 +16973,21 @@ function abrirPortao(d, viagem) {
   el.querySelector('.dg-nome').textContent = d.nome;
   el.querySelector('.dg-sub').textContent = d.subtitulo || '';
   const poderAgora = nivelDePoder();
-  el.querySelector('.dg-nivel').textContent =
-    `NÍVEL ${d.nivel || 1}  ·  EXIGE Nv ${d.nivelMinimo || 1} E ${(d.poderMinimo || 0).toLocaleString('pt-BR')} DE PODER`;
-  el.querySelector('.dg-nivel').classList.toggle('faltaNivel',
-    level < (d.nivelMinimo || 1) || poderAgora < (d.poderMinimo || 0));
+  el.querySelector('.dg-nivel').textContent = `DUNGEON NÍVEL ${d.nivel || 1}`;
+  // A exigência ganhou bloco próprio, com ✓ ou ✕ em cada requisito. Escondida numa linha
+  // de texto corrida ela passava batida — foi o relato.
+  const okNivel = level >= (d.nivelMinimo || 1);
+  const okPoder = poderAgora >= (d.poderMinimo || 0);
+  el.querySelector('#dgExige').innerHTML = `
+    <div class="dgx ${okNivel ? 'ok' : 'nao'}">
+      <b>${okNivel ? '✓' : '✕'}</b>
+      <span>NÍVEL ${d.nivelMinimo || 1}</span><small>você: ${level}</small>
+    </div>
+    <div class="dgx ${okPoder ? 'ok' : 'nao'}">
+      <b>${okPoder ? '✓' : '✕'}</b>
+      <span>${(d.poderMinimo || 0).toLocaleString('pt-BR')} DE PODER</span>
+      <small>você: ${poderAgora.toLocaleString('pt-BR')}</small>
+    </div>`;
   el.querySelector('.dg-objetivo').innerHTML = mapas.length > 1
     ? `<b>${mapas.length}</b> câmaras em sequência · <b>${total}</b> inimigos ao todo.`
       + `<br><small>O cronômetro não para entre elas. Sair no meio perde a corrida.</small>`
@@ -16963,11 +17038,12 @@ function entrarNaDungeon(d) {
   if (!v) { iniciarCorrida(d); return; }
   // Veio de uma placa: primeiro a viagem, e a corrida começa já dentro da dungeon —
   // senão o cronômetro contaria o tempo de carregar o mapa.
+  const origem = currentKey;   // de onde ele veio: é para cá que o "Sair" devolve
   fecharPortao();
   changeMapWithFade(v.mapa, v.x, v.y);
   setTimeout(() => {
     mapaVigiado = v.mapa;
-    iniciarCorrida(d);
+    if (iniciarCorrida(d)) corrida.origem = origem;
   }, 700);
 }
 
@@ -17024,6 +17100,7 @@ function mostrarApuracao(r, c) {
     if (!d) return;
     // Repetir recomeça da PRIMEIRA câmara: a corrida é do conjunto.
     const inicio = mapasDaDungeon(d)[0];
+    const guardaOrigem = origem;
     if (currentKey !== inicio) {
       const p = pousoSeguro(inicio, SCREEN_W / 2, SCREEN_H - 120);
       currentKey = inicio; player.x = p.x; player.y = p.y;
@@ -17032,8 +17109,24 @@ function mostrarApuracao(r, c) {
       updateMapStatus();
     }
     abrirPortao(d);
+    // A próxima corrida precisa saber para onde devolver no fim.
+    setTimeout(() => { if (corridaAtiva()) corrida.origem = guardaOrigem; }, 50);
   };
-  el.querySelector('.dgf-sair').onclick = () => { el.classList.add('hidden'); corrida = null; };
+  // Sair leva de volta ao mapa de FORA da dungeon — o que tem a placa de entrada. Antes
+  // fechava a tela e deixava o jogador parado na última câmara, sem saída óbvia.
+  const origem = c.origem;
+  el.querySelector('.dgf-sair').onclick = () => {
+    el.classList.add('hidden');
+    corrida = null;
+    if (origem && cenarioExiste(origem)) {
+      const p = pousoSeguro(origem, SCREEN_W / 2, SCREEN_H / 2);
+      currentKey = origem; player.x = p.x; player.y = p.y;
+      mapaVigiado = origem;
+      if (activeMapSelect && cenarioExiste(origem)) activeMapSelect.value = origem;
+      updateMapStatus();
+      showToast('De volta à superfície.');
+    }
+  };
   el.classList.remove('hidden');
 }
 
@@ -17073,7 +17166,10 @@ let mapaVigiado = null;
 function atualizarDungeon(now) {
   if (currentKey !== mapaVigiado) {
     mapaVigiado = currentKey;
-    if (corridaAtiva() && corrida.mapa !== currentKey && !corrida.trocando) {
+    if (corridaAtiva() && corrida.aguardando && currentKey === corrida.proximoMapa) {
+      // Chegou na próxima câmara pela placa: é avanço, não fuga.
+      confirmarEstagio(dungeonDoMapa(currentKey));
+    } else if (corridaAtiva() && corrida.mapa !== currentKey && !corrida.trocando) {
       abandonarCorrida('Você saiu da dungeon — corrida perdida.');
     }
     // Chegar num mapa de dungeon NÃO abre mais o portão. Quem abre é a PLACA do mapa
@@ -17477,21 +17573,29 @@ function forjadorAberto() {
 function desenharSintetizador() {
   const nota = notaPorId(notaEscolhida) || CROMATICA[0];
   const c = custoDaNota(nota);
-  const disp = fragmentosDisponiveis();
+  const disp = pontosDeFragmentoPara(nota.id);
 
   // Fragmentos disponíveis, com o que falta em vermelho.
   const frags = document.getElementById('sintFrags');
   if (frags) {
-    const linhas = [
-      ['Fragmento comum', playerInventory.fragmento || 0, caminhoFrag('do')],
-      ['Fragmento puro · vale 3', playerInventory.fragmento_puro || 0, 'assets/itens/fragmentos/tom.png'],
-      ['Fragmento de Tom', playerInventory.tom || 0, 'assets/itens/fragmentos/tom.png'],
-      ['Fragmento de Semitom', playerInventory.semitom || 0, 'assets/itens/fragmentos/semitom.png'],
-    ];
-    frags.innerHTML = linhas.map(([n, q, arte]) => `
-      <div class="fj-frag"><img src="${arte}" alt=""><b>${q}</b><small>${n}</small></div>`).join('')
+    // Um cartão por NOTA: é a coleção do jogador, com a nota escolhida em destaque
+    // porque é a que vale o dobro.
+    const cartoes = CROMATICA
+      .map(n => ({ n, q: fragDaNota(n.id) }))
+      .filter(x => x.q > 0 || x.n.id === nota.id)
+      .map(({ n, q }) => `
+        <div class="fj-frag${n.id === nota.id ? ' certo' : ''}">
+          <img src="${caminhoFrag(n.id)}" alt=""><b>${q}</b>
+          <small>${n.nome}${n.id === nota.id ? ' ×2' : ''}</small></div>`).join('');
+    const extras = [
+      ['Puro · vale 3', playerInventory.fragmento_puro || 0, 'assets/itens/fragmentos/tom.png'],
+      ['Tom', playerInventory.tom || 0, 'assets/itens/fragmentos/tom.png'],
+      ['Semitom', playerInventory.semitom || 0, 'assets/itens/fragmentos/semitom.png'],
+    ].filter(([, q]) => q > 0).map(([nm, q, arte]) => `
+      <div class="fj-frag"><img src="${arte}" alt=""><b>${q}</b><small>${nm}</small></div>`).join('');
+    frags.innerHTML = cartoes + extras
       + `<div class="fj-frag${disp < c.fragmentos ? ' falta' : ''}" style="grid-column:1/-1">
-           <b>${disp}</b><small>TOTAL EM FRAGMENTOS · precisa de ${c.fragmentos}</small></div>`
+           <b>${disp}</b><small>PONTOS PARA ${nota.nome.toUpperCase()} · precisa de ${c.fragmentos}</small></div>`
       + `<div class="fj-frag${claveCount < c.claves ? ' falta' : ''}" style="grid-column:1/-1">
            <b>${claveCount.toLocaleString('pt-BR')}</b><small>CLAVES · precisa de ${c.claves}</small></div>`;
   }
@@ -17536,8 +17640,8 @@ function desenharSintetizador() {
   const rec = document.getElementById('sintReceita');
   if (rec) rec.innerHTML =
     `<img src="${caminhoFrag(nota.id)}" alt="">
-     <b>${ENCAIXES_DE_SINTESE} × ${FRAG_POR_ENCAIXE}</b>
-     <span>Fragmentos de ${nota.nome}</span>
+     <b>${c.fragmentos} pts</b>
+     <span>— fragmento de ${nota.nome} vale <b>2</b>, os outros <b>1</b></span>
      <span>+</span><b>${c.claves}</b><span>claves</span>
      <span>→</span><img src="${caminhoNota(nota.id)}" alt="">
      <b>Nota ${nota.nome}</b>`;
@@ -17554,10 +17658,10 @@ function desenharSintetizador() {
 
   const btn = document.getElementById('sintBotao');
   if (btn) {
-    const pode = podePagarNota(nota);
+    const pode = disp >= c.fragmentos && claveCount >= c.claves;
     btn.disabled = !pode;
     btn.textContent = pode ? 'SINTETIZAR'
-      : (disp < c.fragmentos ? `FALTAM ${c.fragmentos - disp} FRAGMENTOS` : 'FALTAM CLAVES');
+      : (disp < c.fragmentos ? `FALTAM ${c.fragmentos - disp} PONTOS` : 'FALTAM CLAVES');
   }
 
   const sel = document.getElementById('sintNotas');
@@ -17566,7 +17670,7 @@ function desenharSintetizador() {
       <button class="fj-nota-btn${n.id === notaEscolhida ? ' ativo' : ''}" data-nota="${n.id}"
               title="Sintetizar a Nota ${n.nome}">
         <img src="${caminhoNota(n.id)}" alt=""><span>${n.nome}</span>
-        ${notasPossuidas[n.id] ? `<small>×${notasPossuidas[n.id]}</small>` : ''}
+        <small>${fragDaNota(n.id) ? '◆' + fragDaNota(n.id) : ''}${notasPossuidas[n.id] ? ' ×' + notasPossuidas[n.id] : ''}</small>
       </button>`).join('');
     sel.querySelectorAll('.fj-nota-btn').forEach(b =>
       b.addEventListener('click', () => { notaEscolhida = b.dataset.nota; desenharSintetizador(); }));
@@ -17705,14 +17809,15 @@ function sintetizarNotaAgora() {
   const nota = notaPorId(notaEscolhida);
   if (!nota) return;
   const c = custoDaNota(nota);
-  if (fragmentosDisponiveis() < c.fragmentos) {
-    showToast(`Faltam ${c.fragmentos - fragmentosDisponiveis()} fragmentos.`); return;
+  const disp = pontosDeFragmentoPara(nota.id);
+  if (disp < c.fragmentos) {
+    showToast(`Faltam ${c.fragmentos - disp} pontos de fragmento.`); return;
   }
   if (claveCount < c.claves) {
     showToast(`Faltam ${(c.claves - claveCount).toLocaleString('pt-BR')} claves.`); return;
   }
   sintetizando = true;
-  gastarFragmentos(c.fragmentos);
+  gastarPontosDeFragmento(nota.id, c.fragmentos);
   claveCount -= c.claves;
 
   const quadro = document.querySelector('#sintetizador .fj-quadro');
@@ -17825,7 +17930,22 @@ function renderSubidaDeNivel(now) {
 // no modo ANDAR do editor a barra ficava congelada nos valores do primeiro quadro —
 // mostrava nível 1 e 100 de vida para um herói de nível 7 com 192. Como "andar" é hoje o
 // modo de jogar, o HUD tem que se atualizar nos dois.
+// Assinatura do que os botões de habilidade mostram. `sincronizarBotoesDeHabilidade`
+// rodava só na inicialização, e o save — que diz quais habilidades estão abertas — é
+// carregado DEPOIS. O resultado: a habilidade estava aberta por dentro, o botão continuava
+// com cadeado, e a ficha não oferecia "ABRIR" porque para ela já estava aberta. Ficava
+// travada para sempre. Comparar a assinatura custa uma string por quadro e mantém os dois
+// lados sempre de acordo.
+let _assinaturaDasHabilidades = '';
+function sincronizarHabilidadesSePreciso() {
+  const a = selectedHeroId + '|' + habilidadesAbertas.join(',');
+  if (a === _assinaturaDasHabilidades) return;
+  _assinaturaDasHabilidades = a;
+  sincronizarBotoesDeHabilidade();
+}
+
 function atualizarNumerosDoHud() {
+  sincronizarHabilidadesSePreciso();
   if (coinCount) coinCount.textContent = playerCoins;
   if (claveCountEl) claveCountEl.textContent = `${claveCount}`;
   if (lvlNum) lvlNum.textContent = level;
@@ -18196,7 +18316,20 @@ function subirTier(it) {
 
 // ── ligação ──
 document.getElementById('equipFechar')?.addEventListener('click', fecharEquipamentos);
-document.getElementById('equipVoltar')?.addEventListener('click', fecharEquipamentos);
+document.getElementById('equipParaGeral')?.addEventListener('click', () => {
+  fecharEquipamentos();
+  abrirFicha(selectedHeroId);
+  document.querySelectorAll('#fichaHeroi .ficha-aba').forEach(o =>
+    o.classList.toggle('ativa', o.dataset.aba === 'geral'));
+});
+document.getElementById('equipVoltar')?.addEventListener('click', () => {
+  fecharEquipamentos();
+  // A seta VOLTA para a visão geral. Antes ela fechava tudo igual ao ✕, e o único jeito
+  // de rever os atributos era abrir a ficha de novo.
+  abrirFicha(selectedHeroId);
+  document.querySelectorAll('#fichaHeroi .ficha-aba').forEach(o =>
+    o.classList.toggle('ativa', o.dataset.aba === 'geral'));
+});
 document.getElementById('equipTela')?.addEventListener('click', e => {
   if (e.target.id === 'equipTela') fecharEquipamentos();
   else if (!e.target.closest('.eq-popup') && !e.target.closest('.eq-slot')
@@ -18286,4 +18419,62 @@ function mostrarDetalheDoPoder(ev) {
       ${conj.length ? `<div class="fb-efeito"><span>Conjunto ativo</span><b>×1,08</b></div>` : ''}</div>
     <div class="fb-pe">É o número que as dungeons exigem. Sobe com nível, atributos e equipamento.</div>`;
   posicionarBalao(el, ev);
+}
+
+// Seta apontando a placa que leva à próxima câmara. Aparece só quando a sala já está
+// limpa e falta seguir — antes disso ela seria ruído.
+function renderRotaDaProximaCamara(now) {
+  if (!corridaAtiva() || !corrida.aguardando || !corrida.proximoMapa) return;
+  const placa = npcData.find(n => n.type === 'signpost' && n.mapKey === currentKey
+                                  && n.targetMapKey === corrida.proximoMapa);
+  const pulso = 0.5 + 0.5 * Math.sin(now * 0.005);
+
+  if (!placa) {
+    // Sem placa ligando as duas salas o jogador ficaria preso. Avisa em vez de travar.
+    ctx.save();
+    ctx.font = 'bold 13px Outfit, sans-serif'; ctx.textAlign = 'center';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)'; ctx.fillStyle = '#fca5a5';
+    ctx.strokeText('Sem placa para a próxima câmara', player.x, player.y - 80);
+    ctx.fillText('Sem placa para a próxima câmara', player.x, player.y - 80);
+    ctx.restore();
+    return;
+  }
+
+  // Anel no pé da placa e uma seta flutuando sobre ela.
+  ctx.save();
+  ctx.strokeStyle = `rgba(255,233,171,${0.45 + pulso * 0.45})`;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.ellipse(placa.x, placa.y, 26 + pulso * 5, 11 + pulso * 3, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  const sobe = Math.sin(now * 0.005) * 5;
+  ctx.fillStyle = '#ffe9ab';
+  ctx.beginPath();
+  ctx.moveTo(placa.x, placa.y - 40 + sobe);
+  ctx.lineTo(placa.x - 9, placa.y - 54 + sobe);
+  ctx.lineTo(placa.x + 9, placa.y - 54 + sobe);
+  ctx.closePath(); ctx.fill();
+  ctx.font = 'bold 11px Outfit, sans-serif'; ctx.textAlign = 'center';
+  ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
+  ctx.strokeText('PRÓXIMA CÂMARA', placa.x, placa.y - 60 + sobe);
+  ctx.fillText('PRÓXIMA CÂMARA', placa.x, placa.y - 60 + sobe);
+  ctx.restore();
+
+  // E uma seta na borda quando a placa está fora do enquadramento.
+  const p = telaDoPonto(placa.x, placa.y);
+  if (p.x > 0 && p.x < SCREEN_W && p.y > 0 && p.y < SCREEN_H) return;
+  ctx.save();
+  const jx = SCREEN_W / 2, jy = SCREEN_H / 2;
+  const dx = p.x - jx, dy = p.y - jy;
+  const esc = Math.min((SCREEN_W / 2 - 26) / Math.abs(dx || 1e-6),
+                       (SCREEN_H / 2 - 26) / Math.abs(dy || 1e-6));
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const dpr = canvas.width / SCREEN_W;
+  ctx.scale(dpr, dpr);
+  ctx.translate(jx + dx * esc, jy + dy * esc);
+  ctx.rotate(Math.atan2(dy, dx));
+  ctx.fillStyle = '#ffe9ab';
+  ctx.beginPath(); ctx.moveTo(13, 0); ctx.lineTo(-9, -8); ctx.lineTo(-9, 8);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
 }

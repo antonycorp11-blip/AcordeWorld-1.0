@@ -6932,3 +6932,32 @@ html.abrindo, html.abrindo body { overflow: hidden; }
   font-size: 26px; font-weight: 800; color: #ffe9ab; line-height: 1.05;
   text-shadow: 0 0 18px rgba(232,196,105,.6);
 }
+
+/* Botão extra no topo da tela de equipamentos: caminho explícito de volta. */
+.eq-aba-geral {
+  padding: 5px 12px; cursor: pointer; font-family: inherit;
+  font-size: 9.5px; font-weight: 800; letter-spacing: .14em;
+  color: #b9a6e0; background: rgba(16,11,38,.85);
+  border: 1px solid rgba(146,110,200,.4);
+}
+.eq-aba-geral:hover { color: #f4e2b0; border-color: #e8c469; }
+
+/* Exigências da dungeon: um cartão por requisito, com ✓ ou ✕. */
+.dg-exige { display: flex; gap: 8px; justify-content: center; margin-bottom: 8px; }
+.dgx {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border: 1px solid;
+}
+.dgx b { font-size: 14px; line-height: 1; }
+.dgx span { font-size: 10.5px; font-weight: 800; letter-spacing: .1em; }
+.dgx small { font-size: 9px; opacity: .8; }
+.dgx.ok  { color: #86efac; border-color: rgba(134,239,172,.45); background: rgba(20,60,40,.35); }
+.dgx.nao { color: #fca5a5; border-color: rgba(248,113,113,.5); background: rgba(70,20,25,.4); }
+
+/* O fragmento da nota escolhida vale o dobro: fica em destaque. */
+.fj-frag.certo {
+  border-color: #7dd3fc;
+  background: rgba(20,52,96,.9);
+  box-shadow: 0 0 12px rgba(125,211,252,.35);
+}
+.fj-frag.certo small { color: #7dd3fc; font-weight: 700; }

@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=202608091700">
+  <link rel="stylesheet" href="style.css?v=202608092200">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -1140,6 +1140,7 @@
           <div id="dgPortao" class="dg-overlay hidden">
             <div class="dg-quadro">
               <div class="dg-cab">
+                <div class="dg-exige" id="dgExige"></div>
                 <span class="dg-nivel"></span>
                 <h2 class="dg-nome"></h2>
                 <p class="dg-sub"></p>
@@ -1274,8 +1275,9 @@
           <div id="equipTela" class="eq-overlay hidden">
             <div class="eq-quadro">
               <header class="eq-topo">
-                <button class="eq-voltar" id="equipVoltar">‹</button>
+                <button class="eq-voltar" id="equipVoltar" title="Voltar à visão geral">‹</button>
                 <h2 class="eq-titulo">EQUIPAMENTOS</h2>
+                <button class="eq-aba-geral" id="equipParaGeral">VISÃO GERAL</button>
                 <span class="eq-moedas" id="equipMoedas"></span>
                 <button class="eq-fechar" id="equipFechar">✕</button>
               </header>
@@ -1808,7 +1810,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="game.js?v=202608091700"></script>
+<script src="game.js?v=202608092300"></script>
 <script src="pixelizador.js?v=202608052000"></script>
 </body>
 </html>
