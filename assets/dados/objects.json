@@ -2324,6 +2324,24 @@
       "y": 500,
       "escala": 1,
       "flipX": false
+    },
+    {
+      "id": "bau_comum_2_1786036219580",
+      "prop": "bau_comum_2",
+      "mapKey": "custom_1785967453140_198",
+      "x": 779,
+      "y": 88,
+      "escala": 0.3,
+      "flipX": false
+    },
+    {
+      "id": "bau_comum_2_1786036229626",
+      "prop": "bau_comum_2",
+      "mapKey": "custom_1785967453140_198",
+      "x": 779,
+      "y": 79,
+      "escala": 0.3,
+      "flipX": false
     }
   ]
 }

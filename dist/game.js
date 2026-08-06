@@ -534,6 +534,11 @@ window.addEventListener('keydown', e => {
     monstroParaColocar=null; canvas?.classList.remove('cursor-crosshair');
     renderPaletaDeMonstros(); showToast('Colocação cancelada');
   }
+  // Prop armado também sai com Esc, pela mesma razão.
+  if(e.key==='Escape'&&propParaColocar){
+    propParaColocar=null; canvas?.classList.remove('cursor-crosshair');
+    renderPaletaDeProps?.(); showToast('Colocação cancelada');
+  }
   if(e.key==='Escape'&&engineMode==='mundo'){
     e.preventDefault();
     // Esc primeiro solta a estrada em andamento; só depois sai do modo andar.
@@ -9077,9 +9082,16 @@ function onPointerDown(m){
   if(engineMode==='scene'){
     if(isPlayMode){tryTalk();return;} // tapping near an NPC starts the conversation
     if(npcPlacingMode){placeNPC(m.x,m.y);return;}
-    // Modo de colocar objeto: cada toque planta um. Fica ativo até você desligar,
-    // porque plantar uma floresta um clique por vez é o uso real disto.
-    if(propParaColocar){colocarObjeto(propParaColocar,m.x,m.y);return;}
+    // Um toque planta UM objeto e desarma, igual a monstro e NPC. Antes o prop ficava
+    // armado e cada clique seguinte plantava outro — quem só queria posicionar um baú
+    // acabava com seis, e o clique deixava de servir para selecionar e arrastar.
+    if(propParaColocar){
+      colocarObjeto(propParaColocar,m.x,m.y);
+      propParaColocar=null;
+      canvas?.classList.remove('cursor-crosshair');
+      renderPaletaDeProps();
+      return;
+    }
     // Objetos vêm antes dos monstros na disputa pelo clique só quando não há monstro
     // ali: árvore é grande e cobriria bicho pequeno.
     if(!monsterAt(m.x,m.y)){
@@ -9988,7 +10000,7 @@ function renderPaletaDeProps() {
   ids.forEach(id => {
     const def = propDefs[id];
     const b = document.createElement('button');
-    b.className = 'prop-btn' + (propParaColocar === id ? ' ativo' : '');
+    b.className = 'prop-btn' + (propParaColocar === id ? ' ativo armado' : '');
     const spr = propSprites[id];
     const cv = spr ? miniCanvas(spr, 34) : null;
     if (cv) b.appendChild(cv);
@@ -9999,6 +10011,7 @@ function renderPaletaDeProps() {
     ligarLupa(b, id);
     b.addEventListener('click', () => {
       propParaColocar = (propParaColocar === id) ? null : id;
+      canvas?.classList.toggle('cursor-crosshair', !!propParaColocar);
       // Escolher na paleta JÁ arma o plantar. Exigir um segundo clique na ferramenta
       // fazia o toque no mapa não produzir nada, sem nenhuma pista do porquê.
       if (typeof engineMode !== 'undefined' && engineMode === 'mundo') {

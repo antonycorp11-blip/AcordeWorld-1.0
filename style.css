@@ -4632,8 +4632,9 @@ body.mobile-play #gameCanvas {
 .prop-cat:hover { border-color: #7c5a2a; color: #e8d7b4; }
 .prop-cat.ativo { background: #2c2110; border-color: #fbbf24; color: #fde68a; }
 .prop-btn {
+  position: relative;   /* a faixa "clique no mapa" do estado armado se ancora aqui */
   display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 6px 3px 4px; cursor: pointer;
+  padding: 6px 3px 4px; cursor: pointer; overflow: hidden;
   background: #1a1410; border: 1px solid #3b2d1c; border-radius: 6px;
 }
 .prop-btn:hover { border-color: #7c5a2a; background: #221a12; }
@@ -7016,4 +7017,16 @@ body.jogando .party-hud.calmo { opacity: .62; }
 @media (max-height: 460px) {
   .dga-txt small { display: none; }   /* em tela baixa fica o nome e a faixa */
   .dga-item { padding: 3px 5px; }
+}
+
+/* Prop armado esperando o clique no mapa — mesma leitura do card de monstro armado. */
+.prop-btn.armado {
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 0 2px rgba(251,191,36,.35), 0 0 14px rgba(251,191,36,.45);
+}
+.prop-btn.armado::after {
+  content: 'clique no mapa';
+  position: absolute; left: 0; right: 0; bottom: 0;
+  font-size: 7.5px; font-weight: 800; letter-spacing: .04em; text-align: center;
+  background: rgba(251,191,36,.92); color: #3b2503;
 }
