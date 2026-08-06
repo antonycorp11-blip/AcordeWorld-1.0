@@ -6565,3 +6565,131 @@ html.abrindo, html.abrindo body { overflow: hidden; }
   .fj-nota-btn img { width: 20px; height: 20px; }
   .fj-agir { padding: 8px; font-size: 11px; }
 }
+
+/* ── Atributos na ficha de personagem ── */
+.fa-resumo {
+  display: flex; gap: 12px; justify-content: center;
+  padding: 6px; margin-bottom: 2px;
+  background: rgba(10,14,32,.7); border: 1px solid rgba(169,126,44,.4);
+  font-size: 11px; color: #9aa8cd;
+}
+.fa-resumo b { color: #f2e3b6; font-size: 13px; }
+.fa-pontos {
+  text-align: center; font-size: 10px; letter-spacing: .1em;
+  color: #64748b; padding: 3px 0;
+}
+.fa-pontos.tem { color: #7dd3fc; font-weight: 700; }
+.fa-linha {
+  display: grid; grid-template-columns: 84px 1fr 20px 24px;
+  align-items: center; gap: 6px;
+}
+.fa-nome { font-size: 9.5px; font-weight: 700; letter-spacing: .06em; color: #a9b4d4; cursor: help; }
+.fa-segs { display: flex; gap: 2px; }
+.fa-val { font-size: 11px; color: #f2e3b6; text-align: right; }
+.fa-mais {
+  width: 22px; height: 20px; padding: 0; cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 800; line-height: 1;
+  color: #06253a; background: linear-gradient(180deg, #cdeaff, #38bdf8);
+  border: 1px solid #7dd3fc;
+  transition: transform .1s;
+}
+.fa-mais:hover:not(:disabled) { transform: scale(1.14); }
+.fa-mais:disabled { opacity: .25; cursor: default; background: #334155; border-color: #475569; color: #94a3b8; }
+
+/* Nível exigido pela dungeon, em vermelho quando o herói ainda não chegou lá. */
+.dg-nivel.faltaNivel { color: #fca5a5; border-color: rgba(248,113,113,.5); }
+
+/* ══ Animações dos forjadores ═════════════════════════════════════════════════
+   Faltava movimento: as duas telas eram desenhos parados. Tudo aqui é CSS, então não
+   custa quadro nenhum do laço do jogo. */
+
+/* O anel do círculo arcano gira devagar, sempre. */
+@keyframes fjGira { to { transform: rotate(360deg); } }
+.fj-circulo svg .anel { transform-origin: 120px 150px; animation: fjGira 22s linear infinite; }
+.fj-circulo svg .anel2 { transform-origin: 120px 150px; animation: fjGira 14s linear infinite reverse; }
+
+/* Os feixes correm dos fragmentos para o núcleo. */
+@keyframes fjFluxo { to { stroke-dashoffset: -60; } }
+.fj-circulo svg .feixe {
+  stroke-dasharray: 8 12; animation: fjFluxo 1.1s linear infinite;
+}
+
+/* O núcleo pulsa como algo carregando. */
+@keyframes fjPulsa { 50% { transform: scale(1.06); filter: drop-shadow(0 0 12px currentColor); } }
+.fj-circulo svg .nucleo { transform-origin: 120px 150px; animation: fjPulsa 2.2s ease-in-out infinite; }
+
+/* Entrada da tela: sobe e materializa. */
+@keyframes fjEntra { from { opacity: 0; transform: translateY(14px) scale(.985); } }
+.fj-quadro { animation: fjEntra .28s ease; }
+
+/* Cartas do inventário entram em cascata — dá a sensação de estoque sendo posto na mesa. */
+@keyframes fjCarta { from { opacity: 0; transform: translateY(8px); } }
+.fj-frag, .fj-nota-inv, .fj-interv, .fj-acorde { animation: fjCarta .3s ease backwards; }
+.fj-frag:nth-child(n)      { animation-delay: calc(var(--i, 0) * 28ms); }
+
+/* Síntese em curso: o quadro inteiro treme de leve e o núcleo estoura. */
+@keyframes fjForjando {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-2px, 1px); }
+  50% { transform: translate(2px, -1px); }
+  75% { transform: translate(-1px, -1px); }
+}
+.fj-quadro.forjando { animation: fjForjando .28s linear 4; }
+@keyframes fjEstoura {
+  0% { opacity: 0; transform: scale(.3); }
+  55% { opacity: 1; transform: scale(1.5); }
+  100% { opacity: 0; transform: scale(2.1); }
+}
+.fj-clarao {
+  position: absolute; left: 50%; top: 50%; width: 190px; height: 190px;
+  margin: -95px 0 0 -95px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,255,255,.95), rgba(125,211,252,.5) 42%, transparent 70%);
+  animation: fjEstoura .7s ease-out forwards;
+}
+
+/* Grau recém-colocado na escada: chega com um salto e um brilho. */
+@keyframes fjGrauEntra {
+  0% { opacity: 0; transform: scale(.4); }
+  60% { opacity: 1; transform: scale(1.22); box-shadow: 0 0 22px rgba(125,211,252,.9); }
+  100% { transform: scale(1); }
+}
+.fj-grau.novo { animation: fjGrauEntra .45s ease; }
+/* A letra do padrão acende quando o passo é aceito. */
+@keyframes fjAcende { 0% { transform: scale(1.8); text-shadow: 0 0 18px currentColor; } }
+.fj-padrao b.feito.recem { animation: fjAcende .4s ease; }
+
+/* Escala fechada: o painel de resultado se acende inteiro. */
+@keyframes fjSelou {
+  0% { box-shadow: 0 0 0 rgba(232,196,105,0); }
+  40% { box-shadow: 0 0 34px rgba(232,196,105,.85); }
+  100% { box-shadow: 0 0 0 rgba(232,196,105,0); }
+}
+.fj-escala-res.selou { animation: fjSelou 1.1s ease; }
+
+/* Botão pronto para agir respira, para o olho achá-lo. */
+@keyframes fjRespira { 50% { box-shadow: 0 0 26px rgba(125,211,252,.75); } }
+.fj-agir:not(:disabled) { animation: fjRespira 2.4s ease-in-out infinite; }
+.fj-agir-largo:not(:disabled) { animation: none; }
+@keyframes fjRespiraOuro { 50% { box-shadow: 0 0 28px rgba(232,196,105,.8); } }
+.fj-agir-largo:not(:disabled) { animation: fjRespiraOuro 2.4s ease-in-out infinite; }
+
+/* Abas entre os dois forjadores — o caminho tocável no celular. */
+.fj-abas {
+  flex: 0 0 auto; display: flex; gap: 6px; justify-content: center;
+  margin-top: 7px;
+}
+.fj-aba {
+  padding: 6px 16px; cursor: pointer; font-family: inherit;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .1em;
+  color: #8298c6; background: rgba(8,18,44,.8);
+  border: 1px solid rgba(107,140,200,.3); border-bottom: 2px solid transparent;
+  transition: all .14s;
+}
+.fj-aba:hover { color: #dbe6ff; }
+.fj-aba.ativa {
+  color: #f4e2b0; background: rgba(24,52,110,.7);
+  border-color: rgba(169,126,44,.55); border-bottom-color: #e8c469;
+}
+/* A tira de receita ficou com mais texto: deixa quebrar em vez de estourar. */
+.fj-receita { flex-wrap: wrap; justify-content: center; font-size: 11.5px; }
+.fj-receita span { color: #93a7d4; }

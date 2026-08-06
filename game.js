@@ -5163,7 +5163,14 @@ const BASE_MAX_HP = 100, BASE_DAMAGE = 10, BASE_COOLDOWN = 480;
 // multiplica isto pelos atributos, então é AQUI que a velocidade se ajusta: mexer no
 // objeto `player` não adiantava nada, era sobrescrito no primeiro cálculo de status.
 const BASE_SPEED = 2.3, BASE_SPRINT = 4.1, BASE_CAPACITY = 40;
-const POINTS_PER_LEVEL = 2;
+// Três por nível, não dois: com cinco atributos, dois pontos faziam a subida de nível
+// parecer que não mudou nada.
+const POINTS_PER_LEVEL = 3;
+// O nível sozinho já engorda o personagem. Antes TODO o crescimento vinha dos pontos, e
+// um herói de nível 6 sem investir continuava com a vida e o dano de nível 1 — foi por
+// isso que o chefe ficou impossível: 672 de vida contra 10 de dano por golpe.
+const VIDA_POR_NIVEL = 14;
+const DANO_POR_NIVEL = 2;
 const SLOTS_DE_ACORDE = 2;        // igual para todos: o arsenal cresce por arco, não por build
 
 // Atributos de MÚSICO, não de guerreiro. Cada um governa um sistema que o jogador já
@@ -5187,8 +5194,10 @@ function hasSkill(id) { return learnedSkills.includes(id); }
 function derivedStats() {
   const s = {
     // O personagem traz o corpo, o jogador traz a perícia: um soma ao outro.
-    maxHp: BASE_MAX_HP + attrs.folego * 6 + (personagemAtivo().base?.vida || 0),
-    dmg: BASE_DAMAGE + attrs.dinamica * 3 + (personagemAtivo().base?.dano || 0),
+    maxHp: BASE_MAX_HP + (level - 1) * VIDA_POR_NIVEL + attrs.folego * 8
+           + (personagemAtivo().base?.vida || 0),
+    dmg: BASE_DAMAGE + (level - 1) * DANO_POR_NIVEL + attrs.dinamica * 3
+         + (personagemAtivo().base?.dano || 0),
     dmgMagia: attrs.dinamica * 4,          // % a mais no dano de feitiço
     atkSpeed: attrs.ritmo * 3,             // %
     recarga: Math.min(60, attrs.folego * 4), // % de redução na recarga de feitiço
@@ -5249,8 +5258,11 @@ function grantXp(amount) {
   if (gained) {
     applyMovementStats();
     playerHp = playerMaxHp();          // a level-up patches you up
-    showToast(`⭐ Nível ${level}! +${POINTS_PER_LEVEL * gained} atributos, +${gained} habilidade`);
-    levelFlashUntil = performance.now() + 900;
+    showToast(`Nível ${level}! +${POINTS_PER_LEVEL * gained} atributos, +${gained} habilidade`);
+    levelFlashUntil = performance.now() + SUBIDA_MS;
+    anunciar(`NÍVEL ${level}`, 1600);
+    document.getElementById('pointDot')?.classList.remove('hidden');
+    if (typeof atualizarPontoDaFicha === 'function') atualizarPontoDaFicha();
   }
   savePlayerData();
 }
@@ -5259,8 +5271,12 @@ function spendAttr(key) {
   if (attrPoints <= 0 || !(key in attrs)) return;
   attrs[key]++; attrPoints--;
   applyMovementStats();
-  if (key === 'forca') playerHp = Math.min(playerMaxHp(), playerHp + 4);
-  savePlayerData(); renderCharSheet();
+  // Fôlego dá vida na hora: gastar um ponto e não ver a barra crescer parece que não fez
+  // nada — o número só apareceria no próximo dano tomado.
+  if (key === 'folego') playerHp = Math.min(playerMaxHp(), playerHp + 8);
+  savePlayerData();
+  if (typeof renderCharSheet === 'function') renderCharSheet();
+  if (typeof desenharFicha === 'function') desenharFicha();
 }
 
 function skillUnlocked(n) { return !n.requires || hasSkill(n.requires); }
@@ -8575,7 +8591,7 @@ function renderSceneOverlay(now) {
       if (npc.mapKey !== mapKey) return;
       (NPC_DRAW[npc.type] || DEFAULT_NPC_DRAW)(ctx, npc, now);
     });
-    renderMonsters(now); renderInvocacoes(now);
+    renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now);
     return;
   }
 
@@ -9194,7 +9210,7 @@ let lvlNum, xpFill, xpLabel, pointDot;
 const ATTR_META = {
   ritmo:    { icon:'♪',  name:'Ritmo',    desc:'Bigorna mais lenta e zona maior · +3% velocidade de ataque' },
   afinacao: { icon:'♫',  name:'Afinação', desc:'Janela de captura maior · mais chance de Fragmento Puro' },
-  folego:   { icon:'◉',  name:'Fôlego',   desc:'+6 de vida · feitiços recarregam mais rápido' },
+  folego:   { icon:'◉',  name:'Fôlego',   desc:'+8 de vida · feitiços recarregam mais rápido' },
   dinamica: { icon:'◈',  name:'Dinâmica', desc:'+3 de dano · +4% de dano nos feitiços' },
   memoria:  { icon:'▤',  name:'Memória',  desc:'notas custam menos fragmentos na síntese' },
 };
@@ -12214,6 +12230,9 @@ function loop(now){
   // estava dentro do bloco `outdoors`, que não roda em todos os modos — o portão nunca
   // abria no modo andar do editor.
   atualizarDungeon(now);
+  // Os números do HUD pela mesma razão: o bloco que os atualizava só roda no modo jogo,
+  // e no modo ANDAR a barra ficava congelada nos valores do primeiro quadro.
+  if (personagemAndando()) atualizarNumerosDoHud();
   garantirFolhasDoMapa(currentKey);
 
   // Avisa a abertura do celular que já há cenário desenhado. Ela fechava por silêncio de
@@ -12404,36 +12423,14 @@ function loop(now){
     touchAction?.classList.toggle('disabled', !act);
     playerHud?.classList.toggle('hidden', talking||shopOpen||inventoryOpen||charOpen||fichaAberta());
     atualizarBotaoDeAtaque(now);
-    if(coinCount)coinCount.textContent=playerCoins;
-    if(claveCountEl)claveCountEl.textContent=`${claveCount}`;
-    if(lvlNum)lvlNum.textContent=level;
-    if(hpFill){
-      const r=playerHp/playerMaxHp();
-      hpFill.style.width=(r*100)+'%';
-      hpFill.classList.toggle('low', r<=0.5&&r>0.25);
-      hpFill.classList.toggle('critical', r<=0.25);
-      const hpTxt = document.getElementById('hpText');
-      if(hpTxt) hpTxt.textContent = `${Math.round(playerHp)} / ${playerMaxHp()}`;
-    }
-    if(xpFill){
-      const need=xpForLevel(level);
-      xpFill.style.width=Math.min(100,(xp/need)*100)+'%';
-      if(xpLabel)xpLabel.textContent=`XP ${xp} / ${need}`;
-    }
-    // O aviso diz QUANTOS pontos esperam: bolinha sem número não informa nada.
-    const pontos = (attrPoints||0) + (skillPoints||0);
-    pointDot?.classList.toggle('hidden', pontos<=0);
-    if (pointDot && pontos>0) {
-      pointDot.textContent = pontos > 9 ? '9+' : pontos;
-      pointDot.title = `${pontos} ponto${pontos>1?'s':''} para distribuir`;
-    }
+    atualizarNumerosDoHud();
     // Interiors are their own space: the outdoor map's NPCs, chatter and overlays must
     // not bleed through onto the shop floor.
     const outdoors=currentScene==='world';
     if(outdoors){
       npcData.forEach(npc=>{if(npc.mapKey!==currentKey||npc.oculto)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
       renderDrops(now);   // on the ground, under everyone
-      renderMonsters(now); renderInvocacoes(now);
+      renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now);
       renderObjetos(now, 'atras');   // pé acima do jogador: ele passa na frente
     }
     const L=getLayers(currentKey);
@@ -14690,9 +14687,14 @@ const CROMATICA = [
 ];
 // Economia da magia é PvE: paga-se com o que se arranca dos monstros, nunca com moedas.
 // Fragmentos vêm dos Ecos; claves vêm de todo o resto. Ouro compra roupa, não poder.
+// Preço definido pelo Antony: dez fragmentos em CADA um dos três encaixes do altar, mais
+// quinhentas claves. A conta de fragmentos é derivada dos encaixes, e não um número solto,
+// para o desenho e o preço nunca discordarem.
+const FRAG_POR_ENCAIXE = 10;
+const ENCAIXES_DE_SINTESE = 3;
 const CUSTO_NOTA = {
-  natural:   { fragmentos: 8,  claves: 1 },
-  sustenida: { fragmentos: 14, claves: 2 },
+  natural:   { fragmentos: FRAG_POR_ENCAIXE * ENCAIXES_DE_SINTESE, claves: 500 },
+  sustenida: { fragmentos: FRAG_POR_ENCAIXE * ENCAIXES_DE_SINTESE, claves: 500 },
 };
 const CUSTO_ESCALA = { claves: 5 };   // selar uma escala montada no altar
 
@@ -16372,9 +16374,34 @@ function desenharFicha() {
   const lema = document.getElementById('fichaLema');
   if (lema) lema.textContent = def.lema ? `“${def.lema}”` : '';
 
+  // Atributos DE VERDADE, no lugar das barras decorativas. Eram quatro números fixos que
+  // descreviam o papel do herói e não faziam nada; agora são os cinco atributos que o
+  // jogo já calculava mas não tinha onde gastar — o botão de atributos caía no inventário.
   const barras = document.getElementById('fichaBarras');
   if (barras) {
-    barras.innerHTML = extra.perfil.map(([n, v, ouro]) => fichaBarraSegmentada(n, v, ouro)).join('');
+    const s2 = derivedStats();
+    barras.innerHTML = `
+      <div class="fa-resumo">
+        <span>❤ <b>${Math.round(playerHp)}/${s2.maxHp}</b></span>
+        <span>⚔ <b>${s2.dmg}</b></span>
+        <span>Nv <b>${level}</b></span>
+      </div>
+      <div class="fa-pontos${attrPoints ? ' tem' : ''}">
+        ${attrPoints ? `${attrPoints} ponto${attrPoints > 1 ? 's' : ''} para distribuir`
+                     : 'Sem pontos — suba de nível'}
+      </div>` +
+      Object.entries(ATTR_META).map(([k, info]) => `
+        <div class="fa-linha">
+          <span class="fa-nome" title="${info.desc}">${info.icon} ${info.name}</span>
+          <span class="fa-segs">${Array.from({ length: 10 },
+            (_, i) => `<i class="fb-seg${i < attrs[k] ? ' on' : ''}"></i>`).join('')}</span>
+          <b class="fa-val">${attrs[k]}</b>
+          <button class="fa-mais" data-attr="${k}" ${attrPoints ? '' : 'disabled'}>+</button>
+        </div>`).join('');
+    barras.querySelectorAll('.fa-mais').forEach(b2 => b2.addEventListener('click', () => {
+      spendAttr(b2.dataset.attr);
+      desenharFicha();
+    }));
   }
 
   // Trocador de herói: só quem já está desbloqueado aparece.
@@ -16614,6 +16641,11 @@ function esperaDeReset(d) {
   return Math.max(0, ultima + h - Date.now());
 }
 function podeEntrarNaDungeon(d) {
+  // O nível vem antes de tudo: um herói fraco demais não perde passe nem tempo, ele
+  // simplesmente não passa da porta.
+  if (level < (d.nivelMinimo || 1)) {
+    return { ok: false, nivel: d.nivelMinimo };
+  }
   if (d.passe?.livre) return { ok: true, livre: true };
   const espera = esperaDeReset(d);
   if (espera <= 0) return { ok: true, motivo: 'reset' };
@@ -16632,7 +16664,9 @@ function monstrosDaDungeon(mapa) { return monsters.filter(m => m.mapKey === mapa
 function iniciarCorrida(d) {
   const permissao = podeEntrarNaDungeon(d);
   if (!permissao.ok) {
-    showToast(`Sem passe — a entrada libera em ${textoDeEspera(permissao.espera)}.`);
+    showToast(permissao.nivel
+      ? `${d.nome} exige nível ${permissao.nivel}. Você está no ${level}.`
+      : `Sem passe — a entrada libera em ${textoDeEspera(permissao.espera)}.`);
     return false;
   }
   if (permissao.motivo === 'passe') passesDeDungeon -= (d.passe?.custo ?? 1);
@@ -16788,7 +16822,9 @@ function abrirPortao(d, viagem) {
 
   el.querySelector('.dg-nome').textContent = d.nome;
   el.querySelector('.dg-sub').textContent = d.subtitulo || '';
-  el.querySelector('.dg-nivel').textContent = `NÍVEL ${d.nivel || 1}`;
+  el.querySelector('.dg-nivel').textContent =
+    `NÍVEL ${d.nivel || 1}  ·  EXIGE Nv ${d.nivelMinimo || 1}`;
+  el.querySelector('.dg-nivel').classList.toggle('faltaNivel', level < (d.nivelMinimo || 1));
   el.querySelector('.dg-objetivo').innerHTML = mapas.length > 1
     ? `<b>${mapas.length}</b> câmaras em sequência · <b>${total}</b> inimigos ao todo.`
       + `<br><small>O cronômetro não para entre elas. Sair no meio perde a corrida.</small>`
@@ -16811,6 +16847,9 @@ function abrirPortao(d, viagem) {
     passe.textContent = perm.motivo === 'passe'
       ? `Custa 1 passe (você tem ${passesDeDungeon}).`
       : 'Entrada livre — o reset já virou.';
+  } else if (perm.nivel) {
+    passe.className = 'dg-passe bloqueado';
+    passe.textContent = `Exige nível ${perm.nivel} — você está no ${level}.`;
   } else {
     passe.className = 'dg-passe bloqueado';
     passe.textContent = `Sem passe. Libera em ${textoDeEspera(perm.espera)}.`;
@@ -17350,10 +17389,10 @@ function desenharSintetizador() {
   const frags = document.getElementById('sintFrags');
   if (frags) {
     const linhas = [
-      ['Fragmento', playerInventory.fragmento || 0, caminhoFrag('do'), false],
-      ['Puro (vale 3)', playerInventory.fragmento_puro || 0, 'assets/itens/fragmentos/tom.png', false],
-      ['Tom', playerInventory.tom || 0, 'assets/itens/fragmentos/tom.png', false],
-      ['Semitom', playerInventory.semitom || 0, 'assets/itens/fragmentos/semitom.png', false],
+      ['Fragmento comum', playerInventory.fragmento || 0, caminhoFrag('do')],
+      ['Fragmento puro · vale 3', playerInventory.fragmento_puro || 0, 'assets/itens/fragmentos/tom.png'],
+      ['Fragmento de Tom', playerInventory.tom || 0, 'assets/itens/fragmentos/tom.png'],
+      ['Fragmento de Semitom', playerInventory.semitom || 0, 'assets/itens/fragmentos/semitom.png'],
     ];
     frags.innerHTML = linhas.map(([n, q, arte]) => `
       <div class="fj-frag"><img src="${arte}" alt=""><b>${q}</b><small>${n}</small></div>`).join('')
@@ -17370,37 +17409,51 @@ function desenharSintetizador() {
     circ.innerHTML = `
       <svg viewBox="0 0 240 220" xmlns="http://www.w3.org/2000/svg">
         <g fill="none" stroke="${cor}" stroke-opacity=".28">
-          <circle cx="120" cy="150" r="66"/><circle cx="120" cy="150" r="52"/>
+          <circle class="anel" cx="120" cy="150" r="66" stroke-dasharray="14 9"/>
+          <circle class="anel2" cx="120" cy="150" r="52" stroke-dasharray="6 10"/>
         </g>
         <!-- Feixes saindo dos três fragmentos e caindo no núcleo. -->
         <g fill="none" stroke="${cor}" stroke-width="2" stroke-opacity=".75">
-          <path d="M60 62 Q72 118 108 128"/>
-          <path d="M120 42 Q120 96 120 124"/>
-          <path d="M180 62 Q168 118 132 128"/>
+          <path class="feixe" d="M60 62 Q72 118 108 128"/>
+          <path class="feixe" d="M120 42 Q120 96 120 124" style="animation-delay:-.35s"/>
+          <path class="feixe" d="M180 62 Q168 118 132 128" style="animation-delay:-.7s"/>
         </g>
         <g stroke="${cor}" fill="rgba(6,16,40,.9)" stroke-width="2">
           <circle cx="60" cy="62" r="21"/><circle cx="120" cy="42" r="21"/><circle cx="180" cy="62" r="21"/>
-          <circle cx="120" cy="150" r="38" stroke-width="3"/>
+          <circle class="nucleo" cx="120" cy="150" r="38" stroke-width="3" style="color:${cor}"/>
         </g>
         <image href="${caminhoFrag(nota.id)}" x="45" y="47" width="30" height="30"/>
         <image href="${caminhoFrag(nota.id)}" x="105" y="27" width="30" height="30"/>
         <image href="${caminhoFrag(nota.id)}" x="165" y="47" width="30" height="30"/>
         <image href="${caminhoNota(nota.id)}" x="90" y="120" width="60" height="60"/>
+        <!-- Quanto vai em CADA encaixe: o preço lido no desenho, não só na tira. -->
+        <g font-family="Outfit, sans-serif" font-size="13" font-weight="800"
+           text-anchor="middle" fill="#f2e3b6" stroke="rgba(4,8,20,.9)" stroke-width="3"
+           paint-order="stroke">
+          <text x="60" y="93">${FRAG_POR_ENCAIXE}</text>
+          <text x="120" y="73">${FRAG_POR_ENCAIXE}</text>
+          <text x="180" y="93">${FRAG_POR_ENCAIXE}</text>
+        </g>
+        <text x="120" y="205" font-family="Outfit, sans-serif" font-size="11"
+          font-weight="700" text-anchor="middle" fill="#a9bbe0">${nota.nome}</text>
       </svg>`;
   }
 
   const rec = document.getElementById('sintReceita');
   if (rec) rec.innerHTML =
-    `<img src="${caminhoFrag(nota.id)}" alt=""><b>${c.fragmentos}</b>
-     <span>+</span><b>${c.claves} clave${c.claves > 1 ? 's' : ''}</b>
-     <span>→</span><img src="${caminhoNota(nota.id)}" alt=""><b>${nota.nome}</b>`;
+    `<img src="${caminhoFrag(nota.id)}" alt="">
+     <b>${ENCAIXES_DE_SINTESE} × ${FRAG_POR_ENCAIXE}</b>
+     <span>Fragmentos de ${nota.nome}</span>
+     <span>+</span><b>${c.claves}</b><span>claves</span>
+     <span>→</span><img src="${caminhoNota(nota.id)}" alt="">
+     <b>Nota ${nota.nome}</b>`;
 
   const res = document.getElementById('sintResultado');
   if (res) {
     const tem = notasPossuidas[nota.id] || 0;
     res.innerHTML = `
       <img src="${caminhoNota(nota.id)}" alt="">
-      <div class="fj-res-nome">${nota.nome}</div>
+      <div class="fj-res-nome">Nota ${nota.nome}</div>
       <div class="fj-res-tipo">${nota.natural ? 'Natural' : 'Sustenida'}</div>
       ${tem ? `<div class="fj-res-tem">você já tem ${tem}</div>` : ''}`;
   }
@@ -17416,7 +17469,8 @@ function desenharSintetizador() {
   const sel = document.getElementById('sintNotas');
   if (sel) {
     sel.innerHTML = CROMATICA.map(n => `
-      <button class="fj-nota-btn${n.id === notaEscolhida ? ' ativo' : ''}" data-nota="${n.id}">
+      <button class="fj-nota-btn${n.id === notaEscolhida ? ' ativo' : ''}" data-nota="${n.id}"
+              title="Sintetizar a Nota ${n.nome}">
         <img src="${caminhoNota(n.id)}" alt=""><span>${n.nome}</span>
         ${notasPossuidas[n.id] ? `<small>×${notasPossuidas[n.id]}</small>` : ''}
       </button>`).join('');
@@ -17479,7 +17533,8 @@ function desenharForjadorDeEscalas() {
       const feito = i < montagem.passos.length;
       partes.push(`<span class="fj-liga ${passo === 'S' ? 's' : ''}${feito ? '' : ' futuro'}">${passo}</span>`);
       if (feito) { p += (montagem.passos[i] === 'T' ? 2 : 1);
-                   partes.push(`<div class="fj-grau">${notaNaPosicao(p).nome}</div>`); }
+                   const recem = i === montagem.passos.length - 1;
+                   partes.push(`<div class="fj-grau${recem ? ' novo' : ''}">${notaNaPosicao(p).nome}</div>`); }
       else partes.push('<div class="fj-grau vazio">?</div>');
     });
     esc.innerHTML = partes.join('');
@@ -17489,13 +17544,22 @@ function desenharForjadorDeEscalas() {
   if (pad && montagem) pad.innerHTML = FORMULA_MAIOR.map((x, i) => {
     const feito = i < montagem.passos.length;
     const agora = i === montagem.passos.length;
-    return `<b class="${x === 'T' ? 't' : 's'}${feito ? ' feito' : ''}${agora ? ' agora' : ''}">${x}</b>`;
+    const recem = i === montagem.passos.length - 1;
+    return `<b class="${x === 'T' ? 't' : 's'}${feito ? ' feito' : ''}${recem ? ' recem' : ''}${agora ? ' agora' : ''}">${x}</b>`;
   }).join('');
 
   // Resultado: a última escala forjada.
   const res = document.getElementById('escResultado');
   if (res) {
     const ultima = escalasMontadas[escalasMontadas.length - 1];
+    // Brilha só quando o número de escalas mudou desde o último desenho.
+    if (escalasMontadas.length !== (desenharForjadorDeEscalas.__ultimo ?? -1)) {
+      if (desenharForjadorDeEscalas.__ultimo !== undefined && escalasMontadas.length) {
+        res.classList.add('selou');
+        setTimeout(() => res.classList.remove('selou'), 1200);
+      }
+      desenharForjadorDeEscalas.__ultimo = escalasMontadas.length;
+    }
     if (!ultima) res.innerHTML = '<p class="vazio">Nenhuma escala forjada ainda.</p>';
     else {
       const raizN = notaPorId(ultima.tonica);
@@ -17536,10 +17600,52 @@ function desenharForjadorDeEscalas() {
 
 // ── ligação ──
 document.getElementById('forjaBtn')?.addEventListener('click', () => abrirForjador('sintetizador'));
-document.getElementById('sintBotao')?.addEventListener('click', () => {
+// A síntese acontece AQUI, não no ritual antigo. `condensarNota` dispara o `rodarRitual`,
+// uma cerimônia de quase três segundos desenhada sobre o altar velho — que este menu não
+// mostra. O resultado, na prática, era apertar o botão, não ver nada, e a nota aparecer
+// muito depois. Aqui o pagamento é imediato, a animação é a deste menu, e a nota entra em
+// 0,7 s, com o botão dizendo que está trabalhando.
+let sintetizando = false;
+function sintetizarNotaAgora() {
+  if (sintetizando) return;
   const nota = notaPorId(notaEscolhida);
-  if (nota) { condensarNota(nota); setTimeout(desenharSintetizador, 60); }
-});
+  if (!nota) return;
+  const c = custoDaNota(nota);
+  if (fragmentosDisponiveis() < c.fragmentos) {
+    showToast(`Faltam ${c.fragmentos - fragmentosDisponiveis()} fragmentos.`); return;
+  }
+  if (claveCount < c.claves) {
+    showToast(`Faltam ${(c.claves - claveCount).toLocaleString('pt-BR')} claves.`); return;
+  }
+  sintetizando = true;
+  gastarFragmentos(c.fragmentos);
+  claveCount -= c.claves;
+
+  const quadro = document.querySelector('#sintetizador .fj-quadro');
+  const centro = document.getElementById('sintCirculo');
+  const btn = document.getElementById('sintBotao');
+  quadro?.classList.add('forjando');
+  if (btn) { btn.disabled = true; btn.textContent = 'CONDENSANDO…'; }
+  if (centro) {
+    const cl = document.createElement('i');
+    cl.className = 'fj-clarao';
+    centro.appendChild(cl);
+    setTimeout(() => cl.remove(), 720);
+  }
+  try { tocarNota(nota.id, 1.6, 0.16); } catch (e) {}
+
+  setTimeout(() => {
+    notasPossuidas[nota.id] = (notasPossuidas[nota.id] || 0) + 1;
+    progressoDeMissao('sintetizar', 'nota');
+    progressoDeMissao('sintetizar', nota.natural ? 'natural' : 'sustenida');
+    savePlayerData();
+    sintetizando = false;
+    quadro?.classList.remove('forjando');
+    desenharSintetizador();
+    showToast(`Nota ${nota.nome} condensada!`);
+  }, 700);
+}
+document.getElementById('sintBotao')?.addEventListener('click', sintetizarNotaAgora);
 document.getElementById('escBotao')?.addEventListener('click', e => {
   if (e.currentTarget.dataset.acao !== 'nova') return;
   iniciarMontagem(notaEscolhida);
@@ -17547,6 +17653,13 @@ document.getElementById('escBotao')?.addEventListener('click', e => {
 });
 document.querySelectorAll('[data-fechar]').forEach(b =>
   b.addEventListener('click', () => fecharForjador(b.dataset.fechar)));
+// Abas: trocar de forjador com o dedo. F2/F3 não existem no celular, e o botão do HUD
+// abria sempre a síntese — a forja de escalas ficava inalcançável no aparelho.
+document.querySelectorAll('[data-ir]').forEach(b =>
+  b.addEventListener('click', () => {
+    fecharForjador('sintetizador'); fecharForjador('forjadorEscalas');
+    abrirForjador(b.dataset.ir);
+  }));
 ['sintetizador', 'forjadorEscalas'].forEach(id =>
   document.getElementById(id)?.addEventListener('click', e => {
     if (e.target.id === id) fecharForjador(id);
@@ -17561,3 +17674,85 @@ window.addEventListener('keydown', e => {
     fecharForjador('sintetizador'); fecharForjador('forjadorEscalas');
   }
 });
+
+// ══ Subida de nível ═══════════════════════════════════════════════════════════
+// `levelFlashUntil` já era ligado ao subir de nível, mas ninguém desenhava nada — o único
+// sinal era um aviso de texto que passava batido no meio da luta. Agora a subida é um
+// evento: anéis que abrem do chão, uma coluna de luz e fagulhas subindo pelo corpo.
+const SUBIDA_MS = 1600;
+
+function renderSubidaDeNivel(now) {
+  if (now > levelFlashUntil) return;
+  const t = 1 - (levelFlashUntil - now) / SUBIDA_MS;   // 0 → 1
+  const alt = player.height || 90;
+  ctx.save();
+
+  // Dois anéis no chão, o segundo atrasado: uma onda, não um círculo só crescendo.
+  for (let i = 0; i < 2; i++) {
+    const ti = t - i * 0.22;
+    if (ti <= 0) continue;
+    ctx.strokeStyle = `rgba(255,233,171,${0.85 * (1 - ti)})`;
+    ctx.lineWidth = 3 * (1 - ti * 0.6);
+    ctx.beginPath();
+    ctx.ellipse(player.x, player.y, 16 + ti * 86, 6 + ti * 34, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Coluna de luz subindo pelo corpo, apagando no fim.
+  if (t < 0.7) {
+    const tc = t / 0.7;
+    const g = ctx.createLinearGradient(0, player.y, 0, player.y - alt * 1.5);
+    g.addColorStop(0, `rgba(255,233,171,${0.5 * (1 - tc)})`);
+    g.addColorStop(1, 'rgba(255,233,171,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(player.x - 22, player.y - alt * 1.5, 44, alt * 1.5);
+  }
+
+  // Fagulhas subindo em espiral: é o que dá a leitura de "algo cresceu".
+  const N = 9;
+  for (let i = 0; i < N; i++) {
+    const fase = i / N;
+    const tf = (t * 1.4 - fase * 0.5);
+    if (tf <= 0 || tf > 1) continue;
+    const ang = fase * Math.PI * 2 + t * 4;
+    const raio = 26 * (1 - tf * 0.4);
+    const px = player.x + Math.cos(ang) * raio;
+    const py = player.y - tf * alt * 1.25;
+    ctx.globalAlpha = 1 - tf;
+    ctx.fillStyle = i % 3 === 0 ? '#7dd3fc' : '#ffe9ab';
+    ctx.beginPath();
+    ctx.arc(px, py, 2.6 * (1 - tf * 0.5), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// Números do HUD: vida, nível, XP e pontos. Vivia dentro do bloco `if(isPlayMode)`, então
+// no modo ANDAR do editor a barra ficava congelada nos valores do primeiro quadro —
+// mostrava nível 1 e 100 de vida para um herói de nível 7 com 192. Como "andar" é hoje o
+// modo de jogar, o HUD tem que se atualizar nos dois.
+function atualizarNumerosDoHud() {
+  if (coinCount) coinCount.textContent = playerCoins;
+  if (claveCountEl) claveCountEl.textContent = `${claveCount}`;
+  if (lvlNum) lvlNum.textContent = level;
+  if (hpFill) {
+    const r = playerHp / playerMaxHp();
+    hpFill.style.width = (r * 100) + '%';
+    hpFill.classList.toggle('low', r <= 0.5 && r > 0.25);
+    hpFill.classList.toggle('critical', r <= 0.25);
+    const hpTxt = document.getElementById('hpText');
+    if (hpTxt) hpTxt.textContent = `${Math.round(playerHp)} / ${playerMaxHp()}`;
+  }
+  if (xpFill) {
+    const need = xpForLevel(level);
+    xpFill.style.width = Math.min(100, (xp / need) * 100) + '%';
+    if (xpLabel) xpLabel.textContent = `XP ${xp} / ${need}`;
+  }
+  // O aviso diz QUANTOS pontos esperam: bolinha sem número não informa nada.
+  const pontos = (attrPoints || 0) + (skillPoints || 0);
+  pointDot?.classList.toggle('hidden', pontos <= 0);
+  if (pointDot && pontos > 0) {
+    pointDot.textContent = pontos > 9 ? '9+' : pontos;
+    pointDot.title = `${pontos} ponto${pontos > 1 ? 's' : ''} para distribuir`;
+  }
+}

@@ -9,6 +9,7 @@
     "metas: tempos (ms) e dano sofrido que valem cada medalha, para a corrida toda.",
     "",
     "passe.livre: true deixa entrar sempre. Quando virar false a entrada passa a exigir um",
+    "nivelMinimo: nivel do heroi exigido para entrar. O portao mostra e recusa abaixo disso.",
     "passe OU esperar o reset — o sistema já está pronto, é só virar a chave.",
     "",
     "baus: tabela de sorteio. Ao entrar em CADA estágio, os baús plantados naquele mapa",
@@ -60,7 +61,8 @@
           "raridade": "mitico",
           "peso": 2
         }
-      ]
+      ],
+      "nivelMinimo": 3
     },
     {
       "id": "cavernas_da_clave",
@@ -119,7 +121,8 @@
           "raridade": "mitico",
           "peso": 8
         }
-      ]
+      ],
+      "nivelMinimo": 6
     }
   ]
 }

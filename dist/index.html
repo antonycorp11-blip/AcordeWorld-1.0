@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=20260805234543">
+  <link rel="stylesheet" href="style.css?v=20260806000533">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -430,6 +430,10 @@
                 <h2 class="fj-titulo">Altar de Síntese de Notas</h2>
                 <button class="fj-fechar" data-fechar="sintetizador">✕</button>
               </header>
+              <div class="fj-abas">
+                <button class="fj-aba ativa" data-ir="sintetizador">Síntese de Notas</button>
+                <button class="fj-aba" data-ir="forjadorEscalas">Forja de Escalas</button>
+              </div>
               <div class="fj-corpo fj-corpo-3">
                 <section class="fj-col">
                   <div class="fj-cab">Fragmentos</div>
@@ -461,6 +465,10 @@
                 <h2 class="fj-titulo">Forjar Escalas Maiores</h2>
                 <button class="fj-fechar" data-fechar="forjadorEscalas">✕</button>
               </header>
+              <div class="fj-abas">
+                <button class="fj-aba" data-ir="sintetizador">Síntese de Notas</button>
+                <button class="fj-aba ativa" data-ir="forjadorEscalas">Forja de Escalas</button>
+              </div>
               <p class="fj-sub">Combine Notas com Tons (T) e Semitons (S) para forjar uma escala maior.</p>
               <div class="fj-corpo fj-corpo-3">
                 <section class="fj-col">
@@ -934,7 +942,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="config.js?v=20260805234543"></script>
-<script src="game.js?v=20260805234543"></script>
+<script src="config.js?v=20260806000533"></script>
+<script src="game.js?v=20260806000533"></script>
 </body>
 </html>
