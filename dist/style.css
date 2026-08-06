@@ -6213,3 +6213,52 @@ body.jogando .party-hud { top: 30%; }
   .dgf-premio b { font-size: 18px; }
   .dgh-item b { font-size: 13px; }
 }
+
+/* ══ Abertura do celular ══════════════════════════════════════════════════════
+   Logo + barra de carregamento por cima de tudo, só no celular. Fica fora de
+   #engine-shell de propósito: precisa cobrir inclusive a barra do editor. */
+#aberturaMobile {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; padding: 24px;
+  background:
+    radial-gradient(ellipse at 50% 42%, #2a1246 0%, #12071f 55%, #050308 100%);
+  font-family: 'Outfit', sans-serif;
+  transition: opacity .4s ease;
+}
+#aberturaMobile[hidden] { display: none; }
+#aberturaMobile.saindo { opacity: 0; pointer-events: none; }
+
+#aberturaLogo {
+  width: min(78vw, 460px); height: auto;
+  filter: drop-shadow(0 8px 26px rgba(168,85,247,.45));
+  animation: aberturaPulsa 2.6s ease-in-out infinite;
+}
+@keyframes aberturaPulsa {
+  50% { filter: drop-shadow(0 8px 34px rgba(232,196,105,.6)); }
+}
+
+#aberturaBarra {
+  width: min(62vw, 340px); height: 6px;
+  background: rgba(255,255,255,.09);
+  border: 1px solid rgba(232,196,105,.35);
+  overflow: hidden;
+}
+#aberturaBarra i {
+  display: block; width: 0; height: 100%;
+  background: linear-gradient(90deg, #a855f7, #ffe9ab);
+  transition: width .25s ease;                 /* a barra nunca dá saltos secos */
+}
+#aberturaTexto {
+  margin: 0; font-size: 11px; letter-spacing: .22em; text-transform: uppercase;
+  color: #b6a0d8;
+}
+
+/* Enquanto a abertura está de pé, o jogo por baixo não rola nem pisca. */
+html.abrindo, html.abrindo body { overflow: hidden; }
+
+/* Paisagem baixa: a logo encolhe para caber com a barra. */
+@media (max-height: 420px) {
+  #aberturaMobile { gap: 12px; }
+  #aberturaLogo { width: min(52vw, 320px); }
+}

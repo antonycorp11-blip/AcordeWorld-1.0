@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
+  <link rel="icon" href="assets/icons/icone-192.png">
   <!-- PWA. Sem manifesto, o "adicionar à tela de início" do iOS cria só um marcador e
        serve a pagina guardada em cache — era por isso que o menu antigo, que nem existe
        mais no codigo, continuava aparecendo no aparelho. -->
@@ -18,11 +18,96 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=202608062300">
+  <link rel="stylesheet" href="style.css?v=202608070900">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
+
+<!-- ══ Abertura do celular ══════════════════════════════════════════════════════
+     A logo com "carregando" enquanto o jogo se monta. Existe por um motivo concreto:
+     no celular as folhas de sprite e os fundos continuam chegando depois que a tela já
+     apareceu, e o personagem andava alguns passos e travava no meio do caminho. Segurar a
+     abertura até tudo assentar troca um congelamento no meio do jogo por uma espera
+     honesta no começo.
+
+     Só no celular. No computador o carregamento é rápido o bastante para a tela de
+     abertura ser um estorvo, então ela nem é criada. -->
+<div id="aberturaMobile" hidden>
+  <img src="assets/ui/logo-acordelot.png" alt="Acordelot" id="aberturaLogo">
+  <div id="aberturaBarra"><i></i></div>
+  <p id="aberturaTexto">carregando…</p>
+</div>
+<script>
+(function () {
+  // Decidido antes de qualquer outra coisa: a abertura precisa estar de pé no primeiro
+  // quadro, senão o jogador vê o editor piscar por trás dela.
+  // Só ponteiro grosso ou tela estreita. `display-mode: standalone` chegou a entrar aqui
+  // e foi retirado: ele acusa qualquer janela em modo aplicativo, inclusive no
+  // computador — e num celular o ponteiro grosso já é verdade de qualquer jeito.
+  var celular = matchMedia('(pointer: coarse)').matches
+             || matchMedia('(max-width: 900px)').matches;
+  if (!celular) return;
+
+  var el = document.getElementById('aberturaMobile');
+  el.hidden = false;
+  document.documentElement.classList.add('abrindo');
+
+  // Conta as imagens que ainda não terminaram. Em vez de listar à mão o que carregar —
+  // são dezenas de folhas espalhadas pelo código — o construtor de Image é embrulhado
+  // aqui, ANTES do game.js, e passa a avisar sozinho. Erro também conta como resolvida:
+  // um arquivo que falta não pode prender a abertura para sempre.
+  var pendentes = 0, jaVistas = 0, Nativo = window.Image;
+  function resolveu() { pendentes = Math.max(0, pendentes - 1); }
+  window.Image = function () {
+    var img = new Nativo(arguments[0], arguments[1]);
+    var src = Object.getOwnPropertyDescriptor(Nativo.prototype, 'src')
+           || Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+    Object.defineProperty(img, 'src', {
+      configurable: true,
+      get: function () { return src.get.call(this); },
+      set: function (v) {
+        pendentes++; jaVistas++;
+        this.addEventListener('load', resolveu, { once: true });
+        this.addEventListener('error', resolveu, { once: true });
+        src.set.call(this, v);
+      },
+    });
+    return img;
+  };
+  window.Image.prototype = Nativo.prototype;
+
+  var inicio = Date.now();
+  var MINIMO = 1400;     // tempo de tela mínimo, para a logo não dar um flash e sumir
+  var TETO = 20000;      // nunca prende o jogador, aconteça o que acontecer
+  var quieto = 0;
+  var barra = el.querySelector('#aberturaBarra i');
+  var texto = document.getElementById('aberturaTexto');
+
+  var t = setInterval(function () {
+    var passou = Date.now() - inicio;
+    // A barra mostra o que já resolveu do que foi pedido — e nunca anda para trás.
+    var frac = jaVistas ? (jaVistas - pendentes) / jaVistas : 0;
+    var alvo = Math.max(passou / TETO, frac) * 100;
+    barra.style.width = Math.min(98, alvo).toFixed(1) + '%';
+    if (jaVistas) texto.textContent = 'carregando… ' + (jaVistas - pendentes) + '/' + jaVistas;
+
+    quieto = pendentes === 0 ? quieto + 1 : 0;
+    // Pronto quando nada mais está pendente há uns instantes: sem essa carência a
+    // abertura fecharia no vão entre uma folha terminar e a próxima começar.
+    var pronto = quieto >= 5 && jaVistas > 0 && passou >= MINIMO;
+    if (!pronto && passou < TETO) return;
+    clearInterval(t);
+    window.Image = Nativo;
+    barra.style.width = '100%';
+    el.classList.add('saindo');
+    setTimeout(function () {
+      el.remove();
+      document.documentElement.classList.remove('abrindo');
+    }, 420);
+  }, 100);
+})();
+</script>
 
 <div id="engine-shell">
 
@@ -1555,7 +1640,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="game.js?v=202608062300"></script>
+<script src="game.js?v=202608070900"></script>
 <script src="pixelizador.js?v=202608052000"></script>
 </body>
 </html>
