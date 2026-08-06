@@ -6871,3 +6871,64 @@ html.abrindo, html.abrindo body { overflow: hidden; }
   .eq-total { font-size: 9.5px; }
   .eq-grade { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ── Nível de poder na ficha ── */
+.ficha-poder {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  padding: 7px 11px; cursor: pointer;
+  background: linear-gradient(90deg, rgba(122,94,30,.4), rgba(24,32,66,.5));
+  border: 1px solid rgba(232,196,105,.55);
+  transition: border-color .15s, transform .12s;
+}
+.ficha-poder:hover { border-color: #e8c469; transform: translateY(-1px); }
+.fp-rot { font-size: 9px; font-weight: 800; letter-spacing: .2em; color: #c9b78a; }
+.fp-num {
+  font-size: 22px; font-weight: 800; color: #ffe9ab; line-height: 1;
+  text-shadow: 0 0 16px rgba(232,196,105,.55);
+}
+.fp-dica { flex-basis: 100%; font-size: 8.5px; letter-spacing: .1em; color: #8b96bb; }
+
+/* Nome do atributo virou botão: clicar explica o que ele dá. */
+.fa-nome {
+  text-align: left; padding: 0; cursor: pointer; font-family: inherit;
+  background: none; border: 0;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .06em; color: #a9b4d4;
+}
+.fa-nome:hover { color: #f2e3b6; }
+.fa-nome i { font-style: normal; opacity: .45; font-size: 8.5px; }
+
+/* Balão de explicação, aberto no ponto do clique. */
+.ficha-balao {
+  position: absolute; z-index: 72; width: 258px; padding: 10px 12px; cursor: pointer;
+  background: rgba(6,9,22,.98); border: 1px solid rgba(169,126,44,.75);
+  box-shadow: 0 12px 32px rgba(0,0,0,.7); font-family: 'Outfit', sans-serif;
+}
+.ficha-balao.hidden { display: none; }
+.fb-titulo {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  font-size: 12.5px; font-weight: 800; color: #f2e3b6;
+  padding-bottom: 6px; border-bottom: 1px solid rgba(169,126,44,.35);
+}
+.fb-titulo span { font-size: 10px; font-weight: 700; color: #7dd3fc; }
+.fb-corpo { padding: 6px 0; display: flex; flex-direction: column; gap: 4px; }
+.fb-efeito { display: flex; align-items: baseline; gap: 6px; font-size: 10.5px; color: #9aa8cd; }
+.fb-efeito span { flex: 1; }
+.fb-efeito b { color: #f2e3b6; }
+.fb-efeito u { text-decoration: none; color: #86efac; font-size: 9.5px; }
+.fb-pe {
+  font-size: 9.5px; color: #8b96bb; padding-top: 5px;
+  border-top: 1px solid rgba(169,126,44,.28);
+}
+
+/* Nível de poder no topo da coluna da ficha, na tela de equipamentos. */
+.eq-poder {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 8px; margin-bottom: 4px;
+  background: linear-gradient(180deg, rgba(122,94,30,.42), rgba(24,16,50,.6));
+  border: 1px solid rgba(232,196,105,.5);
+}
+.eq-poder span { font-size: 8.5px; font-weight: 800; letter-spacing: .22em; color: #c9b78a; }
+.eq-poder b {
+  font-size: 26px; font-weight: 800; color: #ffe9ab; line-height: 1.05;
+  text-shadow: 0 0 18px rgba(232,196,105,.6);
+}

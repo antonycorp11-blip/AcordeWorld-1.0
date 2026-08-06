@@ -10,6 +10,8 @@
     "",
     "passe.livre: true deixa entrar sempre. Quando virar false a entrada passa a exigir um",
     "nivelMinimo: nivel do heroi exigido para entrar. O portao mostra e recusa abaixo disso.",
+    "poderMinimo: nivel de poder exigido. E a margem real: um heroi de nivel alto mas mal",
+    "equipado nao entra, e um bem equipado entra mais cedo.",
     "passe OU esperar o reset — o sistema já está pronto, é só virar a chave.",
     "",
     "baus: tabela de sorteio. Ao entrar em CADA estágio, os baús plantados naquele mapa",
@@ -62,7 +64,8 @@
           "peso": 2
         }
       ],
-      "nivelMinimo": 3
+      "nivelMinimo": 3,
+      "poderMinimo": 320
     },
     {
       "id": "cavernas_da_clave",
@@ -122,7 +125,8 @@
           "peso": 8
         }
       ],
-      "nivelMinimo": 6
+      "nivelMinimo": 6,
+      "poderMinimo": 1200
     }
   ]
 }

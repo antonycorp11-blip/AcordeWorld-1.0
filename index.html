@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=202608091200">
+  <link rel="stylesheet" href="style.css?v=202608091700">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -1111,10 +1111,10 @@
                   <div class="ficha-moldura">
                     <img id="fichaRetrato" alt="">
                   </div>
-                  <div class="ficha-classe">
-                    <span class="fc-rotulo">CLASSE</span>
-                    <span class="fc-valor" id="fichaClasse"></span>
-                  </div>
+                  <!-- O bloco de CLASSE saiu: repetia o subtítulo que já está sob o nome.
+                       No lugar entra o NÍVEL DE PODER, que é o número que resume a build
+                       inteira e o que as dungeons exigem. -->
+                  <div class="ficha-poder" id="fichaPoder"></div>
                   <div class="ficha-barras" id="fichaBarras"></div>
                 </section>
                 <section class="ficha-dir">
@@ -1808,7 +1808,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="game.js?v=202608091200"></script>
+<script src="game.js?v=202608091700"></script>
 <script src="pixelizador.js?v=202608052000"></script>
 </body>
 </html>

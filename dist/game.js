@@ -5236,6 +5236,47 @@ function derivedStats() {
 // Multiplicador do golpe crítico. Era 2× fixo; agora sai de `danoCritico`, que começa
 // em 50% (o dobro de sempre) e sobe com o equipamento.
 function multCritico(s) { return 1 + (s || derivedStats()).danoCritico / 100; }
+// ── Nível de Poder ────────────────────────────────────────────────────────────
+// Um número só que resume a build inteira: atributos, nível, equipamento e conjunto.
+// Serve para responder "eu aguento esta dungeon?" sem obrigar ninguém a comparar dez
+// linhas de status.
+//
+// Cada atributo entra com um PESO, porque não valem a mesma coisa: um ponto de ataque
+// muda mais uma luta que um ponto de vida. Dano crítico conta só o que passa de 50%,
+// que é o crítico normal — senão todo personagem nasceria com poder de graça.
+const PESO_DO_PODER = {
+  maxHp: 0.5, dmg: 8, defesa: 6, dmgMagia: 3, atkSpeed: 3,
+  crit: 5, danoCritico: 1.5, lifesteal: 4, recarga: 3,
+};
+const PODER_POR_NIVEL = 20;
+
+function nivelDePoder() {
+  const s = derivedStats();
+  let p = level * PODER_POR_NIVEL;
+  for (const [k, peso] of Object.entries(PESO_DO_PODER)) {
+    const v = k === 'danoCritico' ? Math.max(0, s[k] - 50) : (s[k] || 0);
+    p += v * peso;
+  }
+  // Conjunto ativo é poder real: o bônus não aparece em nenhum atributo, mas muda a luta.
+  conjuntosAtivos().forEach(c => { p *= 1.08; });
+  return Math.round(p);
+}
+
+// Quanto cada parte contribui — usado na tela para explicar o número em vez de só mostrá-lo.
+function detalheDoPoder() {
+  const s = derivedStats();
+  const linhas = [['Nível', level * PODER_POR_NIVEL]];
+  for (const [k, peso] of Object.entries(PESO_DO_PODER)) {
+    const v = k === 'danoCritico' ? Math.max(0, s[k] - 50) : (s[k] || 0);
+    if (v) linhas.push([ROTULO_DO_STATUS[k] || k, Math.round(v * peso)]);
+  }
+  return linhas.sort((a, b) => b[1] - a[1]);
+}
+const ROTULO_DO_STATUS = {
+  maxHp: 'Vida', dmg: 'Ataque', defesa: 'Defesa', dmgMagia: 'Magia', atkSpeed: 'Agilidade',
+  crit: 'Crítico', danoCritico: 'Dano crítico', lifesteal: 'Roubo de vida', recarga: 'Recarga',
+};
+
 function playerMaxHp()   { return derivedStats().maxHp; }
 function playerDamage()  { return derivedStats().dmg; }
 function attackCooldown(){ return BASE_COOLDOWN / (1 + derivedStats().atkSpeed / 100); }
@@ -16398,8 +16439,14 @@ function desenharFicha() {
   if (nome) nome.textContent = (def.name || id).toUpperCase();
   const sub = document.getElementById('fichaSub');
   if (sub) sub.textContent = def.class || '';
-  const cls = document.getElementById('fichaClasse');
-  if (cls) cls.textContent = `${def.class || '—'} · ${def.weapon || ''}`.trim();
+  // Nível de poder no lugar do bloco de classe. Clicável: abre a conta de onde ele vem.
+  const pod = document.getElementById('fichaPoder');
+  if (pod) {
+    pod.innerHTML = `<span class="fp-rot">NÍVEL DE PODER</span>
+      <b class="fp-num">${nivelDePoder().toLocaleString('pt-BR')}</b>
+      <small class="fp-dica">toque para ver a conta</small>`;
+    pod.onclick = e => mostrarDetalheDoPoder(e);
+  }
   const lema = document.getElementById('fichaLema');
   if (lema) lema.textContent = def.lema ? `“${def.lema}”` : '';
 
@@ -16412,8 +16459,7 @@ function desenharFicha() {
     barras.innerHTML = `
       <div class="fa-resumo">
         <span>❤ <b>${Math.round(playerHp)}/${s2.maxHp}</b></span>
-        <span>⚔ <b>${s2.dmg}</b></span>
-        <span>Nv <b>${level}</b></span>
+        <span>Nível <b>${level}</b></span>
       </div>
       <div class="fa-pontos${attrPoints ? ' tem' : ''}">
         ${attrPoints ? `${attrPoints} ponto${attrPoints > 1 ? 's' : ''} para distribuir`
@@ -16421,7 +16467,7 @@ function desenharFicha() {
       </div>` +
       Object.entries(ATTR_META).map(([k, info]) => `
         <div class="fa-linha">
-          <span class="fa-nome" title="${info.desc}">${info.icon} ${info.name}</span>
+          <button class="fa-nome" data-explica="${k}">${info.icon} ${info.name} <i>?</i></button>
           <span class="fa-segs">${Array.from({ length: 10 },
             (_, i) => `<i class="fb-seg${i < attrs[k] ? ' on' : ''}"></i>`).join('')}</span>
           <b class="fa-val">${attrs[k]}</b>
@@ -16431,6 +16477,8 @@ function desenharFicha() {
       spendAttr(b2.dataset.attr);
       desenharFicha();
     }));
+    barras.querySelectorAll('.fa-nome').forEach(b2 =>
+      b2.addEventListener('click', e => explicarAtributo(b2.dataset.explica, e)));
   }
 
   // Trocador de herói: só quem já está desbloqueado aparece.
@@ -16676,6 +16724,12 @@ function podeEntrarNaDungeon(d) {
   if (level < (d.nivelMinimo || 1)) {
     return { ok: false, nivel: d.nivelMinimo };
   }
+  // O poder é a margem real: nível diz há quanto tempo se joga, poder diz o quanto o
+  // personagem aguenta agora. Uma dungeon mais dura pede mais poder, não mais nível.
+  const poder = nivelDePoder();
+  if (poder < (d.poderMinimo || 0)) {
+    return { ok: false, poder: d.poderMinimo, seuPoder: poder };
+  }
   if (d.passe?.livre) return { ok: true, livre: true };
   const espera = esperaDeReset(d);
   if (espera <= 0) return { ok: true, motivo: 'reset' };
@@ -16696,6 +16750,8 @@ function iniciarCorrida(d) {
   if (!permissao.ok) {
     showToast(permissao.nivel
       ? `${d.nome} exige nível ${permissao.nivel}. Você está no ${level}.`
+      : permissao.poder
+      ? `${d.nome} exige ${permissao.poder.toLocaleString('pt-BR')} de poder. Você tem ${permissao.seuPoder.toLocaleString('pt-BR')}.`
       : `Sem passe — a entrada libera em ${textoDeEspera(permissao.espera)}.`);
     return false;
   }
@@ -16852,9 +16908,11 @@ function abrirPortao(d, viagem) {
 
   el.querySelector('.dg-nome').textContent = d.nome;
   el.querySelector('.dg-sub').textContent = d.subtitulo || '';
+  const poderAgora = nivelDePoder();
   el.querySelector('.dg-nivel').textContent =
-    `NÍVEL ${d.nivel || 1}  ·  EXIGE Nv ${d.nivelMinimo || 1}`;
-  el.querySelector('.dg-nivel').classList.toggle('faltaNivel', level < (d.nivelMinimo || 1));
+    `NÍVEL ${d.nivel || 1}  ·  EXIGE Nv ${d.nivelMinimo || 1} E ${(d.poderMinimo || 0).toLocaleString('pt-BR')} DE PODER`;
+  el.querySelector('.dg-nivel').classList.toggle('faltaNivel',
+    level < (d.nivelMinimo || 1) || poderAgora < (d.poderMinimo || 0));
   el.querySelector('.dg-objetivo').innerHTML = mapas.length > 1
     ? `<b>${mapas.length}</b> câmaras em sequência · <b>${total}</b> inimigos ao todo.`
       + `<br><small>O cronômetro não para entre elas. Sair no meio perde a corrida.</small>`
@@ -16869,7 +16927,16 @@ function abrirPortao(d, viagem) {
      <small>× o multiplicador da sua nota</small>`;
 
   const passe = el.querySelector('.dg-passe');
-  if (d.passe?.livre) {
+  // As recusas vêm ANTES do aviso de entrada livre. Com o passe destravado, o ramo
+  // "liberada" ganhava sempre e escondia a falta de nível ou de poder — o portão dizia
+  // que podia entrar e o botão recusava.
+  if (perm.nivel) {
+    passe.className = 'dg-passe bloqueado';
+    passe.textContent = `Exige nível ${perm.nivel} — você está no ${level}.`;
+  } else if (perm.poder) {
+    passe.className = 'dg-passe bloqueado';
+    passe.textContent = `Exige ${perm.poder.toLocaleString('pt-BR')} de poder — você tem ${perm.seuPoder.toLocaleString('pt-BR')}.`;
+  } else if (d.passe?.livre) {
     passe.className = 'dg-passe livre';
     passe.textContent = 'Entrada liberada — o passe entra em uma versão futura.';
   } else if (perm.ok) {
@@ -16877,9 +16944,6 @@ function abrirPortao(d, viagem) {
     passe.textContent = perm.motivo === 'passe'
       ? `Custa 1 passe (você tem ${passesDeDungeon}).`
       : 'Entrada livre — o reset já virou.';
-  } else if (perm.nivel) {
-    passe.className = 'dg-passe bloqueado';
-    passe.textContent = `Exige nível ${perm.nivel} — você está no ${level}.`;
   } else {
     passe.className = 'dg-passe bloqueado';
     passe.textContent = `Sem passe. Libera em ${textoDeEspera(perm.espera)}.`;
@@ -17936,8 +18000,10 @@ function desenharEquipamentos() {
   document.getElementById('equipXpFill').style.width = Math.min(100, (xp / need) * 100) + '%';
   document.getElementById('equipXp').textContent = `${xp} / ${need} XP`;
 
-  // Os cinco números que importam de relance.
-  document.getElementById('equipPrincipais').innerHTML = [
+  // O poder vem primeiro: é o número que se acompanha enquanto se mexe na build, e o que
+  // as dungeons exigem.
+  document.getElementById('equipPrincipais').innerHTML =
+    `<div class="eq-poder"><span>NÍVEL DE PODER</span><b>${nivelDePoder().toLocaleString('pt-BR')}</b></div>` + [
     ['❤', 'HP', s.maxHp], ['⚔', 'Ataque', s.dmg], ['🛡', 'Defesa', s.defesa + '%'],
     ['✦', 'Magia', s.dmgMagia + '%'], ['🏃', 'Agilidade', s.atkSpeed + '%'],
   ].map(([i, n, v]) => `<div class="eq-linha-p">${i}<span>${n}</span><b>${v}</b></div>`).join('');
@@ -18144,3 +18210,80 @@ window.addEventListener('keydown', e => {
     fecharEquipamentos();
   }
 });
+
+// ── O que cada atributo faz, em número ────────────────────────────────────────
+// Os nomes são musicais de propósito — Ritmo, Afinação, Fôlego — e isso ensina o
+// vocabulário, mas esconde o efeito. Antes de gastar um ponto o jogador precisa saber
+// exatamente o que ele compra, então cada atributo diz o que dá AGORA e o que daria com
+// mais um ponto.
+const EFEITO_DO_ATRIBUTO = {
+  ritmo: n => [
+    ['Velocidade de ataque', `+${n * 3}%`, `+${(n + 1) * 3}%`],
+    ['Zona da bigorna (forja)', `+${Math.min(70, n * 6)}%`, `+${Math.min(70, (n + 1) * 6)}%`],
+  ],
+  afinacao: n => [
+    ['Janela de captura de Eco', `+${Math.min(70, n * 6)}%`, `+${Math.min(70, (n + 1) * 6)}%`],
+    ['Chance de Fragmento Puro', `+${Math.min(45, n * 3)}%`, `+${Math.min(45, (n + 1) * 3)}%`],
+  ],
+  folego: n => [
+    ['Vida máxima', `+${n * 8}`, `+${(n + 1) * 8}`],
+    ['Recarga de habilidade', `−${Math.min(60, n * 4)}%`, `−${Math.min(60, (n + 1) * 4)}%`],
+  ],
+  dinamica: n => [
+    ['Dano de ataque', `+${n * 3}`, `+${(n + 1) * 3}`],
+    ['Dano de feitiço', `+${n * 4}%`, `+${(n + 1) * 4}%`],
+  ],
+  memoria: n => [
+    ['Fragmentos na síntese', `−${Math.min(50, n * 4)}%`, `−${Math.min(50, (n + 1) * 4)}%`],
+    ['Capacidade de claves', `+${n * 10}`, `+${(n + 1) * 10}`],
+  ],
+};
+
+let _balaoDaFicha = null;
+function balaoDaFicha() {
+  if (!_balaoDaFicha) {
+    _balaoDaFicha = document.createElement('div');
+    _balaoDaFicha.className = 'ficha-balao hidden';
+    document.getElementById('fichaHeroi')?.appendChild(_balaoDaFicha);
+    _balaoDaFicha.addEventListener('click', () => _balaoDaFicha.classList.add('hidden'));
+  }
+  return _balaoDaFicha;
+}
+function posicionarBalao(el, ev) {
+  const pai = document.getElementById('fichaHeroi').getBoundingClientRect();
+  const x = (ev?.clientX ?? pai.left + pai.width / 2) - pai.left;
+  const y = (ev?.clientY ?? pai.top + pai.height / 2) - pai.top;
+  el.classList.remove('hidden');
+  const w = el.offsetWidth, h = el.offsetHeight;
+  el.style.left = `${Math.max(6, Math.min(pai.width - w - 6, x - w / 2))}px`;
+  el.style.top  = `${Math.max(6, Math.min(pai.height - h - 6, y - h - 12))}px`;
+}
+
+function explicarAtributo(chave, ev) {
+  const info = ATTR_META[chave];
+  const f = EFEITO_DO_ATRIBUTO[chave];
+  if (!info || !f) return;
+  const n = attrs[chave] || 0;
+  const el = balaoDaFicha();
+  el.innerHTML = `
+    <div class="fb-titulo">${info.icon} ${info.name} <span>${n} ponto${n === 1 ? '' : 's'}</span></div>
+    <div class="fb-corpo">${f(n).map(([nome, agora, prox]) => `
+      <div class="fb-efeito"><span>${nome}</span>
+        <b>${agora}</b><u>→ ${prox}</u></div>`).join('')}</div>
+    <div class="fb-pe">${attrPoints ? 'Você tem ' + attrPoints + ' ponto(s) para gastar.'
+                                     : 'Sem pontos — suba de nível.'}</div>`;
+  posicionarBalao(el, ev);
+}
+
+function mostrarDetalheDoPoder(ev) {
+  const el = balaoDaFicha();
+  const linhas = detalheDoPoder();
+  const conj = conjuntosAtivos();
+  el.innerHTML = `
+    <div class="fb-titulo">Nível de Poder <span>${nivelDePoder().toLocaleString('pt-BR')}</span></div>
+    <div class="fb-corpo">${linhas.map(([nome, v]) =>
+      `<div class="fb-efeito"><span>${nome}</span><b>${v.toLocaleString('pt-BR')}</b></div>`).join('')}
+      ${conj.length ? `<div class="fb-efeito"><span>Conjunto ativo</span><b>×1,08</b></div>` : ''}</div>
+    <div class="fb-pe">É o número que as dungeons exigem. Sobe com nível, atributos e equipamento.</div>`;
+  posicionarBalao(el, ev);
+}
