@@ -6262,3 +6262,42 @@ html.abrindo, html.abrindo body { overflow: hidden; }
   #aberturaMobile { gap: 12px; }
   #aberturaLogo { width: min(52vw, 320px); }
 }
+
+/* ── Prêmio do baú ── */
+.bp-overlay {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 58; pointer-events: none; font-family: 'Outfit', sans-serif;
+  animation: bpEntra .35s ease;
+}
+.bp-overlay.hidden { display: none; }
+@keyframes bpEntra {
+  from { opacity: 0; transform: translate(-50%, -42%) scale(.92); }
+}
+.bp-quadro {
+  padding: 12px 16px 14px;
+  background: linear-gradient(165deg, rgba(28,24,60,.97), rgba(10,12,28,.98));
+  border: 2px solid #cbd5e1;                 /* trocada pela cor da raridade */
+  box-shadow: 0 14px 44px rgba(0,0,0,.65);
+  text-align: center;
+}
+.bp-cab {
+  font-size: 10px; font-weight: 800; letter-spacing: .24em; color: #8b96bb;
+  margin-bottom: 10px;
+}
+.bp-cab b { font-size: 13px; letter-spacing: .16em; }
+.bp-itens { display: flex; gap: 10px; justify-content: center; }
+.bp-item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 74px; padding: 8px 6px;
+  background: rgba(8,11,26,.75); border: 1px solid rgba(107,124,180,.3);
+}
+.bp-item img { width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated; }
+.bp-emoji { font-size: 30px; line-height: 40px; }
+.bp-item b { font-size: 15px; color: #f2e3b6; }
+.bp-item small { font-size: 8.5px; letter-spacing: .1em; color: #8b96bb; text-transform: uppercase; }
+
+@media (max-height: 460px) {
+  .bp-item { min-width: 60px; padding: 6px 4px; }
+  .bp-item img { width: 30px; height: 30px; }
+  .bp-item b { font-size: 13px; }
+}

@@ -8,7 +8,12 @@
     "mínimo.",
     "",
     "passe.livre: true deixa entrar sempre. Quando virar false a entrada passa a exigir um",
-    "passe OU esperar o reset — o sistema já está pronto, é só virar a chave."
+    "passe OU esperar o reset — o sistema já está pronto, é só virar a chave.",
+    "",
+    "baus: tabela de sorteio da dungeon. Ao ENTRAR, cada baú posicionado no cenário",
+    "sorteia uma raridade desta lista (peso relativo) — ou nenhuma, se cair em vazio.",
+    "A posição, o tamanho e a quantidade são os que você definir no editor; o código",
+    "só troca a arte e o conteúdo."
   ],
   "dungeons": [
     {
@@ -25,8 +30,221 @@
         "danoPrata": 0.25,
         "danoBronze": 0.6
       },
-      "premio": { "claves": 1200, "ouro": 300 },
-      "passe": { "livre": true, "custo": 1, "resetHoras": 8 }
+      "premio": {
+        "claves": 1200,
+        "ouro": 300
+      },
+      "passe": {
+        "livre": true,
+        "custo": 1,
+        "resetHoras": 8
+      },
+      "baus": [
+        {
+          "raridade": "comum",
+          "peso": 48
+        },
+        {
+          "raridade": "raro",
+          "peso": 28
+        },
+        {
+          "raridade": "epico",
+          "peso": 15
+        },
+        {
+          "raridade": "lendario",
+          "peso": 7
+        },
+        {
+          "raridade": "mitico",
+          "peso": 2
+        }
+      ]
+    },
+    {
+      "id": "cavernas_da_clave",
+      "mapa": "custom_1785967453140_198",
+      "nome": "Cavernas da Clave",
+      "subtitulo": "Um labirinto de pedra onde o eco não encontra saída",
+      "nivel": 2,
+      "metas": {
+        "tempoOuro": 120000,
+        "tempoPrata": 190000,
+        "tempoBronze": 300000,
+        "danoOuro": 0,
+        "danoPrata": 0.25,
+        "danoBronze": 0.6
+      },
+      "premio": {
+        "claves": 1800,
+        "ouro": 420
+      },
+      "passe": {
+        "livre": true,
+        "custo": 1,
+        "resetHoras": 8
+      },
+      "baus": [
+        {
+          "raridade": "comum",
+          "peso": 40
+        },
+        {
+          "raridade": "raro",
+          "peso": 30
+        },
+        {
+          "raridade": "epico",
+          "peso": 14
+        },
+        {
+          "raridade": "lendario",
+          "peso": 5
+        },
+        {
+          "raridade": "mitico",
+          "peso": 1
+        }
+      ]
+    },
+    {
+      "id": "bosque_cristalino",
+      "mapa": "custom_1785976237901_373",
+      "nome": "Bosque Cristalino",
+      "subtitulo": "A grande árvore guarda o cristal que ainda canta",
+      "nivel": 3,
+      "metas": {
+        "tempoOuro": 140000,
+        "tempoPrata": 210000,
+        "tempoBronze": 330000,
+        "danoOuro": 0,
+        "danoPrata": 0.25,
+        "danoBronze": 0.6
+      },
+      "premio": {
+        "claves": 2400,
+        "ouro": 560
+      },
+      "passe": {
+        "livre": true,
+        "custo": 1,
+        "resetHoras": 8
+      },
+      "baus": [
+        {
+          "raridade": "comum",
+          "peso": 31
+        },
+        {
+          "raridade": "raro",
+          "peso": 30
+        },
+        {
+          "raridade": "epico",
+          "peso": 18
+        },
+        {
+          "raridade": "lendario",
+          "peso": 8
+        },
+        {
+          "raridade": "mitico",
+          "peso": 3
+        }
+      ]
+    },
+    {
+      "id": "salao_em_ruinas",
+      "mapa": "custom_1785976286672_61",
+      "nome": "Salão em Ruínas",
+      "subtitulo": "O que sobrou do conservatório antigo",
+      "nivel": 4,
+      "metas": {
+        "tempoOuro": 160000,
+        "tempoPrata": 240000,
+        "tempoBronze": 360000,
+        "danoOuro": 0,
+        "danoPrata": 0.25,
+        "danoBronze": 0.6
+      },
+      "premio": {
+        "claves": 3200,
+        "ouro": 700
+      },
+      "passe": {
+        "livre": true,
+        "custo": 1,
+        "resetHoras": 8
+      },
+      "baus": [
+        {
+          "raridade": "comum",
+          "peso": 22
+        },
+        {
+          "raridade": "raro",
+          "peso": 30
+        },
+        {
+          "raridade": "epico",
+          "peso": 22
+        },
+        {
+          "raridade": "lendario",
+          "peso": 11
+        },
+        {
+          "raridade": "mitico",
+          "peso": 5
+        }
+      ]
+    },
+    {
+      "id": "arena_do_selo",
+      "mapa": "custom_1785976318486_785",
+      "nome": "Arena do Selo",
+      "subtitulo": "O selo da clave arde no chão e chama quem ousa",
+      "nivel": 5,
+      "metas": {
+        "tempoOuro": 180000,
+        "tempoPrata": 270000,
+        "tempoBronze": 400000,
+        "danoOuro": 0,
+        "danoPrata": 0.25,
+        "danoBronze": 0.6
+      },
+      "premio": {
+        "claves": 4200,
+        "ouro": 900
+      },
+      "passe": {
+        "livre": true,
+        "custo": 1,
+        "resetHoras": 8
+      },
+      "baus": [
+        {
+          "raridade": "comum",
+          "peso": 13
+        },
+        {
+          "raridade": "raro",
+          "peso": 30
+        },
+        {
+          "raridade": "epico",
+          "peso": 26
+        },
+        {
+          "raridade": "lendario",
+          "peso": 14
+        },
+        {
+          "raridade": "mitico",
+          "peso": 7
+        }
+      ]
     }
   ]
 }

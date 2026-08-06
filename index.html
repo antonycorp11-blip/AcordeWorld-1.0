@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=202608071200">
+  <link rel="stylesheet" href="style.css?v=202608071900">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -92,9 +92,12 @@
     var alvo = Math.max(passou / TETO, carregou ? 0.55 : 0.25, quieto / SILENCIO * 0.4 + 0.55);
     maior = Math.max(maior, Math.min(0.97, alvo));
     barra.style.width = (maior * 100).toFixed(1) + '%';
-    texto.textContent = 'carregando… ' + chegaram;
+    texto.textContent = window.__cenarioPronto ? 'entrando no reino…' : 'carregando… ' + chegaram;
 
-    var pronto = carregou && quieto >= SILENCIO && passou >= MINIMO;
+    // Duas condições, não uma: rede em silêncio E o jogo avisando que já desenhou o
+    // cenário. Só o silêncio deixava a logo sair antes do fundo do mapa existir.
+    var pronto = carregou && quieto >= SILENCIO && passou >= MINIMO
+              && window.__cenarioPronto === true;
     if (!pronto && passou < TETO) return;
     clearInterval(t);
     barra.style.width = '100%';
@@ -1144,6 +1147,14 @@
             </div>
           </div>
 
+          <!-- Prêmio do baú: aparece por alguns segundos e some sozinho. -->
+          <div id="bauPremio" class="bp-overlay hidden">
+            <div class="bp-quadro">
+              <div class="bp-cab">BAÚ <b class="bp-raridade"></b></div>
+              <div class="bp-itens"></div>
+            </div>
+          </div>
+
           <!-- Shop / Inventory sheet -->
           <div id="storeOverlay" class="store-overlay hidden">
             <div class="store-sheet">
@@ -1638,7 +1649,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="game.js?v=202608071200"></script>
+<script src="game.js?v=202608072100"></script>
 <script src="pixelizador.js?v=202608052000"></script>
 </body>
 </html>

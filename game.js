@@ -395,10 +395,20 @@ async function loadWorldConfig() {
     img.src = bgSources[k];
     bgImages[k] = img;
   };
+  // Os fundos são de 2752×1536 e pesam ~3 MB cada. Baixar os catorze na abertura são
+  // 41 MB antes de o jogador dar o primeiro passo — no celular é isso que fazia demorar
+  // e abrir com a tela preta, porque a rede estava ocupada com mapas que ele nem vai ver.
+  //
+  // Agora só o mapa aberto entra na hora. Os outros chegam quando forem pisados (ver
+  // `garantirFundo`, chamado no desenho). No computador, onde a banda sobra, os demais
+  // ainda são pré-carregados em segundo plano para a troca de mapa ser instantânea.
+  window.__carregarBg = carregarBg;
   carregarBg(currentKey);
-  const restantes = Object.keys(bgSources).filter(k => k !== currentKey);
-  const ocioso = window.requestIdleCallback || (fn => setTimeout(fn, 300));
-  ocioso(() => restantes.forEach(carregarBg));
+  if (!ehCelular()) {
+    const restantes = Object.keys(bgSources).filter(k => k !== currentKey);
+    const ocioso = window.requestIdleCallback || (fn => setTimeout(fn, 300));
+    ocioso(() => restantes.forEach(carregarBg));
+  }
   rebuildGrid();
   refreshMapSelect();
 }
@@ -465,6 +475,8 @@ const stick = { active:false, x:0, y:0 };
 function doAction() {
   if (dlg.state===DLG_STATE.TYPING || dlg.state===DLG_STATE.WAITING) { advanceDlg(); return; }
   if (dlg.state===DLG_STATE.CHOOSING) return; // a choice has to be tapped
+  const bau = bauMaisPerto();
+  if (bau) { abrirBau(bau); return; }
   tryTalk();
 }
 
@@ -624,7 +636,11 @@ function findContentInset(d, W, H) {
   return 0;
 }
 
-function prepareSprite(img) {
+// `jaTemAlfa` pula a remoção de fundo. Ela existe para JPEG, que não tem transparência e
+// precisa do branco arrancado por inundação — um percurso em JavaScript, pixel a pixel,
+// com pilha própria. Um PNG já vem recortado, e rodar isso nele era puro desperdício:
+// eram 200 props passando por esse moinho na abertura, no fio principal.
+function prepareSprite(img, jaTemAlfa) {
   let srcX = 0, srcY = 0, W = img.width, H = img.height;
 
   // If it's a grid sprite sheet (sr_antony is 5x4), extract just the first frame.
@@ -642,6 +658,19 @@ function prepareSprite(img) {
   cx.drawImage(img, srcX, srcY, W, H, 0, 0, W, H);
 
   const id = cx.getImageData(0, 0, W, H), d = id.data;
+
+  if (jaTemAlfa) {
+    // Só a caixa do conteúdo: uma passada linear, sem inundação.
+    let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (d[(y * W + x) * 4 + 3] > 16) {
+        if (x < x0) x0 = x; if (x > x1) x1 = x;
+        if (y < y0) y0 = y; if (y > y1) y1 = y;
+      }
+    }
+    if (x1 < 0) { x0 = 0; y0 = 0; x1 = W - 1; y1 = H - 1; }
+    return { canvas: c, sx: x0, sy: y0, sw: x1 - x0 + 1, sh: y1 - y0 + 1 };
+  }
 
   const k = findContentInset(d, W, H);
   const seen = new Uint8Array(W * H);
@@ -1532,7 +1561,22 @@ let playerCustomHeight = 48;
 let megaCameraX = 0;
 let megaCameraY = 0;
 
+// Um só lugar decide o que é celular. O jogo publicado num aparelho de toque é onde
+// cada megabyte pesa; no computador o pré-carregamento continua valendo a pena.
+function ehCelular() {
+  return matchMedia('(pointer: coarse)').matches || matchMedia('(max-width: 900px)').matches;
+}
+
+// Pede o fundo de um mapa se ele ainda não foi pedido. Chamado no desenho, é o que
+// sustenta o carregamento sob demanda sem precisar de gancho em cada troca de mapa —
+// e são quatro os caminhos que trocam de mapa.
+function garantirFundo(key) {
+  if (bgImages[key] || !bgSources[key]) return;
+  if (window.__carregarBg) window.__carregarBg(key);
+}
+
 function getMapDimensions(key) {
+  garantirFundo(key);
   const bg = bgImages[key];
   if (bg && bg.complete && bg.naturalWidth > 0) {
     return { w: bg.naturalWidth, h: bg.naturalHeight };
@@ -4264,19 +4308,48 @@ async function loadObjetos() {
   propDefs = cfg.props || {};
   objetos = (cfg.objetos || []).map(o => ({ ...o, escala: o.escala || 1 }));
 
-  Object.entries(propDefs).forEach(([id, def]) => {
-    if (!def.sprite) return;
+  // Carregar os 200 props do catálogo custava 14,5 MB e 200 recortes no fio principal —
+  // e só 25 estão de fato plantados nos mapas. No celular isso é a diferença entre abrir
+  // em segundos e abrir com o cenário preto enquanto o processador termina o serviço.
+  //
+  // Então: primeiro os que aparecem em algum mapa, que é o que o jogo precisa para
+  // desenhar. O resto só serve à PALETA do editor, e entra depois, em segundo plano —
+  // no build publicado não entra nunca, porque lá não existe paleta.
+  const usados = new Set(objetos.map(o => o.prop));
+  const fila = Object.entries(propDefs)
+    .filter(([, def]) => def.sprite)
+    .sort((a, b) => (usados.has(b[0]) ? 1 : 0) - (usados.has(a[0]) ? 1 : 0));
+
+  const carregarProp = ([id, def]) => {
     const img = new Image();
     img.onload = () => {
-      // PNG com alpha entra como está; JPG passa pelo chroma-key, igual aos monstros.
-      try { propSprites[id] = prepareSprite(img); } catch (e) {}
+      // PNG já vem com transparência; JPG precisa do chroma-key, igual aos monstros.
+      const alfa = /\.png(\?|$)/i.test(def.sprite);
+      try { propSprites[id] = prepareSprite(img, alfa); } catch (e) {}
       // Redesenha a paleta a cada sprite que chega. Esperar por um `setTimeout` fixo
       // dava paleta com ícone genérico: a decodificação da imagem não tem prazo.
-      if (typeof renderPaletaDeProps === 'function') renderPaletaDeProps();
+      if (!IS_PLAY_BUILD && typeof renderPaletaDeProps === 'function') renderPaletaDeProps();
     };
     img.onerror = () => {};
     img.src = def.sprite;
-  });
+  };
+
+  const necessarios = fila.filter(([id]) => usados.has(id));
+  const resto = fila.filter(([id]) => !usados.has(id));
+  necessarios.forEach(carregarProp);
+  window.__propsDoJogoPedidos = necessarios.length;
+
+  // O catálogo inteiro é ferramenta de autoria. No jogo publicado ele nunca é buscado.
+  if (!IS_PLAY_BUILD) {
+    // Em lotes e fora do caminho crítico: a paleta pode encher aos poucos, o cenário não.
+    let i = 0;
+    const lote = () => {
+      const fim = Math.min(i + 8, resto.length);
+      for (; i < fim; i++) carregarProp(resto[i]);
+      if (i < resto.length) setTimeout(lote, 120);
+    };
+    setTimeout(lote, 1500);
+  }
 }
 
 async function saveObjetos() {
@@ -4361,7 +4434,15 @@ function renderObjetos(now, lado) {
     .filter(o => lado === 'todos' || (lado === 'atras' ? o.y <= linhaDoJogador : o.y > linhaDoJogador))
     .sort((a, b) => a.y - b.y)
     .forEach(o => {
-      const spr = propSprites[o.prop];
+      // Baú: a arte mostrada é a da raridade sorteada nesta corrida, no lugar e no tamanho
+      // que foram plantados. Fora de corrida aparece como plantado, para poder editar.
+      let propId = o.prop, fantasma = false;
+      if (ehBau(o)) {
+        const v = bauVisivel(o);
+        if (!v) return;                       // não saiu nesta corrida
+        propId = v.prop; fantasma = v.fantasma;
+      }
+      const spr = propSprites[propId];
       const b = objetoBounds(o);
       if (!spr) {
         // Sem arte ainda: no editor mostra a marca do lugar, no jogo não mostra nada.
@@ -4374,6 +4455,9 @@ function renderObjetos(now, lado) {
         return;
       }
       ctx.save();
+      // Baú já aberto fica apagado: some do caminho sem sumir do cenário, e o jogador
+      // enxerga de longe o que ainda falta pegar.
+      if (fantasma) ctx.globalAlpha = 0.38;
       if (o.flipX) {
         ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1);
         ctx.drawImage(spr.canvas, 0, 0, b.w, b.h);
@@ -4381,6 +4465,7 @@ function renderObjetos(now, lado) {
         ctx.drawImage(spr.canvas, b.x, b.y, b.w, b.h);
       }
       ctx.restore();
+      if (ehBau(o) && !fantasma && corridaAtiva()) renderBrilhoDoBau(o, b, now);
 
       if (!isPlayMode) renderMarcaDoObjeto(o, b);
     });
@@ -4439,8 +4524,13 @@ async function loadMonsters() {
 
   monsterDefs = cfg.types || {};
 
-  Object.entries(monsterDefs).forEach(([type, def]) => {
-    if (!def.sprite) return;
+  // Cada folha de monstro é um JPEG de ~600 KB, e são catorze tipos: 8,5 MB baixados na
+  // abertura para desenhar, quase sempre, dois ou três bichos. Agora a folha só é buscada
+  // quando o tipo aparece no mapa em que se está — `garantirFolhaDeMonstro` cuida disso.
+  window.__carregarFolhaDeMonstro = (type) => {
+    const def = monsterDefs[type];
+    if (!def || !def.sprite || folhaDeMonstroPedida[type]) return;
+    folhaDeMonstroPedida[type] = true;
     const img = new Image();
     img.onload = () => {
       try {
@@ -4472,7 +4562,7 @@ async function loadMonsters() {
     };
     img.onerror = () => {};
     img.src = def.sprite;
-  });
+  };
 
   monsters = (cfg.spawns || []).map(s => {
     const def = monsterDefs[s.type] || {};
@@ -4485,6 +4575,25 @@ async function loadMonsters() {
       phase: Math.random() * Math.PI * 2,
     };
   });
+
+  // O mapa que está aberto pede as folhas dele agora; o resto espera ser pisado.
+  garantirFolhasDoMapa(currentKey);
+  // No editor a paleta de monstros precisa de todas as miniaturas, mas isso pode chegar
+  // devagar, depois do jogo já estar de pé.
+  if (!IS_PLAY_BUILD) {
+    setTimeout(() => Object.keys(monsterDefs).forEach(t => window.__carregarFolhaDeMonstro(t)), 2500);
+  }
+}
+
+const folhaDeMonstroPedida = {};
+
+// Busca as folhas dos tipos que existem NESTE mapa. Chamada ao carregar e a cada quadro
+// (é barata: sai no primeiro `if` depois que o tipo já foi pedido).
+function garantirFolhasDoMapa(mapa) {
+  if (!window.__carregarFolhaDeMonstro) return;
+  for (const m of monsters) {
+    if (m.mapKey === mapa && !folhaDeMonstroPedida[m.type]) window.__carregarFolhaDeMonstro(m.type);
+  }
 }
 
 // Crop one cell out of the grid, then key + trim it like any other sprite.
@@ -6201,10 +6310,11 @@ function atualizarBotaoDeAtaque(now) {
   // vai acontecer quando o botão deixa de bater e passa a abrir uma porta.
   const ACT_ICO = { talk:'💬', travel:'🪧', gather:'✋', enter:'🚪', entrarPorta:'🚪',
                     enterForge:'🔨', shop:'🛒', forge:'🔨', martelar:'🔨', sair:'↩',
-                    sortear:'🎲', forjarEscala:'🎼' };
+                    sortear:'🎲', forjarEscala:'🎼', bau:'🎁' };
   const ACT_TXT = { talk:'FALAR', travel:'VIAJAR', gather:'COLETAR', enter:'ENTRAR',
                     entrarPorta:'ENTRAR', enterForge:'ENTRAR', shop:'LOJA', forge:'FORJAR',
-                    martelar:'MARTELAR', sair:'SAIR', sortear:'SORTEAR', forjarEscala:'FORJAR' };
+                    martelar:'MARTELAR', sair:'SAIR', sortear:'SORTEAR', forjarEscala:'FORJAR',
+                    bau:'ABRIR' };
   const acao = actionAvailable();
   const modoAcao = !!acao && acao !== 'attack' && acao !== 'ressoar';
   const ico = document.getElementById('ataqueIcone');
@@ -6750,10 +6860,12 @@ let dropItems = [];
 let claveCount = 0, lastFullToast = 0;
 let claveSprite = null;
 (() => {
+  // Arte nova da clave: PNG já recortado, em vez de uma célula de folha JPEG passando pelo
+  // chroma-key no navegador a cada abertura.
   const img = new Image();
-  img.onload = () => { try { claveSprite = prepareSpriteCell(img, { cols: 6, rows: 3, cell: [0, 0] }); } catch (e) {} };
+  img.onload = () => { try { claveSprite = prepareSprite(img); } catch (e) {} };
   img.onerror = () => {};
-  img.src = 'assets/referencias/clave.jpg';
+  img.src = 'assets/itens/clave_1.png';
 })();
 
 function updateDrops(now) {
@@ -7075,17 +7187,25 @@ async function loadShopCatalog() {
   carregarDungeons();
   loadPlayerData(); // saved balance wins over the catalogue default
   abastecerBancaDeTestes();
-  shopCatalog.items.forEach(it => {
-    if (!it.sprite) return;
-    const img = new Image();
-    img.onload = () => {
-      // Same background-key + trim as the NPC sprites: a JPEG straight from the
-      // generator would otherwise paint a white box on the player's head.
-      try { skinImages[it.id] = prepareSprite(img); } catch (e) {}
-    };
-    img.onerror = () => {}; // not drawn yet — the card shows a placeholder
-    img.src = it.sprite;
-  });
+  // As roupas da loja são 3,9 MB que ninguém vê até abrir a loja. Ficam num pedido
+  // adiado: quem abre a vitrine chama isto, e aí sim elas chegam.
+  window.__carregarSkins = () => {
+    if (window.__skinsPedidas) return;
+    window.__skinsPedidas = true;
+    shopCatalog.items.forEach(it => {
+      if (!it.sprite) return;
+      const img = new Image();
+      img.onload = () => {
+        // Same background-key + trim as the NPC sprites: a JPEG straight from the
+        // generator would otherwise paint a white box on the player's head.
+        try { skinImages[it.id] = prepareSprite(img); } catch (e) {}
+      };
+      img.onerror = () => {}; // not drawn yet — the card shows a placeholder
+      img.src = it.sprite;
+    });
+  };
+  // Fora do celular a banda sobra: pré-carrega depois que o jogo já está de pé.
+  if (!ehCelular()) setTimeout(() => window.__carregarSkins(), 4000);
 }
 
 function itemById(id) { return shopCatalog.items.find(i => i.id === id) || null; }
@@ -7744,6 +7864,7 @@ function actionAvailable() {
   if(shopOpen||inventoryOpen||charOpen)return null;
   if(capturaAtiva)return null;        // ritual em andamento: nada a fazer, só assistir
   if(ecoProntoPerto())return 'ressoar'; // Eco aberto ganha do ataque: bater nele não adianta
+  if(bauMaisPerto())return 'bau';    // o baú é o prêmio da sala: ganha do golpe
   if(attackTarget())return 'attack'; // a monster in reach beats everything else
   const counter = atCounter();          // 'shop' inside the skin store, 'forge' in the smithy
   if(counter)return counter;
@@ -8333,6 +8454,7 @@ function renderWorldMap(now) {
     ctx.fillStyle='#131c28';ctx.strokeStyle='#2d3748';ctx.lineWidth=1;ctx.setLineDash([3,3]);
     ctx.fillRect(r.x,r.y,r.w,r.h);ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.setLineDash([]);
     if(key&&key!==wvDragKey){
+      garantirFundo(key);
       const img=bgImages[key];
       if(img?.complete){
         if(!bgThumbnails[key]){
@@ -8904,7 +9026,11 @@ let shopOpen = false, inventoryOpen = false, storeTab = 'all';
 let storeOverlay, storeTitle, storeCoins, storeTabs, storeGrid, storeEmpty, coinCount, playerHud;
 let claveCountEl, hpFill;
 
-function openShop() { shopOpen = true; inventoryOpen = false; storeTab = 'all'; showStore('Loja de Skins'); }
+function openShop() {
+  // As roupas só são baixadas aqui, ao abrir a vitrine — ver __carregarSkins.
+  window.__carregarSkins?.();
+  shopOpen = true; inventoryOpen = false; storeTab = 'all'; showStore('Loja de Skins');
+}
 function openInventory() { inventoryOpen = true; shopOpen = false; storeTab = 'all'; showStore('Inventário'); }
 function closeStore() {
   shopOpen = inventoryOpen = false;
@@ -9543,7 +9669,7 @@ const NOME_DA_CATEGORIA = {
   caminho: 'Caminhos', chao_grama: 'Grama', agua: 'Água', agua_alta: 'Cachoeira',
   sagrado: 'Sagrado', lapide: 'Lápides', magico: 'Mágico', muro: 'Muros',
   muralha: 'Muralha', construcao: 'Casas', feira: 'Feira', cidade: 'Cidade',
-  vila: 'Vila', calcada: 'Calçada', ponte: 'Pontes',
+  vila: 'Vila', calcada: 'Calçada', ponte: 'Pontes', bau: 'Baús',
 };
 
 function sincronizarMateriaisComPropDefs() {
@@ -9655,6 +9781,9 @@ function ligarLupa(botao, id) {
 }
 
 function renderPaletaDeProps() {
+  // A paleta é ferramenta de autoria. No jogo publicado ela não existe, e montar centenas
+  // de miniaturas em canvas para ninguém ver custava caro justo na abertura.
+  if (IS_PLAY_BUILD) return;
   const grade = document.getElementById('propPaleta');
   if (!grade) return;
 
@@ -11970,6 +12099,15 @@ function loop(now){
   // estava dentro do bloco `outdoors`, que não roda em todos os modos — o portão nunca
   // abria no modo andar do editor.
   atualizarDungeon(now);
+  garantirFolhasDoMapa(currentKey);
+
+  // Avisa a abertura do celular que já há cenário desenhado. Ela fechava por silêncio de
+  // rede, e o silêncio caía no vão entre os ícones chegarem e o fundo do mapa ser pedido:
+  // a logo saía e o jogador via um retângulo preto.
+  if (!window.__cenarioPronto) {
+    const bgPronto = bgImages[currentKey];
+    if (bgPronto && bgPronto.complete && bgPronto.naturalWidth > 10) window.__cenarioPronto = true;
+  }
 
   const mapKey=isPlayMode?currentKey:(activeMapSelect?.value||currentKey);
   const isMegaWorld = mapKey === 'mega_world';
@@ -12025,7 +12163,7 @@ function loop(now){
     if(currentScene==='world'||!isPlayMode){
       const vid = videoDoMapa(mapKey);
       if (vid) ctx.drawImage(vid, 0, 0, SCREEN_W, SCREEN_H);
-      else { const bg=bgImages[mapKey]; if(bg?.complete) ctx.drawImage(bg,0,0,SCREEN_W,SCREEN_H); }
+      else { garantirFundo(mapKey); const bg=bgImages[mapKey]; if(bg?.complete) ctx.drawImage(bg,0,0,SCREEN_W,SCREEN_H); }
       if (currentScene === 'world' && mapKey !== 'mega_world') renderSombrasDeNuvem(now, mapKey);
     }
     else { const st=interiorDef()?.still?.(); if(st)ctx.drawImage(st,0,0,SCREEN_W,SCREEN_H); }
@@ -14495,31 +14633,33 @@ const MAGIA_SHEETS = {
 };
 const magiaSprites = {};   // 'fragmento' | 'tom' | 'semitom' | 'nota_do' | 'acorde_1'...
 
+// Arte nova de fragmentos e notas: agora é um PNG por item, já recortado, em vez de uma
+// folha única com caixas medidas à mão. Some o passo de recorte no navegador (que rodava
+// o chroma-key em JavaScript a cada abertura) e cada item passa a ter a SUA cor — o
+// fragmento de Dó é vermelho, o de Mi é verde, e a síntese fica legível de olho.
+const ARTE_POR_NOTA = {
+  do:'C', do_s:'Cs', re:'D', re_s:'Ds', mi:'E', fa:'F', fa_s:'Fs',
+  sol:'G', sol_s:'Gs', la:'A', la_s:'As', si:'B',
+};
+
+function carregarArte(chave, caminho) {
+  const img = new Image();
+  img.onload = () => { try { magiaSprites[chave] = prepareSprite(img); } catch (e) {} };
+  img.src = caminho;
+}
+
 function loadMagiaSheets() {
-  const nomes = ['fragmento', 'tom', 'semitom'];
-  for (const [cat, sheet] of Object.entries(MAGIA_SHEETS)) {
-    if (!sheet.boxes.length) continue;
-    const img = new Image();
-    img.onload = () => {
-      sheet.boxes.forEach((b, i) => {
-        try {
-          const cut = document.createElement('canvas');
-          cut.width = b[2]; cut.height = b[3];
-          cut.getContext('2d').drawImage(img, b[0], b[1], b[2], b[3], 0, 0, b[2], b[3]);
-          const pronto = prepareSprite(cut);
-          if (cat === 'fragmentos') magiaSprites[nomes[i]] = pronto;
-          else if (cat === 'notas') {
-            const n = CROMATICA.find(x => x.natural && x.i === i);
-            if (n) magiaSprites['nota_' + n.id] = pronto;
-          } else if (cat === 'sustenidas') {
-            const n = CROMATICA.find(x => !x.natural && x.i === i);
-            if (n) magiaSprites['nota_' + n.id] = pronto;
-          }
-        } catch (e) {}
-      });
-    };
-    img.src = sheet.src;
-  }
+  CROMATICA.forEach(n => {
+    const a = ARTE_POR_NOTA[n.id];
+    carregarArte('nota_' + n.id, `assets/itens/notas/${a}.png`);
+    carregarArte('frag_' + n.id, `assets/itens/fragmentos/${a}.png`);
+  });
+  // Genéricos: o fragmento sem cor definida usa o de Dó, e o puro usa o cristal de Tom,
+  // que é o único dourado — dá para diferenciar os dois num relance na bolsa.
+  carregarArte('fragmento', 'assets/itens/fragmentos/C.png');
+  carregarArte('fragmento_puro', 'assets/itens/fragmentos/tom.png');
+  carregarArte('tom', 'assets/itens/fragmentos/tom.png');
+  carregarArte('semitom', 'assets/itens/fragmentos/semitom.png');
 
   // Selos de acorde: grade 4x2, os 7 graus do campo harmônico.
   const sel = new Image();
@@ -16358,6 +16498,7 @@ function iniciarCorrida(d) {
     id: d.id, mapa: d.mapa, inicio: performance.now(),
     danoSofrido: 0, abates: 0, total: lista.length, fim: 0,
   };
+  sortearBausDaDungeon(d);
   fecharPortao();
   anunciar(d.nome.toUpperCase(), 1600);
   showToast(`${d.nome} — derrote ${lista.length} inimigos.`);
@@ -16581,3 +16722,184 @@ window.addEventListener('keydown', e => {
   if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
   if (portaoAberto()) fecharPortao(); else abrirPortaoDaqui();
 });
+
+// ══ Baús de dungeon ═══════════════════════════════════════════════════════════
+// O baú é um OBJETO comum, posicionado e dimensionado no editor como qualquer outro. O
+// código não escolhe onde ele fica nem de que tamanho é — escolhe só a RARIDADE, e troca
+// a arte pela da raridade sorteada mantendo a variante que foi plantada.
+//
+// O sorteio acontece uma vez, ao ENTRAR na dungeon. Assim a mesma sala pode dar um baú
+// mítico numa corrida e nada na seguinte, que é o que dá vontade de repetir.
+
+const RARIDADES_DE_BAU = ['comum', 'raro', 'epico', 'lendario', 'mitico'];
+const ROTULO_DA_RARIDADE = {
+  comum: 'Comum', raro: 'Raro', epico: 'Épico', lendario: 'Lendário', mitico: 'Mítico',
+};
+const COR_DA_RARIDADE = {
+  comum: '#cbd5e1', raro: '#60a5fa', epico: '#c084fc', lendario: '#fbbf24', mitico: '#f87171',
+};
+// Chance de o lugar sair VAZIO. Sem isso todo baú plantado sempre aparece, e a sala fica
+// idêntica em toda corrida.
+const CHANCE_DE_BAU_VAZIO = 0.25;
+
+// Tabelas de prêmio por raridade. Claves são o prêmio padrão — sempre saem. O resto é
+// sorteado por cima.
+const PREMIO_DO_BAU = {
+  comum:    { claves: [80, 160],    fragmentos: [2, 5],   puros: 0.10, pocoes: [0, 1], nota: 0.00 },
+  raro:     { claves: [200, 380],   fragmentos: [5, 10],  puros: 0.25, pocoes: [1, 2], nota: 0.05 },
+  epico:    { claves: [450, 800],   fragmentos: [10, 18], puros: 0.45, pocoes: [1, 3], nota: 0.18 },
+  lendario: { claves: [1000, 1800], fragmentos: [18, 30], puros: 0.65, pocoes: [2, 4], nota: 0.45 },
+  mitico:   { claves: [2200, 4000], fragmentos: [30, 50], puros: 0.85, pocoes: [3, 6], nota: 1.00 },
+};
+
+let sorteioDeBaus = {};   // id do objeto → { raridade, aberto } — vale só pela corrida
+
+function ehBau(o) { return !!(propDef(o) || {}).bau; }
+function bausDoMapa(mapa) { return objetosDoMapa(mapa).filter(ehBau); }
+
+function entre(par) {
+  const [a, b] = par;
+  return a + Math.floor(Math.random() * (b - a + 1));
+}
+
+// Sorteio por peso relativo: a tabela não precisa somar 100.
+function sortearRaridade(tabela) {
+  if (!tabela || !tabela.length) return 'comum';
+  const total = tabela.reduce((s, t) => s + (t.peso || 0), 0);
+  if (total <= 0) return 'comum';
+  let r = Math.random() * total;
+  for (const t of tabela) { r -= (t.peso || 0); if (r <= 0) return t.raridade; }
+  return tabela[tabela.length - 1].raridade;
+}
+
+function sortearBausDaDungeon(d) {
+  sorteioDeBaus = {};
+  bausDoMapa(d.mapa).forEach(o => {
+    const vazio = Math.random() < CHANCE_DE_BAU_VAZIO;
+    sorteioDeBaus[o.id] = {
+      raridade: vazio ? null : sortearRaridade(d.baus),
+      aberto: false,
+    };
+  });
+  const quantos = Object.values(sorteioDeBaus).filter(b => b.raridade).length;
+  if (quantos) showToast(`${quantos} baú${quantos > 1 ? 's' : ''} nesta corrida.`);
+}
+
+// A arte mostrada troca; a variante plantada é mantida, porque foi ela que o autor
+// escolheu para a pose e o enquadramento daquele canto do cenário.
+function propDoBauSorteado(o) {
+  const s = sorteioDeBaus[o.id];
+  if (!s || !s.raridade) return null;
+  const variante = (o.prop.match(/_(\d)$/) || [, '1'])[1];
+  return `bau_${s.raridade}_${variante}`;
+}
+
+function bauVisivel(o) {
+  // Fora de corrida o baú aparece como foi plantado — é assim que se edita a posição.
+  if (!corridaAtiva() || corrida.mapa !== o.mapKey) return { prop: o.prop, fantasma: false };
+  const s = sorteioDeBaus[o.id];
+  if (!s || !s.raridade) return null;                    // não saiu nesta corrida
+  return { prop: propDoBauSorteado(o), fantasma: s.aberto };
+}
+
+// ── abrir ──
+function bauMaisPerto() {
+  if (!corridaAtiva()) return null;
+  let melhor = null, dist = 1e9;
+  bausDoMapa(corrida.mapa).forEach(o => {
+    const s = sorteioDeBaus[o.id];
+    if (!s || !s.raridade || s.aberto) return;
+    const d = Math.hypot(player.x - o.x, player.y - o.y);
+    if (d < 76 && d < dist) { dist = d; melhor = o; }
+  });
+  return melhor;
+}
+
+function abrirBau(o) {
+  const s = sorteioDeBaus[o.id];
+  if (!s || !s.raridade || s.aberto) return;
+  s.aberto = true;
+  const t = PREMIO_DO_BAU[s.raridade] || PREMIO_DO_BAU.comum;
+  const ganhos = [];
+
+  const claves = entre(t.claves);
+  claveCount += claves;
+  ganhos.push({ nome: 'Claves', qtd: claves, arte: 'assets/itens/clave_1.png' });
+
+  const frags = entre(t.fragmentos);
+  const puros = Math.round(frags * t.puros);
+  if (frags - puros > 0) {
+    receberDaCaptura('fragmento', frags - puros);
+    ganhos.push({ nome: 'Fragmentos', qtd: frags - puros, arte: 'assets/itens/fragmentos/C.png' });
+  }
+  if (puros > 0) {
+    receberDaCaptura('fragmento_puro', puros);
+    ganhos.push({ nome: 'Fragmentos puros', qtd: puros, arte: 'assets/itens/fragmentos/tom.png' });
+  }
+  const pocoes = entre(t.pocoes);
+  if (pocoes > 0) {
+    receberDaCaptura('potions', pocoes);
+    ganhos.push({ nome: 'Poções', qtd: pocoes, arte: null, ico: '🧪' });
+  }
+  // Nota inteira: o prêmio graúdo. Vem pronta, sem passar pela síntese.
+  if (Math.random() < t.nota) {
+    const nota = CROMATICA[Math.floor(Math.random() * CROMATICA.length)];
+    notasPossuidas[nota.id] = (notasPossuidas[nota.id] || 0) + 1;
+    ganhos.push({ nome: `Nota ${nota.nome}`, qtd: 1,
+                  arte: `assets/itens/notas/${ARTE_DA_NOTA[nota.id] || 'C'}.png` });
+  }
+
+  savePlayerData();
+  mostrarPremioDoBau(s.raridade, ganhos);
+}
+
+// Ponte entre o id interno da nota e o arquivo de arte novo.
+const ARTE_DA_NOTA = {
+  do:'C', do_s:'Cs', re:'D', re_s:'Ds', mi:'E', fa:'F', fa_s:'Fs',
+  sol:'G', sol_s:'Gs', la:'A', la_s:'As', si:'B',
+};
+
+function mostrarPremioDoBau(raridade, ganhos) {
+  const el = document.getElementById('bauPremio');
+  if (!el) return;
+  el.querySelector('.bp-raridade').textContent = ROTULO_DA_RARIDADE[raridade] || raridade;
+  el.querySelector('.bp-raridade').style.color = COR_DA_RARIDADE[raridade];
+  el.querySelector('.bp-quadro').style.borderColor = COR_DA_RARIDADE[raridade];
+  el.querySelector('.bp-itens').innerHTML = ganhos.map(g => `
+    <div class="bp-item">
+      ${g.arte ? `<img src="${g.arte}" alt="">` : `<span class="bp-emoji">${g.ico || '✦'}</span>`}
+      <b>×${g.qtd.toLocaleString('pt-BR')}</b>
+      <small>${g.nome}</small>
+    </div>`).join('');
+  el.classList.remove('hidden');
+  clearTimeout(el.__t);
+  el.__t = setTimeout(() => el.classList.add('hidden'), 3600);
+}
+
+// Aura no pé do baú, na cor da raridade, e a dica de abrir quando dá para alcançar.
+// Sem ela um baú épico e um comum são a mesma silhueta escura do outro lado da sala.
+function renderBrilhoDoBau(o, b, now) {
+  const s = sorteioDeBaus[o.id];
+  if (!s || !s.raridade) return;
+  const cor = COR_DA_RARIDADE[s.raridade] || '#cbd5e1';
+  const pulso = 0.5 + 0.5 * Math.sin(now * 0.004 + o.x);
+  ctx.save();
+  ctx.globalAlpha = 0.30 + pulso * 0.28;
+  ctx.strokeStyle = cor; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(o.x, o.y, b.w * 0.42 + pulso * 3, b.w * 0.18 + pulso * 2, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  if (Math.hypot(player.x - o.x, player.y - o.y) < 76) {
+    ctx.save();
+    ctx.font = 'bold 12px Outfit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,0.9)';
+    const txt = `E — abrir baú ${ROTULO_DA_RARIDADE[s.raridade]}`;
+    const y = b.y - 8;
+    ctx.strokeText(txt, o.x, y);
+    ctx.fillStyle = cor; ctx.fillText(txt, o.x, y);
+    ctx.restore();
+  }
+}
