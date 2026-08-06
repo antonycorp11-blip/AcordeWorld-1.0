@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=20260806013719">
+  <link rel="stylesheet" href="style.css?v=20260806130801">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -290,10 +290,9 @@
                    como elementos ocultos, porque o código atualiza estes ids. -->
               <span id="coinCount" class="hidden">0</span>
               <span id="claveCount" class="hidden">0</span>
-              <button id="charBtn" class="icon-btn attr-btn" title="Atributos & Habilidades">
-                <span class="hud-emoji">⚔️</span>
-                <span id="pointDot" class="dot hidden"></span>
-              </button>
+              <!-- O botão de atributos saiu: eles vivem na ficha do personagem agora, e ter
+                   dois caminhos para o mesmo lugar só confundia. O aviso de pontos migrou
+                   para o botão da ficha. -->
               <!-- Temporário: os forjadores vão viver em pontos fixos do mapa. Enquanto
                    isso, este botão abre os dois para poder testar. -->
               <button id="forjaBtn" class="icon-btn" title="Forjadores (F2 nota · F3 escala)">
@@ -302,6 +301,7 @@
               <button id="fichaBtn" class="icon-btn ficha-btn" title="Ficha do Personagem (C)">
                 <span class="hud-emoji">🎭</span>
                 <span id="fichaDot" class="dot hidden"></span>
+                <span id="pointDot" class="dot hidden"></span>
               </button>
               <button id="invBtn" class="icon-btn inv-btn" title="Mochila / Inventário">
                 <span id="invEmoji" class="hud-emoji">🎒</span>
@@ -378,6 +378,9 @@
               <p class="dg-objetivo"></p>
               <div class="dg-metas"></div>
               <div class="dg-premio"></div>
+              <!-- O que pode cair: sorteado no instante em que o jogador clica na porta,
+                   para ele decidir com a informação na mão. -->
+              <div class="dg-achados" id="dgAchados"></div>
               <p class="dg-passe"></p>
               <div class="dg-botoes">
                 <button class="dg-sair">Ainda não</button>
@@ -990,7 +993,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="config.js?v=20260806013719"></script>
-<script src="game.js?v=20260806013719"></script>
+<script src="config.js?v=20260806130801"></script>
+<script src="game.js?v=20260806130801"></script>
 </body>
 </html>

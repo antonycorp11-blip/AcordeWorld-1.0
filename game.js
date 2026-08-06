@@ -6427,6 +6427,14 @@ function atualizarBotaoDeAtaque(now) {
   if (ico) ico.textContent = modoAcao ? (ACT_ICO[acao] || '✋') : '⚔';
   if (rot) rot.textContent = modoAcao ? (ACT_TXT[acao] || 'AGIR') : '';
 
+  // Roda translúcida quando não há o que fazer: sem inimigo por perto e sem ação
+  // disponível, ela é só um bloco alaranjado tapando o cenário.
+  const perigo = corridaAtiva() || liveMonsters().some(m =>
+    Math.hypot(m.x - player.x, m.y - player.y) < 300);
+  const calmo = !perigo && !acao;
+  _btnAtaque.parentElement?.classList.toggle('calmo', calmo);
+  document.getElementById('partyHud')?.classList.toggle('calmo', calmo);
+
   // Ressoar aparece só quando há Eco aberto ao lado.
   document.getElementById('botaoRessoar')?.classList.toggle('disponivel', acao === 'ressoar');
 
@@ -15089,7 +15097,14 @@ function initForgeUI() {
       .forEach(id => { const el = document.getElementById(id); if (el) barraX.appendChild(el); });
 
     // doca: paleta de props e o extrator
-    ['propCats','propPaleta','propContagem'].forEach(id => mover(id, 'doca-props'));
+    //
+    // Só quando o criador de mundo está ligado. Este bloco MOVE os elementos para dentro
+    // do #assetDock, e o dock vive escondido desde que o criador foi arquivado — a paleta
+    // ia junto e sumia também da aba Objetos do editor de cenários, que é onde ela é
+    // usada de verdade. Era por isso que nenhum prop aparecia lá, baús inclusive.
+    if (CRIADOR_DE_MUNDO_ATIVO) {
+      ['propCats','propPaleta','propContagem'].forEach(id => mover(id, 'doca-props'));
+    }
     const rec = document.getElementById('btab-recortar');
     if (rec) { rec.classList.remove('hidden', 'btab-content'); document.getElementById('doca-recorte')?.appendChild(rec); }
 
@@ -16825,7 +16840,10 @@ function iniciarCorrida(d) {
     inicio: performance.now(),
     danoSofrido: 0, abates: 0, abatesAnteriores: 0, total: 0, fim: 0,
   };
-  sortearGrauDaCorrida(d);
+  // Usa o grau que o portão já sorteou; só sorteia de novo se a corrida começou por outro
+  // caminho (a tecla G, por exemplo).
+  if (sorteioDoPortao && sorteioDoPortao.dungeonId === d.id) corrida.grau = sorteioDoPortao.grau;
+  else sortearGrauDaCorrida(d);
   prepararEstagio(d);
   fecharPortao();
   anunciar(d.nome.toUpperCase(), 1600);
@@ -16960,10 +16978,16 @@ function confirmarEstagio(d) {
 // objetivo, o prêmio e o estado do passe. É aqui que a tranca vai morar quando ligar.
 // `viagem` (opcional) diz de onde o jogador veio: quando o portão é aberto por uma placa,
 // aceitar precisa TELEPORTAR antes de começar a corrida.
+let sorteioDoPortao = null;   // { dungeonId, grau } — vale até a corrida começar
+
 function abrirPortao(d, viagem) {
   const el = document.getElementById('dgPortao');
   if (!el) return;
   portaoViagem = viagem || null;
+  // O sorteio acontece AQUI, no clique da porta. Assim o portão mostra o grau desta
+  // corrida e o que pode cair antes de o jogador se comprometer — decidir sem saber o
+  // que está em jogo não é decidir.
+  sorteioDoPortao = { dungeonId: d.id, grau: sortearRaridade(d.baus) };
   const perm = podeEntrarNaDungeon(d);
   const base = d.premio || {};
   const m = d.metas || {};
@@ -17000,6 +17024,8 @@ function abrirPortao(d, viagem) {
     `<span class="dg-moeda claves">${(base.claves || 0).toLocaleString('pt-BR')} claves</span>
      <span class="dg-moeda ouro">${(base.ouro || 0).toLocaleString('pt-BR')} ouro</span>
      <small>× o multiplicador da sua nota</small>`;
+
+  desenharAchadosDoPortao(d, sorteioDoPortao.grau);
 
   const passe = el.querySelector('.dg-passe');
   // As recusas vêm ANTES do aviso de entrada livre. Com o passe destravado, o ramo
@@ -18477,4 +18503,63 @@ function renderRotaDaProximaCamara(now) {
   ctx.beginPath(); ctx.moveTo(13, 0); ctx.lineTo(-9, -8); ctx.lineTo(-9, 8);
   ctx.closePath(); ctx.fill();
   ctx.restore();
+}
+
+// O que pode cair nesta corrida. Não é uma lista genérica: o grau já foi sorteado, então
+// as faixas mostradas são as DESTE grau. Cada item vem com a arte e o que ele serve para
+// fazer — "fragmento" sem explicação não diz nada a quem está começando.
+function desenharAchadosDoPortao(d, grau) {
+  const cx = document.getElementById('dgAchados');
+  if (!cx) return;
+  const t = PREMIO_DO_BAU[grau] || PREMIO_DO_BAU.comum;
+  const base = d.premio || {};
+
+  // As notas que os monstros deste conjunto de mapas podem render em fragmento. Como o
+  // fragmento cai numa nota sorteada, todas as doze são possíveis — mostro as primeiras
+  // como amostra visual e digo o resto em texto.
+  const amostra = ['do', 're', 'mi', 'fa', 'sol']
+    .map(id => `<img src="${caminhoFrag(id)}" alt="${(notaPorId(id) || {}).nome || id}"
+                     title="Fragmento de ${(notaPorId(id) || {}).nome || id}">`).join('');
+
+  const itens = [
+    { arte: 'assets/itens/clave_1.png', nome: 'Claves',
+      qtd: `${t.claves[0].toLocaleString('pt-BR')}–${t.claves[1].toLocaleString('pt-BR')} por baú`,
+      desc: `Moeda de poder: paga passivas, habilidades e tiers. A conclusão ainda rende ${(base.claves || 0).toLocaleString('pt-BR')} × a nota.` },
+    { html: amostra, nome: 'Fragmentos de nota',
+      qtd: `${t.fragmentos[0]}–${t.fragmentos[1]} por baú`,
+      desc: 'Caem de qualquer uma das doze notas. Condensam em Notas no Sintetizador — o fragmento da nota certa vale o dobro.' },
+    { arte: 'assets/itens/fragmentos/tom.png', nome: 'Fragmentos puros',
+      qtd: `${Math.round(t.puros * 100)}% dos fragmentos`,
+      desc: 'Vale três fragmentos comuns na síntese.' },
+    { emoji: '🧪', nome: 'Poções',
+      qtd: `${t.pocoes[0]}–${t.pocoes[1]} por baú`,
+      desc: 'Curam no meio da corrida. Dano sofrido conta para a nota, então poção é medalha.' },
+  ];
+  if (t.nota > 0) itens.push({
+    arte: 'assets/itens/notas/C.png', nome: 'Nota inteira',
+    qtd: `${Math.round(t.nota * 100)}% de chance`,
+    desc: 'Já condensada, sem passar pelo Sintetizador. Usada para subir o tier dos equipamentos.',
+  });
+  itens.push({ emoji: '🪙', nome: 'Ouro',
+    qtd: `${(base.ouro || 0).toLocaleString('pt-BR')} × a nota`,
+    desc: 'Pago na conclusão. Compra roupa, não poder.' });
+
+  cx.innerHTML = `
+    <div class="dga-cab">
+      <span>O QUE PODE CAIR</span>
+      <b class="dga-grau" style="color:${COR_DA_RARIDADE[grau]};border-color:${COR_DA_RARIDADE[grau]}">
+        GRAU ${(ROTULO_DA_RARIDADE[grau] || grau).toUpperCase()}</b>
+    </div>
+    <p class="dga-nota">Sorteado agora, ao abrir a porta. O grau manda na força do chefe e no
+      piso de raridade dos baús desta corrida.</p>
+    <div class="dga-lista">
+      ${itens.map(i => `
+        <div class="dga-item">
+          <div class="dga-arte">${i.html || (i.arte ? `<img src="${i.arte}" alt="">` : `<span>${i.emoji}</span>`)}</div>
+          <div class="dga-txt">
+            <b>${i.nome}</b><i>${i.qtd}</i>
+            <small>${i.desc}</small>
+          </div>
+        </div>`).join('')}
+    </div>`;
 }
