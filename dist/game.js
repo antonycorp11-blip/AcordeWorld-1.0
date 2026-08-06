@@ -5169,7 +5169,10 @@ const BASE_MAX_HP = 100, BASE_DAMAGE = 10, BASE_COOLDOWN = 480;
 // dobra na percepção e a passada some antes de dar para ver. `applyMovementStats`
 // multiplica isto pelos atributos, então é AQUI que a velocidade se ajusta: mexer no
 // objeto `player` não adiantava nada, era sobrescrito no primeiro cálculo de status.
-const BASE_SPEED = 2.3, BASE_SPRINT = 4.1, BASE_CAPACITY = 40;
+// 2,3 estava arrastado com o zoom em 1,6: a câmera aproxima, então a mesma velocidade em
+// pixels parece mais lenta na tela. 2,8 devolve a sensação de passo firme sem passar do
+// ponto em que a animação das pernas some.
+const BASE_SPEED = 2.8, BASE_SPRINT = 4.9, BASE_CAPACITY = 40;
 // Três por nível, não dois: com cinco atributos, dois pontos faziam a subida de nível
 // parecer que não mudou nada.
 const POINTS_PER_LEVEL = 3;
@@ -12665,6 +12668,7 @@ function loop(now){
       atualizarChuva(now); renderChuva(now);
       renderGrito(now); atualizarSono(now);
       renderEstadosDeMonstro(now);
+      renderFaroisDeBau(now);
       renderTrocaDeHeroi(now); renderClarao(now);
     }
     else { renderSpeech(now); renderFloaters(now); }
@@ -17279,7 +17283,10 @@ const COR_DA_RARIDADE = {
 };
 // Chance de o lugar sair VAZIO. Sem isso todo baú plantado sempre aparece, e a sala fica
 // idêntica em toda corrida.
-const CHANCE_DE_BAU_VAZIO = 0.25;
+// 25% era demais: com cinco baús plantados, dois sumiam por corrida e dava a impressão de
+// que o sistema estava quebrado. 12% ainda faz cada corrida ser diferente sem apagar o
+// trabalho de quem posicionou.
+const CHANCE_DE_BAU_VAZIO = 0.12;
 
 // Tabelas de prêmio por raridade. Claves são o prêmio padrão — sempre saem. O resto é
 // sorteado por cima.
@@ -17476,14 +17483,14 @@ function renderBrilhoDoBau(o, b, now) {
     ctx.ellipse(o.x, o.y, b.w * 0.42, b.w * 0.18, 0, 0, Math.PI * 2);
     ctx.stroke(); ctx.setLineDash([]);
     ctx.restore();
-    if (Math.hypot(player.x - o.x, player.y - o.y) < 110) {
+    if (Math.hypot(player.x - o.x, player.y - o.y) < 130) {
       ctx.save();
       ctx.font = 'bold 11px Outfit, sans-serif'; ctx.textAlign = 'center';
       ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
-      const txt = guardas > 99 ? '🔒 o chefe guarda esta sala'
-                : `🔒 ${guardas} guarda${guardas > 1 ? 's' : ''} por perto`;
-      ctx.strokeText(txt, o.x, b.y - 8); 
-      ctx.fillStyle = '#cbd5e1'; ctx.fillText(txt, o.x, b.y - 8);
+      const txt = guardas > 99 ? 'o chefe guarda esta sala'
+                : `${guardas} guarda${guardas > 1 ? 's' : ''} por perto`;
+      ctx.strokeText(txt, o.x, b.y - 26);
+      ctx.fillStyle = '#cbd5e1'; ctx.fillText(txt, o.x, b.y - 26);
       ctx.restore();
     }
     return;
@@ -18727,4 +18734,70 @@ function expulsarDaDungeon() {
   showToast(d && !d.passe?.livre && passesDeDungeon <= 0 && espera > 0
     ? `Você caiu. Sem passe — a entrada volta em ${textoDeEspera(espera)}.`
     : 'Você caiu. A corrida foi perdida — tente de novo quando estiver mais forte.');
+}
+
+// ── Farol dos baús ────────────────────────────────────────────────────────────
+// Os baús desenham, mas somem no chão: têm 26 a 34 px, são marrons, o piso das cavernas é
+// marrom escuro, e os rótulos dos monstros passam por cima deles. Sem um marcador o
+// jogador não sabe que existe um baú a três passos.
+//
+// O farol é desenhado DEPOIS de tudo, num passe próprio, para nada ficar por cima. Vale
+// para baús ainda fechados: o aberto já cumpriu o papel dele.
+function renderFaroisDeBau(now) {
+  if (!corridaAtiva()) return;
+  const pulso = 0.5 + 0.5 * Math.sin(now * 0.0045);
+
+  bausDoMapa(currentKey).forEach(o => {
+    const s = sorteioDeBaus[o.id];
+    if (!s || !s.raridade || s.aberto) return;
+    const b = objetoBounds(o);
+    const guardado = bauGuardado(o);
+    const cor = guardado ? '#94a3b8' : (COR_DA_RARIDADE[s.raridade] || '#cbd5e1');
+    const p = telaDoPonto(o.x, o.y);
+
+    if (p.x > 10 && p.x < SCREEN_W - 10 && p.y > 10 && p.y < SCREEN_H - 10) {
+      // Coluna de luz + losango flutuando: some quando o baú é aberto, e o cadeado
+      // aparece no lugar do losango enquanto houver guarda.
+      ctx.save();
+      const alt = 46 + pulso * 8;
+      const g = ctx.createLinearGradient(0, o.y, 0, o.y - alt);
+      g.addColorStop(0, cor + (guardado ? '44' : '88'));
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(o.x - b.w * 0.30, o.y - alt, b.w * 0.60, alt);
+
+      const py = b.y - 14 - pulso * 4;
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.95)';
+      if (guardado) {
+        ctx.font = 'bold 14px Outfit, sans-serif'; ctx.textAlign = 'center';
+        ctx.strokeText('🔒', o.x, py); ctx.fillText('🔒', o.x, py);
+      } else {
+        ctx.translate(o.x, py - 4);
+        ctx.rotate(Math.PI / 4);
+        const l = 7 + pulso * 2;
+        ctx.fillStyle = cor;
+        ctx.strokeRect(-l / 2, -l / 2, l, l);
+        ctx.fillRect(-l / 2, -l / 2, l, l);
+      }
+      ctx.restore();
+      return;
+    }
+
+    // Fora do enquadramento: seta na borda, na cor da raridade. Sem isto, um baú a dois
+    // passos fora da tela é um baú que não existe.
+    ctx.save();
+    const jx = SCREEN_W / 2, jy = SCREEN_H / 2;
+    const dx = p.x - jx, dy = p.y - jy;
+    const esc = Math.min((SCREEN_W / 2 - 20) / Math.abs(dx || 1e-6),
+                         (SCREEN_H / 2 - 20) / Math.abs(dy || 1e-6));
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(canvas.width / SCREEN_W, canvas.width / SCREEN_W);
+    ctx.translate(jx + dx * esc, jy + dy * esc);
+    ctx.rotate(Math.atan2(dy, dx));
+    ctx.globalAlpha = guardado ? 0.5 : 0.9;
+    ctx.fillStyle = cor;
+    ctx.beginPath(); ctx.moveTo(11, 0); ctx.lineTo(-7, -7); ctx.lineTo(-7, 7);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  });
 }
