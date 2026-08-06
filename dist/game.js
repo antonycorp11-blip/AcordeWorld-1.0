@@ -228,7 +228,10 @@ async function saveMonsters() {
     // cada save moveria o monstro alguns pixels para sempre.
     spawns: monsters.map(m => ({ id:m.id, type:m.type, mapKey:m.mapKey,
       x:Math.round(m.homeX ?? m.x), y:Math.round(m.homeY ?? m.y),
-      escala:m.escala || 1, flipX: !!m.flipX })),
+      escala:m.escala || 1, flipX: !!m.flipX,
+      // A marca de chefe é da instância, então tem que ir no save do spawn.
+      ...(m.chefe !== undefined ? { chefe: !!m.chefe } : {}),
+      ...(m.chefeForca ? { chefeForca: m.chefeForca } : {}) })),
   };
   const corpo = JSON.stringify(payload);
 
@@ -4531,28 +4534,29 @@ async function loadMonsters() {
     const def = monsterDefs[type];
     if (!def || !def.sprite || folhaDeMonstroPedida[type]) return;
     folhaDeMonstroPedida[type] = true;
+    const alfa = /\.png(\?|$)/i.test(def.sprite);   // PNG já vem recortado
     const img = new Image();
     img.onload = () => {
       try {
-        monsterSprites[type] = prepareSpriteCell(img, def);
+        monsterSprites[type] = prepareSpriteCell(img, def, alfa);
         // Folhas com linha de caminhada ganham quadros próprios, usados só quando o
         // monstro está de fato se deslocando.
         if (def.walkRow != null) {
           monsterWalk[type] = [];
           for (let i = 0; i < (def.walkFrames || def.cols || 4); i++)
-            monsterWalk[type].push(prepareSpriteCell(img, { ...def, cell: [i, def.walkRow] }));
+            monsterWalk[type].push(prepareSpriteCell(img, { ...def, cell: [i, def.walkRow] }, alfa));
         }
         if (def.attackRow != null) {
           monsterAtaque[type] = [];
           for (let i = 0; i < (def.attackFrames || def.cols || 4); i++)
-            monsterAtaque[type].push(prepareSpriteCell(img, { ...def, cell: [i, def.attackRow] }));
+            monsterAtaque[type].push(prepareSpriteCell(img, { ...def, cell: [i, def.attackRow] }, alfa));
         }
         // Fileira de PARADO. Sem ela o monstro só se anima enquanto anda ou golpeia, e
         // fica um boneco congelado no resto do tempo — que é a maior parte do tempo.
         if (def.idleRow != null) {
           monsterParado[type] = [];
           for (let i = 0; i < (def.idleFrames || def.cols || 4); i++)
-            monsterParado[type].push(prepareSpriteCell(img, { ...def, cell: [i, def.idleRow] }));
+            monsterParado[type].push(prepareSpriteCell(img, { ...def, cell: [i, def.idleRow] }, alfa));
         }
         // A miniatura da paleta vem do recorte pronto, então só pode ser desenhada
         // depois que o PNG decodificou. Redesenhar aqui evita a paleta nascer com
@@ -4566,9 +4570,12 @@ async function loadMonsters() {
 
   monsters = (cfg.spawns || []).map(s => {
     const def = monsterDefs[s.type] || {};
+    // Chefe multiplica a vida já no nascimento — a marca vive na instância salva.
+    const f = (s.chefe !== undefined ? s.chefe : def.chefe) ? (s.chefeForca || 3) : 1;
+    const vida = Math.round((def.hp ?? 20) * f);
     return {
       ...s,
-      hp: def.hp ?? 20, maxHp: def.hp ?? 20,
+      hp: vida, maxHp: vida,
       escala: s.escala || 1,
       homeX: s.x, homeY: s.y,
       dead: false, respawnAt: 0, hurtUntil: 0, lastHit: 0, facing: 1,
@@ -4597,14 +4604,14 @@ function garantirFolhasDoMapa(mapa) {
 }
 
 // Crop one cell out of the grid, then key + trim it like any other sprite.
-function prepareSpriteCell(img, def) {
+function prepareSpriteCell(img, def, jaTemAlfa) {
   const cols = def.cols || 4, rows = def.rows || 4;
   const [cx, cy] = def.cell || [0, 0];
   const cw = Math.floor(img.width / cols), ch = Math.floor(img.height / rows);
   const cell = document.createElement('canvas');
   cell.width = cw; cell.height = ch;
   cell.getContext('2d').drawImage(img, cx * cw, cy * ch, cw, ch, 0, 0, cw, ch);
-  return prepareSprite(cell);
+  return prepareSprite(cell, jaTemAlfa);
 }
 
 function monsterDef(m) { return monsterDefs[m.type] || {}; }
@@ -4783,7 +4790,7 @@ function updateMonsters(now) {
     if (m.golpeEm && now >= m.golpeEm) {
       m.golpeEm = 0;
       if (!playerLocked && playerHp > 0 && dist < (def.touchRange ?? 34) * 1.25) {
-        damagePlayer(def.damage ?? 5);
+        damagePlayer(Math.round((def.damage ?? 5) * forcaDeChefe(m)));
         m.impactoAte = now + 140;
       }
     }
@@ -5120,7 +5127,19 @@ function renderMonsters(now) {
     ctx.restore();
 
     // Health bar only once it has been touched — keeps the scene clean.
-    if (m.hp < m.maxHp) drawHealthBar(m.x, b.y - hop - 9, Math.min(46, b.w), m.hp / m.maxHp, '#ef4444');
+    // O chefe é a exceção: a barra dele aparece desde o primeiro instante, mais larga, com
+    // coroa. Um chefe que parece tropa até levar o primeiro golpe não avisa nada.
+    if (ehChefe(m)) {
+      drawHealthBar(m.x, b.y - hop - 14, Math.max(64, b.w * 1.1), m.hp / m.maxHp, '#f59e0b');
+      ctx.save();
+      ctx.font = 'bold 15px Outfit, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,0.9)';
+      ctx.strokeText('👑', m.x, b.y - hop - 20);
+      ctx.fillText('👑', m.x, b.y - hop - 20);
+      ctx.restore();
+    }
+    else if (m.hp < m.maxHp) drawHealthBar(m.x, b.y - hop - 9, Math.min(46, b.w), m.hp / m.maxHp, '#ef4444');
   });
 }
 
@@ -9902,6 +9921,51 @@ function mostrarInspetorDeMonstro(m) {
                            (def.exigeRessonador ? '  ·  exige Ressonador' : '');
   const flip = document.getElementById('mob_espelhar');
   if (flip) flip.checked = !!m.flipX;
+
+  // Chefe é marca da INSTÂNCIA. O mesmo bicho pode ser tropa numa sala e chefe na outra,
+  // então a marca vive no monstro posicionado, não no tipo do catálogo. Um tipo pode vir
+  // com `chefe: true` de fábrica — aí o padrão da instância já nasce marcado.
+  const ch = document.getElementById('mob_chefe');
+  const ops = document.getElementById('mob_chefe_ops');
+  const forca = document.getElementById('mob_chefe_forca');
+  const fval = document.getElementById('mob_chefe_forca_val');
+  const ehChefe = m.chefe !== undefined ? !!m.chefe : !!def.chefe;
+  if (ch) ch.checked = ehChefe;
+  if (ops) ops.classList.toggle('hidden', !ehChefe);
+  if (forca) forca.value = m.chefeForca || 3;
+  if (fval) fval.textContent = (m.chefeForca || 3) + '×';
+}
+
+// Vida e dano de um monstro já contando a marca de chefe.
+function ehChefe(m) {
+  const d = monsterDef(m);
+  return m.chefe !== undefined ? !!m.chefe : !!d.chefe;
+}
+function forcaDeChefe(m) { return ehChefe(m) ? (m.chefeForca || 3) : 1; }
+
+function marcarChefe(ligado) {
+  if (!selectedMonster) return;
+  selectedMonster.chefe = !!ligado;
+  if (ligado && !selectedMonster.chefeForca) selectedMonster.chefeForca = 3;
+  // A vida precisa ser recalculada na hora, senão o chefe fica com a vida de tropa até
+  // o cenário ser recarregado.
+  const base = monsterDef(selectedMonster).hp ?? 20;
+  selectedMonster.maxHp = Math.round(base * forcaDeChefe(selectedMonster));
+  selectedMonster.hp = selectedMonster.maxHp;
+  document.getElementById('mob_chefe_ops')?.classList.toggle('hidden', !ligado);
+  saveMonsters();
+  showToast(ligado ? '👑 Marcado como chefe da sala.' : 'Deixou de ser chefe.');
+}
+
+function aplicarForcaDeChefe(v) {
+  if (!selectedMonster) return;
+  selectedMonster.chefeForca = Math.max(1.5, Math.min(8, parseFloat(v) || 3));
+  const base = monsterDef(selectedMonster).hp ?? 20;
+  selectedMonster.maxHp = Math.round(base * forcaDeChefe(selectedMonster));
+  selectedMonster.hp = selectedMonster.maxHp;
+  const fval = document.getElementById('mob_chefe_forca_val');
+  if (fval) fval.textContent = selectedMonster.chefeForca + '×';
+  saveMonsters();
 }
 
 function aplicarEscalaDoMonstro(v) {
@@ -15242,6 +15306,8 @@ function initForgeUI() {
 
   // Inspetor de monstro
   document.getElementById('mob_escala')?.addEventListener('input', e => aplicarEscalaDoMonstro(e.target.value));
+  document.getElementById('mob_chefe')?.addEventListener('change', e => marcarChefe(e.target.checked));
+  document.getElementById('mob_chefe_forca')?.addEventListener('input', e => aplicarForcaDeChefe(e.target.value));
   document.getElementById('mobEscalaMenos')?.addEventListener('click',
     () => aplicarEscalaDoMonstro((selectedMonster?.escala || 1) - 0.1));
   document.getElementById('mobEscalaMais')?.addEventListener('click',

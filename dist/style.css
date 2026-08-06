@@ -6305,3 +6305,14 @@ html.abrindo, html.abrindo body { overflow: hidden; }
 /* Um item do HUD da corrida pode se esconder sozinho (a câmara só aparece em dungeon
    de vários estágios). */
 .dgh-item.hidden { display: none; }
+
+/* Marcação de chefe no inspetor de monstros. */
+.insp-chefe {
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 8px; padding: 7px 9px;
+  background: rgba(122,94,30,.22); border: 1px solid rgba(232,196,105,.45);
+  font-size: 12px; font-weight: 700; color: #f2e3b6; cursor: pointer;
+}
+.insp-chefe-ops { margin-top: 6px; padding-left: 4px; }
+.insp-chefe-ops.hidden { display: none; }
+.insp-chefe-ops small { display: block; margin-top: 3px; font-size: 10px; color: #8b96bb; }
