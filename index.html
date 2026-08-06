@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=202608081200">
+  <link rel="stylesheet" href="style.css?v=202608081500">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -723,11 +723,27 @@
             </label>
             <div id="mob_chefe_ops" class="insp-chefe-ops hidden">
               <div class="insp-field">
-                <span>Força do chefe</span>
+                <span>Fases</span>
+                <input type="range" id="mob_chefe_fases" min="1" max="5" step="1" value="3">
+                <b id="mob_chefe_fases_val">3</b>
+              </div>
+              <div class="insp-field">
+                <span>Invoca</span>
+                <select id="mob_chefe_invoca"></select>
+              </div>
+              <div class="insp-field">
+                <span>Por fase</span>
+                <input type="range" id="mob_chefe_porfase" min="1" max="6" step="1" value="2">
+                <b id="mob_chefe_porfase_val">2</b>
+              </div>
+              <div class="insp-field">
+                <span>Força (fora de DG)</span>
                 <input type="range" id="mob_chefe_forca" min="1.5" max="8" step="0.5" value="3">
                 <b id="mob_chefe_forca_val">3×</b>
               </div>
-              <small>Multiplica vida e dano. O tamanho segue a escala acima.</small>
+              <small>Dentro de uma dungeon a força vem do <b>grau sorteado</b> na entrada —
+                o mesmo sorteio que decide a raridade dos baús. Este controle vale só para
+                testar o chefe fora de uma corrida.</small>
             </div>
             <button id="mobDuplicar" class="btn-apply" style="width:100%;margin-top:6px">⧉ Duplicar aqui</button>
             <button id="mobApagar" class="btn-apply" style="width:100%;margin-top:5px;background:#3b1d08">🗑️ Remover monstro</button>
@@ -1663,7 +1679,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="game.js?v=202608081200"></script>
+<script src="game.js?v=202608081600"></script>
 <script src="pixelizador.js?v=202608052000"></script>
 </body>
 </html>

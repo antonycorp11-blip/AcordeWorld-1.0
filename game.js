@@ -226,12 +226,17 @@ async function saveMonsters() {
     types: monsterDefs,
     // Grava a POSIÇÃO DE CASA, não onde o bicho está passeando neste instante — senão
     // cada save moveria o monstro alguns pixels para sempre.
-    spawns: monsters.map(m => ({ id:m.id, type:m.type, mapKey:m.mapKey,
+    spawns: monsters.filter(m => !m.invocado).map(m => ({ id:m.id, type:m.type, mapKey:m.mapKey,
       x:Math.round(m.homeX ?? m.x), y:Math.round(m.homeY ?? m.y),
       escala:m.escala || 1, flipX: !!m.flipX,
       // A marca de chefe é da instância, então tem que ir no save do spawn.
       ...(m.chefe !== undefined ? { chefe: !!m.chefe } : {}),
-      ...(m.chefeForca ? { chefeForca: m.chefeForca } : {}) })),
+      ...(m.chefeForca ? { chefeForca: m.chefeForca } : {}),
+      ...(m.chefeFases ? { chefeFases: m.chefeFases } : {}),
+      ...(m.chefeInvoca ? { chefeInvoca: m.chefeInvoca } : {}),
+      ...(m.chefePorFase ? { chefePorFase: m.chefePorFase } : {}) }))
+      // Reforço invocado é de combate, não de cenário: nunca vai para o arquivo.
+      .filter(m => true),
   };
   const corpo = JSON.stringify(payload);
 
@@ -4337,8 +4342,11 @@ async function loadObjetos() {
     img.src = def.sprite;
   };
 
-  const necessarios = fila.filter(([id]) => usados.has(id));
-  const resto = fila.filter(([id]) => !usados.has(id));
+  // Os baús entram na primeira leva mesmo sem estarem plantados: o sorteio da dungeon
+  // troca a arte em tempo de execução, então qualquer raridade pode ser precisada a
+  // qualquer momento — e eles são item de jogo, não enfeite de paleta.
+  const necessarios = fila.filter(([id, def]) => usados.has(id) || def.bau);
+  const resto = fila.filter(([id, def]) => !usados.has(id) && !def.bau);
   necessarios.forEach(carregarProp);
   window.__propsDoJogoPedidos = necessarios.length;
 
@@ -8567,7 +8575,7 @@ function renderSceneOverlay(now) {
       if (npc.mapKey !== mapKey) return;
       (NPC_DRAW[npc.type] || DEFAULT_NPC_DRAW)(ctx, npc, now);
     });
-    renderMonsters(now);
+    renderMonsters(now); renderInvocacoes(now);
     return;
   }
 
@@ -9934,6 +9942,24 @@ function mostrarInspetorDeMonstro(m) {
   if (ops) ops.classList.toggle('hidden', !ehChefe);
   if (forca) forca.value = m.chefeForca || 3;
   if (fval) fval.textContent = (m.chefeForca || 3) + '×';
+
+  const fs = document.getElementById('mob_chefe_fases');
+  const fsv = document.getElementById('mob_chefe_fases_val');
+  if (fs) fs.value = fasesDoChefe(m);
+  if (fsv) fsv.textContent = fasesDoChefe(m);
+  const pf = document.getElementById('mob_chefe_porfase');
+  const pfv = document.getElementById('mob_chefe_porfase_val');
+  if (pf) pf.value = quantosPorFase(m);
+  if (pfv) pfv.textContent = quantosPorFase(m);
+
+  const inv = document.getElementById('mob_chefe_invoca');
+  if (inv) {
+    inv.innerHTML = '<option value="">(o mais fraco da sala)</option>' +
+      Object.entries(monsterDefs)
+        .filter(([t]) => t !== m.type)
+        .map(([t, dd]) => `<option value="${t}">${dd.name || t}</option>`).join('');
+    inv.value = m.chefeInvoca || '';
+  }
 }
 
 // Vida e dano de um monstro já contando a marca de chefe.
@@ -9941,7 +9967,13 @@ function ehChefe(m) {
   const d = monsterDef(m);
   return m.chefe !== undefined ? !!m.chefe : !!d.chefe;
 }
-function forcaDeChefe(m) { return ehChefe(m) ? (m.chefeForca || 3) : 1; }
+// Fora de corrida vale o valor do editor (para testar). Dentro de uma dungeon quem manda
+// é o GRAU sorteado — é ele que amarra dificuldade e recompensa.
+function forcaDeChefe(m) {
+  if (!ehChefe(m)) return 1;
+  if (corridaAtiva() && corrida.grau) return FORCA_DO_GRAU[corrida.grau] || 3;
+  return m.chefeForca || 3;
+}
 
 function marcarChefe(ligado) {
   if (!selectedMonster) return;
@@ -11952,7 +11984,17 @@ function alternarCombateNoEditor(ligar) {
     // travado de uma rodada anterior não diz nada sobre a arena.
     playerHp = playerMaxHp();
     playerLocked = false; deadUntil = 0; playerHurtUntil = 0;
-    showToast('👾 Monstros soltos — espaço ataca, ESC para parar');
+    // Dizer QUANTOS e ONDE. Com o zoom em 1,6 a câmera mostra um pedaço pequeno do
+    // cenário, e soltar 18 bichos espalhados dava a impressão de que o botão não fez nada
+    // — todos estavam vivos, só que fora do enquadramento.
+    const nomapa = monsters.filter(m => m.mapKey === currentKey);
+    const aVista = nomapa.filter(m => {
+      const p = telaDoPonto(m.x, m.y);
+      return p.x > 0 && p.x < SCREEN_W && p.y > 0 && p.y < SCREEN_H;
+    }).length;
+    showToast(nomapa.length
+      ? `👾 ${nomapa.length} monstros soltos · ${aVista} à vista — as setas apontam o resto`
+      : '👾 Nenhum monstro neste cenário ainda.');
   } else {
     monsters.forEach(m => { if (m.mapKey === currentKey) { m.x = m.homeX ?? m.x; m.y = m.homeY ?? m.y; } });
     showToast('👾 Monstros de volta ao posto');
@@ -12391,7 +12433,7 @@ function loop(now){
     if(outdoors){
       npcData.forEach(npc=>{if(npc.mapKey!==currentKey||npc.oculto)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
       renderDrops(now);   // on the ground, under everyone
-      renderMonsters(now);
+      renderMonsters(now); renderInvocacoes(now);
       renderObjetos(now, 'atras');   // pé acima do jogador: ele passa na frente
     }
     const L=getLayers(currentKey);
@@ -12510,6 +12552,7 @@ function loop(now){
     if (!IS_PLAY_BUILD) renderMotivoDoTravamento();
     else renderMarcadoresDoInterior(now);
     if (camOn || zoomOn) ctx.restore();
+    renderBussolaDeMonstros(now);
     if (camOn) renderRotuloDoDestaque(now);
     renderAmbiente();
     renderDlg(now);
@@ -15308,6 +15351,23 @@ function initForgeUI() {
   document.getElementById('mob_escala')?.addEventListener('input', e => aplicarEscalaDoMonstro(e.target.value));
   document.getElementById('mob_chefe')?.addEventListener('change', e => marcarChefe(e.target.checked));
   document.getElementById('mob_chefe_forca')?.addEventListener('input', e => aplicarForcaDeChefe(e.target.value));
+  document.getElementById('mob_chefe_fases')?.addEventListener('input', e => {
+    if (!selectedMonster) return;
+    selectedMonster.chefeFases = parseInt(e.target.value, 10) || 3;
+    document.getElementById('mob_chefe_fases_val').textContent = selectedMonster.chefeFases;
+    saveMonsters();
+  });
+  document.getElementById('mob_chefe_porfase')?.addEventListener('input', e => {
+    if (!selectedMonster) return;
+    selectedMonster.chefePorFase = parseInt(e.target.value, 10) || 2;
+    document.getElementById('mob_chefe_porfase_val').textContent = selectedMonster.chefePorFase;
+    saveMonsters();
+  });
+  document.getElementById('mob_chefe_invoca')?.addEventListener('change', e => {
+    if (!selectedMonster) return;
+    selectedMonster.chefeInvoca = e.target.value || undefined;
+    saveMonsters();
+  });
   document.getElementById('mobEscalaMenos')?.addEventListener('click',
     () => aplicarEscalaDoMonstro((selectedMonster?.escala || 1) - 0.1));
   document.getElementById('mobEscalaMais')?.addEventListener('click',
@@ -16577,6 +16637,7 @@ function iniciarCorrida(d) {
     inicio: performance.now(),
     danoSofrido: 0, abates: 0, abatesAnteriores: 0, total: 0, fim: 0,
   };
+  sortearGrauDaCorrida(d);
   prepararEstagio(d);
   fecharPortao();
   anunciar(d.nome.toUpperCase(), 1600);
@@ -16590,9 +16651,12 @@ function prepararEstagio(d) {
   const lista = monstrosDaDungeon(mapa);
   lista.forEach(m => {
     m.dead = false; m.respawnAt = 0;
-    m.hp = m.maxHp = (monsterDef(m).hp ?? 20);
+    // A vida do chefe sai do GRAU da corrida — mesmo sorteio que define o baú.
+    m.maxHp = Math.round((monsterDef(m).hp ?? 20) * forcaDeChefe(m));
+    m.hp = m.maxHp;
     m.x = m.homeX; m.y = m.homeY;
     m.paralisadoAte = 0; m.dormindoAte = 0; m.hurtUntil = 0;
+    m.faseDoChefe = 0; m.invocados = [];
   });
   corrida.total = lista.length;
   sortearBausDaDungeon(d, mapa);
@@ -16878,6 +16942,7 @@ function atualizarDungeon(now) {
     if (!dungeonQueComecaEm(currentKey)) fecharPortao();
   }
   atualizarCorrida(now);
+  atualizarFasesDeChefe(now);
   renderHudDaCorrida(now);
 }
 
@@ -16944,12 +17009,33 @@ function sortearRaridade(tabela) {
   return tabela[tabela.length - 1].raridade;
 }
 
+// Um sorteio, dois efeitos. O grau vem da mesma tabela de pesos da dungeon: quanto mais
+// alto, mais forte o chefe E mais raro o baú. Era isso que faltava — a dificuldade do
+// chefe estava num controle à mão, desligada da recompensa, então enfrentar um chefe duro
+// não pagava melhor.
+const GRAUS = ['comum', 'raro', 'epico', 'lendario', 'mitico'];
+const FORCA_DO_GRAU = { comum: 1.6, raro: 2.4, epico: 3.4, lendario: 5, mitico: 7 };
+
+function sortearGrauDaCorrida(d) {
+  const g = sortearRaridade(d.baus);
+  corrida.grau = g;
+  return g;
+}
+
+// O baú nunca sai ABAIXO do grau da corrida: se o chefe veio mítico, o prêmio acompanha.
+// Acima pode, por sorte.
+function raridadeComPiso(d, piso) {
+  const i = GRAUS.indexOf(piso);
+  const r = sortearRaridade(d.baus);
+  return GRAUS.indexOf(r) < i ? piso : r;
+}
+
 function sortearBausDaDungeon(d, mapa) {
   sorteioDeBaus = {};
   bausDoMapa(mapa || d.mapa).forEach(o => {
     const vazio = Math.random() < CHANCE_DE_BAU_VAZIO;
     sorteioDeBaus[o.id] = {
-      raridade: vazio ? null : sortearRaridade(d.baus),
+      raridade: vazio ? null : raridadeComPiso(d, corrida.grau || 'comum'),
       aberto: false,
     };
   });
@@ -17074,4 +17160,145 @@ function renderBrilhoDoBau(o, b, now) {
     ctx.fillStyle = cor; ctx.fillText(txt, o.x, y);
     ctx.restore();
   }
+}
+
+// Setas na borda apontando os monstros vivos que estão fora do enquadramento.
+// Existe porque a câmera com zoom mostra um pedaço pequeno do cenário: soltar dezoito
+// bichos espalhados e não ver nenhum passa a impressão de que nada aconteceu. Só no
+// editor — em jogo, encontrar o inimigo faz parte.
+function renderBussolaDeMonstros(now) {
+  if (IS_PLAY_BUILD || !combateNoEditor) return;
+  const M = 22;
+  liveMonsters().forEach(m => {
+    const p = telaDoPonto(m.x, m.y);
+    if (p.x > 0 && p.x < SCREEN_W && p.y > 0 && p.y < SCREEN_H) return;
+    // Ponto onde a reta jogador→monstro cruza a borda da tela.
+    const jx = SCREEN_W / 2, jy = SCREEN_H / 2;
+    let dx = p.x - jx, dy = p.y - jy;
+    const esc = Math.min((SCREEN_W / 2 - M) / Math.abs(dx || 1e-6),
+                         (SCREEN_H / 2 - M) / Math.abs(dy || 1e-6));
+    const bx = jx + dx * esc, by = jy + dy * esc;
+    const chefe = ehChefe(m);
+    ctx.save();
+    ctx.translate(bx, by);
+    ctx.rotate(Math.atan2(dy, dx));
+    ctx.fillStyle = chefe ? 'rgba(251,191,36,0.9)' : 'rgba(248,113,113,0.75)';
+    ctx.beginPath();
+    ctx.moveTo(9, 0); ctx.lineTo(-7, -6); ctx.lineTo(-7, 6);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+    if (chefe) {
+      ctx.save();
+      ctx.font = 'bold 11px Outfit, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,0.9)';
+      ctx.strokeText('👑', bx, by - 12); ctx.fillText('👑', bx, by - 12);
+      ctx.restore();
+    }
+  });
+}
+
+// ══ Fases do chefe ════════════════════════════════════════════════════════════
+// O chefe não é um saco de vida: a cada faixa de vida perdida ele vira uma fase nova e
+// CHAMA reforço. As invocações contam para o objetivo da sala como qualquer inimigo —
+// senão daria para ignorar o chefe e limpar só a tropa original.
+//
+// Quantas fases e quem ele chama saem do editor (`fases`, `invoca`, `porFase`), com um
+// padrão sensato para quem só marcou a caixa de chefe.
+const FASES_PADRAO = 3;
+
+function fasesDoChefe(m) {
+  const d = monsterDef(m);
+  return Math.max(1, m.chefeFases ?? d.chefeFases ?? FASES_PADRAO);
+}
+function invocacaoDoChefe(m) {
+  const d = monsterDef(m);
+  const tipo = m.chefeInvoca || d.chefeInvoca;
+  if (tipo && monsterDefs[tipo]) return tipo;
+  // Sem escolha explícita: o tipo mais fraco que já existe NESTA sala, para o reforço
+  // combinar com o bioma em vez de aparecer um bicho de outro lugar.
+  const naSala = [...new Set(monsters.filter(x => x.mapKey === m.mapKey && !ehChefe(x)).map(x => x.type))];
+  if (naSala.length) {
+    return naSala.sort((a, b) => (monsterDefs[a].hp ?? 99) - (monsterDefs[b].hp ?? 99))[0];
+  }
+  // Sala só com o chefe — o caso da arena final. Cai no tipo mais fraco do catálogo que
+  // não seja chefe nem pacífico: um chefe que não consegue chamar ninguém perderia as
+  // fases justamente onde elas mais importam.
+  const candidatos = Object.entries(monsterDefs)
+    .filter(([t, dd]) => t !== m.type && !dd.chefe && !dd.pacifico && !dd.exigeRessonador);
+  if (!candidatos.length) return null;
+  candidatos.sort((a, b) => (a[1].hp ?? 99) - (b[1].hp ?? 99));
+  return candidatos[0][0];
+}
+function quantosPorFase(m) {
+  const d = monsterDef(m);
+  return Math.max(1, m.chefePorFase ?? d.chefePorFase ?? 2);
+}
+
+// Chamada a cada quadro: vê se o chefe cruzou a fronteira da próxima fase.
+function atualizarFasesDeChefe(now) {
+  if (!monstrosVivos()) return;
+  monsters.forEach(m => {
+    if (m.dead || m.mapKey !== currentKey || !ehChefe(m)) return;
+    const total = fasesDoChefe(m);
+    const frac = m.hp / Math.max(1, m.maxHp);
+    // Fase 1 começa cheia; as viradas ficam em 2/3, 1/3… conforme o número de fases.
+    const atingida = Math.min(total - 1, Math.floor((1 - frac) * total));
+    if (atingida <= (m.faseDoChefe || 0)) return;
+    m.faseDoChefe = atingida;
+    virarFaseDoChefe(m, atingida, total, now);
+  });
+}
+
+function virarFaseDoChefe(m, fase, total, now) {
+  const def = monsterDef(m);
+  anunciar(`${(def.name || 'CHEFE').toUpperCase()} — FASE ${fase + 1}/${total}`, 1500);
+  // Um instante invulnerável e um rugido: a virada precisa ser lida como evento, não como
+  // mais um golpe que entrou.
+  m.hurtUntil = now + 500;
+  m.impactoAte = now + 500;
+
+  const tipo = invocacaoDoChefe(m);
+  if (!tipo) return;
+  const n = quantosPorFase(m);
+  const b = monsterBounds(m);
+  for (let i = 0; i < n; i++) {
+    const ang = (Math.PI * 2 * i) / n + Math.random() * 0.6;
+    const raio = 70 + Math.random() * 40;
+    const alvo = pontoAndavelPerto(
+      Math.max(30, Math.min(SCREEN_W - 30, m.x + Math.cos(ang) * raio)),
+      Math.max(30, Math.min(SCREEN_H - 30, m.y + Math.sin(ang) * raio * 0.6)));
+    const d2 = monsterDefs[tipo] || {};
+    const novo = {
+      id: `inv_${m.id || 'chefe'}_${fase}_${i}`,
+      type: tipo, mapKey: m.mapKey,
+      x: alvo.x, y: alvo.y, homeX: alvo.x, homeY: alvo.y,
+      escala: (m.escala || 1) * 0.8,
+      hp: d2.hp ?? 20, maxHp: d2.hp ?? 20,
+      dead: false, respawnAt: 0, hurtUntil: 0, lastHit: 0, facing: 1,
+      phase: Math.random() * 6.28,
+      invocado: true,          // não é gravado: some quando o cenário recarrega
+      nascidoEm: now,
+    };
+    monsters.push(novo);
+    // A conta da sala cresce junto, senão a corrida terminaria com reforço vivo em campo.
+    if (corridaAtiva() && m.mapKey === corrida.mapa) corrida.total += 1;
+  }
+  showToast(`👑 ${def.name || 'O chefe'} chamou ${n} reforço${n > 1 ? 's' : ''}!`);
+}
+
+// Círculo de invocação nos primeiros instantes: o reforço não pode simplesmente aparecer.
+function renderInvocacoes(now) {
+  monsters.forEach(m => {
+    if (!m.invocado || m.dead || m.mapKey !== currentKey) return;
+    const t = (now - (m.nascidoEm || 0)) / 700;
+    if (t > 1) return;
+    ctx.save();
+    ctx.globalAlpha = 1 - t;
+    ctx.strokeStyle = '#c084fc'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(m.x, m.y, 34 * (1 - t * 0.4), 15 * (1 - t * 0.4), 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  });
 }
