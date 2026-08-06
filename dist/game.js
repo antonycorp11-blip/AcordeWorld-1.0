@@ -5208,14 +5208,34 @@ function derivedStats() {
     desconto: Math.min(50, attrs.memoria * 4), // % a menos de fragmentos na síntese
     moveSpeed: 0,                          // cenários estáticos: movimento não é build
     crit: 0, lifesteal: 0,
+    defesa: 0,          // % de dano cortado na entrada
+    danoCritico: 50,    // % a mais no golpe crítico — 50 é o crítico "normal"
   };
   learnedSkills.forEach(id => {
     const e = skillById(id)?.effects || {};
     for (const k in e) s[k] = (s[k] || 0) + e[k];
   });
+  // Equipamento entra por último e usa os MESMOS campos: assim o total mostrado na tela
+  // de equipamentos é, por construção, o número que o combate lê.
+  const eq = typeof bonusDeEquipamento === 'function' ? bonusDeEquipamento() : {};
+  s.maxHp     += eq.vida || 0;
+  s.dmg       += eq.ataque || 0;
+  s.defesa    += eq.defesa || 0;
+  s.dmgMagia  += eq.magia || 0;
+  s.atkSpeed  += eq.agilidade || 0;
+  s.crit      += eq.critico || 0;
+  s.danoCritico += eq.danoCritico || 0;
+  s.lifesteal += eq.rouboDeVida || 0;
+  s.recarga   += eq.reducaoRecarga || 0;
+  // Tetos: sem eles um conjunto completo em T6 zeraria o dano recebido.
+  s.defesa = Math.min(70, s.defesa);
+  s.recarga = Math.min(70, s.recarga);
   return s;
 }
 
+// Multiplicador do golpe crítico. Era 2× fixo; agora sai de `danoCritico`, que começa
+// em 50% (o dobro de sempre) e sobe com o equipamento.
+function multCritico(s) { return 1 + (s || derivedStats()).danoCritico / 100; }
 function playerMaxHp()   { return derivedStats().maxHp; }
 function playerDamage()  { return derivedStats().dmg; }
 function attackCooldown(){ return BASE_COOLDOWN / (1 + derivedStats().atkSpeed / 100); }
@@ -5620,7 +5640,7 @@ function atualizarLaminaVoando(now) {
     // nível. É a única passiva desta habilidade.
     empurrarMonstro(m, 30 + 22 * nivelPassiva('akles.setima.empurrao'));
     const crit = s.crit > 0 && Math.random() * 100 < s.crit;
-    const dmg = Math.round(playerDamage() * SETIMA_DANO * (crit ? 2 : 1));
+    const dmg = Math.round(playerDamage() * SETIMA_DANO * (crit ? multCritico(s) : 1));
     m.hp -= dmg;
     m.hurtUntil = now + 260;
     addFloater(m.x, monsterBounds(m).y - 12, crit ? `${dmg}!` : `-${dmg}`, crit ? '#fde047' : '#c4b5fd');
@@ -6463,7 +6483,8 @@ function doAttack() {
     const dmg = Math.round(playerDamage() * g.dano
       * (laminaAtiva() ? LAMINA_BONUS : 1)
       * (orbitaAtiva() ? orbitaBonusDeDano() : 1)
-      * (crit ? 2 : 1));
+      * bonusDeConjunto()
+      * (crit ? multCritico(s) : 1));
     m.hp -= dmg;
     m.hurtUntil = now + 260;
     addFloater(m.x, monsterBounds(m).y - 12, crit ? `${dmg}!` : `-${dmg}`,
@@ -6846,6 +6867,10 @@ function killMonster(m, now) {
 function damagePlayer(amount) {
   const now = performance.now();
   if (now < playerHurtUntil) return; // invulnerability window
+  // Defesa corta uma porcentagem na entrada, antes de qualquer outra conta — e nunca
+  // zera o golpe: 1 de dano sempre passa, senão dá para ficar imortal.
+  const df = derivedStats().defesa || 0;
+  if (df > 0) amount = Math.max(1, Math.round(amount * (1 - df / 100)));
 
   // No TESTE dentro do editor o herói apanha mas não cai. Morrer ali travava tudo: a
   // morte liga playerLocked e entrega a recuperação ao updateRespawn, que só roda no
@@ -7143,6 +7168,7 @@ function savePlayerData() {
       level, xp, attrPoints, skillPoints, attrs, skills: learnedSkills,
       passivas, habilidadesAbertas,
       passesDeDungeon, dungeons: ultimaConclusaoDeDungeon,
+      itensPossuidos, equipado,
       toolQuality, notas: notasPossuidas, escalas: escalasMontadas, acordes: acordesObtidos,
       // Progresso de jogo: no celular não há servidor, então tudo vive aqui.
       nome: playerName, heroi: selectedHeroId,
@@ -7203,6 +7229,8 @@ function loadPlayerData() {
     carregarHabilidadesAbertas(d.habilidadesAbertas);
     if (typeof d.passesDeDungeon === 'number') passesDeDungeon = d.passesDeDungeon;
     if (d.dungeons) ultimaConclusaoDeDungeon = d.dungeons;
+    if (d.itensPossuidos) itensPossuidos = d.itensPossuidos;
+    if (d.equipado) equipado = d.equipado;
     if (d.attrs) {
       // Saves antigos guardam força/agilidade/capacidade. Converte em vez de descartar,
       // senão quem já jogou perde o progresso ao atualizar.
@@ -7228,6 +7256,7 @@ async function loadShopCatalog() {
   } catch (e) { return; }
   playerCoins = shopCatalog.coins_start ?? 300;
   carregarDungeons();
+  carregarEquipamentos();
   loadPlayerData(); // saved balance wins over the catalogue default
   abastecerBancaDeTestes();
   // As roupas da loja são 3,9 MB que ninguém vê até abrir a loja. Ficam num pedido
@@ -16573,6 +16602,7 @@ document.getElementById('fichaHeroi')?.addEventListener('click', e => {
 });
 document.querySelectorAll('#fichaHeroi .ficha-aba').forEach(b => {
   b.addEventListener('click', () => {
+    if (b.dataset.aba === 'equip') { fecharFicha(); abrirEquipamentos(); return; }
     if (b.classList.contains('travada')) {
       showToast(`${b.textContent.trim()} ainda não existe no jogo.`);
       return;
@@ -17756,3 +17786,361 @@ function atualizarNumerosDoHud() {
     pointDot.title = `${pontos} ponto${pontos > 1 ? 's' : ''} para distribuir`;
   }
 }
+
+// ══ Equipamentos ══════════════════════════════════════════════════════════════
+// Seis encaixes: três estéticos (costas, cabeça, aura) e três que dão atributo
+// (catalisador, anel, colar). Os de atributo NÃO aparecem no personagem — eles existem
+// na conta, não no desenho.
+//
+// Cada peça vai de T1 a T6 e pertence a uma coleção. Com as três peças da mesma coleção
+// equipadas, o bônus de conjunto liga. Subir de tier custa notas musicais específicas
+// mais claves, e a moldura da arte já vem desenhada por tier.
+//
+// Tudo isto sai de `assets/dados/equipamentos.json`: acrescentar uma coleção nova não
+// pede uma linha de código.
+
+let EQUIP = { atributos: {}, colecoes: [], custoDeTier: [] };
+const SLOTS_ESTETICOS = ['costas', 'cabeca', 'aura'];
+const SLOTS_DE_ATRIBUTO = ['catalisador', 'anel', 'colar'];
+const NOME_DO_SLOT = {
+  costas: 'Costas', cabeca: 'Cabeça', aura: 'Aura',
+  catalisador: 'Catalisador', anel: 'Anel', colar: 'Colar',
+};
+// Qual catalisador cada arma usa. O nome muda com a classe, o encaixe é o mesmo.
+const CATALISADOR_DA_CLASSE = {
+  teclado: 'Luvas', cordas: 'Palhetas', bateria: 'Baquetas', vocal: 'Microfone',
+};
+
+// Estado do jogador: o que possui e em que tier, e o que está vestido.
+let itensPossuidos = {};   // idDoItem → { tier }
+let equipado = {};         // heroiId → { slot → idDoItem }
+
+async function carregarEquipamentos() {
+  try {
+    const r = await fetch(`assets/dados/equipamentos.json?t=${Date.now()}`);
+    EQUIP = await r.json();
+  } catch (e) { return; }
+  // A primeira coleção já entra vestida no T1, para dar o que testar antes de existir
+  // gacha. Só preenche o que estiver vazio: nunca sobrescreve escolha do jogador.
+  garantirColecaoInicial();
+}
+
+function todosOsItens() {
+  return (EQUIP.colecoes || []).flatMap(c => c.itens.map(i => ({ ...i, colecao: c })));
+}
+function itemPorId(id) { return todosOsItens().find(i => i.id === id) || null; }
+function tierDoItem(id) { return itensPossuidos[id]?.tier || 0; }
+function temItem(id) { return tierDoItem(id) > 0; }
+
+function garantirColecaoInicial() {
+  const primeira = (EQUIP.colecoes || [])[0];
+  if (!primeira) return;
+  const heroi = 'achilles';
+  equipado[heroi] = equipado[heroi] || {};
+  primeira.itens.forEach(it => {
+    if (!itensPossuidos[it.id]) itensPossuidos[it.id] = { tier: 1 };
+    if (!equipado[heroi][it.slot]) equipado[heroi][it.slot] = it.id;
+  });
+}
+
+function equipadoDoHeroi(heroi) { return equipado[heroi || selectedHeroId] || {}; }
+
+function itemNoSlot(slot, heroi) {
+  const id = equipadoDoHeroi(heroi)[slot];
+  return id ? itemPorId(id) : null;
+}
+
+// Atributos que uma peça dá no tier em que está.
+function atributosDoItem(item, tier) {
+  const t = Math.max(1, Math.min(6, tier || tierDoItem(item.id) || 1));
+  const out = {};
+  Object.entries(item.porTier || {}).forEach(([k, v]) => { out[k] = v[t - 1] ?? 0; });
+  return out;
+}
+
+// Quantas peças de cada coleção estão vestidas agora.
+function pecasDaColecao(colecaoId, heroi) {
+  const eq = equipadoDoHeroi(heroi);
+  return (EQUIP.colecoes.find(c => c.id === colecaoId)?.itens || [])
+    .filter(it => eq[it.slot] === it.id).length;
+}
+function conjuntosAtivos(heroi) {
+  return (EQUIP.colecoes || [])
+    .filter(c => pecasDaColecao(c.id, heroi) >= c.itens.length)
+    .map(c => c.conjunto);
+}
+
+// A soma de TODO o equipamento vestido. É esta função que `derivedStats` consome, então
+// o total da tela e o número que o combate usa são obrigatoriamente o mesmo.
+function bonusDeEquipamento(heroi) {
+  const soma = {};
+  SLOTS_DE_ATRIBUTO.forEach(slot => {
+    const it = itemNoSlot(slot, heroi);
+    if (!it) return;
+    Object.entries(atributosDoItem(it)).forEach(([k, v]) => { soma[k] = (soma[k] || 0) + v; });
+  });
+  return soma;
+}
+
+// Bônus de conjunto em ação. O do Arranjador é `combo_crescente`: cada golpe do combo
+// soma uma porcentagem ao próximo. Ele lê `comboPasso`, que a corrente de golpes já
+// mantinha — o conjunto não inventa um contador paralelo, aproveita o que existe.
+function bonusDeConjunto() {
+  let mult = 1;
+  conjuntosAtivos().forEach(c => {
+    if (c.efeito === 'combo_crescente') {
+      mult *= 1 + (c.valor / 100) * Math.max(0, comboPasso);
+    }
+  });
+  return mult;
+}
+
+// ── Tela de equipamentos ──
+// O painel de totais lê `derivedStats()`, a MESMA função que o combate consome. Não há
+// uma segunda conta para exibição: se o número mudar aqui, mudou na luta.
+let filtroDoInventario = 'todos';
+
+function abrirEquipamentos() {
+  document.getElementById('equipTela')?.classList.remove('hidden');
+  desenharEquipamentos();
+}
+function fecharEquipamentos() {
+  document.getElementById('equipTela')?.classList.add('hidden');
+  fecharPopupDeItem();
+}
+
+// Nome do catalisador conforme a arma do herói: o encaixe é o mesmo, o objeto muda.
+function nomeDoCatalisador(heroi) {
+  const arma = (HERO_DEFINITIONS[heroi || selectedHeroId] || {}).weapon || '';
+  const classe = /teclado/i.test(arma) ? 'teclado'
+               : /lan[cç]a|microfone|voz/i.test(arma) ? 'vocal'
+               : /corda|viol|guitar/i.test(arma) ? 'cordas'
+               : /tambor|bateria/i.test(arma) ? 'bateria' : 'teclado';
+  return CATALISADOR_DA_CLASSE[classe] || 'Catalisador';
+}
+
+function desenharEquipamentos() {
+  const el = document.getElementById('equipTela');
+  if (!el || el.classList.contains('hidden')) return;
+  const heroi = selectedHeroId;
+  const def = HERO_DEFINITIONS[heroi] || {};
+  const s = derivedStats();
+
+  document.getElementById('equipMoedas').innerHTML =
+    `<b>${claveCount.toLocaleString('pt-BR')}</b> claves &nbsp;·&nbsp; <b>${playerCoins.toLocaleString('pt-BR')}</b> ouro`;
+  document.getElementById('equipNome').textContent = (def.name || heroi).toUpperCase();
+  document.getElementById('equipClasse').textContent =
+    `${def.class || ''} · ${def.papel || ''}`.replace(/^ · | · $/, '');
+  document.getElementById('equipNivel').textContent = level;
+  const need = xpForLevel(level);
+  document.getElementById('equipXpFill').style.width = Math.min(100, (xp / need) * 100) + '%';
+  document.getElementById('equipXp').textContent = `${xp} / ${need} XP`;
+
+  // Os cinco números que importam de relance.
+  document.getElementById('equipPrincipais').innerHTML = [
+    ['❤', 'HP', s.maxHp], ['⚔', 'Ataque', s.dmg], ['🛡', 'Defesa', s.defesa + '%'],
+    ['✦', 'Magia', s.dmgMagia + '%'], ['🏃', 'Agilidade', s.atkSpeed + '%'],
+  ].map(([i, n, v]) => `<div class="eq-linha-p">${i}<span>${n}</span><b>${v}</b></div>`).join('');
+
+  desenharEncaixes(heroi);
+  desenharTotais(s);
+  desenharConjunto(heroi);
+  desenharInventario(heroi);
+}
+
+function desenharEncaixes(heroi) {
+  const cx = document.getElementById('equipSlots');
+  if (!cx) return;
+  const ordem = [...SLOTS_ESTETICOS, ...SLOTS_DE_ATRIBUTO];
+  cx.innerHTML = ordem.map(slot => {
+    const it = itemNoSlot(slot, heroi);
+    const estetico = SLOTS_ESTETICOS.includes(slot);
+    const rot = slot === 'catalisador' ? nomeDoCatalisador(heroi) : NOME_DO_SLOT[slot];
+    const t = it ? tierDoItem(it.id) : 0;
+    return `<div class="eq-slot${estetico ? ' estetico' : ''}" data-slot="${slot}"
+                 ${it ? `data-item="${it.id}"` : ''}>
+      ${it ? `<img src="${it.arte.replace('{t}', t)}" alt=""><span class="tier">T${t}</span>`
+           : `<span class="vazio">${estetico ? '✧' : '◇'}</span>`}
+      <span class="rot">${rot}</span>
+    </div>`;
+  }).join('');
+  cx.querySelectorAll('.eq-slot').forEach(d => d.addEventListener('click', e => {
+    if (d.dataset.item) abrirPopupDeItem(d.dataset.item, e);
+    else showToast(SLOTS_ESTETICOS.includes(d.dataset.slot)
+      ? 'Encaixe estético — ainda sem peças.'
+      : 'Encaixe vazio. Escolha uma peça no inventário.');
+  }));
+}
+
+// Todos os atributos, sempre visíveis, com o quanto veio do equipamento em verde.
+function desenharTotais(s) {
+  const eq = bonusDeEquipamento();
+  const linhas = [
+    ['❤', 'HP', s.maxHp, eq.vida], ['💥', 'Crítico', s.crit + '%', eq.critico],
+    ['⚔', 'Ataque', s.dmg, eq.ataque], ['🔥', 'Dano Crít.', s.danoCritico + '%', eq.danoCritico],
+    ['🛡', 'Defesa', s.defesa + '%', eq.defesa], ['💚', 'Roubo Vida', s.lifesteal + '%', eq.rouboDeVida],
+    ['✦', 'Magia', s.dmgMagia + '%', eq.magia], ['⏳', 'Red. Recarga', s.recarga + '%', eq.reducaoRecarga],
+    ['🏃', 'Agilidade', s.atkSpeed + '%', eq.agilidade], ['🎒', 'Capacidade', s.capacity, 0],
+  ];
+  document.getElementById('equipTotais').innerHTML = linhas.map(([i, n, v, vindo]) =>
+    `<div class="eq-total">${i}<span>${n}</span><b>${v}</b>${vindo ? `<i>+${vindo}</i>` : ''}</div>`).join('');
+}
+
+function desenharConjunto(heroi) {
+  const cx = document.getElementById('equipConjunto');
+  if (!cx) return;
+  const c = (EQUIP.colecoes || [])[0];
+  if (!c) { cx.innerHTML = ''; return; }
+  const n = pecasDaColecao(c.id, heroi), total = c.itens.length;
+  const ativo = n >= total;
+  cx.className = 'eq-conjunto' + (ativo ? '' : ' inativo');
+  cx.innerHTML = `
+    <div class="titulo">BÔNUS DE CONJUNTO</div>
+    <div class="nome">${c.nome} <span class="conta">(${n}/${total})</span></div>
+    <div class="desc"><b>${c.conjunto.nome}:</b> ${c.conjunto.descricao}</div>
+    ${ativo ? '' : `<div class="desc">Falta${total - n > 1 ? 'm' : ''} ${total - n} peça${total - n > 1 ? 's' : ''} para ativar.</div>`}`;
+}
+
+function desenharInventario(heroi) {
+  const fx = document.getElementById('equipFiltros');
+  if (fx) {
+    const cats = ['todos', ...SLOTS_DE_ATRIBUTO];
+    fx.innerHTML = cats.map(c => `<button class="eq-filtro${filtroDoInventario === c ? ' ativo' : ''}"
+      data-f="${c}">${c === 'todos' ? 'Todos' : NOME_DO_SLOT[c]}</button>`).join('');
+    fx.querySelectorAll('.eq-filtro').forEach(b => b.addEventListener('click', () => {
+      filtroDoInventario = b.dataset.f; desenharInventario(heroi);
+    }));
+  }
+  const grade = document.getElementById('equipGrade');
+  if (!grade) return;
+  const eq = equipadoDoHeroi(heroi);
+  const lista = todosOsItens()
+    .filter(i => temItem(i.id))
+    .filter(i => filtroDoInventario === 'todos' || i.slot === filtroDoInventario);
+  if (!lista.length) {
+    grade.innerHTML = '<p class="fj-dica">Nada aqui ainda. As peças vêm do gacha.</p>';
+    return;
+  }
+  grade.innerHTML = lista.map(i => {
+    const t = tierDoItem(i.id);
+    return `<div class="eq-card${eq[i.slot] === i.id ? ' vestido' : ''}" data-item="${i.id}">
+      <img src="${i.arte.replace('{t}', t)}" alt="${i.nome}">
+      <span class="tier">T${t}</span></div>`;
+  }).join('');
+  grade.querySelectorAll('.eq-card').forEach(d =>
+    d.addEventListener('click', e => abrirPopupDeItem(d.dataset.item, e)));
+}
+
+// ── Janelinha do item, aberta NO PONTO DO CLIQUE ──
+// Mostra lore curta, o que a peça dá agora, o que daria no próximo tier, e o preço para
+// subir. É aqui que se veste, tira e evolui — a peça é o objeto da conversa, então as
+// ações moram junto dela em vez de num painel do outro lado da tela.
+function abrirPopupDeItem(id, ev) {
+  const it = itemPorId(id);
+  const pop = document.getElementById('equipPopup');
+  if (!it || !pop) return;
+  const t = tierDoItem(id) || 1;
+  const agora = atributosDoItem(it, t);
+  const prox = t < 6 ? atributosDoItem(it, t + 1) : null;
+  const custo = t < 6 ? (EQUIP.custoDeTier || []).find(c => c.para === t + 1) : null;
+  const vestido = equipadoDoHeroi()[it.slot] === it.id;
+
+  const linhas = Object.entries(agora).map(([k, v]) => {
+    const meta = EQUIP.atributos[k] || { nome: k, ico: '•', sufixo: '' };
+    const dif = prox ? (prox[k] || 0) - v : 0;
+    return `<div class="pattr">${meta.ico}<span>${meta.nome}</span>
+      <b>${v}${meta.sufixo}</b>${dif > 0 ? `<u>→ ${prox[k]}${meta.sufixo}</u>` : ''}</div>`;
+  }).join('');
+
+  let bloco = '';
+  if (custo) {
+    const faltaClave = claveCount < custo.claves;
+    const notas = Object.entries(custo.notas).map(([nid, q]) => {
+      const n = notaPorId(nid);
+      const tem = notasPossuidas[nid] || 0;
+      return `<span class="${tem < q ? 'falta' : ''}">${q}× ${n ? n.nome : nid} (${tem})</span>`;
+    }).join(' · ');
+    bloco = `<div class="pcusto">Subir para <b>T${t + 1}</b>:<br>${notas}<br>
+      <span class="${faltaClave ? 'falta' : ''}">${custo.claves.toLocaleString('pt-BR')} claves
+      (${claveCount.toLocaleString('pt-BR')})</span></div>`;
+  } else {
+    bloco = '<div class="pcusto"><b>Tier máximo.</b></div>';
+  }
+
+  pop.innerHTML = `
+    <div class="pnome">${it.nome}</div>
+    <div class="pslot">${it.slot === 'catalisador' ? nomeDoCatalisador() : NOME_DO_SLOT[it.slot]}
+      · T${t} · ${(it.colecao || {}).nome || ''}</div>
+    <div class="plore">${it.lore}</div>
+    ${linhas}
+    ${bloco}
+    <div class="pbotoes">
+      <button data-acao="vestir">${vestido ? 'TIRAR' : 'EQUIPAR'}</button>
+      ${custo ? `<button class="destaque" data-acao="subir"
+        ${podeSubirTier(it, t) ? '' : 'disabled'}>SUBIR TIER</button>` : ''}
+    </div>`;
+
+  pop.querySelector('[data-acao="vestir"]').addEventListener('click', () => {
+    const eqh = equipado[selectedHeroId] = equipado[selectedHeroId] || {};
+    if (vestido) delete eqh[it.slot]; else eqh[it.slot] = it.id;
+    savePlayerData();
+    desenharEquipamentos();
+    fecharPopupDeItem();
+  });
+  pop.querySelector('[data-acao="subir"]')?.addEventListener('click', () => subirTier(it));
+
+  // Posiciona no clique, sem deixar sair do quadro.
+  pop.classList.remove('hidden');
+  const pai = document.getElementById('equipTela').getBoundingClientRect();
+  const x = (ev?.clientX ?? pai.left + pai.width / 2) - pai.left;
+  const y = (ev?.clientY ?? pai.top + pai.height / 2) - pai.top;
+  const w = pop.offsetWidth, h = pop.offsetHeight;
+  pop.style.left = `${Math.max(6, Math.min(pai.width - w - 6, x - w / 2))}px`;
+  pop.style.top  = `${Math.max(6, Math.min(pai.height - h - 6, y + 14))}px`;
+}
+function fecharPopupDeItem() { document.getElementById('equipPopup')?.classList.add('hidden'); }
+
+function podeSubirTier(it, t) {
+  const c = (EQUIP.custoDeTier || []).find(x => x.para === t + 1);
+  if (!c) return false;
+  if (claveCount < c.claves) return false;
+  return Object.entries(c.notas).every(([nid, q]) => (notasPossuidas[nid] || 0) >= q);
+}
+
+function subirTier(it) {
+  const t = tierDoItem(it.id) || 1;
+  const c = (EQUIP.custoDeTier || []).find(x => x.para === t + 1);
+  if (!c) return;
+  if (!podeSubirTier(it, t)) {
+    const faltando = Object.entries(c.notas)
+      .filter(([nid, q]) => (notasPossuidas[nid] || 0) < q)
+      .map(([nid, q]) => `${q - (notasPossuidas[nid] || 0)}× ${(notaPorId(nid) || {}).nome || nid}`);
+    if (claveCount < c.claves) faltando.push(`${(c.claves - claveCount).toLocaleString('pt-BR')} claves`);
+    showToast(`Faltam ${faltando.join(', ')}.`);
+    return;
+  }
+  Object.entries(c.notas).forEach(([nid, q]) => { notasPossuidas[nid] -= q; });
+  claveCount -= c.claves;
+  itensPossuidos[it.id].tier = t + 1;
+  savePlayerData();
+  showToast(`${it.nome} subiu para T${t + 1}!`);
+  desenharEquipamentos();
+  fecharPopupDeItem();
+}
+
+// ── ligação ──
+document.getElementById('equipFechar')?.addEventListener('click', fecharEquipamentos);
+document.getElementById('equipVoltar')?.addEventListener('click', fecharEquipamentos);
+document.getElementById('equipTela')?.addEventListener('click', e => {
+  if (e.target.id === 'equipTela') fecharEquipamentos();
+  else if (!e.target.closest('.eq-popup') && !e.target.closest('.eq-slot')
+           && !e.target.closest('.eq-card')) fecharPopupDeItem();
+});
+window.addEventListener('keydown', e => {
+  if (e.repeat) return;
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if (e.key === 'Escape' && !document.getElementById('equipTela')?.classList.contains('hidden')) {
+    fecharEquipamentos();
+  }
+});

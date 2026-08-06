@@ -1,0 +1,88 @@
+{
+  "_comentario": [
+    "SLOTS. Três estéticos (costas, cabeca, aura) e três que dão atributos",
+    "(catalisador, anel, colar). Os de atributo não aparecem no personagem.",
+    "",
+    "CATALISADOR é o item da classe: teclado usa luvas, cordas usam palhetas,",
+    "bateria usa baquetas, vocal usa microfone. O campo `classe` diz para quem serve.",
+    "",
+    "TIERS de 1 a 6. `porTier` lista os atributos em cada tier, na ordem T1..T6 —",
+    "assim dá para ler a progressão inteira de uma coluna só.",
+    "",
+    "CONJUNTO: com as três peças da mesma coleção equipadas, o bônus liga.",
+    "",
+    "SUBIR DE TIER custa notas musicais específicas mais claves, e é progressivo."
+  ],
+
+  "atributos": {
+    "vida":          { "nome": "HP",             "ico": "❤", "sufixo": "" },
+    "ataque":        { "nome": "Ataque",         "ico": "⚔", "sufixo": "" },
+    "defesa":        { "nome": "Defesa",         "ico": "🛡", "sufixo": "%" },
+    "magia":         { "nome": "Magia",          "ico": "✦", "sufixo": "%" },
+    "agilidade":     { "nome": "Agilidade",      "ico": "🏃", "sufixo": "%" },
+    "critico":       { "nome": "Crítico",        "ico": "💥", "sufixo": "%" },
+    "danoCritico":   { "nome": "Dano Crítico",   "ico": "🔥", "sufixo": "%" },
+    "rouboDeVida":   { "nome": "Roubo de Vida",  "ico": "💚", "sufixo": "%" },
+    "reducaoRecarga":{ "nome": "Red. Recarga",   "ico": "⏳", "sufixo": "%" }
+  },
+
+  "colecoes": [
+    {
+      "id": "arranjador",
+      "nome": "Coleção do Arranjador",
+      "lore": "O arranjador não inventa a melodia: ele decide como cada parte entra.",
+      "conjunto": {
+        "nome": "Arranjo Completo",
+        "descricao": "Cada golpe do combo soma +8% de dano ao próximo. Zera quando o combo encerra.",
+        "efeito": "combo_crescente",
+        "valor": 8
+      },
+      "itens": [
+        {
+          "id": "arranjador_luvas",
+          "nome": "Luvas do Arranjador",
+          "slot": "catalisador",
+          "classe": "teclado",
+          "lore": "Costuradas para quem rege com as mãos cheias. O couro guarda a memória de cada acorde tocado.",
+          "arte": "assets/itens/equip/arranjador_luvas_t{t}.png",
+          "porTier": {
+            "ataque":  [8, 14, 22, 32, 46, 64],
+            "critico": [2, 3, 4, 6, 8, 11]
+          }
+        },
+        {
+          "id": "arranjador_anel",
+          "nome": "Anel do Arranjador",
+          "slot": "anel",
+          "lore": "A clave gravada por dentro só é lida por quem tira o anel. Ninguém tira.",
+          "arte": "assets/itens/equip/arranjador_anel_t{t}.png",
+          "porTier": {
+            "critico":     [3, 5, 7, 10, 13, 17],
+            "danoCritico": [10, 16, 24, 34, 48, 66],
+            "ataque":      [3, 5, 8, 12, 17, 24]
+          }
+        },
+        {
+          "id": "arranjador_colar",
+          "nome": "Colar do Arranjador",
+          "slot": "colar",
+          "lore": "Pesa no peito como um compasso lento. Quem o usa aprende a não apressar a entrada.",
+          "arte": "assets/itens/equip/arranjador_colar_t{t}.png",
+          "porTier": {
+            "vida":        [24, 40, 62, 92, 132, 185],
+            "defesa":      [3, 5, 8, 11, 15, 20],
+            "rouboDeVida": [1, 2, 3, 4, 6, 8]
+          }
+        }
+      ]
+    }
+  ],
+
+  "custoDeTier": [
+    { "para": 2, "claves": 2000,  "notas": { "do": 10, "mi": 5 } },
+    { "para": 3, "claves": 5000,  "notas": { "do": 14, "mi": 8, "sol": 5 } },
+    { "para": 4, "claves": 12000, "notas": { "re": 18, "fa_s": 12, "la": 8 } },
+    { "para": 5, "claves": 28000, "notas": { "mi": 24, "sol_s": 16, "si": 12 } },
+    { "para": 6, "claves": 60000, "notas": { "fa": 32, "la_s": 22, "do_s": 16 } }
+  ]
+}

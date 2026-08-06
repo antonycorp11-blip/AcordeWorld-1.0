@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=202608090100">
+  <link rel="stylesheet" href="style.css?v=202608091200">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -1100,7 +1100,7 @@
               <div class="ficha-corpo">
                 <nav class="ficha-nav">
                   <button class="ficha-aba ativa" data-aba="geral">VISÃO GERAL</button>
-                  <button class="ficha-aba travada" data-aba="equip">EQUIPAMENTO</button>
+                  <button class="ficha-aba" data-aba="equip">EQUIPAMENTO</button>
                   <button class="ficha-aba travada" data-aba="hist">HISTÓRIA</button>
                   <button class="ficha-aba travada" data-aba="afeicao">AFEIÇÃO</button>
                   <button class="ficha-aba travada ficha-aba-fim" data-aba="musica">MÚSICA</button>
@@ -1266,6 +1266,52 @@
               </div>
               <button class="fj-agir fj-agir-largo" id="escBotao">FORJAR ESCALA</button>
             </div>
+          </div>
+
+          <!-- ══ Equipamentos ══ Três encaixes estéticos e três de atributo. Layout
+               desenhado a partir da referência: ficha à esquerda, encaixes e totais no
+               centro, inventário à direita. -->
+          <div id="equipTela" class="eq-overlay hidden">
+            <div class="eq-quadro">
+              <header class="eq-topo">
+                <button class="eq-voltar" id="equipVoltar">‹</button>
+                <h2 class="eq-titulo">EQUIPAMENTOS</h2>
+                <span class="eq-moedas" id="equipMoedas"></span>
+                <button class="eq-fechar" id="equipFechar">✕</button>
+              </header>
+
+              <div class="eq-corpo">
+                <!-- Coluna 1: quem é o herói e o que o conjunto está dando -->
+                <section class="eq-col eq-ficha">
+                  <div class="eq-nome" id="equipNome"></div>
+                  <div class="eq-classe" id="equipClasse"></div>
+                  <div class="eq-nivel"><b>NÍVEL</b> <span id="equipNivel"></span>
+                    <i class="eq-xp"><u id="equipXpFill"></u></i>
+                    <small id="equipXp"></small>
+                  </div>
+                  <div class="eq-principais" id="equipPrincipais"></div>
+                  <div class="eq-conjunto" id="equipConjunto"></div>
+                </section>
+
+                <!-- Coluna 2: os seis encaixes e o total em tempo real -->
+                <section class="eq-col eq-centro">
+                  <div class="eq-slots" id="equipSlots"></div>
+                  <div class="eq-totais">
+                    <div class="eq-cab">Atributos totais</div>
+                    <div class="eq-grade-totais" id="equipTotais"></div>
+                  </div>
+                </section>
+
+                <!-- Coluna 3: o que se tem para vestir -->
+                <section class="eq-col eq-inv">
+                  <div class="eq-cab">Inventário</div>
+                  <div class="eq-filtros" id="equipFiltros"></div>
+                  <div class="eq-grade" id="equipGrade"></div>
+                </section>
+              </div>
+            </div>
+            <!-- Janelinha que abre no ponto do clique -->
+            <div id="equipPopup" class="eq-popup hidden"></div>
           </div>
 
           <!-- Shop / Inventory sheet -->
@@ -1762,7 +1808,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="game.js?v=202608090100"></script>
+<script src="game.js?v=202608091200"></script>
 <script src="pixelizador.js?v=202608052000"></script>
 </body>
 </html>
