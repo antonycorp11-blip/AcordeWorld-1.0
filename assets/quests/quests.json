@@ -16,20 +16,6 @@
         }
       ],
       "path_waypoints": {
-        "0_1": [
-          {
-            "x": 512,
-            "y": 280
-          },
-          {
-            "x": 512,
-            "y": 200
-          },
-          {
-            "x": 512,
-            "y": 80
-          }
-        ],
         "custom_1785869541494_557": [
           {
             "x": 512,
@@ -46,6 +32,48 @@
           {
             "x": 512,
             "y": 300
+          }
+        ],
+        "custom_1785881037059_214": [
+          {
+            "x": 512,
+            "y": 280
+          },
+          {
+            "x": 512,
+            "y": 200
+          },
+          {
+            "x": 512,
+            "y": 80
+          }
+        ],
+        "custom_1785884200706_430": [
+          {
+            "x": 512,
+            "y": 280
+          },
+          {
+            "x": 512,
+            "y": 200
+          },
+          {
+            "x": 512,
+            "y": 80
+          }
+        ],
+        "custom_1785880661560_858": [
+          {
+            "x": 512,
+            "y": 280
+          },
+          {
+            "x": 512,
+            "y": 200
+          },
+          {
+            "x": 512,
+            "y": 80
           }
         ]
       }
@@ -258,6 +286,48 @@
           "text": "Reúna 2 Semitons (Ecos Cromáticos)"
         }
       ]
+    },
+    {
+      "id": "patrulha_do_patio",
+      "title": "A Patrulha do Pátio",
+      "description": "O Sr. Antony pediu que o Pátio das Ruínas fosse limpo antes do anoitecer.",
+      "xp": 60,
+      "objectives": [
+        {
+          "id": "limpar",
+          "text": "Limpe o Pátio das Ruínas",
+          "completed": false
+        }
+      ],
+      "path_waypoints": {}
+    },
+    {
+      "id": "memoria_do_pipo",
+      "title": "O Que Não Se Esquece",
+      "description": "Ninguém na cidade lembra do Pipo. Guardar o nome dele antes que você também esqueça.",
+      "xp": 120,
+      "objectives": [
+        {
+          "id": "selar",
+          "text": "Sele a memória do Pipo nas Cavernas da Clave",
+          "completed": false
+        }
+      ],
+      "path_waypoints": {}
+    },
+    {
+      "id": "atras_dos_dissonantes",
+      "title": "Atrás dos Dissonantes",
+      "description": "Nocth e Vexor voltaram para a Floresta Sombria. O Pipo foi com eles.",
+      "xp": 200,
+      "objectives": [
+        {
+          "id": "floresta",
+          "text": "Chegue à Floresta Sombria",
+          "completed": false
+        }
+      ],
+      "path_waypoints": {}
     }
   ]
 }

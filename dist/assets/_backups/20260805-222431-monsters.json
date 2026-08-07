@@ -1,0 +1,1344 @@
+{
+  "types": {
+    "tempo_toad": {
+      "name": "Sapo do Compasso",
+      "sprite": "assets/monsters/tempo_toad.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 62,
+      "hp": 30,
+      "damage": 0,
+      "speed": 0.9,
+      "aggroRange": 150,
+      "touchRange": 34,
+      "pacifico": true,
+      "persegue": false,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        }
+      ]
+    },
+    "octave_owl": {
+      "name": "Coruja das Oitavas",
+      "sprite": "assets/monsters/octave_owl.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        1,
+        1
+      ],
+      "height": 66,
+      "hp": 26,
+      "damage": 0,
+      "speed": 1.5,
+      "aggroRange": 200,
+      "touchRange": 34,
+      "pacifico": true,
+      "persegue": false,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        }
+      ]
+    },
+    "bass_crawler": {
+      "name": "Rastejante Grave",
+      "sprite": "assets/monsters/bass_crawler.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 58,
+      "hp": 40,
+      "damage": 0,
+      "speed": 0.7,
+      "aggroRange": 140,
+      "touchRange": 36,
+      "pacifico": true,
+      "persegue": false,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        }
+      ]
+    },
+    "treble_flyer": {
+      "name": "Voador Agudo",
+      "sprite": "assets/monsters/treble_flyer.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 60,
+      "hp": 22,
+      "damage": 0,
+      "speed": 1.7,
+      "aggroRange": 210,
+      "touchRange": 32,
+      "pacifico": true,
+      "persegue": false,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        }
+      ]
+    },
+    "coda_crawler": {
+      "name": "Rastejante da Coda",
+      "sprite": "assets/monsters/coda_crawler.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 60,
+      "hp": 35,
+      "damage": 0,
+      "speed": 0.8,
+      "aggroRange": 150,
+      "touchRange": 34,
+      "pacifico": true,
+      "persegue": false,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        }
+      ]
+    },
+    "shiker": {
+      "name": "Shiker",
+      "sprite": "assets/monsters/shiker.jpg",
+      "cols": 4,
+      "rows": 3,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 74,
+      "hp": 60,
+      "damage": 6,
+      "speed": 1.7,
+      "aggroRange": 320,
+      "touchRange": 38,
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 4,
+      "attackWindup": 190,
+      "attackMs": 460,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 1,
+          "chance": 0.55
+        }
+      ]
+    },
+    "eco_cristal": {
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 4,
+      "attackWindup": 220,
+      "attackMs": 500,
+      "persegue": true,
+      "exigeRessonador": true,
+      "name": "Eco Cristalino",
+      "sprite": "assets/monsters/eco_cristal.jpg",
+      "height": 70,
+      "hp": 40,
+      "damage": 4,
+      "speed": 1.3,
+      "aggroRange": 260,
+      "touchRange": 36,
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 2,
+          "max": 3
+        },
+        {
+          "item": "tom",
+          "min": 1,
+          "max": 1,
+          "chance": 0.45
+        }
+      ]
+    },
+    "eco_cromatico": {
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 4,
+      "attackWindup": 220,
+      "attackMs": 500,
+      "persegue": true,
+      "exigeRessonador": true,
+      "name": "Eco Cromático",
+      "sprite": "assets/monsters/eco_cromatico.jpg",
+      "height": 72,
+      "hp": 52,
+      "damage": 6,
+      "speed": 1.5,
+      "aggroRange": 300,
+      "touchRange": 36,
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 2,
+          "max": 3
+        },
+        {
+          "item": "semitom",
+          "min": 1,
+          "max": 1,
+          "chance": 0.45
+        }
+      ]
+    },
+    "eco_radiante": {
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 4,
+      "attackWindup": 220,
+      "attackMs": 500,
+      "persegue": true,
+      "exigeRessonador": true,
+      "name": "Eco Radiante",
+      "sprite": "assets/monsters/eco_radiante.jpg",
+      "height": 74,
+      "hp": 70,
+      "damage": 7,
+      "speed": 1.2,
+      "aggroRange": 280,
+      "touchRange": 38,
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 4,
+          "max": 6
+        },
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 1,
+          "chance": 0.35
+        }
+      ]
+    },
+    "eco_consonante": {
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 4,
+      "attackWindup": 220,
+      "attackMs": 500,
+      "persegue": true,
+      "exigeRessonador": true,
+      "name": "Eco Consonante",
+      "sprite": "assets/monsters/eco_consonante.jpg",
+      "height": 72,
+      "hp": 60,
+      "damage": 5,
+      "speed": 1.4,
+      "aggroRange": 290,
+      "touchRange": 36,
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 3,
+          "max": 4
+        },
+        {
+          "item": "tom",
+          "min": 1,
+          "max": 1,
+          "chance": 0.3
+        },
+        {
+          "item": "semitom",
+          "min": 1,
+          "max": 1,
+          "chance": 0.3
+        }
+      ]
+    },
+    "eco_dissonante": {
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 4,
+      "attackWindup": 220,
+      "attackMs": 500,
+      "persegue": true,
+      "exigeRessonador": true,
+      "name": "Eco Dissonante",
+      "sprite": "assets/monsters/eco_dissonante.jpg",
+      "height": 76,
+      "hp": 95,
+      "damage": 11,
+      "speed": 1.9,
+      "aggroRange": 340,
+      "touchRange": 38,
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 6,
+          "max": 9
+        },
+        {
+          "item": "tom",
+          "min": 1,
+          "max": 1,
+          "chance": 0.4
+        },
+        {
+          "item": "semitom",
+          "min": 1,
+          "max": 1,
+          "chance": 0.4
+        },
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2,
+          "chance": 0.5
+        }
+      ]
+    },
+    "tambor_selvagem": {
+      "name": "Tambor Selvagem",
+      "sprite": "assets/monsters/tambor_selvagem.jpg",
+      "cols": 4,
+      "rows": 3,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 66,
+      "hp": 95,
+      "damage": 9,
+      "speed": 0.75,
+      "aggroRange": 165,
+      "touchRange": 40,
+      "persegue": true,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 2,
+          "max": 4
+        }
+      ],
+      "idleRow": 0,
+      "idleFrames": 4,
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 3,
+      "attackMs": 520
+    },
+    "espectro_do_cello": {
+      "name": "Espectro do Violoncelo",
+      "sprite": "assets/monsters/espectro_do_cello.jpg",
+      "cols": 6,
+      "rows": 3,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 72,
+      "hp": 45,
+      "damage": 6,
+      "speed": 1.9,
+      "aggroRange": 260,
+      "touchRange": 34,
+      "persegue": true,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 3
+        }
+      ],
+      "idleRow": 0,
+      "idleFrames": 6,
+      "walkRow": 0,
+      "walkFrames": 6,
+      "attackRow": 1,
+      "attackFrames": 5,
+      "attackMs": 480
+    },
+    "colosso_grave": {
+      "name": "Colosso Grave",
+      "sprite": "assets/monsters/colosso_grave.jpg",
+      "cols": 4,
+      "rows": 3,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 88,
+      "hp": 160,
+      "damage": 13,
+      "speed": 0.65,
+      "aggroRange": 190,
+      "touchRange": 46,
+      "persegue": true,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 3,
+          "max": 6
+        }
+      ],
+      "idleRow": 0,
+      "idleFrames": 4,
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 3,
+      "attackMs": 620
+    },
+    "nocturno_alado": {
+      "name": "Noturno Alado",
+      "sprite": "assets/monsters/nocturno_alado.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 74,
+      "hp": 55,
+      "damage": 7,
+      "speed": 1.45,
+      "aggroRange": 230,
+      "touchRange": 40,
+      "persegue": true,
+      "xp": 26,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 3
+        },
+        {
+          "item": "fragmento",
+          "min": 1,
+          "max": 2,
+          "chance": 0.5
+        }
+      ]
+    },
+    "aranha_da_pauta": {
+      "name": "Aranha da Pauta",
+      "sprite": "assets/monsters/aranha_da_pauta.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 62,
+      "hp": 45,
+      "damage": 6,
+      "speed": 1.15,
+      "aggroRange": 190,
+      "touchRange": 38,
+      "persegue": true,
+      "xp": 20,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        },
+        {
+          "item": "fragmento",
+          "min": 1,
+          "max": 3,
+          "chance": 0.6
+        }
+      ]
+    },
+    "maestro_esqueleto": {
+      "name": "Maestro Ossudo",
+      "sprite": "assets/monsters/maestro_esqueleto.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 86,
+      "hp": 80,
+      "damage": 10,
+      "speed": 0.95,
+      "aggroRange": 240,
+      "touchRange": 46,
+      "persegue": true,
+      "xp": 40,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 2,
+          "max": 4
+        },
+        {
+          "item": "fragmento",
+          "min": 2,
+          "max": 4,
+          "chance": 0.7
+        }
+      ]
+    },
+    "dama_do_silencio": {
+      "name": "Dama do Silêncio",
+      "sprite": "assets/monsters/dama_do_silencio.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 92,
+      "hp": 95,
+      "damage": 12,
+      "speed": 0.8,
+      "aggroRange": 260,
+      "touchRange": 48,
+      "persegue": true,
+      "xp": 52,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 3,
+          "max": 6
+        },
+        {
+          "item": "fragmento",
+          "min": 2,
+          "max": 5,
+          "chance": 0.8
+        }
+      ]
+    },
+    "colosso_dissonante": {
+      "name": "Colosso Dissonante",
+      "sprite": "assets/monsters/colosso_dissonante.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 118,
+      "hp": 420,
+      "damage": 20,
+      "speed": 0.62,
+      "aggroRange": 320,
+      "touchRange": 62,
+      "persegue": true,
+      "xp": 220,
+      "chefe": true,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 12,
+          "max": 24
+        },
+        {
+          "item": "fragmento",
+          "min": 8,
+          "max": 14,
+          "chance": 1
+        }
+      ]
+    }
+  },
+  "spawns": [
+    {
+      "id": "m1",
+      "type": "tempo_toad",
+      "mapKey": "2_1",
+      "x": 378,
+      "y": 498,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "m3",
+      "type": "octave_owl",
+      "mapKey": "2_1",
+      "x": 528,
+      "y": 309,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "m4",
+      "type": "treble_flyer",
+      "mapKey": "2_1",
+      "x": 752,
+      "y": 118,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "m5",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 150,
+      "y": 133,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "m6",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 307,
+      "y": 488,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "m7",
+      "type": "octave_owl",
+      "mapKey": "3_1",
+      "x": 749,
+      "y": 361,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "m8",
+      "type": "bass_crawler",
+      "mapKey": "3_0",
+      "x": 300,
+      "y": 320,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "m9",
+      "type": "coda_crawler",
+      "mapKey": "3_0",
+      "x": 640,
+      "y": 420,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "m10",
+      "type": "treble_flyer",
+      "mapKey": "3_0",
+      "x": 800,
+      "y": 260,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "eco_cristal_clareira_1",
+      "type": "eco_cristal",
+      "mapKey": "custom_1785254692668_431",
+      "x": 520,
+      "y": 235,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "eco_cristal_clareira_2",
+      "type": "eco_cristal",
+      "mapKey": "custom_1785254692668_431",
+      "x": 395,
+      "y": 330,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "eco_cristal_clareira_3",
+      "type": "eco_cristal",
+      "mapKey": "custom_1785254692668_431",
+      "x": 690,
+      "y": 300,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "eco_cristal_clareira_4",
+      "type": "eco_cristal",
+      "mapKey": "custom_1785254692668_431",
+      "x": 560,
+      "y": 405,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "eco_cromatico_clareira_5",
+      "type": "eco_cromatico",
+      "mapKey": "custom_1785254692668_431",
+      "x": 780,
+      "y": 235,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "bass_crawler_1785341970403",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 136,
+      "y": 243,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "bass_crawler_1785341970886",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 304,
+      "y": 127,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "bass_crawler_1785341971067",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 218,
+      "y": 273,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "bass_crawler_1785341971270",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 310,
+      "y": 213,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "octave_owl_1785341994252",
+      "type": "octave_owl",
+      "mapKey": "3_1",
+      "x": 880,
+      "y": 484,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "octave_owl_1785341994446",
+      "type": "octave_owl",
+      "mapKey": "3_1",
+      "x": 861,
+      "y": 346,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342020242",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 404,
+      "y": 454,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342020478",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 413,
+      "y": 493,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342020642",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 496,
+      "y": 448,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342020825",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 483,
+      "y": 477,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342021005",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 327,
+      "y": 430,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342021291",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 641,
+      "y": 608,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342021489",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 681,
+      "y": 628,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "tempo_toad_1785342067034",
+      "type": "tempo_toad",
+      "mapKey": "2_1",
+      "x": 428,
+      "y": 486,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "octave_owl_1785342079364",
+      "type": "octave_owl",
+      "mapKey": "2_1",
+      "x": 472,
+      "y": 354,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "treble_flyer_1785342091147",
+      "type": "treble_flyer",
+      "mapKey": "2_1",
+      "x": 792,
+      "y": 138,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "treble_flyer_1785342091546",
+      "type": "treble_flyer",
+      "mapKey": "2_1",
+      "x": 832,
+      "y": 168,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "treble_flyer_1785342093515",
+      "type": "treble_flyer",
+      "mapKey": "2_1",
+      "x": 872,
+      "y": 208,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "tambor_selvagem_1785902973788",
+      "type": "tambor_selvagem",
+      "mapKey": "custom_1785900374897_630",
+      "x": 247,
+      "y": 183,
+      "escala": 0.65,
+      "flipX": false
+    },
+    {
+      "id": "shiker_1785902988755",
+      "type": "shiker",
+      "mapKey": "custom_1785900374897_630",
+      "x": 811,
+      "y": 195,
+      "escala": 0.75,
+      "flipX": false
+    },
+    {
+      "id": "shiker_1785902994322",
+      "type": "shiker",
+      "mapKey": "custom_1785900374897_630",
+      "x": 747,
+      "y": 236,
+      "escala": 0.7,
+      "flipX": false
+    },
+    {
+      "id": "shiker_1785902994839",
+      "type": "shiker",
+      "mapKey": "custom_1785900374897_630",
+      "x": 787,
+      "y": 256,
+      "escala": 0.6,
+      "flipX": false
+    },
+    {
+      "id": "tambor_selvagem_1785903025257",
+      "type": "tambor_selvagem",
+      "mapKey": "custom_1785900374897_630",
+      "x": 200,
+      "y": 267,
+      "escala": 0.65,
+      "flipX": false
+    },
+    {
+      "id": "tambor_selvagem_1785903030475",
+      "type": "tambor_selvagem",
+      "mapKey": "custom_1785900374897_630",
+      "x": 269,
+      "y": 241,
+      "escala": 0.65,
+      "flipX": false
+    },
+    {
+      "id": "espectro_do_cello_1785903041361",
+      "type": "espectro_do_cello",
+      "mapKey": "custom_1785900374897_630",
+      "x": 247,
+      "y": 401,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "espectro_do_cello_1785903050676",
+      "type": "espectro_do_cello",
+      "mapKey": "custom_1785900374897_630",
+      "x": 306,
+      "y": 387,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "espectro_do_cello_1785903051193",
+      "type": "espectro_do_cello",
+      "mapKey": "custom_1785900374897_630",
+      "x": 291,
+      "y": 447,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "colosso_grave_1785903065479",
+      "type": "colosso_grave",
+      "mapKey": "custom_1785900374897_630",
+      "x": 737,
+      "y": 429,
+      "escala": 1.3,
+      "flipX": false
+    },
+    {
+      "id": "shiker_1785932887180",
+      "type": "shiker",
+      "mapKey": "custom_1785900374897_630",
+      "x": 508,
+      "y": 212,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982518833",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 862,
+      "y": 404,
+      "escala": 0.6,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982526420",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 923,
+      "y": 378,
+      "escala": 0.5,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982526921",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 903,
+      "y": 435,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982527354",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 889,
+      "y": 501,
+      "escala": 0.5,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982542854",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 961,
+      "y": 444,
+      "escala": 0.5,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982574609",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785967453140_198",
+      "x": 431,
+      "y": 105,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982588742",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785967453140_198",
+      "x": 571,
+      "y": 111,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982596260",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785967453140_198",
+      "x": 505,
+      "y": 139,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "maestro_esqueleto_1785982623880",
+      "type": "maestro_esqueleto",
+      "mapKey": "custom_1785967453140_198",
+      "x": 718,
+      "y": 96,
+      "escala": 0.6,
+      "flipX": false
+    },
+    {
+      "id": "maestro_esqueleto_1785982669834",
+      "type": "maestro_esqueleto",
+      "mapKey": "custom_1785967453140_198",
+      "x": 658,
+      "y": 222,
+      "escala": 0.5,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982704051",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 219,
+      "y": 116,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982709467",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 273,
+      "y": 129,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982711484",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 225,
+      "y": 160,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "dama_do_silencio_1785982725552",
+      "type": "dama_do_silencio",
+      "mapKey": "custom_1785967453140_198",
+      "x": 121,
+      "y": 441,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "dama_do_silencio_1785982730569",
+      "type": "dama_do_silencio",
+      "mapKey": "custom_1785967453140_198",
+      "x": 134,
+      "y": 498,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982769573",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785967453140_198",
+      "x": 429,
+      "y": 469,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982773405",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785967453140_198",
+      "x": 487,
+      "y": 515,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982775039",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785967453140_198",
+      "x": 527,
+      "y": 463,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982889751",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785976286672_61",
+      "x": 718,
+      "y": 109,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982895480",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785976286672_61",
+      "x": 757,
+      "y": 91,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982895964",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785976286672_61",
+      "x": 764,
+      "y": 133,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982896414",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785976286672_61",
+      "x": 821,
+      "y": 130,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982897398",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785976286672_61",
+      "x": 847,
+      "y": 167,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "maestro_esqueleto_1785982925418",
+      "type": "maestro_esqueleto",
+      "mapKey": "custom_1785976286672_61",
+      "x": 476,
+      "y": 106,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "maestro_esqueleto_1785982933721",
+      "type": "maestro_esqueleto",
+      "mapKey": "custom_1785976286672_61",
+      "x": 439,
+      "y": 150,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "maestro_esqueleto_1785982940006",
+      "type": "maestro_esqueleto",
+      "mapKey": "custom_1785976286672_61",
+      "x": 463,
+      "y": 189,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "maestro_esqueleto_1785982940451",
+      "type": "maestro_esqueleto",
+      "mapKey": "custom_1785976286672_61",
+      "x": 528,
+      "y": 190,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "dama_do_silencio_1785982967954",
+      "type": "dama_do_silencio",
+      "mapKey": "custom_1785976286672_61",
+      "x": 419,
+      "y": 352,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "dama_do_silencio_1785982971855",
+      "type": "dama_do_silencio",
+      "mapKey": "custom_1785976286672_61",
+      "x": 604,
+      "y": 408,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982986655",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785976286672_61",
+      "x": 131,
+      "y": 342,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982990658",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785976286672_61",
+      "x": 151,
+      "y": 406,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982991123",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785976286672_61",
+      "x": 188,
+      "y": 478,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982991388",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785976286672_61",
+      "x": 245,
+      "y": 390,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982991605",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785976286672_61",
+      "x": 278,
+      "y": 449,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785983009658",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785976286672_61",
+      "x": 176,
+      "y": 139,
+      "escala": 1.2000000000000002,
+      "flipX": false
+    },
+    {
+      "id": "colosso_dissonante_1785983064829",
+      "type": "colosso_dissonante",
+      "mapKey": "custom_1785976318486_785",
+      "x": 532,
+      "y": 199,
+      "escala": 1,
+      "flipX": false
+    }
+  ]
+}

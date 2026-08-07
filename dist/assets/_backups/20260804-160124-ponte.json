@@ -1,0 +1,157 @@
+{
+  "id": "ponte",
+  "nome": "Cena 5 — A Ponte Quebrada",
+  "mapa": "0_0",
+  "autoStart": true,
+  "gatilho": {
+    "tipo": "falar",
+    "npc": "Antony"
+  },
+  "requer": {
+    "objetivos": {
+      "missao": "amizade_importa",
+      "ids": [
+        "bardo",
+        "mercador"
+      ]
+    }
+  },
+  "passos": [
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "E então? Sobreviveu ao Lucian?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Ele cantou três músicas. Eu pedi uma.",
+      "auto": 1600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Você saiu barato. Semana passada eu levei sete."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "E o Tibério tentou me vender um amuleto.",
+      "auto": 1600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "O anti-Shiker? Ele tem quatorze. Vai morrer com quatorze."
+    },
+    {
+      "_": "── fecha a missão de amizade ──"
+    },
+    {
+      "cmd": "objetivo",
+      "missao": "amizade_importa",
+      "id": "voltar"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 700
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Muito bem, {PLAYER_NAME}. Agora você tem rosto nesta cidade."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "E quem tem rosto aqui, ajuda."
+    },
+    {
+      "_": "── e emenda a próxima ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Falta você conhecer o Ferreiro Dorn. Ele fica lá embaixo, nos Portões Reais."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "A ponte da entrada cedeu na última chuva. Ele está encarando o buraco desde ontem."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Eu vou me apresentar a ele.",
+      "auto": 1500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Vá. Mas escute o conselho de um velho:"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Não chegue de mãos vazias. O Dorn não aperta mão, ele avalia carga."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Passe antes na floresta a leste da praça. Traga madeira e pedra."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Aparecer lá já com o material é o jeito mais rápido de virar amigo dele."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Madeira e pedra. Anotado.",
+      "auto": 1400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "E {PLAYER_NAME}... se ouvir silêncio absoluto lá dentro, volte correndo."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Você já sabe o que isso significa."
+    },
+    {
+      "cmd": "missao",
+      "id": "ponte_de_acordelot"
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "Colete madeira e pedra na floresta a leste, depois leve ao Ferreiro Dorn nos Portões Reais."
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "fim"
+    }
+  ],
+  "estadoInicial": {
+    "nivel": 3,
+    "claves": 3,
+    "moedas": 80
+  }
+}

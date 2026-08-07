@@ -376,8 +376,8 @@
       "ms": 1800
     },
     {
-      "cmd": "objetivo",
-      "texto": "Guardar a memória do Pipo — Cavernas da Clave"
+      "cmd": "missao",
+      "id": "memoria_do_pipo"
     },
     {
       "cmd": "hud",

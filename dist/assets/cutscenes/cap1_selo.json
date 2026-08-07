@@ -4,58 +4,219 @@
   "_": "O desfecho. Selar os dois palitos garante que Akles e Wins não vão esquecer o Pipo — e a porta do Silêncio racha um dedo. Termina com alguém, muito longe, parando de cantar.",
   "autoStart": false,
   "passos": [
-    { "cmd": "controle", "ativo": false },
-    { "cmd": "trilha", "humor": "altar", "ms": 1200 },
-    { "cmd": "esperar", "ms": 900 },
-
-    { "cmd": "falar", "quem": "Wins", "texto": "Põe os dois juntos. No centro." },
-    { "cmd": "esperar", "ms": 1200 },
-    { "cmd": "falar", "quem": "Akles", "texto": "E se não funcionar?" },
-    { "cmd": "falar", "quem": "Wins", "texto": "Aí a gente esquece, e amanhã ninguém procura ninguém." },
-    { "cmd": "esperar", "ms": 900 },
-    { "cmd": "falar", "quem": "Wins", "texto": "Põe." },
-
-    { "_": "── o selo aceita ──" },
-    { "cmd": "esperar", "ms": 800 },
-    { "cmd": "som", "tipo": "brilho" },
-    { "cmd": "tingir", "cor": "#ffe9ab", "forca": 0.35, "ms": 900 },
-    { "cmd": "cancao", "notas": ["do","mi","sol","do"], "passo": 420, "dur": 1.8, "vol": 0.13 },
-    { "cmd": "tingir", "cor": "#ffe9ab", "forca": 0, "ms": 1600 },
-    { "cmd": "esperar", "ms": 700 },
-
-    { "cmd": "falar", "quem": "Wins", "texto": "Pipo. — Nove anos. Clã dos Ritmos. Filho do Lucian." },
-    { "cmd": "falar", "quem": "Wins", "texto": "Tem ouvido absoluto e acha que ninguém percebeu." },
-    { "cmd": "falar", "quem": "Akles", "texto": "Erra o terceiro golpe. Sempre meio tempo depois." },
-    { "cmd": "falar", "quem": "Wins", "texto": "Isso. — Guarda isso. O selo guarda com a gente." },
-    { "cmd": "esperar", "ms": 1600 },
-
-    { "_": "── e a porta racha ──" },
-    { "cmd": "tremer", "forca": 5, "ms": 700 },
-    { "cmd": "som", "tipo": "desafinado" },
-    { "cmd": "esperar", "ms": 900 },
-    { "cmd": "falar", "quem": "Akles", "texto": "Wins. O chão." },
-    { "cmd": "falar", "quem": "Wins", "texto": "Não é o chão. É a porta." },
-    { "cmd": "esperar", "ms": 1200 },
-    { "cmd": "falar", "quem": "Wins", "texto": "Ela rachou. Um dedo. — Alguém do outro lado escutou o nome dele." },
-
-    { "cmd": "trilha", "comer": 3, "intervalo": 700 },
-    { "cmd": "esperar", "ms": 2400 },
-    { "cmd": "escurecer", "para": 1, "ms": 2200 },
-    { "cmd": "esperar", "ms": 1200 },
-    { "cmd": "legenda", "texto": "Muito longe daqui, alguém parou de cantar." },
-    { "cmd": "esperar", "ms": 3200 },
-    { "cmd": "legenda", "texto": "" },
-    { "cmd": "esperar", "ms": 900 },
-    { "cmd": "legenda", "texto": "FIM DO CAPÍTULO 1" },
-    { "cmd": "esperar", "ms": 3000 },
-    { "cmd": "legenda", "texto": "" },
-
-    { "cmd": "trilha", "devolver": true, "ms": 1600 },
-    { "cmd": "escurecer", "para": 0, "ms": 2000 },
-    { "cmd": "bandeira", "id": "capitulo_1_fim" },
-    { "cmd": "objetivo", "texto": "Floresta Sombria — atrás de Nocth e Vexor" },
-    { "cmd": "hud", "visivel": true },
-    { "cmd": "controle", "ativo": true },
-    { "cmd": "fim" }
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "trilha",
+      "humor": "altar",
+      "ms": 1200
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Põe os dois juntos. No centro."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1200
+    },
+    {
+      "cmd": "falar",
+      "quem": "Akles",
+      "texto": "E se não funcionar?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Aí a gente esquece, e amanhã ninguém procura ninguém."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Põe."
+    },
+    {
+      "_": "── o selo aceita ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 800
+    },
+    {
+      "cmd": "som",
+      "tipo": "brilho"
+    },
+    {
+      "cmd": "tingir",
+      "cor": "#ffe9ab",
+      "forca": 0.35,
+      "ms": 900
+    },
+    {
+      "cmd": "cancao",
+      "notas": [
+        "do",
+        "mi",
+        "sol",
+        "do"
+      ],
+      "passo": 420,
+      "dur": 1.8,
+      "vol": 0.13
+    },
+    {
+      "cmd": "tingir",
+      "cor": "#ffe9ab",
+      "forca": 0,
+      "ms": 1600
+    },
+    {
+      "cmd": "esperar",
+      "ms": 700
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Pipo. — Nove anos. Clã dos Ritmos. Filho do Lucian."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Tem ouvido absoluto e acha que ninguém percebeu."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Akles",
+      "texto": "Erra o terceiro golpe. Sempre meio tempo depois."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Isso. — Guarda isso. O selo guarda com a gente."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1600
+    },
+    {
+      "_": "── e a porta racha ──"
+    },
+    {
+      "cmd": "tremer",
+      "forca": 5,
+      "ms": 700
+    },
+    {
+      "cmd": "som",
+      "tipo": "desafinado"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "Akles",
+      "texto": "Wins. O chão."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Não é o chão. É a porta."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1200
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Ela rachou. Um dedo. — Alguém do outro lado escutou o nome dele."
+    },
+    {
+      "cmd": "trilha",
+      "comer": 3,
+      "intervalo": 700
+    },
+    {
+      "cmd": "esperar",
+      "ms": 2400
+    },
+    {
+      "cmd": "escurecer",
+      "para": 1,
+      "ms": 2200
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1200
+    },
+    {
+      "cmd": "legenda",
+      "texto": "Muito longe daqui, alguém parou de cantar."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 3200
+    },
+    {
+      "cmd": "legenda",
+      "texto": ""
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "legenda",
+      "texto": "FIM DO CAPÍTULO 1"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 3000
+    },
+    {
+      "cmd": "legenda",
+      "texto": ""
+    },
+    {
+      "cmd": "trilha",
+      "devolver": true,
+      "ms": 1600
+    },
+    {
+      "cmd": "escurecer",
+      "para": 0,
+      "ms": 2000
+    },
+    {
+      "cmd": "bandeira",
+      "id": "capitulo_1_fim"
+    },
+    {
+      "cmd": "missao",
+      "id": "atras_dos_dissonantes"
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "fim"
+    }
   ]
 }

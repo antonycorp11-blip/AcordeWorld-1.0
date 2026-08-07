@@ -7379,3 +7379,18 @@ body.jogando .party-hud.calmo { opacity: .62; }
   .pt-jogar { padding: 9px; font-size: 12px; }
   .hm-caixa { top: 62px; }
 }
+
+/* ── Durante uma cena, a interface de jogo sai de cena também ──────────────────
+   Antes cada roteiro tinha que lembrar de pedir `hud: false`, e quem esquecia
+   deixava joystick, botões e trocador de herói por cima do diálogo. Agora quem
+   controla é a classe no <body>, posta em iniciarCena e tirada em encerrarCena. */
+body.em-cena #playerHud,
+body.em-cena #partyHud,
+body.em-cena #touchControls,
+body.em-cena #questTracker,
+body.em-cena #dgHud,
+body.em-cena #rodaCombate,
+body.em-cena #drawerToggle { display: none !important; }
+
+/* Botão de HUD ainda não liberado pela história: some sem deixar buraco na fila. */
+.icon-btn.trancado { display: none !important; }

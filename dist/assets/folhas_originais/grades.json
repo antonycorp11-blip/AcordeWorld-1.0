@@ -1,0 +1,50 @@
+{
+  "achilles_caminhada": [
+    8,
+    4
+  ],
+  "achilles_parado": [
+    4,
+    4
+  ],
+  "achilles_guarda": [
+    4,
+    4
+  ],
+  "achilles_ataque": [
+    6,
+    4
+  ],
+  "achilles_ataque_vertical": [
+    6,
+    4
+  ],
+  "achilles_estocada": [
+    5,
+    4
+  ],
+  "achilles_giro": [
+    6,
+    4
+  ],
+  "wins_caminhada": [
+    7,
+    4
+  ],
+  "wins_estocada": [
+    6,
+    4
+  ],
+  "wins_vertical": [
+    6,
+    4
+  ],
+  "wins_varredura": [
+    6,
+    4
+  ],
+  "wins_giro": [
+    6,
+    4
+  ]
+}

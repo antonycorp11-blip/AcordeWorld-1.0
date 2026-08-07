@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=20260807161410">
+  <link rel="stylesheet" href="style.css?v=f538c9436f">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -295,21 +295,21 @@
                    para o botão da ficha. -->
               <!-- Temporário: os forjadores vão viver em pontos fixos do mapa. Enquanto
                    isso, este botão abre os dois para poder testar. -->
-              <button id="missoesBtn" class="icon-btn" title="Missões (J)">
+              <button id="missoesBtn" class="icon-btn trancado" title="Missões (J)">
                 <span class="hud-emoji">📜</span>
               </button>
               <button id="somBtn" class="icon-btn" title="Trilha sonora">
                 <span class="hud-emoji">🎵</span>
               </button>
-              <button id="forjaBtn" class="icon-btn" title="Forjadores (F2 nota · F3 escala)">
+              <button id="forjaBtn" class="icon-btn trancado" title="Forjadores (F2 nota · F3 escala)">
                 <span class="hud-emoji">⚒️</span>
               </button>
-              <button id="fichaBtn" class="icon-btn ficha-btn" title="Ficha do Personagem (C)">
+              <button id="fichaBtn" class="icon-btn trancado ficha-btn" title="Ficha do Personagem (C)">
                 <span class="hud-emoji">🎭</span>
                 <span id="fichaDot" class="dot hidden"></span>
                 <span id="pointDot" class="dot hidden"></span>
               </button>
-              <button id="invBtn" class="icon-btn inv-btn" title="Mochila / Inventário">
+              <button id="invBtn" class="icon-btn trancado inv-btn" title="Mochila / Inventário">
                 <span id="invEmoji" class="hud-emoji">🎒</span>
               </button>
             </div>
@@ -1099,6 +1099,6 @@
 ">🔄 Enviar minhas ruas</button>
 
 <script src="config.js?v=20260807161410"></script>
-<script src="game.js?v=20260807161410"></script>
+<script src="game.js?v=20f39a1cc8"></script>
 </body>
 </html>

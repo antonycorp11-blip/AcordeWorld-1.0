@@ -1,0 +1,430 @@
+{
+  "id": "abertura",
+  "nome": "Abertura — O Despertar",
+  "mapa": "custom_1785173102424_996",
+  "autoStart": true,
+  "passos": [
+    {
+      "_": "── Cena 1: Escuridão ──"
+    },
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "escurecer",
+      "para": 1,
+      "ms": 0
+    },
+    {
+      "cmd": "hud",
+      "visivel": false
+    },
+    {
+      "cmd": "som",
+      "tipo": "vento"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1400
+    },
+    {
+      "cmd": "falar",
+      "quem": "",
+      "texto": "...?",
+      "auto": 900
+    },
+    {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
+      "cmd": "falar",
+      "quem": "",
+      "texto": "...Onde...",
+      "auto": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "",
+      "texto": "...Onde eu estou?"
+    },
+    {
+      "cmd": "posicionar",
+      "x": 512,
+      "y": 420,
+      "olhando": "down"
+    },
+    {
+      "cmd": "escurecer",
+      "para": 0,
+      "ms": 2800
+    },
+    {
+      "cmd": "tingir",
+      "cor": "#8a8f9a",
+      "forca": 0.55,
+      "ms": 100
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Minha cabeça...",
+      "auto": 1100
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Eu... não consigo me lembrar de nada..."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Que lugar é esse?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Está tudo... tão silencioso...",
+      "auto": 1200
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "Use o joystick para se movimentar."
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "_": "── Cena 2: Explorando ──"
+    },
+    {
+      "cmd": "esperarAndar",
+      "distancia": 140
+    },
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Nem os pássaros cantam...",
+      "auto": 1200
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Isso não parece natural..."
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "esperarAndar",
+      "distancia": 160
+    },
+    {
+      "cmd": "sombra",
+      "de": "direita",
+      "ms": 700,
+      "tipo": "shiker"
+    },
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "!!",
+      "auto": 700
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Quem está aí?"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 800
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "esperarAndar",
+      "distancia": 160
+    },
+    {
+      "cmd": "sombra",
+      "de": "esquerda",
+      "ms": 600,
+      "tipo": "shiker"
+    },
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Eu sei que tem alguém me observando..."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "som",
+      "tipo": "desafinado"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
+      "_": "── Cena 3: O Primeiro Inimigo ──"
+    },
+    {
+      "cmd": "monstro",
+      "tipo": "shiker",
+      "x": 700,
+      "y": 380,
+      "id": "inimigo1",
+      "persegue": true
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "O que...",
+      "auto": 800
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Que criatura é essa?"
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "Toque no botão de ataque para se defender."
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "esperarMortos"
+    },
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Ele... deixou alguma coisa...",
+      "auto": 1200
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "Você encontrou uma Clave Musical.\nEla não faz som nenhum — e mesmo assim parece importante.\nGuarde. Alguém vai saber explicar."
+    },
+    {
+      "cmd": "dar",
+      "item": "clave",
+      "quantidade": 1
+    },
+    {
+      "_": "── Cena 4: A Emboscada ──"
+    },
+    {
+      "cmd": "monstro",
+      "tipo": "shiker",
+      "x": 300,
+      "y": 300,
+      "persegue": true
+    },
+    {
+      "cmd": "monstro",
+      "tipo": "shiker",
+      "x": 760,
+      "y": 300,
+      "persegue": true
+    },
+    {
+      "cmd": "esperar",
+      "ms": 400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Espera...",
+      "auto": 800
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Quantos deles existem?"
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "monstro",
+      "tipo": "shiker",
+      "x": 250,
+      "y": 470,
+      "persegue": true
+    },
+    {
+      "cmd": "monstro",
+      "tipo": "shiker",
+      "x": 820,
+      "y": 470,
+      "persegue": true
+    },
+    {
+      "cmd": "monstro",
+      "tipo": "shiker",
+      "x": 512,
+      "y": 210,
+      "persegue": true
+    },
+    {
+      "cmd": "esperar",
+      "ms": 2000
+    },
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Não... Assim eu não vou conseguir..."
+    },
+    {
+      "cmd": "vinheta",
+      "forca": 0.85,
+      "ms": 2500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Eu preciso sair daqui!"
+    },
+    {
+      "cmd": "tremer",
+      "forca": 8,
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Não...",
+      "auto": 900
+    },
+    {
+      "cmd": "escurecer",
+      "para": 0.9,
+      "ms": 1200
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "_": "── Cena 5: A Primeira Harmonia ──"
+    },
+    {
+      "cmd": "notas",
+      "quantidade": 40,
+      "ms": 3500
+    },
+    {
+      "cmd": "escurecer",
+      "para": 0,
+      "ms": 2000
+    },
+    {
+      "cmd": "vinheta",
+      "forca": 0,
+      "ms": 1500
+    },
+    {
+      "cmd": "musica",
+      "faixa": "primeira_harmonia"
+    },
+    {
+      "cmd": "tingir",
+      "cor": "#8a8f9a",
+      "forca": 0,
+      "ms": 5000
+    },
+    {
+      "cmd": "limparMonstros",
+      "ms": 2500
+    },
+    {
+      "cmd": "esperar",
+      "ms": 800
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Essas... São notas musicais?"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Vocês... Estão me protegendo?"
+    },
+    {
+      "cmd": "curar",
+      "tudo": true
+    },
+    {
+      "_": "── Cena 6: Caminho para Acordelot ──"
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "Siga as Notas Musicais."
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "guiar",
+      "para": "0_0"
+    },
+    {
+      "cmd": "fim"
+    }
+  ]
+}

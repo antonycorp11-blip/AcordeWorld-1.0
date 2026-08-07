@@ -5,42 +5,146 @@
   "mapa": "custom_1785900374897_630",
   "autoStart": true,
   "passos": [
-    { "_": "── chegada ──" },
-    { "cmd": "controle", "ativo": false },
-    { "cmd": "escurecer", "para": 1, "ms": 0 },
-    { "cmd": "hud", "visivel": false },
-    { "cmd": "esperar", "ms": 500 },
-    { "cmd": "escurecer", "para": 0, "ms": 1600 },
-    { "cmd": "esperar", "ms": 1200 },
-
-    { "cmd": "falar", "quem": "Wins", "texto": "Chegamos." },
-    { "cmd": "esperar", "ms": 500 },
-    { "cmd": "falar", "quem": "Akles", "texto": "Que lugar é este?" },
-    { "cmd": "falar", "quem": "Wins", "texto": "Não sei." },
-    { "cmd": "esperar", "ms": 900 },
-    { "cmd": "falar", "quem": "Wins", "texto": "E esse é o problema, Akles. Alguém sabia. Ontem alguém sabia." },
-
-    { "_": "── os Ecos ──" },
-    { "cmd": "tingir", "cor": "#5b7bd4", "forca": 0.10, "ms": 1400 },
-    { "cmd": "esperar", "ms": 700 },
-    { "cmd": "falar", "quem": "Wins", "texto": "Está ouvindo? Isso tudo são Ecos." },
-    { "cmd": "falar", "quem": "Akles", "texto": "São muitos." },
-    { "cmd": "falar", "quem": "Wins", "texto": "Um Eco é uma lembrança que sobrou de alguém, Akles." },
-    { "cmd": "esperar", "ms": 800 },
-    { "cmd": "falar", "quem": "Wins", "texto": "Tem quarenta aqui." },
-    { "cmd": "esperar", "ms": 1200 },
-
-    { "cmd": "falar", "quem": "Akles", "texto": "...quarenta pessoas." },
-    { "cmd": "falar", "quem": "Wins", "texto": "As casas estão de pé. As camas estão feitas. E não sobrou nome nenhum." },
-
-    { "_": "── o que o jogador vai fazer ──" },
-    { "cmd": "tingir", "cor": "#5b7bd4", "forca": 0, "ms": 1200 },
-    { "cmd": "falar", "quem": "Wins", "texto": "A gente não está saqueando este lugar. Está recolhendo gente." },
-    { "cmd": "tutorial", "texto": "Os baús do pátio são o que sobrou de cada casa. Eles não abrem enquanto houver monstro montando guarda — derrote os guardas primeiro." },
-
-    { "cmd": "hud", "visivel": true },
-    { "cmd": "controle", "ativo": true },
-    { "cmd": "objetivo", "texto": "Limpe o Pátio das Ruínas" },
-    { "cmd": "fim" }
+    {
+      "_": "── chegada ──"
+    },
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "escurecer",
+      "para": 1,
+      "ms": 0
+    },
+    {
+      "cmd": "hud",
+      "visivel": false
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "escurecer",
+      "para": 0,
+      "ms": 1600
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1200
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Chegamos."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Akles",
+      "texto": "Que lugar é este?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Não sei."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "E esse é o problema, Akles. Alguém sabia. Ontem alguém sabia."
+    },
+    {
+      "_": "── os Ecos ──"
+    },
+    {
+      "cmd": "tingir",
+      "cor": "#5b7bd4",
+      "forca": 0.1,
+      "ms": 1400
+    },
+    {
+      "cmd": "esperar",
+      "ms": 700
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Está ouvindo? Isso tudo são Ecos."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Akles",
+      "texto": "São muitos."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Um Eco é uma lembrança que sobrou de alguém, Akles."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 800
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Tem quarenta aqui."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1200
+    },
+    {
+      "cmd": "falar",
+      "quem": "Akles",
+      "texto": "...quarenta pessoas."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "As casas estão de pé. As camas estão feitas. E não sobrou nome nenhum."
+    },
+    {
+      "_": "── o que o jogador vai fazer ──"
+    },
+    {
+      "cmd": "tingir",
+      "cor": "#5b7bd4",
+      "forca": 0,
+      "ms": 1200
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "A gente não está saqueando este lugar. Está recolhendo gente."
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "Os baús do pátio são o que sobrou de cada casa. Eles não abrem enquanto houver monstro montando guarda — derrote os guardas primeiro."
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "missao",
+      "id": "patrulha_do_patio"
+    },
+    {
+      "cmd": "fim"
+    }
   ]
 }

@@ -11258,6 +11258,7 @@ function iniciarCena(roteiro, aoTerminar) {
   player.oculto = false;
   npcData.forEach(n => { n.oculto = false; });
   CUT.fade = CUT.fadeAlvo = 0; CUT.tintaForca = CUT.tintaAlvo = 0;
+  document.body.classList.add('em-cena');
   CUT.vinheta = CUT.vinhetaAlvo = 0;
   // Cena de mundo troca o mapa e garante a cena externa. Cena SEM `mapa` acontece onde
   // o jogador está — inclusive dentro de um interior. Forçar 'world' aqui expulsava o
@@ -11280,9 +11281,11 @@ function encerrarCena() {
   }
   CUT.ativo = false;
   CUT.caminhadas = [];
-  player.oculto = false;      // nunca devolver o controle com o jogador invisível CUT.aguardando = null; CUT.caixa = null;
+  player.oculto = false;      // nunca devolver o controle com o jogador invisível
+  CUT.aguardando = null; CUT.caixa = null;
   CUT.fadeAlvo = 0; CUT.tintaAlvo = 0; CUT.vinhetaAlvo = 0;
   playerLocked = false;
+  document.body.classList.remove('em-cena');
   playerHud?.classList.remove('hidden');
   marcarCenaRodada(CUT.roteiro);
   savePlayerData();
@@ -11348,6 +11351,7 @@ function executarPasso(p) {
       return false;
 
     case 'hud':
+      document.body.classList.toggle('em-cena', !p.visivel);
       playerHud?.classList.toggle('hidden', !p.visivel);
       return false;
 
@@ -18371,7 +18375,48 @@ function sincronizarHabilidadesSePreciso() {
   sincronizarBotoesDeHabilidade();
 }
 
+// ── Botões que a história vai abrindo ────────────────────────────────────────────
+// Começar com os cinco ícones na tela entrega o jogo inteiro antes de a primeira fala
+// terminar: o jogador vê forja, ficha e missões sem saber o que nada disso significa.
+// Cada botão espera o momento em que passa a ter sentido. A regra é sempre "existe algo
+// aqui dentro para eu fazer?", nunca um contador arbitrário — botão que abre vazio
+// frustra tanto quanto botão que não abre.
+const LIBERACAO_DE_BOTOES = {
+  // Trilha é ajuste, não sistema de jogo: nunca fica trancada.
+  somBtn:     () => true,
+  // O pergaminho aparece junto com a primeira missão que entra nele.
+  missoesBtn: () => activeQuests.length > 0 || completedQuests.length > 0,
+  // A mochila abre no primeiro item CONQUISTADO. A arma inicial não conta: o jogador
+  // não a escolheu, e contá-la abria a mochila antes da primeira fala terminar.
+  invBtn:     () => Object.entries(playerInventory || {})
+                      .some(([k, q]) => q > 0 && k !== 'espada_teclado') || ownedItems.length > 0,
+  // A ficha abre quando há o que gastar ou o que ver crescer.
+  fichaBtn:   () => nivelDoHeroi() > 1 || attrPoints > 0 || level > 1,
+  // Os forjadores só depois de existir matéria-prima na mão.
+  forjaBtn:   () => ['fragmento', 'fragmento_puro', 'tom', 'semitom']
+                      .some(k => (playerInventory[k] || 0) > 0),
+};
+// Uma vez aberto, nunca mais fecha: gastar o último fragmento não pode sumir com a forja.
+const botoesJaAbertos = new Set();
+
+function atualizarBotoesLiberados() {
+  for (const [id, liberado] of Object.entries(LIBERACAO_DE_BOTOES)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (!botoesJaAbertos.has(id)) {
+      let ok = false;
+      try { ok = !!liberado(); } catch (e) { ok = false; }
+      if (!ok) { el.classList.add('trancado'); continue; }
+      botoesJaAbertos.add(id);
+      // Avisa só na estreia — o jogador precisa saber que ganhou algo novo.
+      if (id !== 'somBtn') showToast(`Novo: ${el.title || 'botão liberado'}`);
+    }
+    el.classList.remove('trancado');
+  }
+}
+
 function atualizarNumerosDoHud() {
+  atualizarBotoesLiberados();
   sincronizarHabilidadesSePreciso();
   if (coinCount) coinCount.textContent = playerCoins;
   if (claveCountEl) claveCountEl.textContent = `${claveCount}`;

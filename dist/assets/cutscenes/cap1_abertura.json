@@ -4,46 +4,185 @@
   "_": "Sessenta segundos antes de qualquer tutorial. Uma canção de ninar perdendo notas até a mulher não lembrar o resto. O jogador não entende o que viu — vai entender na Cena 9.",
   "autoStart": false,
   "passos": [
-    { "cmd": "controle", "ativo": false },
-    { "cmd": "hud", "visivel": false },
-    { "cmd": "escurecer", "para": 1, "ms": 0 },
-    { "cmd": "trilha", "parar": true },
-    { "cmd": "esperar", "ms": 1600 },
-
-    { "_": "── a canção inteira, ainda inteira ──" },
-    { "cmd": "legenda", "texto": "Em algum lugar, alguém canta para uma criança dormir." },
-    { "cmd": "cancao", "notas": ["sol","sol","la","sol","do","si"], "passo": 520, "vol": 0.11 },
-    { "cmd": "esperar", "ms": 400 },
-
-    { "_": "── e começa a faltar ──" },
-    { "cmd": "cancao", "notas": ["sol","sol","la","sol","re","do"], "passo": 560, "perde": 3, "vol": 0.10 },
-    { "cmd": "esperar", "ms": 600 },
-    { "cmd": "falar", "quem": "", "texto": "...dorme, dorme que a...", "auto": 1500 },
-    { "cmd": "esperar", "ms": 900 },
-
-    { "cmd": "cancao", "notas": ["sol","sol","la","sol","re","do"], "passo": 620, "perde": 1, "vol": 0.08 },
-    { "cmd": "esperar", "ms": 800 },
-    { "cmd": "falar", "quem": "", "texto": "...dorme que a...", "auto": 1600 },
-    { "cmd": "esperar", "ms": 1400 },
-
-    { "_": "── o buraco ──" },
-    { "cmd": "falar", "quem": "", "texto": "...como era mesmo?" },
-    { "cmd": "esperar", "ms": 2600 },
-
-    { "cmd": "legenda", "texto": "" },
-    { "cmd": "esperar", "ms": 1000 },
-    { "cmd": "legenda", "texto": "Nem toda coisa que some deixa buraco." },
-    { "cmd": "esperar", "ms": 2400 },
-    { "cmd": "legenda", "texto": "Algumas somem junto com o buraco." },
-    { "cmd": "esperar", "ms": 2600 },
-    { "cmd": "legenda", "texto": "" },
-    { "cmd": "esperar", "ms": 1200 },
-
-    { "cmd": "som", "tipo": "brilho" },
-    { "cmd": "escurecer", "para": 0, "ms": 2400 },
-    { "cmd": "hud", "visivel": true },
-    { "cmd": "controle", "ativo": true },
-    { "cmd": "bandeira", "id": "viu_abertura" },
-    { "cmd": "fim" }
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "hud",
+      "visivel": false
+    },
+    {
+      "cmd": "escurecer",
+      "para": 1,
+      "ms": 0
+    },
+    {
+      "cmd": "trilha",
+      "parar": true
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1600
+    },
+    {
+      "_": "── a canção inteira, ainda inteira ──"
+    },
+    {
+      "cmd": "legenda",
+      "texto": "Em algum lugar, alguém canta para uma criança dormir."
+    },
+    {
+      "cmd": "cancao",
+      "notas": [
+        "sol",
+        "sol",
+        "la",
+        "sol",
+        "do",
+        "si"
+      ],
+      "passo": 520,
+      "vol": 0.11
+    },
+    {
+      "cmd": "esperar",
+      "ms": 400
+    },
+    {
+      "_": "── e começa a faltar ──"
+    },
+    {
+      "cmd": "cancao",
+      "notas": [
+        "sol",
+        "sol",
+        "la",
+        "sol",
+        "re",
+        "do"
+      ],
+      "passo": 560,
+      "perde": 3,
+      "vol": 0.1
+    },
+    {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
+      "cmd": "falar",
+      "quem": "",
+      "texto": "...dorme, dorme que a...",
+      "auto": 1500
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "cancao",
+      "notas": [
+        "sol",
+        "sol",
+        "la",
+        "sol",
+        "re",
+        "do"
+      ],
+      "passo": 620,
+      "perde": 1,
+      "vol": 0.08
+    },
+    {
+      "cmd": "esperar",
+      "ms": 800
+    },
+    {
+      "cmd": "falar",
+      "quem": "",
+      "texto": "...dorme que a...",
+      "auto": 1600
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1400
+    },
+    {
+      "_": "── o buraco ──"
+    },
+    {
+      "cmd": "falar",
+      "quem": "",
+      "texto": "...como era mesmo?"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 2600
+    },
+    {
+      "cmd": "legenda",
+      "texto": ""
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1000
+    },
+    {
+      "cmd": "legenda",
+      "texto": "Nem toda coisa que some deixa buraco."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 2400
+    },
+    {
+      "cmd": "legenda",
+      "texto": "Algumas somem junto com o buraco."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 2600
+    },
+    {
+      "cmd": "legenda",
+      "texto": ""
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1200
+    },
+    {
+      "cmd": "som",
+      "tipo": "brilho"
+    },
+    {
+      "cmd": "escurecer",
+      "para": 0,
+      "ms": 2400
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "bandeira",
+      "id": "viu_abertura"
+    },
+    {
+      "cmd": "missao",
+      "id": "welcome_to_acordelot"
+    },
+    {
+      "cmd": "guiar",
+      "para": "custom_1785869541494_557"
+    },
+    {
+      "cmd": "fim"
+    }
   ]
 }
