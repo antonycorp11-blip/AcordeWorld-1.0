@@ -237,18 +237,18 @@ Ninguém escuta. É o Lucian.
 
 Dois forasteiros atravessam a feira. Roupa dos Dissonantes, e o som errado que vem junto.
 
-> **Nocth:** Bonita cidade. Afinada.
-> **Vexor:** Afinada demais. Dá para ouvir cada um daqui.
+> **Vexor:** Bonita cidade. Afinada.
+> **Nocth:** Afinada demais. Dá para ouvir cada um daqui.
 
 Akles fecha a mão no cabo. **Sr. Antony** põe a mão no ombro dele — a decisão é dele.
 
 > **Sr. Antony:** Não. Eles não fizeram nada. Dissonante em Acordelot não é crime, e no dia
 > em que virar, nós deixamos de ser o que somos.
 > **Wins:** Eles não têm lado, Akles.
-> **Nocth:** *(sem se virar)* A moça entendeu. Nós não temos lado. — *(sorri)* — Temos
+> **Vexor:** *(sem se virar)* A moça entendeu. Nós não temos lado. — *(sorri)* — Temos
 > tabela de preço.
 
-Vexor toca **uma** nota. Uma só, errada de propósito.
+Nocth toca **uma** nota. Uma só, errada de propósito.
 
 **E a mesma coisa da Cena 0 acontece com a praça inteira.** As vozes começam a sair uma por
 uma. Os passos perdem o compasso. O mundo fica fora de tempo por três segundos.
@@ -388,8 +388,8 @@ Silêncio está colecionando quem consegue lembrar.
 | Nome | Quem é |
 |---|---|
 | **Pipo** | 9 anos, Ritmos, filho do Lucian. Ouvido absoluto — e é por isso que o levaram. |
-| **Nocth** | Dissonante. Fala pouco, sorri no lugar errado. Quem executa. |
-| **Vexor** | Dissonante. Quem toca a nota errada. |
+| **Vexor** | Dissonante. Fala pouco, sorri no lugar errado. Quem executa — é dele a lâmina. |
+| **Nocth** | Dissonante. Quem toca a nota errada. |
 
 ---
 
