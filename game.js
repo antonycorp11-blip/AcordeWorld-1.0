@@ -483,6 +483,7 @@ const stick = { active:false, x:0, y:0 };
 function doAction() {
   if (dlg.state===DLG_STATE.TYPING || dlg.state===DLG_STATE.WAITING) { advanceDlg(); return; }
   if (dlg.state===DLG_STATE.CHOOSING) return; // a choice has to be tapped
+  if (noSelo()) { selarAMemoria(); return; }
   const bau = bauMaisPerto();
   if (bau) { abrirBau(bau); return; }
   tryTalk();
@@ -6451,11 +6452,11 @@ function atualizarBotaoDeAtaque(now) {
   // vai acontecer quando o botão deixa de bater e passa a abrir uma porta.
   const ACT_ICO = { talk:'💬', travel:'🪧', gather:'✋', enter:'🚪', entrarPorta:'🚪',
                     enterForge:'🔨', shop:'🛒', forge:'🔨', martelar:'🔨', sair:'↩',
-                    sortear:'🎲', forjarEscala:'🎼', bau:'🎁' };
+                    sortear:'🎲', forjarEscala:'🎼', bau:'🎁', selo:'🥁' };
   const ACT_TXT = { talk:'FALAR', travel:'VIAJAR', gather:'COLETAR', enter:'ENTRAR',
                     entrarPorta:'ENTRAR', enterForge:'ENTRAR', shop:'LOJA', forge:'FORJAR',
                     martelar:'MARTELAR', sair:'SAIR', sortear:'SORTEAR', forjarEscala:'FORJAR',
-                    bau:'ABRIR' };
+                    bau:'ABRIR', selo:'SELAR' };
   const acao = actionAvailable();
   const modoAcao = !!acao && acao !== 'attack' && acao !== 'ressoar';
   const ico = document.getElementById('ataqueIcone');
@@ -8094,6 +8095,7 @@ function actionAvailable() {
   if(shopOpen||inventoryOpen||charOpen)return null;
   if(capturaAtiva)return null;        // ritual em andamento: nada a fazer, só assistir
   if(ecoProntoPerto())return 'ressoar'; // Eco aberto ganha do ataque: bater nele não adianta
+  if(noSelo())return 'selo';         // o desfecho do capítulo ganha de tudo
   if(bauMaisPerto())return 'bau';    // o baú é o prêmio da sala: ganha do golpe
   if(attackTarget())return 'attack'; // a monster in reach beats everything else
   const counter = atCounter();          // 'shop' inside the skin store, 'forge' in the smithy
@@ -8778,7 +8780,7 @@ function renderSceneOverlay(now) {
       if (npc.mapKey !== mapKey) return;
       (NPC_DRAW[npc.type] || DEFAULT_NPC_DRAW)(ctx, npc, now);
     });
-    renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now); renderRotaDaProximaCamara(now);
+    renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now); renderRotaDaProximaCamara(now); renderSelo(now);
     return;
   }
 
@@ -12710,7 +12712,7 @@ function loop(now){
     if(outdoors){
       npcData.forEach(npc=>{if(npc.mapKey!==currentKey||npc.oculto)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
       renderDrops(now);   // on the ground, under everyone
-      renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now); renderRotaDaProximaCamara(now);
+      renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now); renderRotaDaProximaCamara(now); renderSelo(now);
       renderObjetos(now, 'atras');   // pé acima do jogador: ele passa na frente
     }
     const L=getLayers(currentKey);
@@ -17616,6 +17618,9 @@ function abrirBau(o) {
   s.aberto = true;
   const t = PREMIO_DO_BAU[s.raridade] || PREMIO_DO_BAU.comum;
   const ganhos = [];
+  // História não se sorteia: o palito é do baú do pedestal e ponto.
+  const palito = talvezDarOPalito(o);
+  if (palito) ganhos.push(palito);
 
   const claves = entre(t.claves);
   claveCount += claves; registrarNaCorrida('clave', claves);
@@ -19026,6 +19031,7 @@ function nomeDoItemColetado(chave) {
   if (chave === 'ouro') return { nome: 'Ouro', ico: '🪙' };
   if (chave === 'potions') return { nome: 'Poções', ico: '🧪' };
   if (chave === 'partitura') return { nome: 'Partituras', ico: '🎼' };
+  if (chave.startsWith('palito_')) return { nome: 'Palito de tambor', ico: '🥁' };
   if (chave === 'fragmento_puro') return { nome: 'Fragmentos puros', arte: 'assets/itens/fragmentos/tom.png' };
   if (chave === 'tom') return { nome: 'Tons', arte: 'assets/itens/fragmentos/tom.png' };
   if (chave === 'semitom') return { nome: 'Semitons', arte: 'assets/itens/fragmentos/semitom.png' };
@@ -20177,3 +20183,75 @@ function fecharPreTela() {
   if (TRILHA.ligada && !TRILHA.humor) { TRILHA.humor = humorDoMomento(); iniciarTrilha(); }
 }
 document.getElementById('ptJogar')?.addEventListener('click', fecharPreTela);
+
+// ══ Os palitos do Pipo ════════════════════════════════════════════════════════
+// O desfecho do Capítulo 1. A Wins pergunta onde guardar uma memória num lugar que não
+// esquece — e a resposta é o selo da Arena, no fundo das Cavernas da Clave.
+//
+// O Lucian achou UM palito na praça. O outro está no baú grande atrás do chefe. Selar os
+// dois é o que garante que Akles e Wins não vão esquecer o menino.
+
+function temPalito(n) { return (playerInventory['palito_' + n] || 0) > 0; }
+function palitosNaMao() { return (temPalito(1) ? 1 : 0) + (temPalito(2) ? 1 : 0); }
+
+// O baú grande da Arena entrega o segundo palito, uma vez só. É o único prêmio de baú do
+// jogo que não é sorteado: história não se sorteia.
+function talvezDarOPalito(o) {
+  if (!temBandeira('pipo_levado') || temBandeira('palito_2_achado')) return null;
+  if (o.mapKey !== 'custom_1785976318486_785') return null;
+  // O grande é o do pedestal: escala bem maior que a dos outros.
+  if ((o.escala || 1) < 0.7) return null;
+  playerInventory.palito_2 = 1;
+  marcarBandeira('palito_2_achado');
+  return { nome: 'Palito de tambor', qtd: 1, ico: '🥁' };
+}
+
+// O selo da Arena. Fica inerte até o jogador ter os dois palitos.
+const MAPA_DO_SELO = 'custom_1785976318486_785';
+const SELO = { x: 512, y: 292, raio: 70 };
+
+function seloDisponivel() {
+  return currentKey === MAPA_DO_SELO && temBandeira('pipo_levado')
+         && !temBandeira('pipo_selado') && palitosNaMao() === 2
+         && !liveMonsters().some(m => ehChefe(m));
+}
+function noSelo() {
+  return seloDisponivel() && Math.hypot(player.x - SELO.x, player.y - SELO.y) < SELO.raio;
+}
+
+function selarAMemoria() {
+  if (!noSelo()) return;
+  marcarBandeira('pipo_selado');
+  delete playerInventory.palito_1; delete playerInventory.palito_2;
+  const r = CUT.roteiros.find(x => x.id === 'cap1_selo');
+  if (r) iniciarCena(r); else showToast('A memória do Pipo está selada.');
+}
+
+// Desenho do selo: um anel que pulsa quando dá para usar, e um aviso do que falta quando
+// não dá. Sem isso o jogador chega na sala e não sabe que ali tem alguma coisa.
+function renderSelo(now) {
+  if (currentKey !== MAPA_DO_SELO || !temBandeira('pipo_levado')) return;
+  if (temBandeira('pipo_selado')) return;
+  const pulso = 0.5 + 0.5 * Math.sin(now * 0.003);
+  const pronto = seloDisponivel();
+  const cor = pronto ? '#ffe9ab' : '#64748b';
+  ctx.save();
+  ctx.globalAlpha = pronto ? 0.35 + pulso * 0.45 : 0.22;
+  ctx.strokeStyle = cor; ctx.lineWidth = pronto ? 3 : 2;
+  if (!pronto) ctx.setLineDash([7, 6]);
+  ctx.beginPath();
+  ctx.ellipse(SELO.x, SELO.y, SELO.raio + pulso * 8, SELO.raio * 0.45 + pulso * 4, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  if (Math.hypot(player.x - SELO.x, player.y - SELO.y) < 200) {
+    ctx.globalAlpha = 1;
+    ctx.font = 'bold 12px Outfit, sans-serif'; ctx.textAlign = 'center';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
+    const txt = pronto ? 'E — selar a memória'
+      : liveMonsters().some(m => ehChefe(m)) ? 'o selo não responde enquanto o chefe respira'
+      : `faltam ${2 - palitosNaMao()} palito(s)`;
+    ctx.strokeText(txt, SELO.x, SELO.y - 30);
+    ctx.fillStyle = cor; ctx.fillText(txt, SELO.x, SELO.y - 30);
+  }
+  ctx.restore();
+}

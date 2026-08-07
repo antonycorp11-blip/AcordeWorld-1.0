@@ -155,209 +155,6 @@
     }
    ]
   },
-  "eco_cristal": {
-   "cols": 4,
-   "rows": 4,
-   "cell": [
-    0,
-    0
-   ],
-   "walkRow": 1,
-   "walkFrames": 4,
-   "attackRow": 2,
-   "attackFrames": 4,
-   "attackWindup": 220,
-   "attackMs": 500,
-   "persegue": true,
-   "exigeRessonador": true,
-   "name": "Eco Cristalino",
-   "sprite": "assets/monsters/eco_cristal.jpg",
-   "height": 70,
-   "hp": 40,
-   "damage": 4,
-   "speed": 1.3,
-   "aggroRange": 260,
-   "touchRange": 36,
-   "drops": [
-    {
-     "item": "fragmento",
-     "min": 2,
-     "max": 3
-    },
-    {
-     "item": "tom",
-     "min": 1,
-     "max": 1,
-     "chance": 0.45
-    }
-   ]
-  },
-  "eco_cromatico": {
-   "cols": 4,
-   "rows": 4,
-   "cell": [
-    0,
-    0
-   ],
-   "walkRow": 1,
-   "walkFrames": 4,
-   "attackRow": 2,
-   "attackFrames": 4,
-   "attackWindup": 220,
-   "attackMs": 500,
-   "persegue": true,
-   "exigeRessonador": true,
-   "name": "Eco Cromático",
-   "sprite": "assets/monsters/eco_cromatico.jpg",
-   "height": 72,
-   "hp": 52,
-   "damage": 6,
-   "speed": 1.5,
-   "aggroRange": 300,
-   "touchRange": 36,
-   "drops": [
-    {
-     "item": "fragmento",
-     "min": 2,
-     "max": 3
-    },
-    {
-     "item": "semitom",
-     "min": 1,
-     "max": 1,
-     "chance": 0.45
-    }
-   ]
-  },
-  "eco_radiante": {
-   "cols": 4,
-   "rows": 4,
-   "cell": [
-    0,
-    0
-   ],
-   "walkRow": 1,
-   "walkFrames": 4,
-   "attackRow": 2,
-   "attackFrames": 4,
-   "attackWindup": 220,
-   "attackMs": 500,
-   "persegue": true,
-   "exigeRessonador": true,
-   "name": "Eco Radiante",
-   "sprite": "assets/monsters/eco_radiante.jpg",
-   "height": 74,
-   "hp": 70,
-   "damage": 7,
-   "speed": 1.2,
-   "aggroRange": 280,
-   "touchRange": 38,
-   "drops": [
-    {
-     "item": "fragmento",
-     "min": 4,
-     "max": 6
-    },
-    {
-     "item": "clave",
-     "min": 1,
-     "max": 1,
-     "chance": 0.35
-    }
-   ]
-  },
-  "eco_consonante": {
-   "cols": 4,
-   "rows": 4,
-   "cell": [
-    0,
-    0
-   ],
-   "walkRow": 1,
-   "walkFrames": 4,
-   "attackRow": 2,
-   "attackFrames": 4,
-   "attackWindup": 220,
-   "attackMs": 500,
-   "persegue": true,
-   "exigeRessonador": true,
-   "name": "Eco Consonante",
-   "sprite": "assets/monsters/eco_consonante.jpg",
-   "height": 72,
-   "hp": 60,
-   "damage": 5,
-   "speed": 1.4,
-   "aggroRange": 290,
-   "touchRange": 36,
-   "drops": [
-    {
-     "item": "fragmento",
-     "min": 3,
-     "max": 4
-    },
-    {
-     "item": "tom",
-     "min": 1,
-     "max": 1,
-     "chance": 0.3
-    },
-    {
-     "item": "semitom",
-     "min": 1,
-     "max": 1,
-     "chance": 0.3
-    }
-   ]
-  },
-  "eco_dissonante": {
-   "cols": 4,
-   "rows": 4,
-   "cell": [
-    0,
-    0
-   ],
-   "walkRow": 1,
-   "walkFrames": 4,
-   "attackRow": 2,
-   "attackFrames": 4,
-   "attackWindup": 220,
-   "attackMs": 500,
-   "persegue": true,
-   "exigeRessonador": true,
-   "name": "Eco Dissonante",
-   "sprite": "assets/monsters/eco_dissonante.jpg",
-   "height": 76,
-   "hp": 95,
-   "damage": 11,
-   "speed": 1.9,
-   "aggroRange": 340,
-   "touchRange": 38,
-   "drops": [
-    {
-     "item": "fragmento",
-     "min": 6,
-     "max": 9
-    },
-    {
-     "item": "tom",
-     "min": 1,
-     "max": 1,
-     "chance": 0.4
-    },
-    {
-     "item": "semitom",
-     "min": 1,
-     "max": 1,
-     "chance": 0.4
-    },
-    {
-     "item": "clave",
-     "min": 1,
-     "max": 2,
-     "chance": 0.5
-    }
-   ]
-  },
   "tambor_selvagem": {
    "name": "Tambor Selvagem",
    "sprite": "assets/monsters/tambor_selvagem.jpg",
@@ -990,8 +787,8 @@
    "flipX": false
   },
   {
-   "id": "eco_cristal_clareira_1",
-   "type": "eco_cristal",
+   "id": "eco_mi_clareira_1",
+   "type": "eco_mi",
    "mapKey": "custom_1785254692668_431",
    "x": 520,
    "y": 235,
@@ -999,8 +796,8 @@
    "flipX": false
   },
   {
-   "id": "eco_cristal_clareira_2",
-   "type": "eco_cristal",
+   "id": "eco_re_clareira_2",
+   "type": "eco_re",
    "mapKey": "custom_1785254692668_431",
    "x": 395,
    "y": 330,
@@ -1008,8 +805,8 @@
    "flipX": false
   },
   {
-   "id": "eco_cristal_clareira_3",
-   "type": "eco_cristal",
+   "id": "eco_fa_clareira_3",
+   "type": "eco_fa",
    "mapKey": "custom_1785254692668_431",
    "x": 690,
    "y": 300,
@@ -1017,8 +814,8 @@
    "flipX": false
   },
   {
-   "id": "eco_cristal_clareira_4",
-   "type": "eco_cristal",
+   "id": "eco_la_clareira_4",
+   "type": "eco_la",
    "mapKey": "custom_1785254692668_431",
    "x": 560,
    "y": 405,
@@ -1026,8 +823,8 @@
    "flipX": false
   },
   {
-   "id": "eco_cromatico_clareira_5",
-   "type": "eco_cromatico",
+   "id": "eco_do_clareira_5",
+   "type": "eco_do",
    "mapKey": "custom_1785254692668_431",
    "x": 780,
    "y": 235,
