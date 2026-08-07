@@ -674,6 +674,237 @@
    "persegue": false,
    "xp": 0,
    "drops": []
+  },
+  "eco_do": {
+   "name": "Eco do Dó",
+   "lore": "Alegre e saltitante. Vibra com pureza e novos começos.",
+   "sprite": "assets/monsters/eco_do.png",
+   "cols": 5,
+   "rows": 4,
+   "cell": [
+    0,
+    0
+   ],
+   "idleRow": 0,
+   "walkRow": 1,
+   "attackRow": 2,
+   "deathRow": 3,
+   "height": 54,
+   "hp": 26,
+   "damage": 0,
+   "speed": 1.25,
+   "aggroRange": 150,
+   "touchRange": 30,
+   "pacifico": true,
+   "persegue": false,
+   "exigeRessonador": true,
+   "xp": 14,
+   "notaDoEco": "do",
+   "drops": [
+    {
+     "item": "fragmento",
+     "min": 2,
+     "max": 4
+    }
+   ]
+  },
+  "eco_re": {
+   "name": "Eco do Ré",
+   "lore": "Curioso e brincalhão. Traz ritmo, movimento e crescimento.",
+   "sprite": "assets/monsters/eco_re.png",
+   "cols": 5,
+   "rows": 4,
+   "cell": [
+    0,
+    0
+   ],
+   "idleRow": 0,
+   "walkRow": 1,
+   "attackRow": 2,
+   "deathRow": 3,
+   "height": 54,
+   "hp": 26,
+   "damage": 0,
+   "speed": 1.25,
+   "aggroRange": 150,
+   "touchRange": 30,
+   "pacifico": true,
+   "persegue": false,
+   "exigeRessonador": true,
+   "xp": 14,
+   "notaDoEco": "re",
+   "drops": [
+    {
+     "item": "fragmento",
+     "min": 2,
+     "max": 4
+    }
+   ]
+  },
+  "eco_mi": {
+   "name": "Eco do Mi",
+   "lore": "Radiante e otimista. Sua luz aquece e inspira.",
+   "sprite": "assets/monsters/eco_mi.png",
+   "cols": 5,
+   "rows": 4,
+   "cell": [
+    0,
+    0
+   ],
+   "idleRow": 0,
+   "walkRow": 1,
+   "attackRow": 2,
+   "deathRow": 3,
+   "height": 54,
+   "hp": 26,
+   "damage": 0,
+   "speed": 1.25,
+   "aggroRange": 150,
+   "touchRange": 30,
+   "pacifico": true,
+   "persegue": false,
+   "exigeRessonador": true,
+   "xp": 14,
+   "notaDoEco": "mi",
+   "drops": [
+    {
+     "item": "fragmento",
+     "min": 2,
+     "max": 4
+    }
+   ]
+  },
+  "eco_fa": {
+   "name": "Eco do Fá",
+   "lore": "Livre e sereno. Desliza nas brisas levando harmonia.",
+   "sprite": "assets/monsters/eco_fa.png",
+   "cols": 5,
+   "rows": 4,
+   "cell": [
+    0,
+    0
+   ],
+   "idleRow": 0,
+   "walkRow": 1,
+   "attackRow": 2,
+   "deathRow": 3,
+   "height": 54,
+   "hp": 26,
+   "damage": 0,
+   "speed": 1.25,
+   "aggroRange": 150,
+   "touchRange": 30,
+   "pacifico": true,
+   "persegue": false,
+   "exigeRessonador": true,
+   "xp": 14,
+   "notaDoEco": "fa",
+   "drops": [
+    {
+     "item": "fragmento",
+     "min": 2,
+     "max": 4
+    }
+   ]
+  },
+  "eco_sol": {
+   "name": "Eco do Sol",
+   "lore": "Profundo e sábio. Sua presença fortalece e equilibra.",
+   "sprite": "assets/monsters/eco_sol.png",
+   "cols": 5,
+   "rows": 4,
+   "cell": [
+    0,
+    0
+   ],
+   "idleRow": 0,
+   "walkRow": 1,
+   "attackRow": 2,
+   "deathRow": 3,
+   "height": 54,
+   "hp": 26,
+   "damage": 0,
+   "speed": 1.25,
+   "aggroRange": 150,
+   "touchRange": 30,
+   "pacifico": true,
+   "persegue": false,
+   "exigeRessonador": true,
+   "xp": 14,
+   "notaDoEco": "sol",
+   "drops": [
+    {
+     "item": "fragmento",
+     "min": 2,
+     "max": 4
+    }
+   ]
+  },
+  "eco_la": {
+   "name": "Eco do Lá",
+   "lore": "Doce e sonhador. Canta emoções e desperta encantos.",
+   "sprite": "assets/monsters/eco_la.png",
+   "cols": 5,
+   "rows": 4,
+   "cell": [
+    0,
+    0
+   ],
+   "idleRow": 0,
+   "walkRow": 1,
+   "attackRow": 2,
+   "deathRow": 3,
+   "height": 54,
+   "hp": 26,
+   "damage": 0,
+   "speed": 1.25,
+   "aggroRange": 150,
+   "touchRange": 30,
+   "pacifico": true,
+   "persegue": false,
+   "exigeRessonador": true,
+   "xp": 14,
+   "notaDoEco": "la",
+   "drops": [
+    {
+     "item": "fragmento",
+     "min": 2,
+     "max": 4
+    }
+   ]
+  },
+  "eco_si": {
+   "name": "Eco do Si",
+   "lore": "Esperto e misterioso. Guarda segredos e conduz ao destino.",
+   "sprite": "assets/monsters/eco_si.png",
+   "cols": 5,
+   "rows": 4,
+   "cell": [
+    0,
+    0
+   ],
+   "idleRow": 0,
+   "walkRow": 1,
+   "attackRow": 2,
+   "deathRow": 3,
+   "height": 54,
+   "hp": 26,
+   "damage": 0,
+   "speed": 1.25,
+   "aggroRange": 150,
+   "touchRange": 30,
+   "pacifico": true,
+   "persegue": false,
+   "exigeRessonador": true,
+   "xp": 14,
+   "notaDoEco": "si",
+   "drops": [
+    {
+     "item": "fragmento",
+     "min": 2,
+     "max": 4
+    }
+   ]
   }
  },
  "spawns": [

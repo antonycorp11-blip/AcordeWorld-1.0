@@ -6722,7 +6722,12 @@ function colheitaDoEco(m, qualidade = 0) {
       let puros = 0;
       for (let i = 0; i < n; i++) if (Math.random() * 100 < chancePuro) puros++;
       somar('fragmento_puro', puros);
-      somar('fragmento', n - puros);
+      // O Eco entrega o fragmento DA NOTA DELE. Capturar o Eco do Ré dá fragmento de Ré,
+      // que vale o dobro ao condensar um Ré — é o que transforma "caçar Eco" em escolha:
+      // você vai atrás da nota de que precisa, não de qualquer bicho.
+      const comuns = n - puros;
+      if (def.notaDoEco) somar('frag_' + def.notaDoEco, comuns);
+      else somar('fragmento', comuns);
       return;
     }
     if (drop.chance != null && Math.random() > drop.chance) return;
@@ -6736,6 +6741,13 @@ function colheitaDoEco(m, qualidade = 0) {
 function receberDaCaptura(id, n) {
   registrarNaCorrida(id, n);
   if (id === 'clave') { claveCount += n; return; }
+  // Fragmento que JÁ vem com nota (frag_re) entra direto — não passa pelo sorteio de nota
+  // logo abaixo, senão o Eco do Ré poderia render fragmento de Si.
+  if (id.startsWith('frag_')) {
+    playerInventory[id] = (playerInventory[id] || 0) + n;
+    progressoDeMissao('coletar', 'fragmento', n);
+    return;
+  }
   // Fragmento comum cai já pertencendo a uma nota. É o que dá cor ao chão e o que faz o
   // jogador reparar em qual nota ele está juntando — o pó genérico não ensinava nada.
   if (id === 'fragmento') {
@@ -6917,6 +6929,10 @@ function soltarItem(item, m, now) {
   });
 }
 
+// Claves vêm de DUNGEON — baú e conclusão. Monstro solto no mundo não paga mais em clave,
+// senão o jogador junta moeda de poder rodando o mapa e a dungeon perde a razão de existir.
+function claveEhDeDungeon() { return corridaAtiva(); }
+
 function killMonster(m, now) {
   m.dead = true;
   m.hp = 0;
@@ -6944,6 +6960,8 @@ function killMonster(m, now) {
     ? (CRAFTABLE_TOOLS.find(t => t.id === idResson)?.tier || 1) - 1 : 0;
 
   tabela.forEach(drop => {
+    // Fora de dungeon a clave não cai.
+    if (drop.item === 'clave' && !claveEhDeDungeon()) return;
     if (drop.chance != null && Math.random() > drop.chance) return;
     let n = (drop.min ?? 1) + Math.floor(Math.random() * (((drop.max ?? 1) - (drop.min ?? 1)) + 1));
     // O mesmo empurrão de 40% do outro caminho de drop: os dois têm que render igual,
