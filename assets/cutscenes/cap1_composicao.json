@@ -1,0 +1,49 @@
+{
+  "id": "cap1_composicao",
+  "nome": "Cap. 1 · Cena 8b — O campo harmônico",
+  "_": "A cena que ENSINA o sistema de acordes. Dispara depois de forjar a primeira escala, antes de o jogador escolher os três acordes. A Guardiã não explica atributo: explica função. O jogo traduz.",
+  "mapa": "custom_1785776481744_650",
+  "autoStart": false,
+  "passos": [
+    { "cmd": "controle", "ativo": false },
+    { "cmd": "esperar", "ms": 600 },
+
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "Está inteira. Escute uma vez antes de falar." },
+    { "cmd": "esperar", "ms": 1400 },
+    { "cmd": "falar", "quem": "Akles", "texto": "É só uma sequência de notas." },
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "É uma sequência de notas do mesmo jeito que uma cidade é uma pilha de pedra." },
+
+    { "_": "── o campo harmônico ──" },
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "Sobre cada degrau dessa escala nasce um acorde. São sete. Isso se chama campo harmônico." },
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "E cada um dos sete tem uma FUNÇÃO. Não é enfeite: é o lugar dele na frase." },
+    { "cmd": "esperar", "ms": 700 },
+
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "O primeiro é a tônica. É a casa. É para onde tudo volta — por isso ele te sustenta." },
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "O quinto é a dominante. É tensão pura, e tensão quer resolver. Por isso ele machuca." },
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "O sétimo é a sensível. Instável. Corta fundo, mas cobra de você — acorde diminuto não se carrega de graça." },
+
+    { "_": "── a virada que faz o sistema ──" },
+    { "cmd": "esperar", "ms": 900 },
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "Agora a parte que quase ninguém entende de primeira." },
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "O acorde de Sol é o quinto grau em Dó maior. Em Sol maior, o MESMO acorde é o primeiro." },
+    { "cmd": "falar", "quem": "Akles", "texto": "É o mesmo acorde." },
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "É o mesmo acorde. Mas não é a mesma coisa." },
+    { "cmd": "esperar", "ms": 1100 },
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "Em Dó ele é tensão. Em Sol ele é casa. A nota não mudou — mudou de onde você a escuta." },
+
+    { "cmd": "tutorial", "texto": "Cada acorde equipado só funciona se uma das suas escalas equipadas o contiver — e o efeito dele é a FUNÇÃO que ele tem naquela escala. Trocar de escala muda a sua build sem trocar um item sequer." },
+
+    { "_": "── as cadências ──" },
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "Uma última coisa. Acorde sozinho é palavra solta." },
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "Quinto grau indo para o primeiro é a frase mais dita da música. Chama cadência." },
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "E se você puser o segundo grau antes dos dois — segundo, quinto, primeiro — aí não é frase. É a frase." },
+    { "cmd": "tutorial", "texto": "Cadências dão passivas. A perfeita (ii – V – I, na mesma escala) libera uma habilidade própria daquela escala. Veja tudo na tela de Composição." },
+
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "Escolha três acordes desta escala. Só três." },
+    { "cmd": "falar", "quem": "Akles", "texto": "E os outros quatro?" },
+    { "cmd": "falar", "quem": "Guardiã da Escala", "texto": "Forje a escala de novo. — Aprender duas vezes a mesma coisa nunca foi desperdício." },
+
+    { "cmd": "controle", "ativo": true },
+    { "cmd": "fim" }
+  ]
+}

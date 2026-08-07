@@ -7615,8 +7615,17 @@ function selarEscala() {
   // A recompensa de forjar não é só a escala: é escolher três acordes do campo harmônico
   // dela. É aqui que a teoria vira build.
   const tonica = montagem.tonica;
+  const primeira = escalasMontadas.length === 1;
   setTimeout(() => { montagem = null; renderAltar(); }, 2600);
-  setTimeout(() => abrirEscolhaDeAcordes(tonica), 2800);
+  setTimeout(() => {
+    // Na PRIMEIRA escala, a Guardiã explica o campo harmônico antes de o jogador escolher.
+    // Depois disso ele já sabe, e a cena só atrapalharia.
+    const cena = primeira && CUT.roteiros.find(r => r.id === 'cap1_composicao');
+    if (cena && !CUT.jaRodou['cap1_composicao']) {
+      CUT.jaRodou['cap1_composicao'] = true;
+      iniciarCena(cena, () => abrirEscolhaDeAcordes(tonica));
+    } else abrirEscolhaDeAcordes(tonica);
+  }, 2800);
 }
 
 // Notas onde o caminho pisou, incluindo a tônica.
@@ -11141,8 +11150,12 @@ window.resetarCenas = function () {
   showToast('🎬 Cenas liberadas para rodar de novo');
 };
 
-function iniciarCena(roteiro) {
-  if (!roteiro || CUT.ativo) return;
+// `aoTerminar` roda quando a cena acaba. Serve para encadear: a Guardiã explica o campo
+// harmônico e SÓ ENTÃO a escolha dos acordes abre — as duas coisas ao mesmo tempo seriam
+// uma parede de texto por cima de uma tela de decisão.
+function iniciarCena(roteiro, aoTerminar) {
+  if (!roteiro || CUT.ativo) { if (aoTerminar) aoTerminar(); return; }
+  CUT.aoTerminar = aoTerminar || null;
   marcarCenaRodada(roteiro);
   CUT.roteiro = roteiro; CUT.passo = 0; CUT.ativo = true; CUT.aguardando = null;
   CUT.sombras = []; CUT.notas = []; CUT.guia = null; CUT.caixa = null; CUT.legenda = null; CUT.caminhadas = [];
@@ -11177,6 +11190,9 @@ function encerrarCena() {
   playerHud?.classList.remove('hidden');
   marcarCenaRodada(CUT.roteiro);
   savePlayerData();
+  const seguir = CUT.aoTerminar;
+  CUT.aoTerminar = null;
+  if (seguir) setTimeout(seguir, 260);
 }
 
 function proximoPasso() {
@@ -16895,6 +16911,12 @@ function iniciarCorrida(d) {
   if (sorteioDoPortao && sorteioDoPortao.dungeonId === d.id) corrida.grau = sorteioDoPortao.grau;
   else sortearGrauDaCorrida(d);
   prepararEstagio(d);
+  // Cena de chegada da dungeon, uma vez só por dungeon.
+  const cenaDaDg = { patio_das_ruinas: 'cap1_patio' }[d.id];
+  if (cenaDaDg && !CUT.jaRodou[cenaDaDg]) {
+    const r = CUT.roteiros.find(x => x.id === cenaDaDg);
+    if (r) setTimeout(() => iniciarCena(r), 400);
+  }
   fecharPortao();
   anunciar(d.nome.toUpperCase(), 1600);
   return true;
@@ -16995,6 +17017,14 @@ function atualizarCorrida(now) {
   if (corrida.trocando || corrida.aguardando) return;
   const vivos = monstrosDaDungeon(corrida.mapa).filter(m => !m.dead).length;
   corrida.abates = corrida.abatesAnteriores + (corrida.total - vivos);
+
+  // No meio da limpeza do Pátio, a Wins esquece por vinte segundos. Uma vez só no jogo
+  // inteiro: repetido viraria piada, e o susto é o ponto.
+  if (corrida.id === 'patio_das_ruinas' && !CUT.ativo && !CUT.jaRodou['cap1_esquecimento']
+      && corrida.total > 3 && vivos > 0 && corrida.abates >= Math.ceil(corrida.total / 2)) {
+    const r = CUT.roteiros.find(x => x.id === 'cap1_esquecimento');
+    if (r) { CUT.jaRodou['cap1_esquecimento'] = true; iniciarCena(r); }
+  }
   if (vivos > 0) return;
 
   const d = dungeonDoMapa(corrida.mapa);
