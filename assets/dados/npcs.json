@@ -793,48 +793,6 @@
    "triggered": false,
    "flipX": false,
    "scale": 0.45
-  },
-  {
-   "id": "npc_nocth",
-   "name": "Nocth",
-   "type": "dissonante",
-   "mapKey": "custom_1785869541494_557",
-   "x": 180,
-   "y": 470,
-   "triggerRadius": 0,
-   "dialogue": "none",
-   "triggered": false,
-   "flipX": false,
-   "scale": 0.62,
-   "sprite": "assets/personagens/nocth.png",
-   "cols": 5,
-   "rows": 4,
-   "idleRow": 0,
-   "walkRow": 1,
-   "actionRow": 2,
-   "exitRow": 3,
-   "deCena": true
-  },
-  {
-   "id": "npc_vexor",
-   "name": "Vexor",
-   "type": "dissonante",
-   "mapKey": "custom_1785869541494_557",
-   "x": 140,
-   "y": 470,
-   "triggerRadius": 0,
-   "dialogue": "none",
-   "triggered": false,
-   "flipX": false,
-   "scale": 0.62,
-   "sprite": "assets/personagens/vexor.png",
-   "cols": 5,
-   "rows": 4,
-   "idleRow": 0,
-   "walkRow": 1,
-   "actionRow": 2,
-   "exitRow": 3,
-   "deCena": true
   }
  ]
 }

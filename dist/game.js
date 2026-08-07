@@ -1240,7 +1240,10 @@ async function startDialogue(npc) {
 }
 
 function processStep() {
-  const step = dlg.script.steps.find(s=>s.id===dlg.stepId);
+  // Vários passos podem dividir o mesmo id: vale o PRIMEIRO cuja condição passa. É assim
+  // que a cidade inteira muda de fala depois que o Pipo é levado, sem duplicar arquivo de
+  // diálogo — o mesmo `start` tem uma versão antes e uma depois.
+  const step = dlg.script.steps.find(s => s.id === dlg.stepId && condicaoOk(s.se));
   if (!step) { endDialogue(); return; }
   if (step.type==='lines') {
     dlg.lines=step.lines; dlg.lineIndex=0; dlg._nextStep=step.next;
@@ -7278,6 +7281,7 @@ function savePlayerData() {
       passesDeDungeon, dungeons: ultimaConclusaoDeDungeon,
       itensPossuidos, equipado,
       acordesPossuidos, escalasEquipadas, acordesEquipados, funcaoPreferida,
+      bandeiras,
       toolQuality, notas: notasPossuidas, escalas: escalasMontadas, acordes: acordesObtidos,
       // Progresso de jogo: no celular não há servidor, então tudo vive aqui.
       nome: playerName, heroi: selectedHeroId,
@@ -7345,6 +7349,7 @@ function loadPlayerData() {
     if (Array.isArray(d.escalasEquipadas)) escalasEquipadas = d.escalasEquipadas;
     if (Array.isArray(d.acordesEquipados)) acordesEquipados = d.acordesEquipados;
     if (d.funcaoPreferida) funcaoPreferida = d.funcaoPreferida;
+    if (d.bandeiras) bandeiras = d.bandeiras;
     if (d.attrs) {
       // Saves antigos guardam força/agilidade/capacidade. Converte em vez de descartar,
       // senão quem já jogou perde o progresso ao atualizar.
@@ -11424,7 +11429,60 @@ function executarPasso(p) {
       return false;
 
     case 'musica':
-      return false;   // trilha entra quando houver áudio
+      return false;   // legado: a trilha agora tem comando próprio
+
+    // ── comandos da trilha ──
+    case 'trilha':
+      if (p.humor) trocarHumor(p.humor, p.ms ?? 1200);
+      if (p.comer) comerAMusica(p.comer, p.intervalo ?? 900);
+      if (p.devolver) devolverAMusica(p.ms ?? 1200);
+      if (p.parar) pararTrilha();
+      return false;
+
+    // Uma melodia tocada nota a nota, para a cena poder CANTAR. `notas` é uma lista de
+    // ids ('do','re'...) e `perde` diz a partir de qual delas o Silêncio começa a comer.
+    case 'cancao': {
+      const lista = p.notas || [];
+      const passo = p.passo ?? 480;
+      lista.forEach((id, i) => {
+        if (p.perde != null && i >= p.perde && Math.random() < (i - p.perde) / lista.length) return;
+        setTimeout(() => tocarNota(id, p.dur ?? 1.2, p.vol ?? 0.10), i * passo);
+      });
+      CUT.aguardando = { tipo: 'tempo', ate: agora + lista.length * passo + (p.cauda ?? 300) };
+      return true;
+    }
+
+    // ── o mundo fora de compasso ──
+    // Dessatura a tela, para a trilha e congela quem está em cena. É o que o Silêncio faz:
+    // não escurece, ESVAZIA. `ms` é quanto dura antes de voltar sozinho.
+    case 'foraDeTempo': {
+      const cv = document.getElementById('gameCanvas');
+      if (cv) cv.style.filter = `saturate(${p.saturacao ?? 0.12}) contrast(0.85)`;
+      pararTrilha();
+      CUT.foraDeTempo = true;
+      if (p.ms) {
+        setTimeout(() => {
+          if (cv) cv.style.filter = '';
+          CUT.foraDeTempo = false;
+          if (TRILHA.ligada) { TRILHA.humor = null; trocarHumor(humorDoMomento(), 900); }
+        }, p.ms);
+      }
+      CUT.aguardando = { tipo: 'tempo', ate: agora + (p.espera ?? p.ms ?? 0) };
+      return !!(p.espera ?? p.ms);
+    }
+
+    case 'voltarAoTempo': {
+      const cv = document.getElementById('gameCanvas');
+      if (cv) cv.style.filter = '';
+      CUT.foraDeTempo = false;
+      if (TRILHA.ligada) { TRILHA.humor = null; trocarHumor(humorDoMomento(), 900); }
+      return false;
+    }
+
+    // Marca um acontecimento da trama. É o que faz a cidade mudar de fala.
+    case 'bandeira':
+      marcarBandeira(p.id, p.valor !== false);
+      return false;
 
     case 'guiar': {
       // As notas param de vagar e formam uma trilha viva na direção do cenário
@@ -19741,3 +19799,18 @@ document.getElementById('compVoltar')?.addEventListener('click', () => {
 document.getElementById('composicao')?.addEventListener('click', e => {
   if (e.target.id === 'composicao') fecharComposicao();
 });
+
+// ══ Bandeiras de história ═════════════════════════════════════════════════════
+// Marcas do que já aconteceu na trama. Existem para o MUNDO poder reagir: depois que o
+// Pipo é levado, a cidade inteira precisa negar que ele existiu, e isso é uma bandeira
+// consultada pelos diálogos.
+let bandeiras = {};
+function marcarBandeira(id, v = true) { bandeiras[id] = v; savePlayerData(); }
+function temBandeira(id) { return !!bandeiras[id]; }
+
+// Avalia a condição de um passo de diálogo. Aceita `pipo_levado` e `!pipo_levado`.
+function condicaoOk(se) {
+  if (!se) return true;
+  return String(se).split(',').map(x => x.trim()).every(t =>
+    t.startsWith('!') ? !temBandeira(t.slice(1)) : temBandeira(t));
+}

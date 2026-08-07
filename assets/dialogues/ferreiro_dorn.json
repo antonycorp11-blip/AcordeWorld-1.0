@@ -1,13 +1,32 @@
 {
-  "id": "ferreiro_dorn",
-  "npc_name": "Ferreiro Dorn",
-  "portrait": "blacksmith",
-  "repeatable": true,
-  "steps": [
-    { "id": "start", "type": "lines", "lines": [
-      "Trabalho é o que não falta, {PLAYER_NAME}.",
-      "Se estiver perdido, olha o pergaminho no canto da tela. Eu também esqueço as coisas."
-    ], "next": "fim" },
-    { "id": "fim", "type": "end" }
-  ]
+ "id": "ferreiro_dorn",
+ "npc_name": "Ferreiro Dorn",
+ "portrait": "blacksmith",
+ "repeatable": true,
+ "steps": [
+  {
+   "id": "start",
+   "type": "lines",
+   "se": "pipo_levado",
+   "lines": [
+    "Você está com cara de quem perdeu alguma coisa.",
+    "Trabalho ajuda. Aparece aí que eu arrumo o que precisar."
+   ],
+   "next": "fim"
+  },
+  {
+   "id": "start",
+   "type": "lines",
+   "lines": [
+    "Trabalho é o que não falta, {PLAYER_NAME}.",
+    "Se estiver perdido, olha o pergaminho no canto da tela. Eu também esqueço as coisas."
+   ],
+   "next": "fim",
+   "se": "!pipo_levado"
+  },
+  {
+   "id": "fim",
+   "type": "end"
+  }
+ ]
 }
