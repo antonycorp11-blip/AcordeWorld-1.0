@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=202608120100">
+  <link rel="stylesheet" href="style.css?v=202608131000">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -1065,6 +1065,9 @@
                    para o botão da ficha. -->
               <!-- Temporário: os forjadores vão viver em pontos fixos do mapa. Enquanto
                    isso, este botão abre os dois para poder testar. -->
+              <button id="missoesBtn" class="icon-btn" title="Missões (J)">
+                <span class="hud-emoji">📜</span>
+              </button>
               <button id="somBtn" class="icon-btn" title="Trilha sonora">
                 <span class="hud-emoji">🎵</span>
               </button>
@@ -1368,6 +1371,57 @@
                 </section>
               </div>
             </div>
+          </div>
+
+          <!-- ══ Missões ══ Atual sempre no HUD; a tela mostra tudo. -->
+          <div id="telaMissoes" class="ms-overlay hidden">
+            <div class="ms-quadro">
+              <header class="ms-topo">
+                <span class="ms-selo">📜</span>
+                <h2 class="ms-titulo">MISSÕES</h2>
+                <button class="ms-fechar" id="msFechar">✕</button>
+              </header>
+              <div class="ms-abas">
+                <button class="ms-aba ativa" data-msaba="ativas">Em andamento</button>
+                <button class="ms-aba" data-msaba="feitas">Concluídas</button>
+                <button class="ms-aba" data-msaba="travadas">Bloqueadas</button>
+              </div>
+              <div class="ms-lista" id="msLista"></div>
+            </div>
+          </div>
+
+          <!-- ══ Pré-tela ══ Aparece quando o jogo termina de carregar. -->
+          <div id="preTela" class="pt-overlay hidden">
+            <div class="pt-quadro">
+              <img class="pt-logo" src="assets/ui/logo-acordelot.png" alt="Acordelot">
+              <div class="pt-cartao">
+                <div class="pt-heroi">
+                  <img id="ptRetrato" alt="">
+                  <div class="pt-info">
+                    <b id="ptNome"></b>
+                    <span id="ptClasse"></span>
+                    <div class="pt-niveis">
+                      <span>HERÓI <b id="ptNivelHeroi">1</b></span>
+                      <span>CONTA <b id="ptNivelConta">1</b></span>
+                      <span>PODER <b id="ptPoder">0</b></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="pt-moedas">
+                  <span class="pt-moeda ouro">🪙 <b id="ptOuro">0</b></span>
+                  <span class="pt-moeda claves">𝄞 <b id="ptClaves">0</b></span>
+                </div>
+              </div>
+              <div class="pt-missao" id="ptMissao"></div>
+              <button class="pt-jogar" id="ptJogar">INICIAR</button>
+            </div>
+          </div>
+
+          <!-- Missão atual, sempre visível no HUD -->
+          <div id="hudMissao" class="hm-caixa hidden">
+            <span class="hm-rot">MISSÃO</span>
+            <b class="hm-nome" id="hmNome"></b>
+            <span class="hm-obj" id="hmObj"></span>
           </div>
 
           <!-- Shop / Inventory sheet -->
@@ -1864,7 +1918,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="game.js?v=202608120800"></script>
+<script src="game.js?v=202608131200"></script>
 <script src="pixelizador.js?v=202608052000"></script>
 </body>
 </html>

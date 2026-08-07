@@ -5205,20 +5205,24 @@ function hasSkill(id) { return learnedSkills.includes(id); }
 
 // Sum of every source: base + attribute points + learned skills.
 function derivedStats() {
+  // Vida, dano e atributos vêm do PERSONAGEM, não da conta. Era tudo global, e por isso os
+  // pontos de um herói apareciam no outro — o Akles treinado deixava a Wins forte de graça.
+  const at = typeof attrsDoHeroi === 'function' ? attrsDoHeroi() : attrs;
+  const nh = typeof nivelDoHeroi === 'function' ? nivelDoHeroi() : level;
   const s = {
     // O personagem traz o corpo, o jogador traz a perícia: um soma ao outro.
-    maxHp: BASE_MAX_HP + (level - 1) * VIDA_POR_NIVEL + attrs.folego * 8
+    maxHp: BASE_MAX_HP + (nh - 1) * VIDA_POR_NIVEL + at.folego * 8
            + (personagemAtivo().base?.vida || 0),
-    dmg: BASE_DAMAGE + (level - 1) * DANO_POR_NIVEL + attrs.dinamica * 3
+    dmg: BASE_DAMAGE + (nh - 1) * DANO_POR_NIVEL + at.dinamica * 3
          + (personagemAtivo().base?.dano || 0),
-    dmgMagia: attrs.dinamica * 4,          // % a mais no dano de feitiço
-    atkSpeed: attrs.ritmo * 3,             // %
-    recarga: Math.min(60, attrs.folego * 4), // % de redução na recarga de feitiço
-    forja: Math.min(70, attrs.ritmo * 6),  // % de zona/lentidão a mais na bigorna
-    captura: Math.min(70, attrs.afinacao * 6), // % de janela/zona a mais na captura
-    puro: Math.min(45, attrs.afinacao * 3),    // % extra de chance de Fragmento Puro
-    capacity: BASE_CAPACITY + attrs.memoria * 10,
-    desconto: Math.min(50, attrs.memoria * 4), // % a menos de fragmentos na síntese
+    dmgMagia: at.dinamica * 4,          // % a mais no dano de feitiço
+    atkSpeed: at.ritmo * 3,             // %
+    recarga: Math.min(60, at.folego * 4), // % de redução na recarga de feitiço
+    forja: Math.min(70, at.ritmo * 6),  // % de zona/lentidão a mais na bigorna
+    captura: Math.min(70, at.afinacao * 6), // % de janela/zona a mais na captura
+    puro: Math.min(45, at.afinacao * 3),    // % extra de chance de Fragmento Puro
+    capacity: BASE_CAPACITY + at.memoria * 10,
+    desconto: Math.min(50, at.memoria * 4), // % a menos de fragmentos na síntese
     moveSpeed: 0,                          // cenários estáticos: movimento não é build
     crit: 0, lifesteal: 0,
     defesa: 0,          // % de dano cortado na entrada
@@ -5343,13 +5347,15 @@ function grantXp(amount) {
   while (xp >= xpForLevel(level)) {
     xp -= xpForLevel(level);
     level++; gained++;
-    attrPoints += POINTS_PER_LEVEL;
+    // A CONTA não distribui mais ponto de atributo: isso passou a ser do personagem, que
+    // sobe à mão com Partitura. A conta continua dando ponto de habilidade e liberando
+    // conteúdo, que é o papel dela.
     skillPoints += 1;
   }
   if (gained) {
     applyMovementStats();
     playerHp = playerMaxHp();          // a level-up patches you up
-    showToast(`Nível ${level}! +${POINTS_PER_LEVEL * gained} atributos, +${gained} habilidade`);
+    showToast(`Conta nível ${level}! +${gained} ponto de habilidade`);
     levelFlashUntil = performance.now() + SUBIDA_MS;
     anunciar(`NÍVEL ${level}`, 1600);
     document.getElementById('pointDot')?.classList.remove('hidden');
@@ -5359,8 +5365,9 @@ function grantXp(amount) {
 }
 
 function spendAttr(key) {
-  if (attrPoints <= 0 || !(key in attrs)) return;
-  attrs[key]++; attrPoints--;
+  const h = fichaDoHeroi();
+  if (h.attrPoints <= 0 || !(key in h.attrs)) return;
+  h.attrs[key]++; h.attrPoints--;
   applyMovementStats();
   // Fôlego dá vida na hora: gastar um ponto e não ver a barra crescer parece que não fez
   // nada — o número só apareceria no próximo dano tomado.
@@ -7281,7 +7288,7 @@ function savePlayerData() {
       passesDeDungeon, dungeons: ultimaConclusaoDeDungeon,
       itensPossuidos, equipado,
       acordesPossuidos, escalasEquipadas, acordesEquipados, funcaoPreferida,
-      bandeiras,
+      bandeiras, herois,
       toolQuality, notas: notasPossuidas, escalas: escalasMontadas, acordes: acordesObtidos,
       // Progresso de jogo: no celular não há servidor, então tudo vive aqui.
       nome: playerName, heroi: selectedHeroId,
@@ -7350,6 +7357,7 @@ function loadPlayerData() {
     if (Array.isArray(d.acordesEquipados)) acordesEquipados = d.acordesEquipados;
     if (d.funcaoPreferida) funcaoPreferida = d.funcaoPreferida;
     if (d.bandeiras) bandeiras = d.bandeiras;
+    if (d.herois) herois = d.herois;
     if (d.attrs) {
       // Saves antigos guardam força/agilidade/capacidade. Converte em vez de descartar,
       // senão quem já jogou perde o progresso ao atualizar.
@@ -9759,6 +9767,29 @@ function iniciarAutosave() {
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && isPlayMode) savePlayerData();
   });
+}
+
+// ── Gatilhos do Capítulo 1 ────────────────────────────────────────────────────
+// As cenas param de depender de chamada manual. Um vigia por quadro decide quando cada
+// uma entra, pelas condições da trama — assim o capítulo se joga do começo ao fim sem
+// ninguém precisar disparar nada.
+function verificarGatilhosDaHistoria() {
+  if (CUT.ativo || !personagemAndando()) return;
+
+  // Abertura: jogo novo, antes de qualquer coisa.
+  if (!temBandeira('viu_abertura') && !CUT.jaRodou['cap1_abertura'] && level === 1) {
+    const r = CUT.roteiros.find(x => x.id === 'cap1_abertura');
+    if (r) { CUT.jaRodou['cap1_abertura'] = true; iniciarCena(r); return; }
+  }
+
+  // O rapto: ao voltar à PRAÇA depois de ter forjado a primeira escala. A cena cobra o
+  // que o capítulo ensinou, então só faz sentido depois do Forjador.
+  if (!temBandeira('pipo_levado') && !CUT.jaRodou['cap1_rapto']
+      && currentKey === 'custom_1785869541494_557'
+      && escalasMontadas.length > 0) {
+    const r = CUT.roteiros.find(x => x.id === 'cap1_rapto');
+    if (r) { CUT.jaRodou['cap1_rapto'] = true; iniciarCena(r); return; }
+  }
 }
 
 function enterMobilePlay() {
@@ -12461,7 +12492,8 @@ function loop(now){
   atualizarDungeon(now);
   // Os números do HUD pela mesma razão: o bloco que os atualizava só roda no modo jogo,
   // e no modo ANDAR a barra ficava congelada nos valores do primeiro quadro.
-  if (personagemAndando()) atualizarNumerosDoHud();
+  if (personagemAndando()) { atualizarNumerosDoHud(); atualizarMissaoNoHud(); }
+  verificarGatilhosDaHistoria();
   atualizarTrilha(now);
   garantirFolhasDoMapa(currentKey);
 
@@ -13899,7 +13931,12 @@ async function finishInit(){
   abrirMenuInicialSePreciso();   // de novo: agora o catálogo existe e o menu fica coerente
   if (wantsMobilePlay()) talvezIniciarCenaDoMapa(currentKey);
 }
-setTimeout(()=>loadingOverlay?.classList.add('hidden'),1500);
+setTimeout(()=>{
+  loadingOverlay?.classList.add('hidden');
+  // Pré-tela: só depois que tudo carregou, e só quando se vai de fato JOGAR. No editor
+  // ela atrapalharia quem está montando cenário.
+  if (IS_PLAY_BUILD || wantsMobilePlay()) abrirPreTela();
+},1500);
 
 // ============================================================
 // VISUAL DIALOGUE EDITOR LOGIC
@@ -16490,7 +16527,14 @@ function custoDaPassiva(n) { return PASSIVA_CUSTO[n - 1] ?? null; }
 // exploração. A primeira de cada herói já vem aberta — sem ela não há como lutar.
 const HABILIDADE_CUSTO = { 2: 6000, 3: 12000 };
 let habilidadesAbertas = ['lamina', 'chuva'];
-function habilidadeAberta(id) { return habilidadesAbertas.includes(id); }
+// Aberta por NÍVEL DO PERSONAGEM. Antes custava clave, e virava questão de dinheiro; agora
+// é questão de ter treinado o herói, e a segunda e a suprema viram marcos de progressão.
+function habilidadeAberta(id) {
+  const lista = HABILIDADES[selectedHeroId] || [];
+  const i = lista.findIndex(h => h.id === id);
+  if (i < 0) return habilidadesAbertas.includes(id);
+  return nivelDoHeroi() >= nivelQueLibera(i + 1);
+}
 // ── Banca de testes ───────────────────────────────────────────────────────────
 // As habilidades continuam TRANCADAS de propósito: o pedido foi testar o fluxo inteiro de
 // desbloqueio, não pular ele. O que esta banca faz é encher a carteira, e ENCHER DE NOVO a
@@ -16503,7 +16547,7 @@ const BANCA_CLAVES = 400000;   // dá para abrir as 4 habilidades e maximizar as
 const BANCA_PONTOS  = 40;      // 7 passivas × 4 níveis = 28; sobra folga
 // Matéria-prima dos forjadores. Sem ela as duas telas abrem vazias e não dá para
 // experimentar a síntese nem a montagem de escala.
-const BANCA_MATERIAL = { fragmento: 120, fragmento_puro: 20, tom: 40, semitom: 24 };
+const BANCA_MATERIAL = { fragmento: 120, fragmento_puro: 20, tom: 40, semitom: 24, partitura: 60 };
 
 function abastecerBancaDeTestes() {
   if (!BANCA_DE_TESTES) return;
@@ -16629,10 +16673,10 @@ function desenharFicha() {
   if (!def || !extra) return;
 
   // Cabeçalho e retrato.
+  const H = fichaDoHeroi(id);
   const pts = document.getElementById('fichaPontos');
   if (pts) {
-    // As duas moedas juntas: o ponto autoriza subir, a clave paga.
-    pts.innerHTML = `<b>${skillPoints}</b> ponto${skillPoints === 1 ? '' : 's'}`
+    pts.innerHTML = `Conta <b>${level}</b> <em>·</em> <b>${skillPoints}</b> ponto${skillPoints === 1 ? '' : 's'}`
       + ` <em>·</em> <b>${claveCount.toLocaleString('pt-BR')}</b> claves`;
     pts.classList.toggle('vazio', !skillPoints);
   }
@@ -16662,19 +16706,20 @@ function desenharFicha() {
     barras.innerHTML = `
       <div class="fa-resumo">
         <span>❤ <b>${Math.round(playerHp)}/${s2.maxHp}</b></span>
-        <span>Nível <b>${level}</b></span>
+        <span>Nível <b>${H.nivel}</b><small>/${tetoDoHeroi(id)}</small></span>
       </div>
-      <div class="fa-pontos${attrPoints ? ' tem' : ''}">
-        ${attrPoints ? `${attrPoints} ponto${attrPoints > 1 ? 's' : ''} para distribuir`
-                     : 'Sem pontos — suba de nível'}
+      ${blocoDeNivelDoHeroi(id)}
+      <div class="fa-pontos${H.attrPoints ? ' tem' : ''}">
+        ${H.attrPoints ? `${H.attrPoints} ponto${H.attrPoints > 1 ? 's' : ''} para distribuir`
+                       : 'Sem pontos — suba o nível deste herói'}
       </div>` +
       Object.entries(ATTR_META).map(([k, info]) => `
         <div class="fa-linha">
           <button class="fa-nome" data-explica="${k}">${info.icon} ${info.name} <i>?</i></button>
           <span class="fa-segs">${Array.from({ length: 10 },
-            (_, i) => `<i class="fb-seg${i < attrs[k] ? ' on' : ''}"></i>`).join('')}</span>
-          <b class="fa-val">${attrs[k]}</b>
-          <button class="fa-mais" data-attr="${k}" ${attrPoints ? '' : 'disabled'}>+</button>
+            (_, i) => `<i class="fb-seg${i < H.attrs[k] ? ' on' : ''}"></i>`).join('')}</span>
+          <b class="fa-val">${H.attrs[k]}</b>
+          <button class="fa-mais" data-attr="${k}" ${H.attrPoints ? '' : 'disabled'}>+</button>
         </div>`).join('');
     barras.querySelectorAll('.fa-mais').forEach(b2 => b2.addEventListener('click', () => {
       spendAttr(b2.dataset.attr);
@@ -16682,6 +16727,13 @@ function desenharFicha() {
     }));
     barras.querySelectorAll('.fa-nome').forEach(b2 =>
       b2.addEventListener('click', e => explicarAtributo(b2.dataset.explica, e)));
+    barras.querySelectorAll('[data-partitura]').forEach(b2 =>
+      b2.addEventListener('click', () => {
+        if (usarPartitura(id, +b2.dataset.partitura)) desenharFicha();
+      }));
+    barras.querySelector('[data-ascender]')?.addEventListener('click', () => {
+      if (ascender(id)) desenharFicha();
+    });
   }
 
   // Trocador de herói: só quem já está desbloqueado aparece.
@@ -16727,12 +16779,12 @@ function desenharFicha() {
     if (!aberta) {
       // Trancada: no lugar das passivas vai o preço. Não faz sentido evoluir o que ainda
       // não se pode usar.
-      const custo = HABILIDADE_CUSTO[i + 1] || 0;
+      const nvl = nivelQueLibera(i + 1);
       col.className = 'fh-abrir-wrap';
       const bt = document.createElement('button');
-      bt.className = 'fh-abrir' + (claveCount >= custo ? ' pode' : '');
-      bt.innerHTML = `<span>ABRIR</span><small>${custo.toLocaleString('pt-BR')} claves</small>`;
-      bt.addEventListener('click', () => desbloquearHabilidade(h.id, i + 1));
+      bt.className = 'fh-abrir';
+      bt.disabled = true;
+      bt.innerHTML = `<span>NÍVEL ${nvl}</span><small>faltam ${Math.max(0, nvl - H.nivel)}</small>`;
       col.appendChild(bt);
     }
     else if (!ids.length) {
@@ -17057,6 +17109,9 @@ function concluirCorrida() {
   corrida.coletado = corrida.coletado || {};
   corrida.coletado.clave = (corrida.coletado.clave || 0) + r.claves;
   corrida.coletado.ouro = (corrida.coletado.ouro || 0) + r.ouro;
+  const partsFim = 3 + Math.round(6 * (r.mult - 1)) + (r.dif?.premio > 1 ? 4 : 0);
+  playerInventory.partitura = (playerInventory.partitura || 0) + partsFim;
+  corrida.coletado.partitura = (corrida.coletado.partitura || 0) + partsFim;
   claveCount += r.claves;
   playerCoins += r.ouro;
   ultimaConclusaoDeDungeon[r.d.id] = Date.now();
@@ -17557,6 +17612,13 @@ function abrirBau(o) {
   if (puros > 0) {
     receberDaCaptura('fragmento_puro', puros);
     ganhos.push({ nome: 'Fragmentos puros', qtd: puros, arte: 'assets/itens/fragmentos/tom.png' });
+  }
+  // Partituras: o material que sobe o nível do HERÓI. Só vêm de baú e de conclusão de
+  // dungeon, para o treino do personagem depender de encarar dungeon.
+  const parts = entre([Math.max(1, t.pocoes[0] * 2), t.pocoes[1] * 3]);
+  if (parts > 0) {
+    receberDaCaptura('partitura', parts);
+    ganhos.push({ nome: 'Partituras', qtd: parts, arte: null, ico: '🎼' });
   }
   const pocoes = entre(t.pocoes);
   if (pocoes > 0) {
@@ -18945,6 +19007,7 @@ function nomeDoItemColetado(chave) {
   if (chave === 'clave') return { nome: 'Claves', arte: 'assets/itens/clave_1.png' };
   if (chave === 'ouro') return { nome: 'Ouro', ico: '🪙' };
   if (chave === 'potions') return { nome: 'Poções', ico: '🧪' };
+  if (chave === 'partitura') return { nome: 'Partituras', ico: '🎼' };
   if (chave === 'fragmento_puro') return { nome: 'Fragmentos puros', arte: 'assets/itens/fragmentos/tom.png' };
   if (chave === 'tom') return { nome: 'Tons', arte: 'assets/itens/fragmentos/tom.png' };
   if (chave === 'semitom') return { nome: 'Semitons', arte: 'assets/itens/fragmentos/semitom.png' };
@@ -19814,3 +19877,285 @@ function condicaoOk(se) {
   return String(se).split(',').map(x => x.trim()).every(t =>
     t.startsWith('!') ? !temBandeira(t.slice(1)) : temBandeira(t));
 }
+
+// ══ Conta e personagem ════════════════════════════════════════════════════════
+// Duas progressões diferentes, de propósito.
+//
+// A CONTA sobe sozinha com o XP de tudo que você faz. Ela mede há quanto tempo você joga,
+// e é ela que libera conteúdo — dungeon exige nível de conta.
+//
+// O PERSONAGEM sobe À MÃO, gastando Partituras. Ele mede o quanto AQUELE herói foi
+// treinado, e é ele que dá vida, dano, pontos de atributo e habilidades. Trocar de
+// personagem passa a significar alguma coisa: cada um tem o próprio nível e a própria
+// distribuição de pontos.
+//
+// A cada 5 níveis o personagem trava e precisa de uma ASCENSÃO, que cobra notas
+// específicas. É o momento em que o jogo pede que você volte a estudar em vez de só moer.
+
+let herois = {};   // id → { nivel, xp, attrPoints, attrs, ascensao }
+
+const NIVEL_MAX_HEROI = 40;
+const XP_POR_PARTITURA = 120;
+const PONTOS_POR_NIVEL_HEROI = 3;
+
+// Curva do personagem: cada nível custa um pouco mais que o anterior.
+function xpDoNivelHeroi(n) { return Math.round(80 * Math.pow(n, 1.35)); }
+
+// O teto sobe de 5 em 5, e cada degrau é uma ascensão que cobra notas.
+const ASCENSOES = [
+  { ate: 5,  claves: 800,   notas: { do: 3 } },
+  { ate: 10, claves: 2400,  notas: { do: 5, sol: 3 } },
+  { ate: 15, claves: 6000,  notas: { re: 6, la: 4, mi: 3 } },
+  { ate: 20, claves: 14000, notas: { fa: 8, si: 5, do_s: 4 } },
+  { ate: 25, claves: 28000, notas: { sol_s: 9, re_s: 6, la_s: 5 } },
+  { ate: 30, claves: 52000, notas: { fa_s: 12, mi: 8, si: 6 } },
+  { ate: 35, claves: 90000, notas: { do: 14, sol: 10, re: 8 } },
+  { ate: 40, claves: 150000, notas: { la: 16, mi: 12, fa_s: 10 } },
+];
+
+function fichaDoHeroi(id) {
+  const k = id || selectedHeroId || 'achilles';
+  if (!herois[k]) {
+    herois[k] = { nivel: 1, xp: 0, attrPoints: 0, ascensao: 0,
+                  attrs: { ritmo: 0, afinacao: 0, folego: 0, dinamica: 0, memoria: 0 } };
+  }
+  const h = herois[k];
+  if (!h.attrs) h.attrs = { ritmo: 0, afinacao: 0, folego: 0, dinamica: 0, memoria: 0 };
+  return h;
+}
+function nivelDoHeroi(id) { return fichaDoHeroi(id).nivel; }
+function attrsDoHeroi(id) { return fichaDoHeroi(id).attrs; }
+function tetoDoHeroi(id) {
+  const h = fichaDoHeroi(id);
+  return Math.min(NIVEL_MAX_HEROI, (ASCENSOES[h.ascensao] || { ate: NIVEL_MAX_HEROI }).ate);
+}
+function proximaAscensao(id) {
+  const h = fichaDoHeroi(id);
+  return ASCENSOES[h.ascensao] || null;
+}
+function noTeto(id) { return nivelDoHeroi(id) >= tetoDoHeroi(id); }
+
+// ── subir de nível, à mão ──
+function partituras() { return playerInventory.partitura || 0; }
+
+function usarPartitura(id, quantas = 1) {
+  const h = fichaDoHeroi(id);
+  if (partituras() < quantas) { showToast('Sem Partituras. Elas caem nas dungeons.'); return false; }
+  if (noTeto(id)) {
+    showToast(`Nível ${h.nivel} é o teto. Faça a ascensão para seguir.`);
+    return false;
+  }
+  let usadas = 0;
+  while (usadas < quantas && partituras() > 0 && !noTeto(id)) {
+    playerInventory.partitura--;
+    usadas++;
+    h.xp += XP_POR_PARTITURA;
+    while (h.xp >= xpDoNivelHeroi(h.nivel) && !noTeto(id)) {
+      h.xp -= xpDoNivelHeroi(h.nivel);
+      h.nivel++;
+      h.attrPoints += PONTOS_POR_NIVEL_HEROI;
+      levelFlashUntil = performance.now() + SUBIDA_MS;
+      anunciar(`NÍVEL ${h.nivel}`, 1400);
+    }
+    if (noTeto(id)) h.xp = Math.min(h.xp, xpDoNivelHeroi(h.nivel) - 1);
+  }
+  playerHp = playerMaxHp();
+  savePlayerData();
+  return usadas > 0;
+}
+
+function podeAscender(id) {
+  const a = proximaAscensao(id);
+  if (!a || !noTeto(id)) return false;
+  if (claveCount < a.claves) return false;
+  return Object.entries(a.notas).every(([n, q]) => (notasPossuidas[n] || 0) >= q);
+}
+
+function ascender(id) {
+  const h = fichaDoHeroi(id);
+  const a = proximaAscensao(id);
+  if (!a) { showToast('Este herói já está no limite.'); return false; }
+  if (!noTeto(id)) { showToast(`Chegue ao nível ${tetoDoHeroi(id)} antes de ascender.`); return false; }
+  if (!podeAscender(id)) {
+    const falta = Object.entries(a.notas)
+      .filter(([n, q]) => (notasPossuidas[n] || 0) < q)
+      .map(([n, q]) => `${q - (notasPossuidas[n] || 0)}× ${(notaPorId(n) || {}).nome || n}`);
+    if (claveCount < a.claves) falta.push(`${(a.claves - claveCount).toLocaleString('pt-BR')} claves`);
+    showToast(`Faltam ${falta.join(', ')}.`);
+    return false;
+  }
+  Object.entries(a.notas).forEach(([n, q]) => { notasPossuidas[n] -= q; });
+  claveCount -= a.claves;
+  h.ascensao++;
+  playerHp = playerMaxHp();
+  savePlayerData();
+  anunciar('ASCENSÃO', 1800);
+  levelFlashUntil = performance.now() + SUBIDA_MS;
+  showToast(`Teto liberado até o nível ${tetoDoHeroi(id)}.`);
+  return true;
+}
+
+// ── habilidades por nível de personagem ──
+// Trocou clave por nível: abrir uma habilidade deixou de ser questão de dinheiro e passou
+// a ser questão de ter treinado o herói. Faz a segunda e a suprema virarem marcos.
+const NIVEL_DA_HABILIDADE = { 1: 1, 2: 10, 3: 20 };
+function nivelQueLibera(posicao) { return NIVEL_DA_HABILIDADE[posicao] || 1; }
+
+// Bloco de nível do herói na ficha: barra de XP, botão de usar Partitura e a ascensão
+// quando ele bate no teto. É o "up manual" — o herói não sobe sozinho.
+function blocoDeNivelDoHeroi(id) {
+  const h = fichaDoHeroi(id);
+  const teto = tetoDoHeroi(id);
+  const noLimite = h.nivel >= teto;
+  const precisa = xpDoNivelHeroi(h.nivel);
+  const pct = noLimite ? 100 : Math.min(100, (h.xp / precisa) * 100);
+  const a = proximaAscensao(id);
+
+  if (noLimite && a) {
+    const pode = podeAscender(id);
+    const notas = Object.entries(a.notas).map(([n, q]) => {
+      const tem = notasPossuidas[n] || 0;
+      return `<i class="${tem < q ? 'falta' : ''}">${q}× ${(notaPorId(n) || {}).nome || n}</i>`;
+    }).join(' ');
+    return `<div class="fa-nivel ascensao">
+      <div class="fan-topo"><b>ASCENSÃO</b><span>teto ${teto} → ${a.ate}</span></div>
+      <div class="fan-custo">${notas}
+        <i class="${claveCount < a.claves ? 'falta' : ''}">${a.claves.toLocaleString('pt-BR')} claves</i></div>
+      <button class="fan-btn${pode ? ' pode' : ''}" data-ascender="1">ASCENDER</button>
+    </div>`;
+  }
+  if (noLimite) {
+    return `<div class="fa-nivel"><div class="fan-topo"><b>NÍVEL MÁXIMO</b></div></div>`;
+  }
+  return `<div class="fa-nivel">
+    <div class="fan-topo"><b>XP DO HERÓI</b><span>${h.xp} / ${precisa}</span></div>
+    <div class="fan-barra"><i style="width:${pct}%"></i></div>
+    <div class="fan-acoes">
+      <button class="fan-btn${partituras() > 0 ? ' pode' : ''}" data-partitura="1">
+        USAR 1 PARTITURA</button>
+      <button class="fan-btn${partituras() >= 10 ? ' pode' : ''}" data-partitura="10">×10</button>
+      <span class="fan-tem">${partituras()} guardadas</span>
+    </div>
+  </div>`;
+}
+
+// ══ Missões ═══════════════════════════════════════════════════════════════════
+// A atual fica SEMPRE no HUD, porque uma missão que só existe dentro de um menu é uma
+// missão que o jogador esquece. A tela cheia mostra as três categorias.
+let abaDeMissoes = 'ativas';
+
+function missaoAtual() { return activeQuests[0] || null; }
+function objetivoAtual(q) {
+  return (q && (q.objectives || []).find(o => !o.completed)) || null;
+}
+// Bloqueada: existe no catálogo, não está ativa nem concluída.
+function missoesBloqueadas() {
+  return (questsData || []).filter(q =>
+    !activeQuests.some(a => a.id === q.id) && !completedQuests.includes(q.id));
+}
+
+function atualizarMissaoNoHud() {
+  const cx = document.getElementById('hudMissao');
+  if (!cx) return;
+  const q = missaoAtual();
+  const mostrar = !!q && personagemAndando() && !fichaAberta()
+                  && document.getElementById('playerHud')
+                  && !document.getElementById('playerHud').classList.contains('hidden');
+  cx.classList.toggle('hidden', !mostrar);
+  // O rastreador antigo mostrava a mesma coisa no canto: duas caixas dizendo o mesmo é
+  // ruído. A nova fica, porque é centrada e legível no celular.
+  document.getElementById('questTracker')?.classList.toggle('hidden', mostrar);
+  if (!mostrar) return;
+  const o = objetivoAtual(q);
+  document.getElementById('hmNome').textContent = q.title || q.id;
+  document.getElementById('hmObj').textContent = o ? (o.text || '') : 'Volte para entregar';
+}
+
+function abrirMissoes() {
+  document.getElementById('telaMissoes')?.classList.remove('hidden');
+  desenharMissoes();
+}
+function fecharMissoes() { document.getElementById('telaMissoes')?.classList.add('hidden'); }
+
+function desenharMissoes() {
+  const cx = document.getElementById('msLista');
+  if (!cx) return;
+  document.querySelectorAll('#telaMissoes .ms-aba').forEach(b =>
+    b.classList.toggle('ativa', b.dataset.msaba === abaDeMissoes));
+
+  let lista = [], vazio = '';
+  if (abaDeMissoes === 'ativas') {
+    lista = activeQuests; vazio = 'Nenhuma missão em andamento.';
+  } else if (abaDeMissoes === 'feitas') {
+    lista = (questsData || []).filter(q => completedQuests.includes(q.id));
+    vazio = 'Você ainda não concluiu nenhuma.';
+  } else {
+    lista = missoesBloqueadas(); vazio = 'Nada bloqueado — você está em dia.';
+  }
+  if (!lista.length) { cx.innerHTML = `<p class="ms-vazio">${vazio}</p>`; return; }
+
+  cx.innerHTML = lista.map(q => {
+    const objs = q.objectives || [];
+    const feitos = objs.filter(o => o.completed).length;
+    const travada = abaDeMissoes === 'travadas';
+    const feita = abaDeMissoes === 'feitas';
+    return `<div class="ms-item${travada ? ' travada' : ''}${feita ? ' feita' : ''}">
+      <div class="ms-cab">
+        <b>${feita ? '✓ ' : travada ? '🔒 ' : ''}${q.title || q.id}</b>
+        ${objs.length && !travada ? `<span>${feitos}/${objs.length}</span>` : ''}
+      </div>
+      <p class="ms-desc">${travada ? 'Ainda não disponível.' : (q.description || '')}</p>
+      ${travada ? '' : objs.map(o => `<div class="ms-obj${o.completed ? ' ok' : ''}">
+        ${o.completed ? '✓' : '○'} ${o.text || ''}</div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('missoesBtn')?.addEventListener('click', abrirMissoes);
+document.getElementById('msFechar')?.addEventListener('click', fecharMissoes);
+document.getElementById('telaMissoes')?.addEventListener('click', e => {
+  if (e.target.id === 'telaMissoes') fecharMissoes();
+});
+document.querySelectorAll('#telaMissoes .ms-aba').forEach(b =>
+  b.addEventListener('click', () => { abaDeMissoes = b.dataset.msaba; desenharMissoes(); }));
+window.addEventListener('keydown', e => {
+  if (e.repeat) return;
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if (e.key === 'j' || e.key === 'J') { document.getElementById('telaMissoes')?.classList.contains('hidden') ? abrirMissoes() : fecharMissoes(); }
+  if (e.key === 'Escape') fecharMissoes();
+});
+
+// ══ Pré-tela ══════════════════════════════════════════════════════════════════
+// Depois que o jogo carrega, antes de entrar. Mostra em quem você está, o nível do herói,
+// o da conta, o poder e as duas moedas — para o jogador saber onde parou antes de pisar
+// no mundo.
+function abrirPreTela() {
+  const el = document.getElementById('preTela');
+  if (!el) return;
+  const id = selectedHeroId || 'achilles';
+  const def = HERO_DEFINITIONS[id] || {};
+  const h = fichaDoHeroi(id);
+  const r = document.getElementById('ptRetrato');
+  const arte = (FICHA_HEROIS[id] || {}).retrato;
+  if (r && arte) r.src = arte;
+  document.getElementById('ptNome').textContent = (def.name || id).toUpperCase();
+  document.getElementById('ptClasse').textContent = def.class || '';
+  document.getElementById('ptNivelHeroi').textContent = h.nivel;
+  document.getElementById('ptNivelConta').textContent = level;
+  document.getElementById('ptPoder').textContent = nivelDePoder().toLocaleString('pt-BR');
+  document.getElementById('ptOuro').textContent = playerCoins.toLocaleString('pt-BR');
+  document.getElementById('ptClaves').textContent = claveCount.toLocaleString('pt-BR');
+  const q = missaoAtual();
+  document.getElementById('ptMissao').innerHTML = q
+    ? `<span>CONTINUAR</span><b>${q.title || q.id}</b>
+       <small>${(objetivoAtual(q) || {}).text || ''}</small>`
+    : `<span>COMEÇO</span><b>Reino da Música</b><small>Acordelot espera por você.</small>`;
+  el.classList.remove('hidden');
+}
+function fecharPreTela() {
+  document.getElementById('preTela')?.classList.add('hidden');
+  initAudio();
+  if (TRILHA.ligada && !TRILHA.humor) { TRILHA.humor = humorDoMomento(); iniciarTrilha(); }
+}
+document.getElementById('ptJogar')?.addEventListener('click', fecharPreTela);

@@ -7245,3 +7245,137 @@ body.jogando .party-hud.calmo { opacity: .62; }
   .ac-desc { display: none; }
   .comp-acorde { width: 44px; }
 }
+
+/* Nível do herói na ficha: XP, Partitura e ascensão. */
+.fa-nivel {
+  padding: 7px 9px; margin: 4px 0;
+  background: rgba(10,14,32,.75); border: 1px solid rgba(169,126,44,.4);
+}
+.fa-nivel.ascensao { border-color: #e8c469; background: rgba(50,38,12,.6); }
+.fan-topo { display: flex; justify-content: space-between; align-items: baseline; }
+.fan-topo b { font-size: 9px; font-weight: 800; letter-spacing: .18em; color: #c9b78a; }
+.fan-topo span { font-size: 10px; color: #8b96bb; }
+.fan-barra { height: 6px; margin: 5px 0; background: rgba(255,255,255,.08); }
+.fan-barra i { display: block; height: 100%; background: linear-gradient(90deg,#a855f7,#7dd3fc); }
+.fan-acoes { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.fan-btn {
+  padding: 5px 9px; cursor: pointer; font-family: inherit;
+  font-size: 9px; font-weight: 800; letter-spacing: .08em;
+  background: rgba(16,20,44,.9); color: #64748b; border: 1px solid rgba(107,124,180,.35);
+}
+.fan-btn.pode {
+  color: #21160a; background: linear-gradient(180deg,#ffe9ab,#d19a26); border-color: #e8c469;
+}
+.fan-tem { font-size: 9px; color: #8b96bb; }
+.fan-custo { display: flex; flex-wrap: wrap; gap: 4px; margin: 5px 0; }
+.fan-custo i {
+  font-style: normal; font-size: 9px; color: #86efac;
+  background: rgba(20,60,40,.5); border: 1px solid rgba(134,239,172,.3); padding: 1px 5px;
+}
+.fan-custo i.falta { color: #fca5a5; background: rgba(70,20,25,.5); border-color: rgba(248,113,113,.35); }
+.fa-resumo small { font-size: 9px; color: #8b96bb; }
+
+/* ══ Missões ══ */
+.ms-overlay {
+  position: absolute; inset: 0; z-index: 67;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 40%, rgba(30,24,10,.88), rgba(4,4,8,.96));
+  backdrop-filter: blur(3px); font-family: 'Outfit', sans-serif;
+}
+.ms-overlay.hidden { display: none; }
+.ms-quadro {
+  width: min(680px, 94%); height: 88%; display: flex; flex-direction: column;
+  padding: 12px 16px 14px;
+  background: linear-gradient(168deg, rgba(38,30,14,.98), rgba(10,8,4,.99));
+  border: 2px solid #a97e2c; box-shadow: 0 20px 60px rgba(0,0,0,.75);
+}
+.ms-topo { display: flex; align-items: center; gap: 11px; padding-bottom: 8px;
+           border-bottom: 1px solid rgba(169,126,44,.5); }
+.ms-selo { font-size: 20px; }
+.ms-titulo { flex: 1; margin: 0; font-size: 16px; font-weight: 800; letter-spacing: .24em; color: #f4e2b0; }
+.ms-fechar { width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+             background: rgba(20,14,6,.9); color: #f4dfa4; border: 2px solid rgba(169,126,44,.7); }
+.ms-abas { display: flex; gap: 6px; margin: 9px 0; }
+.ms-aba { padding: 6px 14px; cursor: pointer; font-family: inherit; font-size: 10px;
+          font-weight: 700; letter-spacing: .1em; color: #a08a5e;
+          background: rgba(20,14,6,.8); border: 1px solid rgba(169,126,44,.3); }
+.ms-aba.ativa { color: #f4e2b0; border-color: #e8c469; background: rgba(70,52,18,.7); }
+.ms-lista { flex: 1 1 auto; min-height: 0; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 7px; }
+.ms-item { padding: 9px 11px; background: rgba(16,12,6,.7);
+           border: 1px solid rgba(169,126,44,.28); border-left: 3px solid #e8c469; }
+.ms-item.feita { border-left-color: #86efac; opacity: .8; }
+.ms-item.travada { border-left-color: #475569; opacity: .55; }
+.ms-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ms-cab b { font-size: 13px; color: #f4e2b0; }
+.ms-cab span { font-size: 10px; color: #7dd3fc; }
+.ms-desc { margin: 3px 0 5px; font-size: 10.5px; line-height: 1.4; color: #a08a5e; }
+.ms-obj { font-size: 10.5px; color: #c9b78a; padding: 1px 0; }
+.ms-obj.ok { color: #86efac; text-decoration: line-through; opacity: .75; }
+.ms-vazio { font-size: 11px; color: #7a6a48; font-style: italic; text-align: center; margin-top: 20px; }
+
+/* Missão atual no HUD */
+.hm-caixa {
+  position: absolute; left: 50%; transform: translateX(-50%); top: 78px; z-index: 29;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 5px 14px; pointer-events: none; text-align: center;
+  background: rgba(8,7,16,.75); border: 1px solid rgba(169,126,44,.45);
+  font-family: 'Outfit', sans-serif; max-width: 62%;
+}
+.hm-caixa.hidden { display: none; }
+.hm-rot { font-size: 7.5px; font-weight: 800; letter-spacing: .22em; color: #a08a5e; }
+.hm-nome { font-size: 11.5px; color: #f4e2b0; }
+.hm-obj { font-size: 9.5px; color: #c9b78a; }
+
+/* ══ Pré-tela ══ */
+.pt-overlay {
+  position: absolute; inset: 0; z-index: 90;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 40%, #2a1246 0%, #0d0718 55%, #050308 100%);
+  font-family: 'Outfit', sans-serif;
+}
+.pt-overlay.hidden { display: none; }
+.pt-quadro { display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(560px, 92%); }
+.pt-logo { width: min(64vw, 380px); filter: drop-shadow(0 8px 26px rgba(168,85,247,.45)); }
+.pt-cartao {
+  width: 100%; padding: 12px 14px;
+  background: rgba(12,8,28,.85); border: 2px solid #a97e2c;
+  box-shadow: 0 0 0 1px rgba(250,222,150,.25) inset;
+}
+.pt-heroi { display: flex; align-items: center; gap: 12px; }
+.pt-heroi img { width: 62px; height: 62px; object-fit: contain; object-position: top;
+                image-rendering: pixelated; }
+.pt-info { flex: 1; min-width: 0; }
+.pt-info b { display: block; font-size: 17px; letter-spacing: .1em; color: #f8ecc4; }
+.pt-info span { font-size: 10px; color: #a08fd0; }
+.pt-niveis { display: flex; gap: 12px; margin-top: 5px; }
+.pt-niveis span { font-size: 8.5px; font-weight: 800; letter-spacing: .14em; color: #8a79b8; }
+.pt-niveis b { font-size: 14px; color: #f2e3b6; margin-left: 3px; }
+.pt-moedas { display: flex; gap: 10px; justify-content: center; margin-top: 10px;
+             padding-top: 9px; border-top: 1px solid rgba(169,126,44,.35); }
+.pt-moeda { font-size: 12px; color: #b9a6e0; }
+.pt-moeda b { color: #f2e3b6; }
+.pt-moeda.ouro b { color: #ffd77a; }
+.pt-moeda.claves b { color: #7dd3fc; }
+.pt-missao {
+  width: 100%; padding: 9px 12px; text-align: center;
+  background: rgba(12,8,28,.7); border: 1px solid rgba(146,110,200,.35);
+}
+.pt-missao span { font-size: 8px; font-weight: 800; letter-spacing: .22em; color: #8a79b8; }
+.pt-missao b { display: block; font-size: 13px; color: #f4e2b0; margin-top: 2px; }
+.pt-missao small { font-size: 10px; color: #a08fd0; }
+.pt-jogar {
+  width: min(320px, 80%); padding: 13px; cursor: pointer; font-family: inherit;
+  font-size: 14px; font-weight: 800; letter-spacing: .26em;
+  color: #21160a; background: linear-gradient(180deg, #ffe9ab, #d19a26);
+  border: 2px solid #e8c469; box-shadow: 0 0 24px rgba(232,196,105,.45);
+  animation: ptRespira 2.4s ease-in-out infinite;
+}
+@keyframes ptRespira { 50% { box-shadow: 0 0 34px rgba(232,196,105,.8); } }
+
+@media (max-height: 460px) {
+  .pt-logo { width: min(46vw, 250px); }
+  .pt-heroi img { width: 46px; height: 46px; }
+  .pt-jogar { padding: 9px; font-size: 12px; }
+  .hm-caixa { top: 62px; }
+}
