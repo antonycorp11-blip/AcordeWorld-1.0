@@ -3,6 +3,26 @@
 // ============================================================
 'use strict';
 
+// ── Modo de sessão ────────────────────────────────────────────────────────────
+// O jogo tem dois públicos: o jogador, que começa do zero, e o desenvolvedor, que
+// precisa de carteira cheia para testar o topo da progressão. Os dois não cabem no
+// mesmo save — carteira cheia esconde a economia inteira. Então são dois saves, e
+// quem escolhe é a URL:
+//
+//   .../index.html            → jogador novo, começa do zero
+//   .../index.html?banca=1    → banca de testes, claves e material fartos
+//
+// O mundo (mapas, monstros, props, baús posicionados no editor) fica FORA disso de
+// propósito: é trabalho de autoria, não progresso, e vale para os dois modos.
+const BANCA_DE_TESTES = (() => {
+  try {
+    const q = new URLSearchParams(location.search);
+    return q.get('banca') === '1' || q.has('banca') && q.get('banca') !== '0';
+  } catch (e) { return false; }
+})();
+// Sufixo aplicado só às chaves de PROGRESSO, para os dois modos não se sobrescreverem.
+const SUFIXO_DO_SAVE = BANCA_DE_TESTES ? '_banca' : '';
+
 const SCREEN_W = 1024;
 const SCREEN_H = 571;
 
@@ -7206,7 +7226,27 @@ let forjadorInterior = null;
   img.onerror = () => {};
   img.src = 'assets/cenarios/mapas/interior_forjador.jpg';
 })();
-const SAVE_KEY = 'acordelot_player_v1';
+const SAVE_KEY = 'acordelot_player_v1' + SUFIXO_DO_SAVE;
+const CHAVE_DAS_CENAS = 'acordelot_cenas' + SUFIXO_DO_SAVE;
+
+// Mudança única de endereço. Todo o progresso feito até aqui foi feito com a banca
+// sempre ligada, e mora na chave que agora pertence ao jogador limpo. Sem mover, o
+// link de jogador novo abriria com 400 mil claves e a economia continuaria invisível.
+// Então o save antigo vai para o endereço da banca — onde ele sempre pertenceu — e a
+// chave do jogador fica vazia. Roda uma vez só; o marcador impede o resto.
+(function mudarSaveAntigoParaBanca() {
+  try {
+    if (localStorage.getItem('acordelot_split_v1')) return;
+    localStorage.setItem('acordelot_split_v1', '1');
+    [['acordelot_player_v1', 'acordelot_player_v1_banca'],
+     ['acordelot_cenas', 'acordelot_cenas_banca']].forEach(([de, para]) => {
+      const v = localStorage.getItem(de);
+      // Não sobrescreve um save de banca que por acaso já exista.
+      if (v !== null && localStorage.getItem(para) === null) localStorage.setItem(para, v);
+      if (v !== null) localStorage.removeItem(de);
+    });
+  } catch (e) {}
+})();
 
 let shopCatalog = { coins_start: 300, slots: {}, items: [] };
 let playerCoins = 300;
@@ -11134,7 +11174,7 @@ function marcarCenaRodada(roteiro) {
   if (!roteiro) return;
   CUT.jaRodou[roteiro.id] = true;
   if (cenaPorMapa(roteiro)) CUT.jaRodou['mapa:' + roteiro.mapa] = true;
-  try { localStorage.setItem('acordelot_cenas', JSON.stringify(CUT.jaRodou)); } catch (e) {}
+  try { localStorage.setItem(CHAVE_DAS_CENAS, JSON.stringify(CUT.jaRodou)); } catch (e) {}
 }
 
 // Chamada sempre que o jogador põe o pé num mapa: a cena de abertura roda na
@@ -11202,7 +11242,7 @@ function talvezIniciarCenaDoMapa(mapKey) {
 // Para testar de novo no PC: `resetarCenas()` no console e recarregar.
 window.resetarCenas = function () {
   CUT.jaRodou = {};
-  try { localStorage.removeItem('acordelot_cenas'); } catch (e) {}
+  try { localStorage.removeItem(CHAVE_DAS_CENAS); } catch (e) {}
   showToast('🎬 Cenas liberadas para rodar de novo');
 };
 
@@ -13175,7 +13215,7 @@ function initTesteDeCena() {
     if (!r) { showToast('⚠️ Nenhuma cena cadastrada em assets/cutscenes/index.json'); return; }
     if (!bgSources[r.mapa]) { showToast('⚠️ O cenário da cena não existe mais: ' + r.mapa); return; }
     CUT.jaRodou = {};
-    try { localStorage.removeItem('acordelot_cenas'); } catch (e) {}
+    try { localStorage.removeItem(CHAVE_DAS_CENAS); } catch (e) {}
     if (CUT.ativo) encerrarCena();
     iniciarCena(r);
     showToast(`🎬 ${r.nome || r.id}`);
@@ -13760,7 +13800,7 @@ function initMainMenu() {
     }
     mainMenuOverlay?.classList.add('hidden');
 
-    try { localStorage.removeItem('acordelot_cenas'); } catch (e) {}
+    try { localStorage.removeItem(CHAVE_DAS_CENAS); } catch (e) {}
 
     // Aventura nova começa sem ferramentas: o martelo precisa ser conquistado na forja,
     // senão a missão do Dorn nasce cumprida e o jogador já entra em cena armado.
@@ -13945,7 +13985,7 @@ async function finishInit(){
   showToast('🎵 Acordelot Engine carregado!');
 
   // Cena de abertura: roda uma vez por jogador, e nunca dentro do editor.
-  try { CUT.jaRodou = JSON.parse(localStorage.getItem('acordelot_cenas') || '{}'); } catch (e) {}
+  try { CUT.jaRodou = JSON.parse(localStorage.getItem(CHAVE_DAS_CENAS) || '{}'); } catch (e) {}
   await carregarCatalogoDeCenas();
   preencherMenuDeCenas();
   abrirMenuInicialSePreciso();   // de novo: agora o catálogo existe e o menu fica coerente
@@ -16561,8 +16601,9 @@ function habilidadeAberta(id) {
 // cada abertura do jogo — então é possível gastar tudo, recarregar e repetir o teste sem
 // zerar o save.
 //
-// Para desligar quando o fluxo estiver aprovado, basta esta linha virar false.
-const BANCA_DE_TESTES = true;
+// Quem liga é a URL (?banca=1), não uma constante — veja BANCA_DE_TESTES no topo do
+// arquivo. O save da banca é separado do save do jogador, então testar aqui não suja
+// a partida limpa.
 const BANCA_CLAVES = 400000;   // dá para abrir as 4 habilidades e maximizar as 7 passivas
 const BANCA_PONTOS  = 40;      // 7 passivas × 4 níveis = 28; sobra folga
 // Matéria-prima dos forjadores. Sem ela as duas telas abrem vazias e não dá para
