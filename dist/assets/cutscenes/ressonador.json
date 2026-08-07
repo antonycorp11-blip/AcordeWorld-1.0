@@ -63,12 +63,12 @@
     {
       "cmd": "falar",
       "quem": "Sr. Antony",
-      "texto": "Magia aqui não é gesto nem palavra. É acorde."
+      "texto": "Magia aqui não é gesto nem palavra. É a escala que você sabe."
     },
     {
       "cmd": "falar",
       "quem": "Sr. Antony",
-      "texto": "Três notas soando juntas na hora certa. Isso move o mundo."
+      "texto": "Três notas soando juntas formam um acorde. E o acorde não é o golpe — é o que decide de que você é capaz."
     },
     {
       "cmd": "esperar",
@@ -126,6 +126,21 @@
       "cmd": "falar",
       "quem": "Sr. Antony",
       "texto": "São som que não conseguiu terminar de tocar."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "E cada Eco guarda UMA nota. Só a dele."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Se você precisa de Ré, procure o Eco do Ré. Fragmento da nota certa rende o dobro na hora de condensar."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Quem sai batendo em tudo junta pó. Quem escuta antes junta o que precisa."
     },
     {
       "cmd": "falar",

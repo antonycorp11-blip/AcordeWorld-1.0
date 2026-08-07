@@ -129,6 +129,57 @@
       "texto": "Isso. Vai lá. Entre na ferraria e use a bigorna."
     },
     {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Espera. Antes de você ir."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Tem uma caixa ali no fundo. Luva, anel e colar. Chamam de Coleção do Arranjador."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Peça solta não vale grande coisa. As três juntas conversam entre si — igual a um arranjo."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Eram do meu aprendiz."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "...e por que você está me dando?"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Porque ele morreu e você não."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 2000
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Ferramenta parada não honra ninguém. Usa, melhora, e não devolve."
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "Equipamentos têm tiers e bônus de conjunto. Melhore as três peças da Coleção do Arranjador para ativar o bônus completo."
+    },
+    {
       "cmd": "dar",
       "item": "wood",
       "quantidade": 4
