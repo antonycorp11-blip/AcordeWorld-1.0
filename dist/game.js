@@ -5237,6 +5237,23 @@ function derivedStats() {
   s.danoCritico += eq.danoCritico || 0;
   s.lifesteal += eq.rouboDeVida || 0;
   s.recarga   += eq.reducaoRecarga || 0;
+  // Acordes: o efeito de cada um é a FUNÇÃO harmônica dele na escala equipada. Entra
+  // depois do equipamento e nos mesmos campos, para o total da tela ser o do combate.
+  const ac = typeof bonusDeAcordes === 'function' ? bonusDeAcordes() : {};
+  const cad = typeof bonusDeCadencia === 'function' ? bonusDeCadencia() : {};
+  [ac, cad].forEach(b2 => {
+    s.maxHp       += b2.vida || 0;
+    s.dmg         += b2.ataque || 0;
+    s.defesa      += b2.defesa || 0;
+    s.dmgMagia    += b2.magia || 0;
+    s.atkSpeed    += b2.agilidade || 0;
+    s.crit        += b2.critico || 0;
+    s.danoCritico += b2.danoCritico || 0;
+    s.lifesteal   += b2.rouboDeVida || 0;
+    s.recarga     += b2.reducaoRecarga || 0;
+  });
+  s.maxHp = Math.max(20, s.maxHp);   // a sensível tira vida; nunca pode zerar
+
   // Tetos: sem eles um conjunto completo em T6 zeraria o dano recebido.
   s.defesa = Math.min(70, s.defesa);
   s.recarga = Math.min(70, s.recarga);
@@ -7260,6 +7277,7 @@ function savePlayerData() {
       passivas, habilidadesAbertas,
       passesDeDungeon, dungeons: ultimaConclusaoDeDungeon,
       itensPossuidos, equipado,
+      acordesPossuidos, escalasEquipadas, acordesEquipados, funcaoPreferida,
       toolQuality, notas: notasPossuidas, escalas: escalasMontadas, acordes: acordesObtidos,
       // Progresso de jogo: no celular não há servidor, então tudo vive aqui.
       nome: playerName, heroi: selectedHeroId,
@@ -7323,6 +7341,10 @@ function loadPlayerData() {
     if (d.dungeons) ultimaConclusaoDeDungeon = d.dungeons;
     if (d.itensPossuidos) itensPossuidos = d.itensPossuidos;
     if (d.equipado) equipado = d.equipado;
+    if (d.acordesPossuidos) acordesPossuidos = d.acordesPossuidos;
+    if (Array.isArray(d.escalasEquipadas)) escalasEquipadas = d.escalasEquipadas;
+    if (Array.isArray(d.acordesEquipados)) acordesEquipados = d.acordesEquipados;
+    if (d.funcaoPreferida) funcaoPreferida = d.funcaoPreferida;
     if (d.attrs) {
       // Saves antigos guardam força/agilidade/capacidade. Converte em vez de descartar,
       // senão quem já jogou perde o progresso ao atualizar.
@@ -7590,7 +7612,11 @@ function selarEscala() {
   graus.concat([notaNaPosicao(montagem.iTonica)]).forEach((g, i) =>
     setTimeout(() => tocarNota(g.id, 0.8, 0.13), i * 260));
   savePlayerData();
+  // A recompensa de forjar não é só a escala: é escolher três acordes do campo harmônico
+  // dela. É aqui que a teoria vira build.
+  const tonica = montagem.tonica;
   setTimeout(() => { montagem = null; renderAltar(); }, 2600);
+  setTimeout(() => abrirEscolhaDeAcordes(tonica), 2800);
 }
 
 // Notas onde o caminho pisou, incluindo a tônica.
@@ -16754,6 +16780,7 @@ document.getElementById('fichaHeroi')?.addEventListener('click', e => {
 document.querySelectorAll('#fichaHeroi .ficha-aba').forEach(b => {
   b.addEventListener('click', () => {
     if (b.dataset.aba === 'equip') { fecharFicha(); abrirEquipamentos(); return; }
+    if (b.dataset.aba === 'composicao') { fecharFicha(); abrirComposicao(); return; }
     if (b.classList.contains('travada')) {
       showToast(`${b.textContent.trim()} ainda não existe no jogo.`);
       return;
@@ -19278,3 +19305,409 @@ function alternarTrilha() {
 }
 try { if (localStorage.getItem('acordelot_trilha') === '0') TRILHA.ligada = false; } catch (e) {}
 document.getElementById('somBtn')?.addEventListener('click', alternarTrilha);
+
+// ══ Composição — escalas, acordes e função harmônica ══════════════════════════
+// A regra que sustenta tudo: o ACORDE é o item, a ESCALA é o contexto, e o EFEITO é a
+// função harmônica. O mesmo Sol maior é o V em Dó (ataque), o I em Sol (vida) e o IV em
+// Ré (defesa) — porque em música ele É três coisas diferentes.
+//
+// Isso muda o que significa mudar de build: não é caçar item novo, é trocar de escala.
+
+// Ordem cromática, em semitons a partir de Dó.
+const CROMA = ['do','do_s','re','re_s','mi','fa','fa_s','sol','sol_s','la','la_s','si'];
+const CIFRA_SUSTENIDO = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const CIFRA_BEMOL     = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+// Tonalidades que se escrevem com bemol. Um Fá maior tem Si BEMOL, não Lá sustenido —
+// e num jogo que se propõe a ensinar música isso não pode sair errado na tela.
+const TONS_COM_BEMOL = new Set(['fa','la_s','re_s','sol_s','do_s']);
+
+function semitomDaNota(id) { return Math.max(0, CROMA.indexOf(id)); }
+
+// Nome de exibição de um acorde, respeitando a grafia da tonalidade em que ele aparece.
+function cifraDe(semitom, qualidade, tomDaEscala) {
+  const usaBemol = TONS_COM_BEMOL.has(tomDaEscala || 'do');
+  const base = (usaBemol ? CIFRA_BEMOL : CIFRA_SUSTENIDO)[((semitom % 12) + 12) % 12];
+  return base + (qualidade === 'menor' ? 'm' : qualidade === 'dim' ? '°' : '');
+}
+// Id interno, sempre em sustenido — é a chave do inventário, e não pode depender da
+// escala em que o acorde foi visto pela primeira vez.
+function idDoAcorde(semitom, qualidade) {
+  const base = CIFRA_SUSTENIDO[((semitom % 12) + 12) % 12];
+  return base + (qualidade === 'menor' ? 'm' : qualidade === 'dim' ? 'dim' : '');
+}
+
+// O campo harmônico maior. Graus, qualidades e funções são fixos — é o que faz o sistema
+// inteiro funcionar sem tabela por escala.
+const CAMPO_MAIOR = [
+  { grau: 1, romano: 'I',    passos: 0,  qualidade: 'maior' },
+  { grau: 2, romano: 'ii',   passos: 2,  qualidade: 'menor' },
+  { grau: 3, romano: 'iii',  passos: 4,  qualidade: 'menor' },
+  { grau: 4, romano: 'IV',   passos: 5,  qualidade: 'maior' },
+  { grau: 5, romano: 'V',    passos: 7,  qualidade: 'maior' },
+  { grau: 6, romano: 'vi',   passos: 9,  qualidade: 'menor' },
+  { grau: 7, romano: 'vii°', passos: 11, qualidade: 'dim'   },
+];
+
+// Os sete acordes de uma escala, com id, cifra escrita e função.
+function camposDaEscala(tonicaId) {
+  const raiz = semitomDaNota(tonicaId);
+  return CAMPO_MAIOR.map(g => ({
+    ...g,
+    id: idDoAcorde(raiz + g.passos, g.qualidade),
+    cifra: cifraDe(raiz + g.passos, g.qualidade, tonicaId),
+    tonica: tonicaId,
+  }));
+}
+
+// Em que função um acorde aparece numa escala — ou null se ele não pertence a ela.
+// É esta função que faz o mesmo acorde valer coisas diferentes.
+function funcaoNaEscala(acordeId, tonicaId) {
+  return camposDaEscala(tonicaId).find(c => c.id === acordeId) || null;
+}
+
+// ── o que cada função dá ──
+// A função no jogo é a função harmônica de verdade. Quem sabe teoria já sabe jogar; quem
+// joga muito aprende teoria sem aula nenhuma.
+const EFEITO_DA_FUNCAO = {
+  1: { nome: 'Tônica',       cor: '#fbbf24', desc: 'Repouso. É para onde tudo volta.',
+       attrs: { vida: 48 } },
+  2: { nome: 'Supertônica',  cor: '#7dd3fc', desc: 'Prepara a dominante — não é destino, é caminho.',
+       attrs: { reducaoRecarga: 6 } },
+  3: { nome: 'Mediante',     cor: '#c084fc', desc: 'Ponte ambígua entre a tônica e a dominante.',
+       attrs: { magia: 10 } },
+  4: { nome: 'Subdominante', cor: '#86efac', desc: 'Afasta de casa e abre o espaço.',
+       attrs: { defesa: 5 } },
+  5: { nome: 'Dominante',    cor: '#f87171', desc: 'Tensão máxima. Quer resolver.',
+       attrs: { ataque: 14 } },
+  6: { nome: 'Relativa menor', cor: '#a78bfa', desc: 'A mesma escala, vista pelo lado triste.',
+       attrs: { rouboDeVida: 3 } },
+  7: { nome: 'Sensível',     cor: '#fca5a5', desc: 'Instável. Precisa resolver, ou dói.',
+       attrs: { critico: 9, danoCritico: 22, vida: -25 } },
+};
+
+// ── estado do jogador ──
+let acordesPossuidos = {};    // idDoAcorde → quantidade
+let escalasEquipadas = [];    // até 3 tônicas: ['do','sol']
+let acordesEquipados = [];    // até 7 ids
+let funcaoPreferida = {};     // idDoAcorde → tônica escolhida, quando cabe em mais de uma
+const MAX_ESCALAS_EQUIPADAS = 3;
+const MAX_ACORDES_EQUIPADOS = 7;
+const ACORDES_POR_FORJA = 3;
+
+function temAcorde(id) { return (acordesPossuidos[id] || 0) > 0; }
+
+// Em qual escala equipada este acorde está funcionando agora. Se cabe em mais de uma, vale
+// a preferência do jogador; senão, a primeira que o contém.
+function escalaAtivaDoAcorde(id) {
+  const cabem = escalasEquipadas.filter(t => funcaoNaEscala(id, t));
+  if (!cabem.length) return null;
+  const pref = funcaoPreferida[id];
+  return cabem.includes(pref) ? pref : cabem[0];
+}
+function funcaoAtivaDoAcorde(id) {
+  const t = escalaAtivaDoAcorde(id);
+  return t ? funcaoNaEscala(id, t) : null;
+}
+
+// A soma de todos os acordes equipados que estão de fato funcionando. Alimenta
+// `derivedStats`, igual ao equipamento — então o número da tela é o número do combate.
+function bonusDeAcordes() {
+  const soma = {};
+  acordesEquipados.forEach(id => {
+    const f = funcaoAtivaDoAcorde(id);
+    if (!f) return;                       // inerte: nenhuma escala equipada o contém
+    const e = EFEITO_DA_FUNCAO[f.grau];
+    if (!e) return;
+    Object.entries(e.attrs).forEach(([k, v]) => { soma[k] = (soma[k] || 0) + v; });
+  });
+  return soma;
+}
+
+// ── Cadências ─────────────────────────────────────────────────────────────────
+// É aqui que os acordes deixam de ser um saco de números e viram harmonia. A cadência
+// premia quem entende PARA ONDE a música anda, não quem juntou mais peça.
+//
+// A perfeita completa (ii–V–I) é a progressão mais usada da música ocidental. Ela ser o
+// bônus mais forte do jogo não é coincidência: é a tese do projeto.
+const CADENCIAS = [
+  { id: 'perfeita', nome: 'Cadência Perfeita', graus: [2, 5, 1],
+    desc: 'ii – V – I. Libera uma habilidade própria da escala.',
+    habilidade: true },
+  { id: 'autentica', nome: 'Resolução', graus: [5, 1],
+    desc: 'V – I. +10% de dano no golpe seguinte a uma habilidade.',
+    attrs: { bonusPosHabilidade: 10 } },
+  { id: 'plagal', nome: 'Cadência Plagal', graus: [4, 1],
+    desc: 'IV – I, o "amém". Cura 2% da vida ao encerrar um combo.',
+    attrs: { curaNoRemate: 2 } },
+  { id: 'suspensiva', nome: 'Cadência Suspensiva', graus: [1, 5],
+    desc: 'Termina em V. A tensão não resolve: +15% de crítico, +10% de recarga.',
+    attrs: { critico: 15, reducaoRecarga: -10 } },
+];
+
+// Uma cadência está ativa quando TODOS os graus dela existem, na MESMA escala equipada.
+// Misturar o V de uma escala com o I de outra não é cadência — é engano.
+function cadenciasAtivas() {
+  const out = [];
+  escalasEquipadas.forEach(tonica => {
+    const grausAqui = new Set();
+    acordesEquipados.forEach(id => {
+      const f = funcaoNaEscala(id, tonica);
+      if (f && escalaAtivaDoAcorde(id) === tonica) grausAqui.add(f.grau);
+    });
+    CADENCIAS.forEach(c => {
+      if (c.graus.every(g => grausAqui.has(g))) out.push({ ...c, tonica });
+    });
+  });
+  // A perfeita contém a autêntica; mostrar as duas confunde. Fica a mais alta por escala.
+  const melhorPorEscala = {};
+  out.forEach(c => {
+    const atual = melhorPorEscala[c.tonica];
+    const peso = c.graus.length;
+    if (!atual || peso > atual.graus.length) melhorPorEscala[c.tonica] = c;
+  });
+  const principais = Object.values(melhorPorEscala);
+  // Plagal e suspensiva convivem com as outras: são cores diferentes, não upgrades.
+  const extras = out.filter(c => (c.id === 'plagal' || c.id === 'suspensiva')
+                                 && !principais.includes(c));
+  return principais.concat(extras);
+}
+
+function bonusDeCadencia() {
+  const soma = {};
+  cadenciasAtivas().forEach(c => {
+    Object.entries(c.attrs || {}).forEach(([k, v]) => { soma[k] = (soma[k] || 0) + v; });
+  });
+  return soma;
+}
+
+// A habilidade extra da Cadência Perfeita muda com a escala — é o que dá razão para forjar
+// escalas diferentes em vez de repetir a mesma para sempre.
+const HABILIDADE_DA_CADENCIA = {
+  do:  { nome: 'Resolução Maior',     desc: 'Cura em área ao redor de você.',        efeito: 'cura_area' },
+  sol: { nome: 'Resolução Brilhante', desc: 'Aumenta o dano por alguns segundos.',   efeito: 'buff_dano' },
+  fa:  { nome: 'Resolução Serena',    desc: 'Zera a recarga das outras habilidades.', efeito: 'zera_recarga' },
+  re:  { nome: 'Resolução Firme',     desc: 'Escudo que absorve dano por 6 s.',      efeito: 'escudo' },
+  la:  { nome: 'Resolução Menor',     desc: 'Dreno em área: fere e cura você.',      efeito: 'dreno_area' },
+  mi:  { nome: 'Resolução Aguda',     desc: 'O próximo golpe é crítico garantido.',  efeito: 'crit_certo' },
+  si:  { nome: 'Resolução Tensa',     desc: 'Dano alto em linha reta.',              efeito: 'linha' },
+};
+function habilidadesDeCadencia() {
+  return cadenciasAtivas()
+    .filter(c => c.habilidade)
+    .map(c => ({ tonica: c.tonica, ...(HABILIDADE_DA_CADENCIA[c.tonica] || {
+      nome: 'Resolução', desc: 'Um efeito próprio desta escala.', efeito: 'cura_area' }) }))
+    .filter(h => h.nome);
+}
+
+// ── Escolher acordes ao selar a escala ────────────────────────────────────────
+// Forjar uma escala dá direito a três dos sete acordes dela. Não é sorteio: é escolha, e
+// escolha só é interessante quando dói. Quer os outros quatro? Forje a escala de novo.
+let escolhaEmCurso = null;
+
+function abrirEscolhaDeAcordes(tonicaId) {
+  const el = document.getElementById('escolhaAcordes');
+  if (!el) return;
+  const nota = notaPorId(tonicaId);
+  escolhaEmCurso = { tonica: tonicaId, escolhidos: [] };
+  document.getElementById('acTitulo').textContent =
+    `${nota ? nota.nome : tonicaId} maior — campo harmônico`;
+  desenharCampoDaEscolha();
+  el.classList.remove('hidden');
+}
+
+function desenharCampoDaEscolha() {
+  const cx = document.getElementById('acCampo');
+  if (!cx || !escolhaEmCurso) return;
+  const campo = camposDaEscala(escolhaEmCurso.tonica);
+  const restam = ACORDES_POR_FORJA - escolhaEmCurso.escolhidos.length;
+  document.getElementById('acRestam').textContent = restam;
+
+  cx.innerHTML = campo.map(c => {
+    const e = EFEITO_DA_FUNCAO[c.grau];
+    const sel = escolhaEmCurso.escolhidos.includes(c.id);
+    const jaTem = temAcorde(c.id);
+    return `<button class="ac-carta${sel ? ' escolhida' : ''}${jaTem ? ' repetido' : ''}"
+                    data-id="${c.id}" style="--cor:${e.cor}">
+      <span class="ac-romano">${c.romano}</span>
+      <b class="ac-cifra">${c.cifra}</b>
+      <span class="ac-funcao">${e.nome}</span>
+      <small class="ac-desc">${e.desc}</small>
+      <span class="ac-attrs">${textoDosAtributos(e.attrs)}</span>
+      ${jaTem ? '<i class="ac-jatem">já possui</i>' : ''}
+    </button>`;
+  }).join('');
+
+  cx.querySelectorAll('.ac-carta').forEach(b => b.addEventListener('click', () => {
+    const id = b.dataset.id;
+    const i = escolhaEmCurso.escolhidos.indexOf(id);
+    if (i >= 0) escolhaEmCurso.escolhidos.splice(i, 1);
+    else if (escolhaEmCurso.escolhidos.length < ACORDES_POR_FORJA) escolhaEmCurso.escolhidos.push(id);
+    else { showToast(`Só ${ACORDES_POR_FORJA} por forja. Toque num escolhido para trocar.`); return; }
+    desenharCampoDaEscolha();
+  }));
+  const btn = document.getElementById('acConfirmar');
+  btn.disabled = escolhaEmCurso.escolhidos.length === 0;
+  btn.textContent = escolhaEmCurso.escolhidos.length
+    ? `GUARDAR ${escolhaEmCurso.escolhidos.length} ACORDE${escolhaEmCurso.escolhidos.length > 1 ? 'S' : ''}`
+    : 'ESCOLHA PELO MENOS UM';
+}
+
+function textoDosAtributos(attrs) {
+  const R = { vida: 'Vida', ataque: 'Ataque', defesa: 'Defesa', magia: 'Magia',
+              critico: 'Crítico', danoCritico: 'Dano crít.', rouboDeVida: 'Roubo',
+              reducaoRecarga: 'Recarga', agilidade: 'Agilidade' };
+  const PCT = new Set(['defesa','magia','critico','danoCritico','rouboDeVida','reducaoRecarga','agilidade']);
+  return Object.entries(attrs).map(([k, v]) =>
+    `<i class="${v < 0 ? 'ruim' : ''}">${v > 0 ? '+' : ''}${v}${PCT.has(k) ? '%' : ''} ${R[k] || k}</i>`).join('');
+}
+
+function confirmarEscolhaDeAcordes() {
+  if (!escolhaEmCurso) return;
+  escolhaEmCurso.escolhidos.forEach(id => {
+    acordesPossuidos[id] = (acordesPossuidos[id] || 0) + 1;
+  });
+  // A escala forjada entra equipada sozinha se ainda houver espaço — senão o jogador
+  // acabaria de forjar e não veria efeito nenhum, o que parece defeito.
+  if (!escalasEquipadas.includes(escolhaEmCurso.tonica)
+      && escalasEquipadas.length < MAX_ESCALAS_EQUIPADAS) {
+    escalasEquipadas.push(escolhaEmCurso.tonica);
+  }
+  // E os acordes novos entram equipados enquanto couber, pelo mesmo motivo.
+  escolhaEmCurso.escolhidos.forEach(id => {
+    if (!acordesEquipados.includes(id) && acordesEquipados.length < MAX_ACORDES_EQUIPADOS) {
+      acordesEquipados.push(id);
+    }
+  });
+  const n = escolhaEmCurso.escolhidos.length;
+  escolhaEmCurso = null;
+  document.getElementById('escolhaAcordes')?.classList.add('hidden');
+  savePlayerData();
+  showToast(`${n} acorde${n > 1 ? 's' : ''} guardado${n > 1 ? 's' : ''}. Veja em Composição.`);
+}
+document.getElementById('acConfirmar')?.addEventListener('click', confirmarEscolhaDeAcordes);
+
+// ── Tela de Composição ────────────────────────────────────────────────────────
+function abrirComposicao() {
+  document.getElementById('composicao')?.classList.remove('hidden');
+  desenharComposicao();
+}
+function fecharComposicao() { document.getElementById('composicao')?.classList.add('hidden'); }
+
+function desenharComposicao() {
+  const el = document.getElementById('composicao');
+  if (!el || el.classList.contains('hidden')) return;
+
+  // ── escalas ──
+  document.getElementById('compContaEscalas').textContent =
+    `${escalasEquipadas.length}/${MAX_ESCALAS_EQUIPADAS}`;
+  const forjadas = [...new Set(escalasMontadas.map(e => e.tonica))];
+  const ex = document.getElementById('compEscalas');
+  ex.innerHTML = forjadas.length
+    ? forjadas.map(t => {
+        const n = notaPorId(t);
+        const on = escalasEquipadas.includes(t);
+        return `<button class="comp-escala${on ? ' on' : ''}" data-escala="${t}">
+          <b>${n ? n.nome : t}</b><small>maior</small></button>`;
+      }).join('')
+    : '<p class="comp-vazio">Nenhuma escala forjada ainda. Vá ao Forjador de Escalas.</p>';
+  ex.querySelectorAll('.comp-escala').forEach(b => b.addEventListener('click', () => {
+    const t = b.dataset.escala;
+    const i = escalasEquipadas.indexOf(t);
+    if (i >= 0) escalasEquipadas.splice(i, 1);
+    else if (escalasEquipadas.length < MAX_ESCALAS_EQUIPADAS) escalasEquipadas.push(t);
+    else { showToast(`Só ${MAX_ESCALAS_EQUIPADAS} escalas de cada vez.`); return; }
+    savePlayerData(); desenharComposicao();
+  }));
+
+  // ── acordes equipados e guardados ──
+  document.getElementById('compContaAcordes').textContent =
+    `${acordesEquipados.length}/${MAX_ACORDES_EQUIPADOS}`;
+  const cartaDoAcorde = (id, equipado) => {
+    const f = funcaoAtivaDoAcorde(id);
+    const cor = f ? EFEITO_DA_FUNCAO[f.grau].cor : '#64748b';
+    const cifra = f ? f.cifra : id.replace('dim', '°');
+    return `<button class="comp-acorde${equipado ? ' on' : ''}${f ? '' : ' inerte'}"
+                    data-acorde="${id}" style="--cor:${cor}">
+      <b>${cifra}</b><small>${f ? f.romano : '—'}</small></button>`;
+  };
+  document.getElementById('compAcordes').innerHTML =
+    acordesEquipados.length ? acordesEquipados.map(id => cartaDoAcorde(id, true)).join('')
+                            : '<p class="comp-vazio">Nenhum acorde equipado.</p>';
+  const guardados = Object.keys(acordesPossuidos)
+    .filter(id => acordesPossuidos[id] > 0 && !acordesEquipados.includes(id));
+  document.getElementById('compBau').innerHTML =
+    guardados.length ? guardados.map(id => cartaDoAcorde(id, false)).join('')
+                     : '<p class="comp-vazio">Nada guardado.</p>';
+
+  el.querySelectorAll('.comp-acorde').forEach(b => b.addEventListener('click', () => {
+    const id = b.dataset.acorde;
+    const i = acordesEquipados.indexOf(id);
+    if (i >= 0) acordesEquipados.splice(i, 1);
+    else if (acordesEquipados.length < MAX_ACORDES_EQUIPADOS) acordesEquipados.push(id);
+    else { showToast(`Só ${MAX_ACORDES_EQUIPADOS} acordes de cada vez.`); return; }
+    savePlayerData(); desenharComposicao();
+  }));
+
+  // ── como cada um está funcionando ──
+  // É a coluna que ensina: o mesmo acorde muda de efeito conforme a escala equipada, e
+  // quando cabe em mais de uma, o jogador escolhe. Essa escolha É a build.
+  const fx = document.getElementById('compFuncoes');
+  fx.innerHTML = acordesEquipados.length ? acordesEquipados.map(id => {
+    const cabem = escalasEquipadas.filter(t => funcaoNaEscala(id, t));
+    const f = funcaoAtivaDoAcorde(id);
+    if (!f) {
+      return `<div class="comp-linha inerte">
+        <b>${id.replace('dim','°')}</b>
+        <span>Inerte — nenhuma escala equipada contém este acorde.</span></div>`;
+    }
+    const e = EFEITO_DA_FUNCAO[f.grau];
+    const outras = cabem.filter(t => t !== escalaAtivaDoAcorde(id));
+    return `<div class="comp-linha" style="--cor:${e.cor}">
+      <b>${f.cifra}</b>
+      <span class="cl-func">${f.romano} em ${(notaPorId(f.tonica) || {}).nome} maior
+        · <i>${e.nome}</i></span>
+      <span class="cl-attrs">${textoDosAtributos(e.attrs)}</span>
+      ${outras.map(t => `<button class="cl-trocar" data-id="${id}" data-para="${t}">
+        virar ${funcaoNaEscala(id, t).romano} em ${(notaPorId(t) || {}).nome}</button>`).join('')}
+    </div>`;
+  }).join('') : '<p class="comp-vazio">Equipe acordes para ver o efeito deles.</p>';
+  fx.querySelectorAll('.cl-trocar').forEach(b => b.addEventListener('click', () => {
+    funcaoPreferida[b.dataset.id] = b.dataset.para;
+    savePlayerData(); desenharComposicao();
+  }));
+
+  // ── cadências ──
+  const ativas = cadenciasAtivas();
+  const cx = document.getElementById('compCadencias');
+  cx.innerHTML = CADENCIAS.map(c => {
+    const viva = ativas.find(a => a.id === c.id);
+    return `<div class="comp-cad${viva ? ' viva' : ''}">
+      <b>${viva ? '✓' : '○'} ${c.nome}</b>
+      <small>${c.desc}</small>
+      ${viva ? `<i>em ${(notaPorId(viva.tonica) || {}).nome} maior</i>` : ''}
+    </div>`;
+  }).join('');
+  const habs = habilidadesDeCadencia();
+  if (habs.length) {
+    cx.innerHTML += habs.map(h => `<div class="comp-cad viva habilidade">
+      <b>♪ ${h.nome}</b><small>${h.desc}</small>
+      <i>habilidade liberada pela cadência perfeita</i></div>`).join('');
+  }
+
+  // ── total ──
+  const soma = {};
+  [bonusDeAcordes(), bonusDeCadencia()].forEach(b2 =>
+    Object.entries(b2).forEach(([k, v]) => { soma[k] = (soma[k] || 0) + v; }));
+  const t = document.getElementById('compTotal');
+  const linhas = textoDosAtributos(soma);
+  t.innerHTML = linhas || '<span class="comp-vazio">Nada somando ainda.</span>';
+  t.innerHTML += `<div class="comp-poder">Nível de poder: <b>${nivelDePoder().toLocaleString('pt-BR')}</b></div>`;
+}
+
+document.getElementById('compFechar')?.addEventListener('click', fecharComposicao);
+document.getElementById('compVoltar')?.addEventListener('click', () => {
+  fecharComposicao(); abrirFicha(selectedHeroId);
+});
+document.getElementById('composicao')?.addEventListener('click', e => {
+  if (e.target.id === 'composicao') fecharComposicao();
+});

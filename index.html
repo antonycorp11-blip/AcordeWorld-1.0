@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=202608110100">
+  <link rel="stylesheet" href="style.css?v=202608120100">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -1104,6 +1104,7 @@
                 <nav class="ficha-nav">
                   <button class="ficha-aba ativa" data-aba="geral">VISÃO GERAL</button>
                   <button class="ficha-aba" data-aba="equip">EQUIPAMENTO</button>
+                  <button class="ficha-aba" data-aba="composicao">COMPOSIÇÃO</button>
                   <button class="ficha-aba travada" data-aba="hist">HISTÓRIA</button>
                   <button class="ficha-aba travada" data-aba="afeicao">AFEIÇÃO</button>
                   <button class="ficha-aba travada ficha-aba-fim" data-aba="musica">MÚSICA</button>
@@ -1321,6 +1322,52 @@
             </div>
             <!-- Janelinha que abre no ponto do clique -->
             <div id="equipPopup" class="eq-popup hidden"></div>
+          </div>
+
+          <!-- ══ Escolha de acordes ══ Aparece ao selar uma escala. -->
+          <div id="escolhaAcordes" class="ac-overlay hidden">
+            <div class="ac-quadro">
+              <header class="ac-topo">
+                <span class="ac-selo">𝄞</span>
+                <div>
+                  <h2 class="ac-titulo" id="acTitulo"></h2>
+                  <p class="ac-sub">Escolha <b id="acRestam">3</b> acordes deste campo harmônico.
+                    Quer os outros? Forje a escala de novo.</p>
+                </div>
+              </header>
+              <div class="ac-campo" id="acCampo"></div>
+              <button class="ac-confirmar" id="acConfirmar" disabled>CONFIRMAR</button>
+            </div>
+          </div>
+
+          <!-- ══ Composição ══ Escalas equipadas, acordes e as cadências. -->
+          <div id="composicao" class="ac-overlay hidden">
+            <div class="ac-quadro largo">
+              <header class="ac-topo">
+                <button class="ac-voltar" id="compVoltar">‹</button>
+                <span class="ac-selo">𝄞</span>
+                <h2 class="ac-titulo">COMPOSIÇÃO</h2>
+                <button class="ac-fechar" id="compFechar">✕</button>
+              </header>
+              <div class="comp-corpo">
+                <section class="comp-col">
+                  <div class="ac-cab">Escalas equipadas <small id="compContaEscalas"></small></div>
+                  <div class="comp-escalas" id="compEscalas"></div>
+                  <div class="ac-cab">Acordes equipados <small id="compContaAcordes"></small></div>
+                  <div class="comp-acordes" id="compAcordes"></div>
+                  <div class="ac-cab">Guardados</div>
+                  <div class="comp-bau" id="compBau"></div>
+                </section>
+                <section class="comp-col comp-larga">
+                  <div class="ac-cab">Como cada acorde está funcionando agora</div>
+                  <div class="comp-funcoes" id="compFuncoes"></div>
+                  <div class="ac-cab">Cadências</div>
+                  <div class="comp-cadencias" id="compCadencias"></div>
+                  <div class="ac-cab">Total que isto está somando</div>
+                  <div class="comp-total" id="compTotal"></div>
+                </section>
+              </div>
+            </div>
           </div>
 
           <!-- Shop / Inventory sheet -->
@@ -1817,7 +1864,7 @@
   touch-action:manipulation;
 ">🔄 Enviar minhas ruas</button>
 
-<script src="game.js?v=202608110300"></script>
+<script src="game.js?v=202608120100"></script>
 <script src="pixelizador.js?v=202608052000"></script>
 </body>
 </html>
