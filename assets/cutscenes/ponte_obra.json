@@ -1,7 +1,7 @@
 {
   "id": "ponte_obra",
   "nome": "Cena 7 — Braço a Braço",
-  "mapa": "custom_1785884200706_430",
+  "mapa": "custom_1785880661560_858",
   "autoStart": true,
   "gatilho": {
     "tipo": "falar",

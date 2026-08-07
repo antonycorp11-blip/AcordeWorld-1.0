@@ -174,14 +174,6 @@
       "id": "viu_abertura"
     },
     {
-      "cmd": "missao",
-      "id": "welcome_to_acordelot"
-    },
-    {
-      "cmd": "guiar",
-      "para": "custom_1785869541494_557"
-    },
-    {
       "cmd": "fim"
     }
   ]

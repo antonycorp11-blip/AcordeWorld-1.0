@@ -7394,3 +7394,11 @@ body.em-cena #drawerToggle { display: none !important; }
 
 /* Botão de HUD ainda não liberado pela história: some sem deixar buraco na fila. */
 .icon-btn.trancado { display: none !important; }
+
+/* Filme de cena: cobre a tela inteira por cima do jogo, sem esticar a imagem. */
+.cena-video {
+  position: fixed; inset: 0; z-index: 9000;
+  width: 100%; height: 100%;
+  object-fit: contain; background: #000;
+  cursor: pointer;
+}

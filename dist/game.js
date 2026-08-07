@@ -201,9 +201,22 @@ const DIALOGOS_DA_HISTORIA = {
   'Guarda Renaldo':   'guard_intro',
   'Sr. Antony':       'sr_antony_tutorial',
 };
+// O editor deixa apelidos no nome ("Sr. Antony (Líder)"), e a busca exata falhava:
+// o NPC ficava com dialogue 'none' e sem botão de falar. Casar pelo começo do nome
+// resolve sem exigir que o autor escreva o nome exato no editor.
+function idDoDialogoPorNome(nome) {
+  if (!nome) return null;
+  if (DIALOGOS_DA_HISTORIA[nome]) return DIALOGOS_DA_HISTORIA[nome];
+  const limpo = String(nome).trim().toLowerCase();
+  for (const [chave, id] of Object.entries(DIALOGOS_DA_HISTORIA)) {
+    if (limpo.startsWith(chave.toLowerCase())) return id;
+  }
+  return null;
+}
+
 function aplicarDialogosDaHistoria() {
   npcData.forEach(n => {
-    const dlgId = DIALOGOS_DA_HISTORIA[n.name];
+    const dlgId = idDoDialogoPorNome(n.name);
     if (!dlgId) return;
     if (!n.dialogue || n.dialogue === 'none') n.dialogue = dlgId;
     if (!n.triggerRadius) n.triggerRadius = 90;   // raio 0 deixa o NPC mudo
@@ -11513,6 +11526,32 @@ function executarPasso(p) {
       abrirSorteio(p.resultado || null);
       CUT.aguardando = { tipo: 'sorteio' };
       return true;
+
+    case 'video': {
+      // Tela preta com legenda é o jeito mais barato de abrir um jogo, e o pior. Este
+      // comando toca um filme em cima de tudo e só devolve o controle quando ele acaba
+      // — ou quando o jogador toca para pular, porque ninguém assiste a mesma abertura
+      // duas vezes de bom grado.
+      const v = document.getElementById('cenaVideo');
+      if (!v || !p.arquivo) return false;
+      v.src = 'assets/videos/' + p.arquivo;
+      v.muted = p.mudo !== false;     // autoplay com som é bloqueado por padrão
+      v.currentTime = 0;
+      v.classList.remove('hidden');
+      document.body.classList.add('em-cena');
+      const fechar = () => {
+        v.classList.add('hidden');
+        v.pause();
+        v.removeAttribute('src');
+        if (CUT.aguardando?.tipo === 'video') { CUT.aguardando = null; proximoPasso(); }
+      };
+      v.onended = fechar;
+      v.onerror = fechar;            // vídeo faltando não pode travar a abertura
+      v.onclick = () => { if (p.pulavel !== false) fechar(); };
+      v.play().catch(fechar);        // autoplay recusado: segue o roteiro sem o filme
+      CUT.aguardando = { tipo: 'video' };
+      return true;
+    }
 
     case 'missao':
       unlockQuest(p.id);

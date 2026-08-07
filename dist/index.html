@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=f538c9436f">
+  <link rel="stylesheet" href="style.css?v=06002914b1">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -193,7 +193,10 @@
       <button id="drawerToggle" title="Recolher/mostrar o editor (Tab)">◀</button>
       <div id="viewport-container">
         <div id="canvas-stage">
-          <video id="skinShopVideo" src="assets/videos/loja_de_skins.mp4" loop muted preload="none" playsinline class="video-bg hidden"></video>
+          <!-- Filme de cena: abertura e viradas de capítulo. Fica por cima de tudo,
+                    tocado pelo comando `video` do roteiro. -->
+              <video id="cenaVideo" class="cena-video hidden" playsinline preload="none"></video>
+              <video id="skinShopVideo" src="assets/videos/loja_de_skins.mp4" loop muted preload="none" playsinline class="video-bg hidden"></video>
           <video id="forgeVideo" src="assets/videos/ferraria_interno.mp4" loop muted preload="none" playsinline class="video-bg hidden"></video>
           <video id="sagradoVideo" src="assets/videos/notas_sagradas.mp4" loop muted preload="none" playsinline class="video-bg hidden"></video>
           <canvas id="gameCanvas" width="1024" height="571"></canvas>
@@ -1099,6 +1102,6 @@
 ">🔄 Enviar minhas ruas</button>
 
 <script src="config.js?v=20260807161410"></script>
-<script src="game.js?v=20f39a1cc8"></script>
+<script src="game.js?v=b8e2932bcb"></script>
 </body>
 </html>

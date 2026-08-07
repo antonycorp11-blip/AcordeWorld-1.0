@@ -1,7 +1,7 @@
 {
   "id": "abertura",
   "nome": "Abertura — O Despertar",
-  "mapa": "custom_1785173102424_996",
+  "mapa": "custom_1785881037059_214",
   "autoStart": true,
   "passos": [
     {
@@ -79,7 +79,7 @@
     {
       "cmd": "falar",
       "quem": "Personagem",
-      "texto": "Eu... não consigo me lembrar de nada..."
+      "texto": "Eu não lembro o meu nome. — Eu não lembro NADA."
     },
     {
       "cmd": "esperar",
@@ -88,12 +88,38 @@
     {
       "cmd": "falar",
       "quem": "Personagem",
-      "texto": "Que lugar é esse?"
+      "texto": "Não é só o caminho. É tudo. Como se alguém tivesse apagado."
+    },
+    {
+      "cmd": "som",
+      "tipo": "vento"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
     },
     {
       "cmd": "falar",
       "quem": "Personagem",
-      "texto": "Está tudo... tão silencioso...",
+      "texto": "...sol bemol."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "O galho rangeu em sol bemol. — Como é que eu sei disso?"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1200
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "E está silencioso demais. Silencioso de um jeito errado.",
       "auto": 1200
     },
     {
@@ -122,13 +148,13 @@
     {
       "cmd": "falar",
       "quem": "Personagem",
-      "texto": "Nem os pássaros cantam...",
+      "texto": "Nem os pássaros. Nem vento nas folhas. Nada.",
       "auto": 1200
     },
     {
       "cmd": "falar",
       "quem": "Personagem",
-      "texto": "Isso não parece natural..."
+      "texto": "Isso não é falta de barulho. Isso é barulho arrancado."
     },
     {
       "cmd": "controle",
@@ -243,7 +269,7 @@
     },
     {
       "cmd": "tutorial",
-      "texto": "Você encontrou uma Clave Musical.\nEla não faz som nenhum — e mesmo assim parece importante.\nGuarde. Alguém vai saber explicar."
+      "texto": "Você encontrou uma Clave Musical — e ela não faz som nenhum.\nUma clave muda não deveria existir. Alguém tirou o som de dentro dela.\nGuarde. Vai haver quem reconheça isso."
     },
     {
       "cmd": "dar",
@@ -384,32 +410,113 @@
     },
     {
       "cmd": "esperar",
-      "ms": 800
+      "ms": 900
     },
     {
-      "cmd": "falar",
-      "quem": "Personagem",
-      "texto": "Essas... São notas musicais?"
+      "_": "── os sete não vêm todos: vêm os que ele consegue ouvir ──"
+    },
+    {
+      "cmd": "monstro",
+      "tipo": "eco_do",
+      "id": "cena_eco_do",
+      "x": 360,
+      "y": 330,
+      "persegue": false
     },
     {
       "cmd": "esperar",
       "ms": 500
     },
     {
+      "cmd": "monstro",
+      "tipo": "eco_mi",
+      "id": "cena_eco_mi",
+      "x": 650,
+      "y": 300,
+      "persegue": false
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "monstro",
+      "tipo": "eco_sol",
+      "id": "cena_eco_sol",
+      "x": 505,
+      "y": 230,
+      "persegue": false
+    },
+    {
+      "cmd": "cancao",
+      "notas": [
+        "do",
+        "mi",
+        "sol"
+      ],
+      "passo": 520,
+      "dur": 2.2,
+      "vol": 0.12
+    },
+    {
+      "cmd": "notas",
+      "quantidade": 18,
+      "ms": 1800
+    },
+    {
+      "cmd": "esperar",
+      "ms": 800
+    },
+    {
       "cmd": "falar",
       "quem": "Personagem",
-      "texto": "Vocês... Estão me protegendo?"
+      "texto": "Vocês não são notas. Vocês são... alguma coisa viva."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Dó. Mi. Sol. — Três de uma vez."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1100
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "E de novo eu sei o nome. Sem nem pensar."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Por que estão me protegendo? Vocês me conhecem?"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1800
     },
     {
       "cmd": "curar",
       "tudo": true
     },
     {
+      "cmd": "limparMonstros",
+      "ms": 1600
+    },
+    {
       "_": "── Cena 6: Caminho para Acordelot ──"
     },
     {
       "cmd": "tutorial",
-      "texto": "Siga as Notas Musicais."
+      "texto": "Ecos Musicais guardam as notas do reino — cada um guarda a sua.\nEles apontaram um caminho. Siga."
     },
     {
       "cmd": "hud",
@@ -418,10 +525,6 @@
     {
       "cmd": "controle",
       "ativo": true
-    },
-    {
-      "cmd": "guiar",
-      "para": "custom_1785869541494_557"
     },
     {
       "cmd": "missao",
@@ -434,5 +537,6 @@
     {
       "cmd": "fim"
     }
-  ]
+  ],
+  "_": "Ele fugiu do Reino do Silêncio e pagou com a memória. A cidade não o reconhece porque foi ESQUECIDO, do mesmo jeito que o Pipo será. O ouvido absoluto aparece aqui como acidente — ele acerta a nota sem saber como. Só faz sentido depois."
 }

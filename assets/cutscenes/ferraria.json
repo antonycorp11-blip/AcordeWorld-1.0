@@ -1,7 +1,7 @@
 {
   "id": "ferraria",
   "nome": "Cena 6 — O Martelo do Aprendiz",
-  "mapa": "custom_1785884200706_430",
+  "mapa": "custom_1785880661560_858",
   "autoStart": true,
   "gatilho": {
     "tipo": "falar",
