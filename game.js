@@ -18925,7 +18925,7 @@ function mostrarDerrota(c, d, espera) {
 
 const TRILHA = {
   ligada: true,
-  volume: 0.5,
+  volume: 0.34,        // trilha é fundo: tem que caber embaixo dos sons do jogo
   humor: null,          // o humor tocando agora
   proximo: null,        // para onde está indo (transição)
   passo: 0,             // qual semicolcheia do compasso
@@ -18953,48 +18953,56 @@ const ESCALAS = {
 // Cada humor é uma peça curta: escala, andamento, progressão de graus e quais vozes
 // entram. A progressão é em graus da escala (0 = tônica), então trocar a escala
 // transporta a música inteira sem reescrever nada.
+// Cada humor é uma peça curta: escala, andamento, progressão de graus e quais vozes
+// entram. A progressão é em graus da escala (0 = tônica), então trocar a escala transporta
+// a música inteira sem reescrever nada.
+//
+// A primeira versão tinha percussão em quase tudo e arpejo a cada duas semicolcheias:
+// soava a fliperama. A trilha de um jogo sobre escutar não pode competir com o jogo pela
+// atenção. Agora ela é ATMOSFERA — andamento lento, acorde longo, notas soltas com muito
+// espaço entre elas, e percussão só onde há perigo de verdade.
 const HUMORES = {
   cidade: {
-    raiz: 'do', escala: 'maior', bpm: 96,
-    progressao: [0, 5, 3, 4],          // I – vi – IV – V, o mais acolhedor que existe
-    vozes: { baixo: 1, pad: 0.55, arpejo: 0.5, percussao: 0.25 },
-    corte: 2200, arpPadrao: [0, 2, 4, 2, 7, 4, 2, 0],
+    raiz: 'do', escala: 'maior', bpm: 66,
+    progressao: [0, 5, 3, 4],          // I – vi – IV – V
+    vozes: { baixo: 0.55, pad: 0.85, arpejo: 0.30, percussao: 0 },
+    corte: 1500, arpPadrao: [0, 4, 2, 7], arpCada: 8,
   },
   floresta: {
-    raiz: 'sol', escala: 'mixolidio', bpm: 78,
+    raiz: 'sol', escala: 'mixolidio', bpm: 54,
     progressao: [0, 6, 3, 0],
-    vozes: { baixo: 0.8, pad: 0.6, arpejo: 0.3, percussao: 0 },
-    corte: 1400, arpPadrao: [0, 4, 7, 4],
+    vozes: { baixo: 0.45, pad: 0.9, arpejo: 0.22, percussao: 0 },
+    corte: 1100, arpPadrao: [0, 4, 7], arpCada: 12,
   },
   caverna: {
-    raiz: 're', escala: 'menor', bpm: 64,
+    raiz: 're', escala: 'menor', bpm: 46,
     progressao: [0, 0, 5, 4],
-    vozes: { baixo: 0.9, pad: 0.7, arpejo: 0.18, percussao: 0 },
-    corte: 800, arpPadrao: [0, 7, 0, 3],
+    vozes: { baixo: 0.6, pad: 0.8, arpejo: 0.14, percussao: 0 },
+    corte: 620, arpPadrao: [0, 7], arpCada: 16,
   },
   combate: {
-    raiz: 'la', escala: 'menor', bpm: 132,
+    raiz: 'la', escala: 'menor', bpm: 92,
     progressao: [0, 0, 5, 6],
-    vozes: { baixo: 1, pad: 0.35, arpejo: 0.45, percussao: 0.55 },
-    corte: 2600, arpPadrao: [0, 3, 7, 3, 0, 7, 3, 0],
+    vozes: { baixo: 0.8, pad: 0.55, arpejo: 0.30, percussao: 0.22 },
+    corte: 1700, arpPadrao: [0, 3, 7, 3], arpCada: 4,
   },
   chefe: {
-    raiz: 'mi', escala: 'frigio', bpm: 146,
-    progressao: [0, 1, 0, 6],          // o segundo grau rebaixado do frígio é a ameaça
-    vozes: { baixo: 1.1, pad: 0.5, arpejo: 0.5, percussao: 0.7 },
-    corte: 3000, arpPadrao: [0, 1, 3, 1],
+    raiz: 'mi', escala: 'frigio', bpm: 104,
+    progressao: [0, 1, 0, 6],          // o II rebaixado do frígio é a ameaça
+    vozes: { baixo: 0.95, pad: 0.6, arpejo: 0.32, percussao: 0.38 },
+    corte: 1900, arpPadrao: [0, 1, 3, 1], arpCada: 4,
   },
   altar: {
-    raiz: 'do', escala: 'lidio', bpm: 60,
+    raiz: 'do', escala: 'lidio', bpm: 44,
     progressao: [0, 4, 0, 4],
-    vozes: { baixo: 0.5, pad: 0.75, arpejo: 0.35, percussao: 0 },
-    corte: 1800, arpPadrao: [0, 4, 7, 11],
+    vozes: { baixo: 0.35, pad: 0.95, arpejo: 0.22, percussao: 0 },
+    corte: 1300, arpPadrao: [0, 4, 7, 11], arpCada: 8,
   },
   vitoria: {
-    raiz: 'do', escala: 'maior', bpm: 110,
+    raiz: 'do', escala: 'maior', bpm: 82,
     progressao: [0, 3, 4, 0],
-    vozes: { baixo: 1, pad: 0.6, arpejo: 0.7, percussao: 0.4 },
-    corte: 3200, arpPadrao: [0, 2, 4, 7, 4, 2],
+    vozes: { baixo: 0.7, pad: 0.85, arpejo: 0.40, percussao: 0 },
+    corte: 2000, arpPadrao: [0, 2, 4, 7], arpCada: 4,
   },
 };
 
@@ -19029,7 +19037,8 @@ function freqDoGrau(humor, grau, oitava = 0) {
 }
 
 // Uma voz = um oscilador com envelope. Tudo aqui é descartável: nasce, toca e morre.
-function voz(freq, t0, dur, { tipo = 'triangle', vol = 0.1, corte = 2000, eco = 0.25 } = {}) {
+function voz(freq, t0, dur, { tipo = 'triangle', vol = 0.1, corte = 2000, eco = 0.25,
+                             ataque = 0.012 } = {}) {
   if (!audioCtx || !TRILHA.mestre) return;
   const o = audioCtx.createOscillator();
   const g = audioCtx.createGain();
@@ -19040,7 +19049,9 @@ function voz(freq, t0, dur, { tipo = 'triangle', vol = 0.1, corte = 2000, eco = 
   f.frequency.setValueAtTime(corte, t0);
   // Ataque rápido e queda exponencial: é o que faz soar tocado e não ligado.
   g.gain.setValueAtTime(0.0001, t0);
-  g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t0 + 0.012);
+  // Ataque longo no pad faz a nota "aparecer" em vez de bater. É a diferença entre
+  // atmosfera e fliperama.
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t0 + ataque);
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   o.connect(f); f.connect(g);
   g.connect(TRILHA.mestre);
@@ -19063,9 +19074,9 @@ function percussao(t0, grave) {
   const src = audioCtx.createBufferSource(); src.buffer = buf;
   const f = audioCtx.createBiquadFilter();
   f.type = grave ? 'lowpass' : 'highpass';
-  f.frequency.value = grave ? 160 : 5200;
+  f.frequency.value = grave ? 110 : 5200;
   const g = audioCtx.createGain();
-  g.gain.value = grave ? 0.34 : 0.10;
+  g.gain.value = grave ? 0.16 : 0.06;
   src.connect(f); f.connect(g); g.connect(TRILHA.mestre);
   src.start(t0);
 }
@@ -19078,40 +19089,40 @@ function tocarPasso(h, passo, t) {
   const grauAcorde = h.progressao[compasso];
   const v = h.vozes;
   const mudas = TRILHA.vozesMudas;
+  const segCompasso = (60 / h.bpm) * 4;
 
-  // BAIXO — tônica do acorde no 1 e no 9, e a quinta no 7. É o chão da peça.
-  if (v.baixo && mudas < 4) {
-    if (passo === 0 || passo === 8) {
-      voz(freqDoGrau(h, grauAcorde, -2), t, 0.5,
-          { tipo: 'sine', vol: 0.16 * v.baixo * TRILHA.volume, corte: 400, eco: 0.05 });
-    } else if (passo === 6 && h.bpm > 100) {
-      voz(freqDoGrau(h, grauAcorde + 4, -2), t, 0.3,
-          { tipo: 'sine', vol: 0.11 * v.baixo * TRILHA.volume, corte: 400, eco: 0.05 });
-    }
+  // BAIXO — uma nota por compasso, longa e macia. Era duas por compasso com uma quinta no
+  // meio, e isso já bastava para soar marcado demais.
+  if (v.baixo && mudas < 4 && passo === 0) {
+    voz(freqDoGrau(h, grauAcorde, -2), t, segCompasso * 0.9,
+        { tipo: 'sine', vol: 0.11 * v.baixo * TRILHA.volume, corte: 280, eco: 0.08 });
   }
 
-  // PAD — o acorde sustentado, três notas, entrando no começo do compasso. É o que dá
-  // "lugar" à música: sem ele o resto soa como exercício.
+  // PAD — o acorde sustentado, que é a voz principal desta trilha. Três notas em onda
+  // triangular, com entrada e saída lentas. Era serra com corte alto: cortava demais.
   if (v.pad && mudas < 3 && passo === 0) {
-    const dur = (60 / h.bpm) * 4 * 0.95;
     [0, 2, 4].forEach((n, i) => {
-      voz(freqDoGrau(h, grauAcorde + n, 0), t + i * 0.02, dur,
-          { tipo: 'sawtooth', vol: 0.028 * v.pad * TRILHA.volume, corte: h.corte * 0.35, eco: 0.5 });
+      voz(freqDoGrau(h, grauAcorde + n, 0), t + i * 0.05, segCompasso * 1.1,
+          { tipo: 'triangle', vol: 0.030 * v.pad * TRILHA.volume,
+            corte: h.corte * 0.5, eco: 0.55, ataque: 0.5 });
     });
+    // Uma nota grave uma oitava abaixo dá corpo sem precisar de mais volume.
+    voz(freqDoGrau(h, grauAcorde, -1), t, segCompasso * 1.1,
+        { tipo: 'sine', vol: 0.020 * v.pad * TRILHA.volume, corte: 500, eco: 0.4, ataque: 0.6 });
   }
 
-  // ARPEJO — a melodia. Anda pelo padrão do humor, uma nota a cada duas semicolcheias.
-  if (v.arpejo && mudas < 2 && passo % 2 === 0) {
-    const p = h.arpPadrao[(passo / 2) % h.arpPadrao.length];
-    voz(freqDoGrau(h, grauAcorde + p, 1), t, 0.34,
-        { tipo: 'triangle', vol: 0.07 * v.arpejo * TRILHA.volume, corte: h.corte, eco: 0.4 });
+  // ARPEJO — notas soltas, com MUITO espaço entre elas. `arpCada` diz de quantas em
+  // quantas semicolcheias uma nota sai: 16 é uma por compasso.
+  const cada = h.arpCada || 8;
+  if (v.arpejo && mudas < 2 && passo % cada === 0) {
+    const idx = Math.floor(TRILHA.totalPassos / cada) % h.arpPadrao.length;
+    voz(freqDoGrau(h, grauAcorde + h.arpPadrao[idx], 1), t, 1.1,
+        { tipo: 'sine', vol: 0.045 * v.arpejo * TRILHA.volume, corte: h.corte, eco: 0.6, ataque: 0.08 });
   }
 
-  // PERCUSSÃO — bumbo no 1 e no 9, chimbal nos pares. Só nos humores de luta.
-  if (v.percussao && mudas < 1) {
-    if (passo === 0 || passo === 8) percussao(t, true);
-    else if (passo % 4 === 2) percussao(t, false);
-  }
+  // PERCUSSÃO — só nos dois humores de perigo, e mesmo lá é um pulso surdo no primeiro
+  // tempo, não uma batida. O chimbal saiu: era ele que fazia soar arcade.
+  if (v.percussao && mudas < 1 && passo === 0) percussao(t, true);
 }
 
 // O relógio de olhar-adiante. Agenda no tempo do audioCtx, que não treme, em vez de
