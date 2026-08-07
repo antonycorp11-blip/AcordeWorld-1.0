@@ -149,12 +149,47 @@
     {
       "cmd": "falar",
       "quem": "Guarda Renaldo",
+      "texto": "Ah, e o portão. Você deve estar se perguntando como ele abriu."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Guarda Renaldo",
+      "texto": "Fechadura de Acordelot não tem chave. Tem acorde."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Guarda Renaldo",
+      "texto": "Três notas certas na ordem certa, e a pedra entende. Errou uma? Fica do lado de fora escutando."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "E se alguém não souber música?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Guarda Renaldo",
+      "texto": "Aí não entra. — Não é grosseria. É que aqui a cidade inteira é feita disso."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Guarda Renaldo",
       "texto": "Bem-vindo a Acordelot, {PLAYER_NAME}. Primeira cidade do Reino da Música."
     },
     {
       "cmd": "falar",
       "quem": "Guarda Renaldo",
       "texto": "Todo músico do reino começa a jornada aqui. Alguns terminam também, mas isso é outra conversa."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Guarda Renaldo",
+      "texto": "Somos quatro clãs. Teclas constroem, Cordas caçam, Vocais curam, Ritmos seguram."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Guarda Renaldo",
+      "texto": "Nenhum toca a música inteira sozinho. É por isso que a gente se aguenta."
     },
     {
       "cmd": "falar",
