@@ -7083,3 +7083,6 @@ body.jogando .party-hud.calmo { opacity: .62; }
   .dgf-drop img { width: 20px; height: 20px; }
   .dgf-drop b { font-size: 11px; }
 }
+
+/* Botão de trilha no HUD. Apagado quando mudo, para dar para ver de relance. */
+#somBtn.mudo { opacity: .45; filter: grayscale(1); }

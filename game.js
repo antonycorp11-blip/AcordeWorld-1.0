@@ -12362,6 +12362,7 @@ function loop(now){
   // Os números do HUD pela mesma razão: o bloco que os atualizava só roda no modo jogo,
   // e no modo ANDAR a barra ficava congelada nos valores do primeiro quadro.
   if (personagemAndando()) atualizarNumerosDoHud();
+  atualizarTrilha(now);
   garantirFolhasDoMapa(currentKey);
 
   // Avisa a abertura do celular que já há cenário desenhado. Ela fechava por silêncio de
@@ -18907,3 +18908,362 @@ function mostrarDerrota(c, d, espera) {
   el.querySelector('.dgf-sair').onclick = () => el.classList.add('hidden');
   el.classList.remove('hidden');
 }
+
+// ══ Trilha sonora ═════════════════════════════════════════════════════════════
+// A trilha é SINTETIZADA, não tocada de arquivo. Três razões, nesta ordem:
+//
+// 1. O efeito assinatura da história — a música perdendo notas uma por uma até restar
+//    silêncio — só existe se a música for gerada. Com MP3 dá para baixar o volume; com
+//    síntese dá para tirar as vozes literalmente, que é o que o Silêncio faz.
+// 2. Num jogo em que o jogador FORJA ESCALAS, a trilha tocar na escala que ele forjou é a
+//    recompensa mais barata e mais bonita que existe.
+// 3. Custa zero byte. O build já está em 166 MB, e seis faixas em MP3 somariam mais 12.
+//
+// O agendamento usa a técnica padrão de Web Audio: um relógio de olhar-adiante. Um
+// setInterval grosseiro acorda a cada 25 ms e agenda as notas dos próximos 120 ms no
+// relógio EXATO do audioCtx. `setTimeout` sozinho tremeria; o audioCtx não treme.
+
+const TRILHA = {
+  ligada: true,
+  volume: 0.5,
+  humor: null,          // o humor tocando agora
+  proximo: null,        // para onde está indo (transição)
+  passo: 0,             // qual semicolcheia do compasso
+  proximaNota: 0,       // instante do próximo passo, no relógio do audioCtx
+  timer: null,
+  mestre: null,         // GainNode geral
+  eco: null,            // atraso com realimentação, no lugar de reverberação
+  vozesMudas: 0,        // quantas vozes o Silêncio já comeu
+};
+
+const OLHAR_ADIANTE = 0.12;   // segundos agendados por vez
+const INTERVALO_RELOGIO = 25; // ms entre acordadas
+
+// Graus da escala em semitons a partir da tônica. São as escalas de verdade — as mesmas
+// que o jogo ensina no Forjador.
+const ESCALAS = {
+  maior:      [0, 2, 4, 5, 7, 9, 11],
+  menor:      [0, 2, 3, 5, 7, 8, 10],
+  dorico:     [0, 2, 3, 5, 7, 9, 10],
+  mixolidio:  [0, 2, 4, 5, 7, 9, 10],
+  frigio:     [0, 1, 3, 5, 7, 8, 10],
+  lidio:      [0, 2, 4, 6, 7, 9, 11],
+};
+
+// Cada humor é uma peça curta: escala, andamento, progressão de graus e quais vozes
+// entram. A progressão é em graus da escala (0 = tônica), então trocar a escala
+// transporta a música inteira sem reescrever nada.
+const HUMORES = {
+  cidade: {
+    raiz: 'do', escala: 'maior', bpm: 96,
+    progressao: [0, 5, 3, 4],          // I – vi – IV – V, o mais acolhedor que existe
+    vozes: { baixo: 1, pad: 0.55, arpejo: 0.5, percussao: 0.25 },
+    corte: 2200, arpPadrao: [0, 2, 4, 2, 7, 4, 2, 0],
+  },
+  floresta: {
+    raiz: 'sol', escala: 'mixolidio', bpm: 78,
+    progressao: [0, 6, 3, 0],
+    vozes: { baixo: 0.8, pad: 0.6, arpejo: 0.3, percussao: 0 },
+    corte: 1400, arpPadrao: [0, 4, 7, 4],
+  },
+  caverna: {
+    raiz: 're', escala: 'menor', bpm: 64,
+    progressao: [0, 0, 5, 4],
+    vozes: { baixo: 0.9, pad: 0.7, arpejo: 0.18, percussao: 0 },
+    corte: 800, arpPadrao: [0, 7, 0, 3],
+  },
+  combate: {
+    raiz: 'la', escala: 'menor', bpm: 132,
+    progressao: [0, 0, 5, 6],
+    vozes: { baixo: 1, pad: 0.35, arpejo: 0.45, percussao: 0.55 },
+    corte: 2600, arpPadrao: [0, 3, 7, 3, 0, 7, 3, 0],
+  },
+  chefe: {
+    raiz: 'mi', escala: 'frigio', bpm: 146,
+    progressao: [0, 1, 0, 6],          // o segundo grau rebaixado do frígio é a ameaça
+    vozes: { baixo: 1.1, pad: 0.5, arpejo: 0.5, percussao: 0.7 },
+    corte: 3000, arpPadrao: [0, 1, 3, 1],
+  },
+  altar: {
+    raiz: 'do', escala: 'lidio', bpm: 60,
+    progressao: [0, 4, 0, 4],
+    vozes: { baixo: 0.5, pad: 0.75, arpejo: 0.35, percussao: 0 },
+    corte: 1800, arpPadrao: [0, 4, 7, 11],
+  },
+  vitoria: {
+    raiz: 'do', escala: 'maior', bpm: 110,
+    progressao: [0, 3, 4, 0],
+    vozes: { baixo: 1, pad: 0.6, arpejo: 0.7, percussao: 0.4 },
+    corte: 3200, arpPadrao: [0, 2, 4, 7, 4, 2],
+  },
+};
+
+// ── infraestrutura de áudio ──
+// Um eco com realimentação no lugar de reverberação de verdade. Reverberação boa pede uma
+// resposta ao impulso, que é um arquivo — e o ponto desta trilha é não ter arquivo. O eco
+// curto dá o mesmo recado: som com lugar, em vez de som chapado.
+function montarCadeiaDaTrilha() {
+  if (TRILHA.mestre || !audioCtx) return;
+  TRILHA.mestre = audioCtx.createGain();
+  TRILHA.mestre.gain.value = 0;              // entra por fade, nunca estoura
+  TRILHA.mestre.connect(audioCtx.destination);
+
+  const atraso = audioCtx.createDelay(1.2);
+  atraso.delayTime.value = 0.28;
+  const realim = audioCtx.createGain();
+  realim.gain.value = 0.32;
+  const filtro = audioCtx.createBiquadFilter();
+  filtro.type = 'lowpass'; filtro.frequency.value = 2000;
+  atraso.connect(realim); realim.connect(filtro); filtro.connect(atraso);
+  atraso.connect(TRILHA.mestre);
+  TRILHA.eco = atraso;
+}
+
+// Frequência de um grau da escala, em oitava escolhida.
+function freqDoGrau(humor, grau, oitava = 0) {
+  const escala = ESCALAS[humor.escala] || ESCALAS.maior;
+  const base = FREQ_BASE[humor.raiz] || 261.63;
+  const oct = Math.floor(grau / escala.length) + oitava;
+  const semitons = escala[((grau % escala.length) + escala.length) % escala.length];
+  return base * Math.pow(2, oct + semitons / 12);
+}
+
+// Uma voz = um oscilador com envelope. Tudo aqui é descartável: nasce, toca e morre.
+function voz(freq, t0, dur, { tipo = 'triangle', vol = 0.1, corte = 2000, eco = 0.25 } = {}) {
+  if (!audioCtx || !TRILHA.mestre) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  const f = audioCtx.createBiquadFilter();
+  o.type = tipo;
+  o.frequency.setValueAtTime(freq, t0);
+  f.type = 'lowpass';
+  f.frequency.setValueAtTime(corte, t0);
+  // Ataque rápido e queda exponencial: é o que faz soar tocado e não ligado.
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t0 + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(f); f.connect(g);
+  g.connect(TRILHA.mestre);
+  if (eco > 0 && TRILHA.eco) {
+    const env = audioCtx.createGain();
+    env.gain.value = eco;
+    g.connect(env); env.connect(TRILHA.eco);
+  }
+  o.start(t0); o.stop(t0 + dur + 0.05);
+}
+
+// Percussão sem amostra: um estalo de ruído filtrado. Grave para o bumbo, agudo para o
+// chimbal — a diferença é só o corte do filtro.
+function percussao(t0, grave) {
+  if (!audioCtx || !TRILHA.mestre) return;
+  const n = audioCtx.sampleRate * 0.08;
+  const buf = audioCtx.createBuffer(1, n, audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const src = audioCtx.createBufferSource(); src.buffer = buf;
+  const f = audioCtx.createBiquadFilter();
+  f.type = grave ? 'lowpass' : 'highpass';
+  f.frequency.value = grave ? 160 : 5200;
+  const g = audioCtx.createGain();
+  g.gain.value = grave ? 0.34 : 0.10;
+  src.connect(f); f.connect(g); g.connect(TRILHA.mestre);
+  src.start(t0);
+}
+
+// ── o compasso ──
+// Dezesseis passos por compasso (semicolcheias). Cada voz decide em quais passos entra —
+// é assim que quatro instrumentos simples soam como um arranjo em vez de um bloco.
+function tocarPasso(h, passo, t) {
+  const compasso = Math.floor(TRILHA.totalPassos / 16) % h.progressao.length;
+  const grauAcorde = h.progressao[compasso];
+  const v = h.vozes;
+  const mudas = TRILHA.vozesMudas;
+
+  // BAIXO — tônica do acorde no 1 e no 9, e a quinta no 7. É o chão da peça.
+  if (v.baixo && mudas < 4) {
+    if (passo === 0 || passo === 8) {
+      voz(freqDoGrau(h, grauAcorde, -2), t, 0.5,
+          { tipo: 'sine', vol: 0.16 * v.baixo * TRILHA.volume, corte: 400, eco: 0.05 });
+    } else if (passo === 6 && h.bpm > 100) {
+      voz(freqDoGrau(h, grauAcorde + 4, -2), t, 0.3,
+          { tipo: 'sine', vol: 0.11 * v.baixo * TRILHA.volume, corte: 400, eco: 0.05 });
+    }
+  }
+
+  // PAD — o acorde sustentado, três notas, entrando no começo do compasso. É o que dá
+  // "lugar" à música: sem ele o resto soa como exercício.
+  if (v.pad && mudas < 3 && passo === 0) {
+    const dur = (60 / h.bpm) * 4 * 0.95;
+    [0, 2, 4].forEach((n, i) => {
+      voz(freqDoGrau(h, grauAcorde + n, 0), t + i * 0.02, dur,
+          { tipo: 'sawtooth', vol: 0.028 * v.pad * TRILHA.volume, corte: h.corte * 0.35, eco: 0.5 });
+    });
+  }
+
+  // ARPEJO — a melodia. Anda pelo padrão do humor, uma nota a cada duas semicolcheias.
+  if (v.arpejo && mudas < 2 && passo % 2 === 0) {
+    const p = h.arpPadrao[(passo / 2) % h.arpPadrao.length];
+    voz(freqDoGrau(h, grauAcorde + p, 1), t, 0.34,
+        { tipo: 'triangle', vol: 0.07 * v.arpejo * TRILHA.volume, corte: h.corte, eco: 0.4 });
+  }
+
+  // PERCUSSÃO — bumbo no 1 e no 9, chimbal nos pares. Só nos humores de luta.
+  if (v.percussao && mudas < 1) {
+    if (passo === 0 || passo === 8) percussao(t, true);
+    else if (passo % 4 === 2) percussao(t, false);
+  }
+}
+
+// O relógio de olhar-adiante. Agenda no tempo do audioCtx, que não treme, em vez de
+// confiar no setInterval, que treme muito.
+function relogioDaTrilha() {
+  if (!audioCtx || !TRILHA.humor) return;
+  const h = HUMORES[TRILHA.humor];
+  if (!h) return;
+  const porPasso = (60 / h.bpm) / 4;          // semicolcheia
+  while (TRILHA.proximaNota < audioCtx.currentTime + OLHAR_ADIANTE) {
+    if (TRILHA.proximaNota < audioCtx.currentTime) TRILHA.proximaNota = audioCtx.currentTime + 0.02;
+    tocarPasso(h, TRILHA.passo, TRILHA.proximaNota);
+    TRILHA.proximaNota += porPasso;
+    TRILHA.passo = (TRILHA.passo + 1) % 16;
+    TRILHA.totalPassos = (TRILHA.totalPassos || 0) + 1;
+  }
+}
+
+// ── controle ──
+function iniciarTrilha() {
+  if (!TRILHA.ligada) return;
+  if (!audioCtx) initAudio();
+  if (!audioCtx || TRILHA.timer) return;
+  montarCadeiaDaTrilha();
+  TRILHA.proximaNota = audioCtx.currentTime + 0.1;
+  TRILHA.totalPassos = 0;
+  TRILHA.timer = setInterval(relogioDaTrilha, INTERVALO_RELOGIO);
+  TRILHA.mestre.gain.cancelScheduledValues(audioCtx.currentTime);
+  TRILHA.mestre.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+  TRILHA.mestre.gain.exponentialRampToValueAtTime(1, audioCtx.currentTime + 2.5);
+}
+
+function pararTrilha() {
+  if (TRILHA.timer) { clearInterval(TRILHA.timer); TRILHA.timer = null; }
+  if (TRILHA.mestre && audioCtx) {
+    TRILHA.mestre.gain.cancelScheduledValues(audioCtx.currentTime);
+    TRILHA.mestre.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
+  }
+}
+
+// Trocar de humor não corta: baixa o volume, troca a peça no escuro e sobe de novo. Um
+// corte seco no meio de um acorde é a coisa que mais denuncia música de jogo.
+function trocarHumor(novo, ms = 1400) {
+  if (!HUMORES[novo] || TRILHA.humor === novo) return;
+  if (!TRILHA.humor) { TRILHA.humor = novo; iniciarTrilha(); return; }
+  if (!audioCtx || !TRILHA.mestre) { TRILHA.humor = novo; return; }
+  const t = audioCtx.currentTime;
+  TRILHA.mestre.gain.cancelScheduledValues(t);
+  TRILHA.mestre.gain.setValueAtTime(Math.max(0.0001, TRILHA.mestre.gain.value), t);
+  TRILHA.mestre.gain.exponentialRampToValueAtTime(0.0001, t + ms / 2000);
+  setTimeout(() => {
+    TRILHA.humor = novo;
+    TRILHA.passo = 0; TRILHA.totalPassos = 0;
+    if (audioCtx && TRILHA.mestre) {
+      TRILHA.mestre.gain.exponentialRampToValueAtTime(1, audioCtx.currentTime + ms / 2000);
+    }
+  }, ms / 2);
+}
+
+// ── O SILÊNCIO ────────────────────────────────────────────────────────────────
+// O efeito assinatura do Capítulo 1. As vozes saem UMA POR VEZ, de cima para baixo:
+// primeiro a percussão, depois a melodia, depois o acorde, por último o baixo. Não é fade
+// — é a música sendo esquecida por partes, que é exatamente o que o inimigo faz.
+function comerAMusica(passos = 4, intervaloMs = 900) {
+  let n = 0;
+  const comer = () => {
+    TRILHA.vozesMudas = Math.min(4, TRILHA.vozesMudas + 1);
+    if (++n < passos) setTimeout(comer, intervaloMs);
+  };
+  comer();
+}
+// E devolver.
+function devolverAMusica(ms = 1200) {
+  const devolver = () => {
+    TRILHA.vozesMudas = Math.max(0, TRILHA.vozesMudas - 1);
+    if (TRILHA.vozesMudas > 0) setTimeout(devolver, ms / 4);
+  };
+  devolver();
+}
+
+// ── qual humor toca agora ──
+// Decidido pelo contexto, não por chamada manual espalhada pelo código. Assim entrar numa
+// caverna, começar uma corrida ou encostar num chefe muda a música sozinho, e nenhuma cena
+// precisa lembrar de trocar.
+const MAPAS_DE_CAVERNA = new Set([
+  'custom_1785967453140_198', 'custom_1785976286672_61', 'custom_1785976318486_785',
+  'custom_1785900374897_630',
+]);
+const MAPAS_DE_CIDADE = new Set([
+  'custom_1785869541494_557', 'custom_1785871568442_57', 'custom_1785880661560_858',
+  'custom_1785884200706_430', 'custom_1785779853928_252',
+]);
+const MAPAS_DE_ALTAR = new Set(['custom_1785776481744_650']);
+
+function humorDoMomento() {
+  // Chefe vivo por perto ganha de tudo.
+  const chefePerto = liveMonsters().some(m =>
+    ehChefe(m) && Math.hypot(m.x - player.x, m.y - player.y) < 420);
+  if (chefePerto) return 'chefe';
+
+  if (corridaAtiva()) {
+    const briga = liveMonsters().some(m => Math.hypot(m.x - player.x, m.y - player.y) < 300);
+    return briga ? 'combate' : 'caverna';
+  }
+  // Fora de dungeon, inimigo perto também muda a música — é o aviso mais honesto que existe.
+  if (monstrosVivos() && liveMonsters().some(m =>
+      Math.hypot(m.x - player.x, m.y - player.y) < 260)) return 'combate';
+
+  if (MAPAS_DE_ALTAR.has(currentKey)) return 'altar';
+  if (MAPAS_DE_CAVERNA.has(currentKey)) return 'caverna';
+  if (MAPAS_DE_CIDADE.has(currentKey)) return 'cidade';
+  return 'floresta';
+}
+
+// Chamado a cada quadro, mas só age quando o humor MUDA e depois de um respiro — sem isso
+// um monstro passando de raspão trocaria a música duas vezes por segundo.
+let _humorCandidato = null, _humorDesde = 0;
+function atualizarTrilha(now) {
+  if (!TRILHA.ligada || !audioCtx) return;
+  if (!TRILHA.timer && TRILHA.humor) iniciarTrilha();
+  const alvo = humorDoMomento();
+  if (alvo === TRILHA.humor) { _humorCandidato = null; return; }
+  if (alvo !== _humorCandidato) { _humorCandidato = alvo; _humorDesde = now; return; }
+  // Entrar em combate é urgente; sair pode esperar, senão a música fica indo e voltando.
+  const espera = (alvo === 'combate' || alvo === 'chefe') ? 250 : 2500;
+  if (now - _humorDesde < espera) return;
+  trocarHumor(alvo, alvo === 'chefe' || alvo === 'combate' ? 700 : 1600);
+  _humorCandidato = null;
+}
+
+// A trilha só pode começar depois de um gesto do usuário — regra dos navegadores. Fica
+// esperando o primeiro toque ou tecla, uma vez só.
+(() => {
+  const acordar = () => {
+    initAudio();
+    if (TRILHA.ligada && !TRILHA.humor) { TRILHA.humor = humorDoMomento(); iniciarTrilha(); }
+    ['pointerdown', 'keydown', 'touchstart'].forEach(e =>
+      window.removeEventListener(e, acordar));
+  };
+  ['pointerdown', 'keydown', 'touchstart'].forEach(e =>
+    window.addEventListener(e, acordar, { once: false }));
+})();
+
+function alternarTrilha() {
+  TRILHA.ligada = !TRILHA.ligada;
+  if (TRILHA.ligada) { TRILHA.humor = humorDoMomento(); iniciarTrilha(); }
+  else pararTrilha();
+  document.getElementById('somBtn')?.classList.toggle('mudo', !TRILHA.ligada);
+  const ico = document.querySelector('#somBtn .hud-emoji');
+  if (ico) ico.textContent = TRILHA.ligada ? '🎵' : '🔇';
+  try { localStorage.setItem('acordelot_trilha', TRILHA.ligada ? '1' : '0'); } catch (e) {}
+  showToast(TRILHA.ligada ? 'Trilha ligada' : 'Trilha desligada');
+}
+try { if (localStorage.getItem('acordelot_trilha') === '0') TRILHA.ligada = false; } catch (e) {}
+document.getElementById('somBtn')?.addEventListener('click', alternarTrilha);
