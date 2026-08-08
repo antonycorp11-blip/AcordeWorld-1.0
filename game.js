@@ -12703,6 +12703,15 @@ function loop(now){
   const isMegaWorld = mapKey === 'mega_world';
 
   const dpr = canvas.width / SCREEN_W;
+  // ── Quadro auto-corretivo ───────────────────────────────────────────────────────
+  // O zoom do cenário é aplicado com ctx.save() e desfeito ~300 linhas depois, em dois
+  // caminhos de saída. Qualquer exceção no meio vazava a transformação — e como o
+  // requestAnimationFrame chama isto de novo no quadro seguinte, o vazamento ACUMULAVA:
+  // a tela aproximava sozinha até tudo ficar preto, escondendo o erro de verdade.
+  // Zerar a matriz aqui faz o pior caso virar um quadro estranho, nunca uma tela preta
+  // permanente. O erro em si volta a aparecer no console, que é onde serve.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
   ctx.save();
   ctx.scale(dpr, dpr);
   ctx.clearRect(0,0,SCREEN_W,SCREEN_H);ctx.imageSmoothingEnabled=false;
@@ -12715,6 +12724,27 @@ function loop(now){
     frameCount++;
     return;
   }
+  // Cenário sem arte não é tela preta: é um cenário sem arte. Sem este aviso o sintoma
+  // fica idêntico ao de um erro de render, e foi assim que um mapa novo sem fundo salvo
+  // passou por bug de zoom.
+  if (!isMegaWorld && !bgSources[mapKey] && !videoSources[mapKey] && !INTERIORS[mapKey]) {
+    ctx.fillStyle = '#150d1f';
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    ctx.fillStyle = '#e9d5ff';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 18px Outfit, sans-serif';
+    ctx.fillText('Cenário sem imagem de fundo', SCREEN_W / 2, SCREEN_H / 2 - 12);
+    ctx.font = '13px Outfit, sans-serif';
+    ctx.fillStyle = '#c4b5fd';
+    ctx.fillText(SCENE_NAMES[mapKey] || mapKey, SCREEN_W / 2, SCREEN_H / 2 + 12);
+    ctx.fillText('Salve o cenário no editor (💾) para a imagem ser gravada.',
+                 SCREEN_W / 2, SCREEN_H / 2 + 34);
+    ctx.textAlign = 'left';
+    ctx.restore();
+    frameCount++;
+    return;
+  }
+
   const camOn = isPlayMode && forcaDoDestaque(now) > 0.001;
   const zoomOn = !isMegaWorld && zoomCenario > 1.001;
   // Destaque tem prioridade: ele já é uma câmera com zoom próprio, e as duas somadas

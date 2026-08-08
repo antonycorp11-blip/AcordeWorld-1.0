@@ -39,6 +39,10 @@
     "custom_1785976318486_785": {
       "col": -4,
       "row": 3
+    },
+    "custom_1786198430678_105": {
+      "col": 1,
+      "row": 1
     }
   },
   "spawns": {
@@ -101,6 +105,10 @@
     "custom_1785976318486_785": {
       "x": 512,
       "y": 300
+    },
+    "custom_1786198430678_105": {
+      "x": 512,
+      "y": 300
     }
   },
   "bgSources": {
@@ -117,7 +125,8 @@
     "custom_1785967453140_198": "assets/cenarios/mapas/bg_custom_1785967453140_198.jpg",
     "custom_1785976237901_373": "assets/cenarios/mapas/bg_custom_1785976237901_373.jpg",
     "custom_1785976286672_61": "assets/cenarios/mapas/bg_custom_1785976286672_61.jpg",
-    "custom_1785976318486_785": "assets/cenarios/mapas/bg_custom_1785976318486_785.jpg"
+    "custom_1785976318486_785": "assets/cenarios/mapas/bg_custom_1785976318486_785.jpg",
+    "custom_1786198430678_105": "assets/cenarios/mapas/bg_custom_1786198430678_105.jpg"
   },
   "sceneNames": {
     "custom_1785254196551_992": "🏰 Forest_Edge_Hunting_Ground_map_202607281154",
@@ -134,7 +143,8 @@
     "custom_1785967453140_198": "🏰 E07FF116-D166-41E4-9FFC-7386B52758A7",
     "custom_1785976237901_373": "🏰 IMG_1151",
     "custom_1785976286672_61": "🏰 7B807631-6F7B-408E-94F6-3E0BB7DFA4D1 2",
-    "custom_1785976318486_785": "🏰 29AF0147-A622-411D-90AE-AF0074A4A586 2"
+    "custom_1785976318486_785": "🏰 29AF0147-A622-411D-90AE-AF0074A4A586 2",
+    "custom_1786198430678_105": "🏰 floresta coleta"
   },
   "startMap": "custom_1785881037059_214",
   "ambience": {},
@@ -152,6 +162,6 @@
     }
   },
   "heroiEscala": 0.5,
-  "zoomCenario": 1.5,
+  "zoomCenario": 1.65,
   "TEMPO_LIGADO": false
 }

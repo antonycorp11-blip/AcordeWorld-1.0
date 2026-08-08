@@ -454,7 +454,7 @@
       "x": 520,
       "y": 83,
       "triggerRadius": 80,
-      "dialogue": "none",
+      "dialogue": "sr_antony_tutorial",
       "triggered": false,
       "flipX": false,
       "scale": 0.6
