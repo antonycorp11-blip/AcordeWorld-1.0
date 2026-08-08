@@ -9851,8 +9851,14 @@ function iniciarAutosave() {
 function verificarGatilhosDaHistoria() {
   if (CUT.ativo || !personagemAndando()) return;
 
-  // Abertura: jogo novo, antes de qualquer coisa.
-  if (!temBandeira('viu_abertura') && !CUT.jaRodou['cap1_abertura'] && level === 1) {
+  // A canção de ninar NÃO abre mais o jogo. Ela era 30 segundos de tela preta com
+  // legenda como primeira impressão — o pior cartão de visita possível. Quem abre agora
+  // é a floresta, com filme. A canção passa a tocar quando ele dorme na casa da Mirela:
+  // alguém cantando uma criança para dormir, na noite em que ele não lembra da própria
+  // infância. O mistério continua sem dono, que é o ponto, e ganha um lugar.
+  if (!temBandeira('viu_abertura') && !CUT.jaRodou['cap1_abertura']
+      && temBandeira('acordou_na_floresta')
+      && currentKey === 'custom_1785884200706_430') {
     const r = CUT.roteiros.find(x => x.id === 'cap1_abertura');
     if (r) { CUT.jaRodou['cap1_abertura'] = true; iniciarCena(r); return; }
   }

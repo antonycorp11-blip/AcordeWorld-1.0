@@ -8,6 +8,10 @@
       "_": "── Cena 1: Escuridão ──"
     },
     {
+      "cmd": "video",
+      "arquivo": "abertura_floresta.mp4"
+    },
+    {
       "cmd": "controle",
       "ativo": false
     },
@@ -533,6 +537,10 @@
     {
       "cmd": "guiar",
       "para": "custom_1785869541494_557"
+    },
+    {
+      "cmd": "bandeira",
+      "id": "acordou_na_floresta"
     },
     {
       "cmd": "fim"
