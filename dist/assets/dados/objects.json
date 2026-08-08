@@ -2464,10 +2464,91 @@
       "id": "mata1_02_1786198607404",
       "prop": "mata1_02",
       "mapKey": "custom_1786198430678_105",
-      "x": 288,
-      "y": 378,
-      "escala": 1,
+      "x": 493,
+      "y": 298,
+      "escala": 0.35,
       "flipX": false
+    },
+    {
+      "id": "coleta_w1",
+      "prop": "mata1_03",
+      "mapKey": "custom_1786198430678_105",
+      "x": 300,
+      "y": 250,
+      "escala": 0.55,
+      "flipX": true
+    },
+    {
+      "id": "coleta_w2",
+      "prop": "f1_08",
+      "mapKey": "custom_1786198430678_105",
+      "x": 545,
+      "y": 268,
+      "escala": 0.55,
+      "flipX": false
+    },
+    {
+      "id": "coleta_w3",
+      "prop": "mata1_02",
+      "mapKey": "custom_1786198430678_105",
+      "x": 415,
+      "y": 330,
+      "escala": 0.45,
+      "flipX": true
+    },
+    {
+      "id": "coleta_w4",
+      "prop": "f1_08",
+      "mapKey": "custom_1786198430678_105",
+      "x": 650,
+      "y": 400,
+      "escala": 0.5,
+      "flipX": false
+    },
+    {
+      "id": "coleta_w5",
+      "prop": "mata1_03",
+      "mapKey": "custom_1786198430678_105",
+      "x": 210,
+      "y": 372,
+      "escala": 0.5,
+      "flipX": true
+    },
+    {
+      "id": "coleta_s1",
+      "prop": "f4_10",
+      "mapKey": "custom_1786198430678_105",
+      "x": 712,
+      "y": 132,
+      "escala": 0.6,
+      "flipX": false
+    },
+    {
+      "id": "coleta_s2",
+      "prop": "mata2_01",
+      "mapKey": "custom_1786198430678_105",
+      "x": 520,
+      "y": 452,
+      "escala": 0.6,
+      "flipX": true
+    },
+    {
+      "id": "coleta_s3",
+      "prop": "f4_11",
+      "mapKey": "custom_1786198430678_105",
+      "x": 790,
+      "y": 272,
+      "escala": 0.6,
+      "flipX": false
+    },
+    {
+      "id": "coleta_s4",
+      "prop": "mata2_02",
+      "mapKey": "custom_1786198430678_105",
+      "x": 355,
+      "y": 205,
+      "escala": 0.6,
+      "flipX": true
     }
   ]
 }

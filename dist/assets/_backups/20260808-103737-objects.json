@@ -2326,21 +2326,147 @@
       "flipX": false
     },
     {
-      "id": "bau_comum_2_1786036219580",
+      "id": "bau_comum_2_1786036229626",
       "prop": "bau_comum_2",
       "mapKey": "custom_1785967453140_198",
-      "x": 779,
-      "y": 88,
+      "x": 753,
+      "y": 78,
       "escala": 0.3,
       "flipX": false
     },
     {
-      "id": "bau_comum_2_1786036229626",
+      "id": "bau_comum_2_1786036626079",
       "prop": "bau_comum_2",
       "mapKey": "custom_1785967453140_198",
-      "x": 779,
-      "y": 79,
+      "x": 692,
+      "y": 222,
       "escala": 0.3,
+      "flipX": false
+    },
+    {
+      "id": "bau_comum_1_1786036701503",
+      "prop": "bau_comum_1",
+      "mapKey": "custom_1785967453140_198",
+      "x": 919,
+      "y": 372,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "bau_comum_2_1786036728423",
+      "prop": "bau_comum_2",
+      "mapKey": "custom_1785967453140_198",
+      "x": 283,
+      "y": 123,
+      "escala": 0.3,
+      "flipX": false
+    },
+    {
+      "id": "bau_comum_1_1786036761974",
+      "prop": "bau_comum_1",
+      "mapKey": "custom_1785976286672_61",
+      "x": 507,
+      "y": 285,
+      "escala": 0.6,
+      "flipX": false
+    },
+    {
+      "id": "bau_comum_3_1786000000000",
+      "prop": "bau_comum_3",
+      "mapKey": "custom_1785967453140_198",
+      "x": 150,
+      "y": 470,
+      "escala": 0.35,
+      "flipX": false
+    },
+    {
+      "id": "bau_comum_1_1786000000001",
+      "prop": "bau_comum_1",
+      "mapKey": "custom_1785976286672_61",
+      "x": 470,
+      "y": 105,
+      "escala": 0.35,
+      "flipX": true
+    },
+    {
+      "id": "bau_comum_2_1786000000002",
+      "prop": "bau_comum_2",
+      "mapKey": "custom_1785976286672_61",
+      "x": 800,
+      "y": 150,
+      "escala": 0.35,
+      "flipX": false
+    },
+    {
+      "id": "bau_comum_3_1786000000003",
+      "prop": "bau_comum_3",
+      "mapKey": "custom_1785976286672_61",
+      "x": 250,
+      "y": 455,
+      "escala": 0.4,
+      "flipX": true
+    },
+    {
+      "id": "bau_comum_2_1786000000004",
+      "prop": "bau_comum_2",
+      "mapKey": "custom_1785976286672_61",
+      "x": 610,
+      "y": 395,
+      "escala": 0.35,
+      "flipX": false
+    },
+    {
+      "id": "bau_comum_1_1786000000005",
+      "prop": "bau_comum_1",
+      "mapKey": "custom_1785976318486_785",
+      "x": 512,
+      "y": 178,
+      "escala": 0.9,
+      "flipX": true
+    },
+    {
+      "id": "bau_comum_2_1786000000006",
+      "prop": "bau_comum_2",
+      "mapKey": "custom_1785976318486_785",
+      "x": 290,
+      "y": 250,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "bau_comum_3_1786000000007",
+      "prop": "bau_comum_3",
+      "mapKey": "custom_1785976318486_785",
+      "x": 750,
+      "y": 290,
+      "escala": 0.4,
+      "flipX": true
+    },
+    {
+      "id": "bau_comum_2_1786000000008",
+      "prop": "bau_comum_2",
+      "mapKey": "custom_1785976318486_785",
+      "x": 345,
+      "y": 385,
+      "escala": 0.35,
+      "flipX": false
+    },
+    {
+      "id": "bau_comum_1_1786000000009",
+      "prop": "bau_comum_1",
+      "mapKey": "custom_1785976318486_785",
+      "x": 660,
+      "y": 385,
+      "escala": 0.35,
+      "flipX": true
+    },
+    {
+      "id": "mata1_02_1786198607404",
+      "prop": "mata1_02",
+      "mapKey": "custom_1786198430678_105",
+      "x": 465,
+      "y": 398,
+      "escala": 0.35,
       "flipX": false
     }
   ]

@@ -4532,9 +4532,44 @@ function renderObjetos(now, lado) {
       }
       ctx.restore();
       if (ehBau(o) && !fantasma && corridaAtiva()) renderBrilhoDoBau(o, b, now);
+      if (isPlayMode) renderSinalDeRecurso(o, b, agoraDoQuadro);
 
       if (!isPlayMode) renderMarcaDoObjeto(o, b);
     });
+}
+
+// O fundo destes cenários já vem com dezenas de árvores e pedras PINTADAS. Um prop de
+// pinheiro plantado em cima disso é visualmente idêntico ao cenário, e o jogador não tem
+// como saber que aquele ali responde. Este é o sinal: de longe, só um brilho discreto na
+// base; a partir de uns 230px, o ícone do recurso aparece por cima. O anel forte e o
+// "Coletar" continuam sendo coisa do alcance de golpe.
+function renderSinalDeRecurso(o, b, agora) {
+  const rec = recursoDoProp(o);
+  if (!rec) return;
+  const d = Math.hypot(player.x - o.x, player.y - o.y);
+  if (d > RAIO_DE_AVISO) return;
+  const descansando = o.esgotadoAte && agora < o.esgotadoAte;
+  // Perto = opaco, longe = quase nada. Assim uma floresta cheia de recursos não vira
+  // um mural de ícones.
+  const forca = Math.max(0, 1 - d / RAIO_DE_AVISO);
+  const pulso = (Math.sin(agora * 0.004) + 1) / 2;
+  ctx.save();
+  ctx.globalAlpha = forca * (descansando ? 0.3 : 0.55 + pulso * 0.3);
+  // Brilho na base: diz "isto está plantado aqui de propósito".
+  const g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, 30);
+  g.addColorStop(0, descansando ? 'rgba(148,163,184,0.5)' : 'rgba(251,191,36,0.45)');
+  g.addColorStop(1, 'rgba(251,191,36,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.ellipse(o.x, o.y, 30, 12, 0, 0, Math.PI * 2); ctx.fill();
+  // Ícone acima da copa, só quando já dá para ler.
+  if (forca > 0.35) {
+    ctx.globalAlpha = Math.min(1, (forca - 0.35) / 0.4) * (descansando ? 0.5 : 1);
+    ctx.font = '15px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(descansando ? '⏳' : RECURSO_INFO[rec].ico, o.x, b.y - 6);
+    ctx.textAlign = 'left';
+  }
+  ctx.restore();
 }
 
 // Só no editor: mostra o pé e a área de colisão, que são invisíveis por natureza e
@@ -4548,8 +4583,38 @@ function renderMarcaDoObjeto(o, b) {
     ctx.beginPath(); ctx.ellipse(o.x, o.y, r, r * 0.55, 0, 0, Math.PI * 2); ctx.stroke();
   }
   if (objetoSelecionado === o) {
-    renderCaixaEAlcas(o);
+    desenharSelecaoDoObjeto(o, b);
   }
+  ctx.restore();
+}
+
+// A caixa do objeto selecionado. Esta chamada era `renderCaixaEAlcas`, uma função que
+// nunca existiu: selecionar um objeto no editor lançava ReferenceError a CADA quadro.
+// Como a exceção acontecia dentro do zoom do cenário, o ctx.restore() nunca rodava e a
+// transformação acumulava — era isto que "dava zoom sozinho e ficava tudo preto".
+// Objeto de cena não tem alça: move arrastando e escala pelo Inspetor. Então aqui é só
+// a moldura, que é o que o autor precisa ver para saber o que está selecionado.
+function desenharSelecaoDoObjeto(o, b) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(56,189,248,0.95)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 4]);
+  ctx.strokeRect(b.x, b.y, b.w, b.h);
+  ctx.setLineDash([]);
+  // Cantos cheios: a moldura tracejada sozinha se perde em cima de arte detalhada.
+  const c = 7;
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2.5;
+  [[b.x, b.y, 1, 1], [b.x + b.w, b.y, -1, 1],
+   [b.x, b.y + b.h, 1, -1], [b.x + b.w, b.y + b.h, -1, -1]]
+    .forEach(([x, y, dx, dy]) => {
+      ctx.beginPath();
+      ctx.moveTo(x + dx * c, y); ctx.lineTo(x, y); ctx.lineTo(x, y + dy * c);
+      ctx.stroke();
+    });
+  // O pé, que é o ponto que realmente define onde o objeto está no chão.
+  ctx.fillStyle = '#38bdf8';
+  ctx.beginPath(); ctx.arc(o.x, o.y, 2.5, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
 
@@ -8156,10 +8221,20 @@ function marteladaTarget() {
 }
 function spotTarget()     { return elementTarget(['spot_wood','spot_stone']); }
 
-// Categoria do prop decide o recurso. É a mesma categoria que já organiza a paleta do
-// editor, então nada precisa ser marcado à mão: plantar a árvore basta.
-const RECURSO_DA_CATEGORIA = { arvore: 'wood', pedra: 'stone' };
+// A categoria sozinha não serve para decidir recurso, e foi um erro meu tratá-la assim:
+// no objects.json as carroças (medieval_transport_*) estão marcadas como 'arvore', e
+// monumentos de lore como a Pedra Cantante e a Rocha da Partitura estão como 'pedra'.
+// Carroça dando madeira e monumento virando cascalho seriam duas surpresas ruins — e a
+// Pedra Cantante em particular é peça de história, não pedreira. Então a lista é explícita.
+const PROPS_DE_RECURSO = {
+  wood:  ['f1_01','f1_02','f1_03','f1_04','f1_05','f1_06','f1_07','f1_08','f1_09',
+          'mata1_01','mata1_02','mata1_03'],
+  stone: ['f4_10','f4_11','f4_12','mata2_01','mata2_02','mata2_03'],
+};
+const RECURSO_DO_PROP = {};
+for (const [rec, ids] of Object.entries(PROPS_DE_RECURSO)) ids.forEach(id => RECURSO_DO_PROP[id] = rec);
 const RAIO_DE_COLETA = 72;
+const RAIO_DE_AVISO  = 230;   // distância em que o ícone de recurso começa a aparecer
 
 // Golpear um prop. Reaproveita as regras que já valiam para os spots — número de
 // golpes caindo com o nível e com a ferramenta, regeneração, XP — para os dois jeitos
@@ -8206,7 +8281,7 @@ function coletarDoProp(o) {
 
 function recursoDoProp(o) {
   if (!o || ehBau(o)) return null;
-  return RECURSO_DA_CATEGORIA[(propDef(o) || {}).categoria] || null;
+  return RECURSO_DO_PROP[o.prop] || null;
 }
 
 // Prop colhível mais perto, pelo PÉ do objeto — que é onde o personagem encosta.
