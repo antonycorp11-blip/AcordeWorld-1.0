@@ -16,6 +16,19 @@
       "visivel": false
     },
     {
+      "cmd": "posicionar",
+      "x": 505,
+      "y": 470,
+      "olhando": "up"
+    },
+    {
+      "cmd": "ambiente",
+      "escuro": 0.62,
+      "cor": "#0b1220",
+      "ms": 1,
+      "esperar": false
+    },
+    {
       "cmd": "escurecer",
       "para": 1,
       "ms": 0
@@ -236,9 +249,9 @@
     },
     {
       "cmd": "ambiente",
-      "escuro": 0.12,
-      "cor": "#1a2436",
-      "ms": 2600,
+      "escuro": 0,
+      "cor": "#0b1220",
+      "ms": 4200,
       "esperar": false
     },
     {

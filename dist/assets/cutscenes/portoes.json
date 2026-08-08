@@ -8,6 +8,10 @@
       "_": "── Chegada aos portões, de manhã ──"
     },
     {
+      "cmd": "video",
+      "arquivo": "chegada_cidade.mp4"
+    },
+    {
       "cmd": "controle",
       "ativo": false
     },
@@ -19,16 +23,6 @@
       "cmd": "escurecer",
       "para": 1,
       "ms": 0
-    },
-    {
-      "cmd": "legenda",
-      "texto": "A estrada subiu por entre as pedras a manhã inteira.",
-      "ms": 3600
-    },
-    {
-      "cmd": "legenda",
-      "texto": "Então, no alto da colina, os portões de Acordelot.",
-      "ms": 3800
     },
     {
       "cmd": "escurecer",
