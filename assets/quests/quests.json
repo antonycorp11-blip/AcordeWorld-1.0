@@ -328,6 +328,39 @@
         }
       ],
       "path_waypoints": {}
+    },
+    {
+      "id": "madeira_e_pedra",
+      "title": "Um Favor ao Ferreiro",
+      "description": "O Sr. Antony pediu que você levasse o Pipo para juntar material para o Dorn. O menino insistiu.",
+      "xp": 90,
+      "objectives": [
+        {
+          "id": "madeira",
+          "type": "coletar",
+          "item": "wood",
+          "quantidade": 3,
+          "text": "Junte 3 de Madeira Rústica"
+        },
+        {
+          "id": "pedra",
+          "type": "coletar",
+          "item": "stone",
+          "quantidade": 3,
+          "text": "Junte 3 de Pedra Bruta"
+        },
+        {
+          "id": "entregar",
+          "type": "talk",
+          "npc": "Dorn",
+          "text": "Leve tudo ao Ferreiro Dorn",
+          "requer": [
+            "madeira",
+            "pedra"
+          ]
+        }
+      ],
+      "path_waypoints": {}
     }
   ]
 }

@@ -1416,6 +1416,42 @@
       "escala": 1.8000000000000007,
       "flipX": false,
       "chefeForca": 3.5
+    },
+    {
+      "id": "eco_re_1786203687404",
+      "type": "eco_re",
+      "mapKey": "custom_1786198430678_105",
+      "x": 444,
+      "y": 319,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_re_1786203700720",
+      "type": "eco_re",
+      "mapKey": "custom_1786198430678_105",
+      "x": 115,
+      "y": 252,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_re_1786203710362",
+      "type": "eco_re",
+      "mapKey": "custom_1786198430678_105",
+      "x": 245,
+      "y": 166,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_re_1786203727227",
+      "type": "eco_re",
+      "mapKey": "custom_1786198430678_105",
+      "x": 685,
+      "y": 169,
+      "escala": 0.6000000000000001,
+      "flipX": false
     }
   ]
 }

@@ -1,0 +1,235 @@
+{
+  "id": "cap1_pipo_junto",
+  "nome": "Cap. 1 · Cena 5b — O menino vai com você",
+  "_": "A cena que faz o jogador gostar do Pipo. O Sr. Antony não pede um favor ao Akles: pede um favor ao MENINO, e deixa o Akles ouvir. Ninguém explica mecânica de coleta aqui — o Pipo explica, errado, e o jogo corrige depois na prática. Termina com o Lucian entregando o filho sem saber o que está entregando.",
+  "mapa": "custom_1785869541494_557",
+  "autoStart": false,
+  "gatilho": {
+    "tipo": "falar",
+    "npc": "Antony"
+  },
+  "passos": [
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "trilha",
+      "humor": "cidade",
+      "ms": 800
+    },
+    {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "O Dorn está sem material outra vez. Madeira e pedra."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Eu ia mandar um dos guardas, mas guarda não sabe escolher madeira."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "E eu sei?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Não. — Mas tem alguém aqui que sabe."
+    },
+    {
+      "_": "── ele estava escutando o tempo todo ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "esperarPerto",
+      "npc": "Pipo",
+      "distancia": 200
+    },
+    {
+      "cmd": "acenar",
+      "npc": "Pipo",
+      "ms": 1400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Pipo",
+      "texto": "EU SEI!"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Pipo",
+      "texto": "Quer dizer... eu sei. O Dorn me ensinou a bater na madeira pra ouvir se está seca."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Ouviu, rapaz? Ele sabe."
+    },
+    {
+      "_": "── o Antony não pede ao Akles: pede ao menino, e deixa o Akles escutar ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 700
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Pipo. Você aceita levar este forasteiro para juntar material?"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1200
+    },
+    {
+      "cmd": "falar",
+      "quem": "Pipo",
+      "texto": "...eu?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Você. Ele não conhece a mata. Você conhece."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Pipo",
+      "texto": "Eu aceito. — EU ACEITO."
+    },
+    {
+      "_": "── o pai ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Antony. Ele tem nove anos."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "E vai ter dez sem nunca ter passado do portão, se você continuar assim."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "..."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Pipo. Vem cá."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1000
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Fica atrás dele. Sempre atrás. Se ele parar, você para."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Pipo",
+      "texto": "Tá."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "E volta antes de escurecer."
+    },
+    {
+      "_": "── e para o Akles, baixo ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1200
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "{PLAYER_NAME}."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1000
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "É o que eu tenho."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 2200
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Eu devolvo."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1800
+    },
+    {
+      "_": "── partem ──"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Pipo",
+      "texto": "Vamos! Eu sei um lugar com carvalho velho!"
+    },
+    {
+      "cmd": "acompanhante",
+      "npc": "Pipo"
+    },
+    {
+      "cmd": "missao",
+      "id": "madeira_e_pedra"
+    },
+    {
+      "cmd": "bandeira",
+      "id": "pipo_no_grupo"
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "O Pipo está com você e atravessa as placas junto.\nProps de árvore e pedra com anel dourado no pé podem ser golpeados: aproxime-se e use Coletar."
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "fim"
+    }
+  ],
+  "requer": {
+    "missaoConcluida": "welcome_to_acordelot"
+  }
+}

@@ -8281,6 +8281,7 @@ function coletarDoProp(o) {
   o.esgotadoAte = now + info.regen;
   playerInventory[tipo] = (playerInventory[tipo] || 0) + 1;
   progressoDeMissao('coletar', tipo);
+  acompanhanteViuColeta(tipo);
   addFloater(player.x, player.y - 45, `🎉 +1 ${info.nome} ${info.ico}`, '#fbbf24');
   showToast(`${info.ico} +1 ${info.nome} coletada!`);
   updateInventorySlotsUI();
@@ -11729,6 +11730,12 @@ function executarPasso(p) {
       return true;
     }
 
+    case 'acompanhante':
+      // `npc` engata alguém; sem `npc` (ou com dispensar:true) solta quem estiver junto.
+      if (p.dispensar || !p.npc) dispensarAcompanhante();
+      else chamarAcompanhante(p.npc);
+      return false;
+
     case 'missao':
       unlockQuest(p.id);
       return false;
@@ -12817,6 +12824,7 @@ function quadro(now){
   // Os números do HUD pela mesma razão: o bloco que os atualizava só roda no modo jogo,
   // e no modo ANDAR a barra ficava congelada nos valores do primeiro quadro.
   if (personagemAndando()) { atualizarNumerosDoHud(); atualizarMissaoNoHud(); }
+  atualizarAcompanhante(now);
   verificarGatilhosDaHistoria();
   atualizarTrilha(now);
   garantirFolhasDoMapa(currentKey);
@@ -18229,6 +18237,173 @@ function renderBussolaDeRecursos(now) {
     ctx.textAlign = 'left';
     ctx.restore();
   }
+}
+
+// ══ Acompanhante ══════════════════════════════════════════════════════════════
+// Um NPC que anda com o jogador, inclusive atravessando mapas. Existe por uma razão
+// dramática: o Capítulo 1 termina com a cidade inteira esquecendo o Pipo, e isso só
+// dói se o jogador tiver gostado dele antes. Gostar não se declara em diálogo — se
+// constrói andando junto por vinte minutos enquanto o menino fala bobagem.
+const ACOMP = {
+  npc: null,
+  proximaFala: 0,
+  mapaAnterior: null,
+  ditas: new Set(),      // falas de uma vez só, para não repetir o que é especial
+  ultimoRecurso: 0,
+};
+
+// Distância que ele mantém: perto o bastante para o balão ficar legível, longe o
+// bastante para não empurrar a câmera nem cobrir o personagem.
+const ACOMP_FOLGA = 46;
+const ACOMP_LONGE = 420;     // acima disto ele corta caminho e reaparece
+
+function chamarAcompanhante(nome) {
+  const n = npcData.find(x => String(x.name || '').toLowerCase().includes(String(nome).toLowerCase()));
+  if (!n) return null;
+  ACOMP.npc = n;
+  ACOMP.mapaAnterior = currentKey;
+  ACOMP.proximaFala = performance.now() + 3000;
+  n.mapKey = currentKey;
+  const p = pontoAndavelPerto(player.x - 40, player.y + 10);
+  n.x = p.x; n.y = p.y;
+  return n;
+}
+
+function dispensarAcompanhante() {
+  ACOMP.npc = null;
+  ACOMP.ditas.clear();
+}
+
+function acompanhanteAtivo() { return !!ACOMP.npc; }
+
+function atualizarAcompanhante(now) {
+  const n = ACOMP.npc;
+  if (!n || !personagemAndando()) return;
+
+  // Troca de mapa: ele vem junto. Sem isto o menino ficava para trás no mapa anterior
+  // e o "vamos juntos" virava mentira na primeira placa.
+  if (ACOMP.mapaAnterior !== currentKey) {
+    ACOMP.mapaAnterior = currentKey;
+    n.mapKey = currentKey;
+    const p = pontoAndavelPerto(player.x - 34, player.y + 12);
+    n.x = p.x; n.y = p.y;
+    falaDeAcompanhante(now, 'mapa');
+    return;
+  }
+
+  const dx = player.x - n.x, dy = player.y - n.y;
+  const d = Math.hypot(dx, dy);
+
+  // Ficou longe demais (o jogador correu, ou uma cena o moveu): corta caminho em vez
+  // de atravessar meio cenário andando, que fica esquisito.
+  if (d > ACOMP_LONGE) {
+    const p = pontoAndavelPerto(player.x - 34, player.y + 12);
+    n.x = p.x; n.y = p.y;
+    return;
+  }
+
+  if (d > ACOMP_FOLGA) {
+    // Anda um pouco mais rápido que o jogador quando está atrás, senão nunca alcança
+    // e o balão de fala aparece sempre fora da tela.
+    const vel = d > 140 ? 2.6 : 1.7;
+    const passoX = (dx / d) * vel, passoY = (dy / d) * vel;
+    // Eixos separados: encostar numa quina não pode travar o menino de vez.
+    if (canMoveTo(n.x + passoX, n.y)) n.x += passoX;
+    if (canMoveTo(n.x, n.y + passoY)) n.y += passoY;
+    n.flipX = passoX < 0;
+  }
+
+  // Perigo por perto ganha da conversa fiada: é a única vez em que o balão dele diz
+  // algo útil, e é o que faz o menino parecer uma criança de verdade num lugar errado.
+  const perigo = liveMonsters().some(m => m.mapKey === currentKey
+    && !(monsterDef(m) || {}).pacifico
+    && Math.hypot(player.x - m.x, player.y - m.y) < 220);
+  if (perigo && now >= (ACOMP.proximoSusto || 0)) {
+    ACOMP.proximoSusto = now + 14000;
+    falaDeAcompanhante(now, 'monstro');
+    return;
+  }
+
+  if (now >= ACOMP.proximaFala) falaDeAcompanhante(now, 'andando');
+}
+
+// ── O que o Pipo fala ─────────────────────────────────────────────────────────
+// Três regras que valem para tudo aqui: nenhuma fala explica mecânica, nenhuma fala
+// pede nada ao jogador, e cada uma planta algo que volta depois. O ouvido absoluto
+// aparece como hábito, não como revelação. O terceiro golpe errado é o detalhe que a
+// Wins e o Akles vão usar no selo para provar que ele existiu.
+const FALAS_DO_PIPO = {
+  andando: [
+    'Meu pai diz que andar no compasso deixa o caminho mais curto.',
+    'Você repara que a estrada faz um som diferente da grama?',
+    'Um, dois, e o de baixo. — Errei. De novo.',
+    'Quando eu crescer eu vou ser dos Ritmos. Como ele.',
+    'O Sr. Antony me chamou de "moço". Ouviu isso?',
+    'Se eu voltar com madeira de verdade, o Dorn vai ter que me deixar entrar na forja.',
+    'Você anda rápido. Meu pai anda devagar e chega junto, não sei como.',
+    'Esse pássaro aí. — Fá. Fá sustenido agora.',
+    'Você também escuta as notas ou é só eu?',
+    'Não conta pro meu pai que eu vim, tá?',
+    'Ele fala que eu tenho ouvido bom. Eu acho que todo mundo tem.',
+  ],
+  mapa: [
+    'Eu nunca vim tão longe de casa.',
+    'Aqui o vento tem outro tom. Mais grave.',
+    'Se a gente se perder, eu sei o caminho. — Acho.',
+    'Meu pai nunca me deixou passar daqui.',
+  ],
+  madeira: [
+    'Isso! Do lado do nó a madeira solta mais fácil.',
+    'O Dorn vai gostar dessa. Ele bate na madeira pra ouvir se está seca.',
+    'Deixa eu tentar? — Tá, deixa não.',
+    'Três batidas. Sempre três. Igual acorde.',
+  ],
+  pedra: [
+    'Pedra não canta. Só faz "tum".',
+    'Meu pai diz que pedra guarda som antigo. Eu acho que ele inventa.',
+    'Cuidado com o pé!',
+  ],
+  monstro: [
+    'Akles. — AKLES.',
+    'Eu fico atrás de você, tá?',
+    'Esse aí faz um som errado. Dá arrepio.',
+  ],
+};
+
+// Uma vez só, e nas horas em que pesa. São estas que o jogador vai lembrar na Cena 9.
+const FALAS_UNICAS = [
+  { id: 'primeiro_nome', quando: 'andando', apos: 6,
+    texto: 'Você é a primeira pessoa que me chama pelo nome sem ser meu pai.' },
+  { id: 'medo', quando: 'monstro', apos: 0,
+    texto: 'Se eu sumir, você vem me buscar? — Promete.' },
+];
+
+function falaDeAcompanhante(now, contexto) {
+  const n = ACOMP.npc;
+  if (!n || n.mapKey !== currentKey) return;
+  ACOMP.faladas = (ACOMP.faladas || 0) + 1;
+
+  const unica = FALAS_UNICAS.find(u => u.quando === contexto
+    && !ACOMP.ditas.has(u.id) && (ACOMP.faladas || 0) >= u.apos);
+  if (unica) {
+    ACOMP.ditas.add(unica.id);
+    say(n, unica.texto, 4200);
+    ACOMP.proximaFala = now + 12000;
+    return;
+  }
+
+  const pool = FALAS_DO_PIPO[contexto] || FALAS_DO_PIPO.andando;
+  say(n, pool[Math.floor(Math.random() * pool.length)], 3400);
+  // Silêncio entre falas: um menino falando sem parar deixa de ser charme em dois minutos.
+  ACOMP.proximaFala = now + 9000 + Math.random() * 7000;
+}
+
+// Chamado pela coleta: o comentário certo na hora certa vale mais que dez aleatórios.
+function acompanhanteViuColeta(tipo) {
+  const now = performance.now();
+  if (!ACOMP.npc || now - ACOMP.ultimoRecurso < 4000) return;
+  ACOMP.ultimoRecurso = now;
+  falaDeAcompanhante(now, tipo === 'wood' ? 'madeira' : 'pedra');
 }
 
 // ══ Fases do chefe ════════════════════════════════════════════════════════════
