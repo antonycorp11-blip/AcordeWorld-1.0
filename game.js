@@ -9110,7 +9110,8 @@ function getM(e){
   if (currentKey === 'mega_world' || activeMapSelect?.value === 'mega_world') {
     return {
       x: megaCameraX + rx / megaMapZoom,
-      y: megaCameraY + ry / megaMapZoom
+      y: megaCameraY + ry / megaMapZoom,
+      telaX: rx, telaY: ry
     };
   }
   // Desfaz a câmera do zoom. Sem isto, com o cenário aproximado o clique caía onde o
@@ -9119,9 +9120,10 @@ function getM(e){
   if (zoomCenario > 1.001) {
     const c = camaraDoCenario();
     return { x: (rx - SCREEN_W / 2) / zoomCenario + c.x,
-             y: (ry - SCREEN_H / 2) / zoomCenario + c.y };
+             y: (ry - SCREEN_H / 2) / zoomCenario + c.y,
+             telaX: rx, telaY: ry };
   }
-  return { x: rx, y: ry };
+  return { x: rx, y: ry, telaX: rx, telaY: ry };
 }
 
 function onPointerDown(m){
@@ -9133,7 +9135,7 @@ function onPointerDown(m){
   if (avancarCena()) return;      // uma cena em curso consome o toque
   // An open dialogue owns the pointer whatever the editor mode is — otherwise the
   // editor branches below return early and taps never reach the choices.
-  if(dlg.state===DLG_STATE.CHOOSING){ const i=choiceAt(m.x,m.y); if(i>=0)selectChoice(i); return; }
+  if(dlg.state===DLG_STATE.CHOOSING){ const i=choiceAt(m.telaX ?? m.x, m.telaY ?? m.y); if(i>=0)selectChoice(i); return; }
   if(dlg.state===DLG_STATE.TYPING||dlg.state===DLG_STATE.WAITING){ advanceDlg(); return; }
   if(dlg.state===DLG_STATE.NAME_INPUT) return;
 
@@ -9287,7 +9289,7 @@ function onPointerMove(m){
     } else hoveredNPC=npcAt(m.x,m.y);
   }
   if(engineMode==='collision'){paintPos=m;if(isPainting)paintStroke(m.x,m.y,activeMapSelect?.value||currentKey);}
-  if(dlg.state===DLG_STATE.CHOOSING) dlg.hoveredChoice=choiceAt(m.x,m.y);
+  if(dlg.state===DLG_STATE.CHOOSING) dlg.hoveredChoice=choiceAt(m.telaX ?? m.x, m.telaY ?? m.y);
   // cursor
   let cur='default';
   if(npcPlacingMode||engineMode==='collision')cur='crosshair';
@@ -19252,7 +19254,7 @@ function mostrarDerrota(c, d, espera) {
 
 const TRILHA = {
   ligada: true,
-  volume: 0.34,        // trilha é fundo: tem que caber embaixo dos sons do jogo
+  volume: 0.50,        // fundo, mas audível: 0.34 sumia no celular
   humor: null,          // o humor tocando agora
   proximo: null,        // para onde está indo (transição)
   passo: 0,             // qual semicolcheia do compasso
@@ -19294,42 +19296,49 @@ const HUMORES = {
     progressao: [0, 5, 3, 4],          // I – vi – IV – V
     vozes: { baixo: 0.55, pad: 0.85, arpejo: 0.30, percussao: 0 },
     corte: 1500, arpPadrao: [0, 4, 2, 7], arpCada: 8,
+    secoes: [[0,5,3,4],[0,3,5,4],[5,3,0,4]], motivo: [7,4,2,4],
   },
   floresta: {
     raiz: 'sol', escala: 'mixolidio', bpm: 54,
     progressao: [0, 6, 3, 0],
     vozes: { baixo: 0.45, pad: 0.9, arpejo: 0.22, percussao: 0 },
     corte: 1100, arpPadrao: [0, 4, 7], arpCada: 12,
+    secoes: [[0,6,3,0],[0,3,6,3],[6,0,3,0]], motivo: [4,2,0],
   },
   caverna: {
     raiz: 're', escala: 'menor', bpm: 46,
     progressao: [0, 0, 5, 4],
     vozes: { baixo: 0.6, pad: 0.8, arpejo: 0.14, percussao: 0 },
     corte: 620, arpPadrao: [0, 7], arpCada: 16,
+    secoes: [[0,0,5,4],[0,5,3,4],[0,3,0,5]], motivo: [0,-2],
   },
   combate: {
     raiz: 'la', escala: 'menor', bpm: 92,
     progressao: [0, 0, 5, 6],
     vozes: { baixo: 0.8, pad: 0.55, arpejo: 0.30, percussao: 0.22 },
     corte: 1700, arpPadrao: [0, 3, 7, 3], arpCada: 4,
+    secoes: [[0,0,5,6],[0,6,3,4],[0,5,0,6]], motivo: [7,6,4],
   },
   chefe: {
     raiz: 'mi', escala: 'frigio', bpm: 104,
     progressao: [0, 1, 0, 6],          // o II rebaixado do frígio é a ameaça
     vozes: { baixo: 0.95, pad: 0.6, arpejo: 0.32, percussao: 0.38 },
     corte: 1900, arpPadrao: [0, 1, 3, 1], arpCada: 4,
+    secoes: [[0,1,0,6],[0,1,5,1],[1,0,6,0]], motivo: [1,0,-1],
   },
   altar: {
     raiz: 'do', escala: 'lidio', bpm: 44,
     progressao: [0, 4, 0, 4],
     vozes: { baixo: 0.35, pad: 0.95, arpejo: 0.22, percussao: 0 },
     corte: 1300, arpPadrao: [0, 4, 7, 11], arpCada: 8,
+    secoes: [[0,4,0,4],[0,3,4,3],[4,0,3,0]], motivo: [11,7,4,7],
   },
   vitoria: {
     raiz: 'do', escala: 'maior', bpm: 82,
     progressao: [0, 3, 4, 0],
     vozes: { baixo: 0.7, pad: 0.85, arpejo: 0.40, percussao: 0 },
     corte: 2000, arpPadrao: [0, 2, 4, 7], arpCada: 4,
+    secoes: [[0,3,4,0],[0,4,5,3]], motivo: [4,7,11,7],
   },
 };
 
@@ -19411,9 +19420,19 @@ function percussao(t0, grave) {
 // ── o compasso ──
 // Dezesseis passos por compasso (semicolcheias). Cada voz decide em quais passos entra —
 // é assim que quatro instrumentos simples soam como um arranjo em vez de um bloco.
+// Qual progressão está valendo agora. Troca a cada 4 compassos, então o ouvido tem tempo
+// de reconhecer a frase antes de ela virar outra.
+function secaoDoHumor(h) {
+  const secoes = h.secoes || [h.progressao];
+  return { prog: secoes[Math.floor(TRILHA.totalPassos / 64) % secoes.length],
+           indice: Math.floor(TRILHA.totalPassos / 64) };
+}
+
 function tocarPasso(h, passo, t) {
-  const compasso = Math.floor(TRILHA.totalPassos / 16) % h.progressao.length;
-  const grauAcorde = h.progressao[compasso];
+  const sec = secaoDoHumor(h);
+  const prog = sec.prog;
+  const compasso = Math.floor(TRILHA.totalPassos / 16) % prog.length;
+  const grauAcorde = prog[compasso];
   const v = h.vozes;
   const mudas = TRILHA.vozesMudas;
   const segCompasso = (60 / h.bpm) * 4;
@@ -19427,7 +19446,8 @@ function tocarPasso(h, passo, t) {
 
   // PAD — o acorde sustentado, que é a voz principal desta trilha. Três notas em onda
   // triangular, com entrada e saída lentas. Era serra com corte alto: cortava demais.
-  if (v.pad && mudas < 3 && passo === 0) {
+  const padRespira = Math.floor(TRILHA.totalPassos / 16) % 8 === 7;
+  if (v.pad && mudas < 3 && passo === 0 && !padRespira) {
     [0, 2, 4].forEach((n, i) => {
       voz(freqDoGrau(h, grauAcorde + n, 0), t + i * 0.05, segCompasso * 1.1,
           { tipo: 'triangle', vol: 0.030 * v.pad * TRILHA.volume,
@@ -19450,6 +19470,14 @@ function tocarPasso(h, passo, t) {
   // PERCUSSÃO — só nos dois humores de perigo, e mesmo lá é um pulso surdo no primeiro
   // tempo, não uma batida. O chimbal saiu: era ele que fazia soar arcade.
   if (v.percussao && mudas < 1 && passo === 0) percussao(t, true);
+
+  // MOTIVO — só em seção ímpar, uma nota a cada meio compasso. Entra, diz a frase, sai.
+  if (h.motivo && mudas < 2 && sec.indice % 2 === 1 && passo % 8 === 0) {
+    const i = Math.floor(TRILHA.totalPassos / 8) % h.motivo.length;
+    voz(freqDoGrau(h, grauAcorde + h.motivo[i], 1), t, 1.6,
+        { tipo: 'triangle', vol: 0.038 * TRILHA.volume, corte: h.corte,
+          eco: 0.7, ataque: 0.14 });
+  }
 }
 
 // O relógio de olhar-adiante. Agenda no tempo do audioCtx, que não treme, em vez de
