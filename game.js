@@ -4549,26 +4549,34 @@ function renderSinalDeRecurso(o, b, agora) {
   const d = Math.hypot(player.x - o.x, player.y - o.y);
   if (d > RAIO_DE_AVISO) return;
   const descansando = o.esgotadoAte && agora < o.esgotadoAte;
-  // Perto = opaco, longe = quase nada. Assim uma floresta cheia de recursos não vira
-  // um mural de ícones.
-  const forca = Math.max(0, 1 - d / RAIO_DE_AVISO);
-  const pulso = (Math.sin(agora * 0.004) + 1) / 2;
+  const noAlcance = d <= RAIO_DE_COLETA;
+  const bob = Math.sin(agora * 0.004) * 2;
+
   ctx.save();
-  ctx.globalAlpha = forca * (descansando ? 0.3 : 0.55 + pulso * 0.3);
-  // Brilho na base: diz "isto está plantado aqui de propósito".
-  const g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, 30);
-  g.addColorStop(0, descansando ? 'rgba(148,163,184,0.5)' : 'rgba(251,191,36,0.45)');
-  g.addColorStop(1, 'rgba(251,191,36,0)');
-  ctx.fillStyle = g;
-  ctx.beginPath(); ctx.ellipse(o.x, o.y, 30, 12, 0, 0, Math.PI * 2); ctx.fill();
-  // Ícone acima da copa, só quando já dá para ler.
-  if (forca > 0.35) {
-    ctx.globalAlpha = Math.min(1, (forca - 0.35) / 0.4) * (descansando ? 0.5 : 1);
-    ctx.font = '15px serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(descansando ? '⏳' : RECURSO_INFO[rec].ico, o.x, b.y - 6);
-    ctx.textAlign = 'left';
-  }
+  // Anel no pé, com contorno escuro por baixo. A primeira versão era um gradiente suave
+  // em alpha 0.4: sobre arte com esta densidade de folhagem, simplesmente não se via.
+  // Sobre fundo detalhado, o que lê é traço fechado com contraste, não brilho difuso.
+  ctx.globalAlpha = descansando ? 0.45 : 1;
+  ctx.lineWidth = 3.5;
+  ctx.strokeStyle = 'rgba(12,10,6,0.75)';
+  ctx.beginPath(); ctx.ellipse(o.x, o.y, 20, 8, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineWidth = 1.8;
+  ctx.strokeStyle = descansando ? '#94a3b8' : (noAlcance ? '#fde68a' : '#fbbf24');
+  ctx.beginPath(); ctx.ellipse(o.x, o.y, 20, 8, 0, 0, Math.PI * 2); ctx.stroke();
+
+  // Ícone logo acima do ANEL, não acima da copa: ancorado no topo do sprite ele saía
+  // da tela em árvore alta, e o sinal ficava só no anel. No pé ele acompanha o ponto
+  // onde o golpe acontece e nunca sai do enquadramento junto com a folhagem.
+  const iy = o.y - 26 + bob;
+  ctx.font = '19px serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fde68a';
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = 'rgba(12,10,6,0.85)';
+  const ico = descansando ? '⏳' : RECURSO_INFO[rec].ico;
+  ctx.strokeText(ico, o.x, iy);
+  ctx.fillText(ico, o.x, iy);
+  ctx.textAlign = 'left';
   ctx.restore();
 }
 
@@ -8234,7 +8242,7 @@ const PROPS_DE_RECURSO = {
 const RECURSO_DO_PROP = {};
 for (const [rec, ids] of Object.entries(PROPS_DE_RECURSO)) ids.forEach(id => RECURSO_DO_PROP[id] = rec);
 const RAIO_DE_COLETA = 72;
-const RAIO_DE_AVISO  = 230;   // distância em que o ícone de recurso começa a aparecer
+const RAIO_DE_AVISO  = 420;   // cobre a tela inteira no zoom máximo, com folga
 
 // Golpear um prop. Reaproveita as regras que já valiam para os spots — número de
 // golpes caindo com o nível e com a ferramenta, regeneração, XP — para os dois jeitos
@@ -8359,6 +8367,7 @@ function changeMapWithFade(targetMapKey, targetX = 512, targetY = 300) {
     player.x = targetX; player.y = targetY;
     updateMapStatus();
     refreshNPCHierarchy();
+    avisarRecursosDoCenario(targetMapKey);
     talvezIniciarCenaDoMapa(targetMapKey);
     return;
   }
@@ -8374,6 +8383,7 @@ function changeMapWithFade(targetMapKey, targetX = 512, targetY = 300) {
     bordaTravada = true;
     updateMapStatus();
     refreshNPCHierarchy();
+    avisarRecursosDoCenario(targetMapKey);
     talvezIniciarCenaDoMapa(targetMapKey);
 
     setTimeout(() => {
@@ -13171,6 +13181,7 @@ function quadro(now){
     else renderMarcadoresDoInterior(now);
     if (camOn || zoomOn) ctx.restore();
     renderBussolaDeMonstros(now);
+    renderBussolaDeRecursos(now);
     if (camOn) renderRotuloDoDestaque(now);
     renderAmbiente();
     renderDlg(now);
@@ -18157,6 +18168,67 @@ function renderBussolaDeMonstros(now) {
       ctx.restore();
     }
   });
+}
+
+// Ao chegar num cenário, dizer QUANTOS recursos existem e quantos estão à vista. Sem
+// isto o autor entra num mapa de coleta, não vê nada e conclui que nada foi plantado —
+// quando na verdade estavam todos fora do enquadramento.
+function avisarRecursosDoCenario(mapa) {
+  if (!personagemAndando()) return;
+  const lista = objetos.filter(o => o.mapKey === mapa && recursoDoProp(o));
+  if (!lista.length) return;
+  const madeira = lista.filter(o => recursoDoProp(o) === 'wood').length;
+  const pedra = lista.length - madeira;
+  const partes = [];
+  if (madeira) partes.push(`${madeira}× 🪵`);
+  if (pedra) partes.push(`${pedra}× 🪨`);
+  setTimeout(() => showToast(
+    `${partes.join(' · ')} neste cenário — as setas na borda apontam os que estão fora da tela`), 700);
+}
+
+// Seta na borda da tela para cada recurso FORA do enquadramento. Com o zoom em 1,8 a
+// câmera mostra cerca de um terço do cenário: nove recursos bem espalhados viram nove
+// recursos invisíveis, e o autor abre o mapa e não acha nenhum. Mesma ideia da bússola
+// de monstros, com o ícone do material para dar para escolher onde ir.
+function renderBussolaDeRecursos(now) {
+  const M = 52;
+  const jx = SCREEN_W / 2, jy = SCREEN_H / 2;
+  for (const o of objetos) {
+    if (o.mapKey !== currentKey) continue;
+    const rec = recursoDoProp(o);
+    if (!rec) continue;
+    const p = telaDoPonto(o.x, o.y);
+    if (p.x > 0 && p.x < SCREEN_W && p.y > 0 && p.y < SCREEN_H) continue;
+    const dx = p.x - jx, dy = p.y - jy;
+    const esc = Math.min((SCREEN_W / 2 - M) / Math.abs(dx || 1e-6),
+                         (SCREEN_H / 2 - M) / Math.abs(dy || 1e-6));
+    const bx = jx + dx * esc, by = jy + dy * esc;
+    const descansando = o.esgotadoAte && now < o.esgotadoAte;
+    ctx.save();
+    ctx.globalAlpha = descansando ? 0.4 : 0.9;
+    ctx.save();
+    ctx.translate(bx, by);
+    ctx.rotate(Math.atan2(dy, dx));
+    // Contorno escuro: seta chapada some sobre folhagem clara.
+    ctx.beginPath();
+    ctx.moveTo(13, 0); ctx.lineTo(-9, -8); ctx.lineTo(-9, 8);
+    ctx.closePath();
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(12,10,6,0.8)'; ctx.stroke();
+    ctx.fillStyle = rec === 'wood' ? '#c98b3c' : '#cbd5e1';
+    ctx.fill();
+    ctx.restore();
+    // O ícone fica do lado de DENTRO da seta, senão sai da tela junto com ela.
+    ctx.font = '17px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(12,10,6,0.85)';
+    const ic = descansando ? '⏳' : RECURSO_INFO[rec].ico;
+    const ix = bx - Math.sign(dx) * 20, iy2 = by - Math.sign(dy) * 20;
+    ctx.strokeText(ic, ix, iy2); ctx.fillText(ic, ix, iy2);
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    ctx.restore();
+  }
 }
 
 // ══ Fases do chefe ════════════════════════════════════════════════════════════
