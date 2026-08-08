@@ -7444,6 +7444,7 @@ function savePlayerData() {
       level, xp, attrPoints, skillPoints, attrs, skills: learnedSkills,
       passivas, habilidadesAbertas,
       passesDeDungeon, dungeons: ultimaConclusaoDeDungeon,
+      acompanhante: ACOMP.npc ? ACOMP.npc.id : null,
       itensPossuidos, equipado,
       acordesPossuidos, escalasEquipadas, acordesEquipados, funcaoPreferida,
       bandeiras, herois,
@@ -7496,6 +7497,9 @@ function loadPlayerData() {
     if (d.pos) window.__posSalva = d.pos;
     if (typeof d.vida === 'number') window.__vidaSalva = d.vida;
     if (typeof d.coins === 'number') playerCoins = d.coins;
+    // O acompanhante volta pelo id do NPC. Restaurado depois que os NPCs carregam,
+    // senão a busca acontece numa lista ainda vazia.
+    if (d.acompanhante) window.__acompanhanteSalvo = d.acompanhante;
     if (typeof d.claves === 'number') claveCount = d.claves;
     if (Array.isArray(d.owned)) ownedItems = d.owned;
     if (d.equipped) equipped = { ...equipped, ...d.equipped };
@@ -7543,6 +7547,7 @@ async function loadShopCatalog() {
   carregarDungeons();
   carregarEquipamentos();
   loadPlayerData(); // saved balance wins over the catalogue default
+  aplicarHeroisRecrutados();
   abastecerBancaDeTestes();
   // As roupas da loja são 3,9 MB que ninguém vê até abrir a loja. Ficam num pedido
   // adiado: quem abre a vitrine chama isto, e aí sim elas chegam.
@@ -10018,19 +10023,11 @@ function iniciarAutosave() {
 // uma entra, pelas condições da trama — assim o capítulo se joga do começo ao fim sem
 // ninguém precisar disparar nada.
 function verificarGatilhosDaHistoria() {
-  if (CUT.ativo || !personagemAndando()) return;
+  if (preTelaAberta || CUT.ativo || !personagemAndando()) return;
 
-  // A canção de ninar NÃO abre mais o jogo. Ela era 30 segundos de tela preta com
-  // legenda como primeira impressão — o pior cartão de visita possível. Quem abre agora
-  // é a floresta, com filme. A canção passa a tocar quando ele dorme na casa da Mirela:
-  // alguém cantando uma criança para dormir, na noite em que ele não lembra da própria
-  // infância. O mistério continua sem dono, que é o ponto, e ganha um lugar.
-  if (!temBandeira('viu_abertura') && !CUT.jaRodou['cap1_abertura']
-      && temBandeira('acordou_na_floresta')
-      && currentKey === 'custom_1785884200706_430') {
-    const r = CUT.roteiros.find(x => x.id === 'cap1_abertura');
-    if (r) { CUT.jaRodou['cap1_abertura'] = true; iniciarCena(r); return; }
-  }
+  // A canção de ninar vive DENTRO da cena da vila agora, no momento do sono — era o
+  // único lugar em que ela faz sentido. Como gatilho solto ela disparava ao pisar na
+  // vila, antes de a Mirela abrir a boca.
 
   // O rapto: ao voltar à PRAÇA depois de ter forjado a primeira escala. A cena cobra o
   // que o capítulo ensinou, então só faz sentido depois do Forjador.
@@ -11425,9 +11422,16 @@ function apresentarQuemEsperaNoMapa(mapKey) {
 
 function talvezIniciarCenaDoMapa(mapKey) {
   const r = cenaDoMapa(mapKey);
+  // Enquanto a pré-tela está aberta a cena fica GUARDADA, não descartada: rodar atrás
+  // dela queimava a abertura sem ninguém ver, e marcá-la como vista fazia o jogador
+  // perder o vídeo para sempre.
+  if (preTelaAberta) { cenaPendenteDoMapa = mapKey; return; }
   if (!r || CUT.ativo || cenaJaRodou(r)) { apresentarQuemEsperaNoMapa(mapKey); return; }
   iniciarCena(r);
 }
+
+// Cena que esperou a pré-tela sair.
+let cenaPendenteDoMapa = null;
 
 // Para testar de novo no PC: `resetarCenas()` no console e recarregar.
 window.resetarCenas = function () {
@@ -11707,27 +11711,71 @@ function executarPasso(p) {
     case 'video': {
       // Tela preta com legenda é o jeito mais barato de abrir um jogo, e o pior. Este
       // comando toca um filme em cima de tudo e só devolve o controle quando ele acaba
-      // — ou quando o jogador toca para pular, porque ninguém assiste a mesma abertura
-      // duas vezes de bom grado.
+      // — ou quando o jogador toca para pular.
       const v = document.getElementById('cenaVideo');
       if (!v || !p.arquivo) return false;
       v.src = 'assets/videos/' + p.arquivo;
       v.muted = p.mudo !== false;     // autoplay com som é bloqueado por padrão
+      v.playsInline = true;
       v.currentTime = 0;
       v.classList.remove('hidden');
       document.body.classList.add('em-cena');
+
+      let fechado = false;
       const fechar = () => {
+        if (fechado) return;
+        fechado = true;
+        v.onended = v.onerror = v.onclick = null;
         v.classList.add('hidden');
         v.pause();
         v.removeAttribute('src');
+        const aviso = document.getElementById('cenaVideoAviso');
+        if (aviso) aviso.remove();
         if (CUT.aguardando?.tipo === 'video') { CUT.aguardando = null; proximoPasso(); }
       };
       v.onended = fechar;
       v.onerror = fechar;            // vídeo faltando não pode travar a abertura
       v.onclick = () => { if (p.pulavel !== false) fechar(); };
-      v.play().catch(fechar);        // autoplay recusado: segue o roteiro sem o filme
+
+      // Antes, QUALQUER rejeição do play() descartava o filme para sempre — inclusive
+      // rejeições passageiras, como a aba estar em segundo plano ("paused to save
+      // power"). Agora a recusa não queima a cena: o vídeo fica na tela pedindo um
+      // toque, que é o gesto que todo navegador aceita.
+      v.play().catch(() => {
+        if (fechado) return;
+        const aviso = document.createElement('div');
+        aviso.id = 'cenaVideoAviso';
+        aviso.textContent = 'toque para começar';
+        aviso.style.cssText = 'position:fixed;inset:auto 0 12% 0;z-index:9001;text-align:center;'
+          + 'color:#fde68a;font:600 14px Outfit,sans-serif;letter-spacing:.14em;'
+          + 'text-transform:uppercase;pointer-events:none;opacity:.85';
+        document.body.appendChild(aviso);
+        const tentar = () => {
+          v.play().then(() => aviso.remove()).catch(() => {});
+        };
+        v.addEventListener('click', tentar, { once: true });
+        document.addEventListener('pointerdown', tentar, { once: true });
+        // Rede de segurança: se em 12s ninguém tocou e nada tocou, segue o roteiro em
+        // vez de deixar o jogador preso olhando para um retângulo preto.
+        setTimeout(() => { if (v.paused) fechar(); }, 12000);
+      });
       CUT.aguardando = { tipo: 'video' };
       return true;
+    }
+
+    case 'recrutar': {
+      // Herói entra no elenco pela história, não de fábrica. A bandeira é a fonte da
+      // verdade, para o recrutamento sobreviver ao save.
+      const h = HERO_DEFINITIONS[p.heroi];
+      if (h && !h.desbloqueado) {
+        h.desbloqueado = true;
+        const vaga = partyState.party.findIndex(x => !x);
+        if (vaga >= 0) partyState.party[vaga] = p.heroi;
+        marcarBandeira('heroi_' + p.heroi);
+        showToast(`✦ ${h.name} entrou no grupo`);
+        renderPartyHUD();
+      }
+      return false;
     }
 
     case 'acompanhante':
@@ -11929,7 +11977,12 @@ function atualizarAmbiente() {
 }
 
 function renderAmbiente() {
-  if (!TEMPO_LIGADO) return;
+  // O ciclo dia/noite automático obedece TEMPO_LIGADO. A escuridão pedida por uma CENA
+  // não: ela é direção, não simulação. Com o ciclo desligado, o comando `ambiente` da
+  // chegada à vila ajustava o estado e nada nunca desenhava — a noite simplesmente não
+  // acontecia, e a cena da Mirela rodava em plena luz.
+  const daCena = !!ambienteRuntime[currentKey];
+  if (!TEMPO_LIGADO && !daCena) return;
   atualizarAmbiente();
   const a = ambienteAtual();
   if (!a || !(a.escuro > 0)) return;
@@ -12824,6 +12877,7 @@ function quadro(now){
   // Os números do HUD pela mesma razão: o bloco que os atualizava só roda no modo jogo,
   // e no modo ANDAR a barra ficava congelada nos valores do primeiro quadro.
   if (personagemAndando()) { atualizarNumerosDoHud(); atualizarMissaoNoHud(); }
+  if (window.__acompanhanteSalvo) restaurarAcompanhante();
   atualizarAcompanhante(now);
   verificarGatilhosDaHistoria();
   atualizarTrilha(now);
@@ -13776,7 +13830,9 @@ const HERO_DEFINITIONS = {
     face: 'assets/personagens/herois/wins_face.png',
     avatar: 'assets/personagens/herois/wins_face.png',
     weapon: 'Lança-Microfone', clave: 'Fá', registro: 'Médio',
-    papel: 'Alcance', raridade: 5, desbloqueado: true,
+    // Entra no elenco só depois de a história apresentá-la (bandeira `wins_no_grupo`).
+    // Vinha ligada de fábrica e aparecia no trocador desde a primeira cena.
+    papel: 'Alcance', raridade: 5, desbloqueado: false,
     base: { vida: 0, dano: 0, ritmo: 0, afinacao: 0 },
     lema: 'A nota certa alcança mais longe que o braço.',
   },
@@ -16946,6 +17002,14 @@ function abastecerBancaDeTestes() {
     `Banca de testes: ${BANCA_CLAVES.toLocaleString('pt-BR')} claves, ${BANCA_PONTOS} pontos e material de forja`), 1200);
 }
 
+// Heróis recrutados pela história voltam desbloqueados ao carregar o save — a bandeira
+// é a fonte da verdade, não o valor de fábrica da definição.
+function aplicarHeroisRecrutados() {
+  Object.keys(HERO_DEFINITIONS).forEach(id => {
+    if (temBandeira('heroi_' + id)) HERO_DEFINITIONS[id].desbloqueado = true;
+  });
+}
+
 function carregarHabilidadesAbertas(d) {
   if (Array.isArray(d) && d.length) habilidadesAbertas = d.slice();
 }
@@ -18275,6 +18339,21 @@ function dispensarAcompanhante() {
 }
 
 function acompanhanteAtivo() { return !!ACOMP.npc; }
+
+// Rechama quem estava acompanhando antes de o jogo ser fechado.
+function restaurarAcompanhante() {
+  const id = window.__acompanhanteSalvo;
+  if (!id || ACOMP.npc) return;
+  const n = npcData.find(x => x.id === id);
+  if (!n) return;
+  window.__acompanhanteSalvo = null;
+  ACOMP.npc = n;
+  ACOMP.mapaAnterior = currentKey;
+  ACOMP.proximaFala = performance.now() + 6000;
+  n.mapKey = currentKey;
+  const p = pontoAndavelPerto(player.x - 40, player.y + 10);
+  n.x = p.x; n.y = p.y;
+}
 
 function atualizarAcompanhante(now) {
   const n = ACOMP.npc;
@@ -20807,9 +20886,12 @@ window.addEventListener('keydown', e => {
 // Depois que o jogo carrega, antes de entrar. Mostra em quem você está, o nível do herói,
 // o da conta, o poder e as duas moedas — para o jogador saber onde parou antes de pisar
 // no mundo.
+let preTelaAberta = false;
+
 function abrirPreTela() {
   const el = document.getElementById('preTela');
   if (!el) return;
+  preTelaAberta = true;
   const id = selectedHeroId || 'achilles';
   const def = HERO_DEFINITIONS[id] || {};
   const h = fichaDoHeroi(id);
@@ -20831,6 +20913,12 @@ function abrirPreTela() {
   el.classList.remove('hidden');
 }
 function fecharPreTela() {
+  preTelaAberta = false;
+  // Agora sim: a cena que estava esperando pode rodar, com o jogador olhando.
+  if (cenaPendenteDoMapa) {
+    const m = cenaPendenteDoMapa; cenaPendenteDoMapa = null;
+    setTimeout(() => talvezIniciarCenaDoMapa(m), 260);
+  }
   document.getElementById('preTela')?.classList.add('hidden');
   initAudio();
   if (TRILHA.ligada && !TRILHA.humor) { TRILHA.humor = humorDoMomento(); iniciarTrilha(); }

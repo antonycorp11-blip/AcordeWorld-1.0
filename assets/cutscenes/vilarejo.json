@@ -193,6 +193,127 @@
       "_": "── A conversa lá dentro, sobre o que fazer de manhã ──"
     },
     {
+      "_": "── a casa fechada, o menino de outra pessoa sendo cantado para dormir ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1200
+    },
+    {
+      "cmd": "legenda",
+      "texto": "Em algum lugar da vila, alguém canta para uma criança dormir."
+    },
+    {
+      "cmd": "cancao",
+      "notas": [
+        "sol",
+        "sol",
+        "la",
+        "sol",
+        "do",
+        "si"
+      ],
+      "passo": 520,
+      "vol": 0.11
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "cancao",
+      "notas": [
+        "sol",
+        "sol",
+        "la",
+        "sol",
+        "re",
+        "do"
+      ],
+      "passo": 560,
+      "perde": 3,
+      "vol": 0.1
+    },
+    {
+      "cmd": "esperar",
+      "ms": 700
+    },
+    {
+      "cmd": "falar",
+      "quem": "",
+      "texto": "...dorme, dorme que a...",
+      "auto": 1500
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "cancao",
+      "notas": [
+        "sol",
+        "sol",
+        "la",
+        "sol",
+        "re",
+        "do"
+      ],
+      "passo": 620,
+      "perde": 1,
+      "vol": 0.08
+    },
+    {
+      "cmd": "esperar",
+      "ms": 800
+    },
+    {
+      "cmd": "falar",
+      "quem": "",
+      "texto": "...dorme que a...",
+      "auto": 1600
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1400
+    },
+    {
+      "cmd": "falar",
+      "quem": "",
+      "texto": "...como era mesmo?"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 2400
+    },
+    {
+      "cmd": "legenda",
+      "texto": "Nem toda coisa que some deixa buraco."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 2400
+    },
+    {
+      "cmd": "legenda",
+      "texto": "Algumas somem junto com o buraco."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 2600
+    },
+    {
+      "cmd": "legenda",
+      "texto": ""
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1000
+    },
+    {
+      "cmd": "bandeira",
+      "id": "viu_abertura"
+    },
+    {
       "cmd": "legenda",
       "texto": "A noite passou em silêncio, longe da floresta.",
       "ms": 3800
