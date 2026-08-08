@@ -12673,8 +12673,53 @@ function renderRotuloDoDestaque(now) {
   ctx.restore();
 }
 
+// ── Erro de quadro, visível ──────────────────────────────────────────────────────
+// Uma exceção dentro do rAF só aparecia no console, e no celular ninguém tem console.
+// O sintoma que chegava era "a tela ficou preta" — inútil para achar a causa. Agora o
+// primeiro erro fica escrito na tela, com arquivo e linha, e o jogo continua rodando.
+let erroDeQuadro = null;
+
+function registrarErroDeQuadro(e) {
+  if (!erroDeQuadro) {
+    erroDeQuadro = {
+      msg: String(e && e.message || e),
+      onde: String((e && e.stack || '').split('\n')[1] || '').trim().slice(0, 120),
+      quando: Date.now(),
+    };
+    console.error('[quadro] exceção no render:', e);
+  }
+  erroDeQuadro.vezes = (erroDeQuadro.vezes || 0) + 1;
+}
+
+function desenharErroDeQuadro() {
+  if (!erroDeQuadro) return;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const dpr = canvas.width / SCREEN_W;
+  ctx.save();
+  ctx.scale(dpr, dpr);
+  ctx.globalAlpha = 1;
+  const topo = Math.round(SCREEN_H / 2) - 34;
+  ctx.fillStyle = 'rgba(69,10,10,0.95)';
+  ctx.fillRect(0, topo, SCREEN_W, 68);
+  ctx.fillStyle = '#fecaca';
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 12px monospace';
+  ctx.fillText('ERRO DE RENDER (' + erroDeQuadro.vezes + '×)', 14, topo + 18);
+  ctx.font = '11px monospace';
+  ctx.fillText(erroDeQuadro.msg.slice(0, 104), 14, topo + 34);
+  ctx.fillStyle = '#fca5a5';
+  ctx.fillText(erroDeQuadro.onde, 14, topo + 48);
+  ctx.fillText('Mande esta mensagem — ela diz o arquivo e a linha.', 14, topo + 62);
+  ctx.restore();
+}
+
 function loop(now){
   requestAnimationFrame(loop);
+  try { quadro(now); } catch (e) { registrarErroDeQuadro(e); }
+  try { desenharErroDeQuadro(); } catch (e) {}
+}
+
+function quadro(now){
   frameCount++;
   if(now-lastFPSTime>=1000){currentFPS=frameCount;frameCount=0;lastFPSTime=now;if(fpsDisplay)fpsDisplay.textContent=`${currentFPS} FPS`;if(statusFPS)statusFPS.textContent=`${currentFPS} FPS`;}
 
