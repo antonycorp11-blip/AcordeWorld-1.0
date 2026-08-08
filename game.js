@@ -4469,6 +4469,7 @@ function renderObjetos(now, lado) {
   // Peças de terreno saem da ordenação: elas pertencem ao chão, e só aparecem na
   // primeira passada do quadro.
   const noChao = o => (propDef(o) || {}).plano === 'chao';
+  const agoraDoQuadro = performance.now();   // usado pelo impacto da coleta
   if (lado === 'atras' || lado === 'todos') {
     lista.filter(noChao).forEach(o => {
       const spr = propSprites[o.prop]; if (!spr) return;
@@ -4508,9 +4509,21 @@ function renderObjetos(now, lado) {
         return;
       }
       ctx.save();
-      // Baú já aberto fica apagado: some do caminho sem sumir do cenário, e o jogador
-      // enxerga de longe o que ainda falta pegar.
+      // Impacto da coleta: o prop balança na base e cede para o lado oposto ao golpe,
+      // amortecendo. Roda em torno do PÉ, não do centro, senão a árvore desliza no chão
+      // em vez de vergar. Recurso esgotado fica de pé mas apagado, para o jogador ver
+      // de longe que aquele ainda está descansando.
+      const impacto = o.impactoAte && agoraDoQuadro < o.impactoAte
+        ? (o.impactoAte - agoraDoQuadro) / 340 : 0;
+      if (impacto > 0) {
+        const t = impacto * Math.PI * 3;
+        const ang = Math.sin(t) * impacto * 0.11 * (o.impactoDir || 1);
+        ctx.translate(o.x, o.y);
+        ctx.rotate(ang);
+        ctx.translate(-o.x, -o.y);
+      }
       if (fantasma) ctx.globalAlpha = 0.38;
+      else if (o.esgotadoAte && agoraDoQuadro < o.esgotadoAte) ctx.globalAlpha = 0.55;
       if (o.flipX) {
         ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1);
         ctx.drawImage(spr.canvas, 0, 0, b.w, b.h);
@@ -8142,6 +8155,71 @@ function marteladaTarget() {
   return elementTarget(['ponto_martelada']);
 }
 function spotTarget()     { return elementTarget(['spot_wood','spot_stone']); }
+
+// Categoria do prop decide o recurso. É a mesma categoria que já organiza a paleta do
+// editor, então nada precisa ser marcado à mão: plantar a árvore basta.
+const RECURSO_DA_CATEGORIA = { arvore: 'wood', pedra: 'stone' };
+const RAIO_DE_COLETA = 72;
+
+// Golpear um prop. Reaproveita as regras que já valiam para os spots — número de
+// golpes caindo com o nível e com a ferramenta, regeneração, XP — para os dois jeitos
+// de plantar recurso se comportarem igual aos olhos do jogador.
+const RECURSO_INFO = {
+  wood:  { nome: 'Madeira Rústica', ico: '🪵', verbo: 'Cortando',  regen: 7000, xp: 15 },
+  stone: { nome: 'Pedra Bruta',     ico: '🪨', verbo: 'Quebrando', regen: 9000, xp: 18 },
+};
+
+function coletarDoProp(o) {
+  const tipo = recursoDoProp(o);
+  if (!tipo) return;
+  const info = RECURSO_INFO[tipo];
+  const now = performance.now();
+
+  if (o.esgotadoAte && now < o.esgotadoAte) {
+    const falta = Math.ceil((o.esgotadoAte - now) / 1000);
+    addFloater(o.x, o.y - 30, `⏳ ${falta}s`, '#94a3b8');
+    return;
+  }
+
+  const golpes = Math.max(1, Math.round((4 - Math.floor((level - 1) / 2)) * (1 - bonusDeColeta())));
+  o.hits = (o.hits || 0) + 1;
+  playerGatherUntil = now + 450;
+  // É este carimbo que o desenho lê para sacudir o prop. Sem impacto visível, bater
+  // numa árvore não parece bater em nada.
+  o.impactoAte = now + 340;
+  o.impactoDir = player.x <= o.x ? 1 : -1;   // a árvore cede para o lado oposto ao golpe
+
+  if (o.hits < golpes) {
+    addFloater(o.x, o.y - 30, `💥 ${o.hits}/${golpes}`, '#fbbf24');
+    showToast(`${info.ico} ${info.verbo}... (${o.hits}/${golpes})`);
+    return;
+  }
+  o.hits = 0;
+  o.esgotadoAte = now + info.regen;
+  playerInventory[tipo] = (playerInventory[tipo] || 0) + 1;
+  progressoDeMissao('coletar', tipo);
+  addFloater(player.x, player.y - 45, `🎉 +1 ${info.nome} ${info.ico}`, '#fbbf24');
+  showToast(`${info.ico} +1 ${info.nome} coletada!`);
+  updateInventorySlotsUI();
+  gainXp(info.xp);
+}
+
+function recursoDoProp(o) {
+  if (!o || ehBau(o)) return null;
+  return RECURSO_DA_CATEGORIA[(propDef(o) || {}).categoria] || null;
+}
+
+// Prop colhível mais perto, pelo PÉ do objeto — que é onde o personagem encosta.
+function propColetavelTarget() {
+  if (!isPlayMode || playerLocked || currentScene !== 'world') return null;
+  let melhor = null, menor = Infinity;
+  for (const o of objetos) {
+    if (o.mapKey !== currentKey || !recursoDoProp(o)) continue;
+    const d = Math.hypot(player.x - o.x, player.y - o.y);
+    if (d <= RAIO_DE_COLETA && d < menor) { melhor = o; menor = d; }
+  }
+  return melhor;
+}
 function forgeDoorTarget(){ return currentScene==='world' ? elementTarget(['forge_entrance']) : null; }
 
 function actionAvailable() {
@@ -8163,6 +8241,7 @@ function actionAvailable() {
   // Signposts and gathering spots have no dialogue, so they'd never light the button
   // through talkTarget() — they need their own entry.
   if(spotTarget())return 'gather';
+  if(propColetavelTarget())return 'gather';
   if(signpostTarget())return 'travel';
   if(forgeDoorTarget())return 'enterForge';
   if(onDoor())return 'enter';
@@ -8237,6 +8316,10 @@ function tryTalk() {
   const act=actionAvailable();
   if(act==='ressoar'){ ressoar(); return; }
   if(act==='attack'){ doAttack(); return; }
+  if(act==='gather' && !spotTarget()){
+    const alvo = propColetavelTarget();
+    if (alvo) { coletarDoProp(alvo); return; }
+  }
   else if(act==='shop'){ openShop(); return; }
   else if(act==='forge'){ openForgeMenu(); return; }
   else if(act==='sair'){ leaveInterior(); return; }
@@ -12852,10 +12935,24 @@ function loop(now){
                 : act==='sortear' ? lagoTarget()
                 : act==='entrarPorta' ? portaTarget()
                 : act==='martelar' ? marteladaTarget()
-                : act==='gather' ? spotTarget()
+                : act==='gather' ? (spotTarget() || propColetavelTarget())
                 : act==='enterForge' ? forgeDoorTarget() : null;
       if(tgt&&!speech.some(s=>s.npc===tgt)){
-        const b=npcBounds(tgt);
+        // Prop não é NPC: a caixa dele vem de objetoBounds, senão o balão sai no meio do
+        // tronco em vez de acima da copa.
+        const b = tgt.prop ? objetoBounds(tgt) : npcBounds(tgt);
+        // Realce só no alcance. Anel permanente numa floresta inteira de árvores viraria
+        // poluição visual — o que o jogador precisa saber é "esta aqui dá para bater".
+        if (tgt.prop) {
+          const pulso = (Math.sin(now*0.006)+1)/2;
+          ctx.save();
+          ctx.strokeStyle = `rgba(251,191,36,${0.35+pulso*0.35})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(tgt.x, tgt.y, 26, 10, 0, 0, Math.PI*2);
+          ctx.stroke();
+          ctx.restore();
+        }
         drawBubble(ctx,tgt.x,b.y-3,ACT_PROMPT[act],{bg:'rgba(251,191,36,0.92)',border:'#78350f',fg:'#1c1917',font:'bold 11px Outfit, sans-serif'});
       }
 
