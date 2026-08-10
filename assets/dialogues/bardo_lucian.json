@@ -1,75 +1,87 @@
 {
- "id": "bardo_lucian",
- "npc_name": "Bardo Lucian",
- "portrait": "bard",
- "repeatable": true,
- "steps": [
-  {
-   "id": "start",
-   "type": "lines",
-   "se": "pipo_levado",
-   "lines": [
-    "Eu achei uns palitos de tambor no chão outro dia.",
-    "Guardei. Não sei por quê. — Não sei de quem são.",
-    "Você já teve vontade de chorar sem motivo, {PLAYER_NAME}?"
-   ],
-   "next": "fim"
-  },
-  {
-   "id": "start",
-   "type": "lines",
-   "lines": [
-    "Opa! Rosto novo! Rosto novo é público novo!",
-    "Lucian, bardo desta praça por escolha própria e por decisão do conselho da cidade.",
-    "Foi mais decisão do conselho, na verdade.",
-    "E você é {PLAYER_NAME}, o que veio da floresta a pé. A cidade inteira já sabe.",
-    "Quer ouvir a balada que eu compus sobre isso?"
-   ],
-   "next": "escolha",
-   "se": "!pipo_levado"
-  },
-  {
-   "id": "escolha",
-   "type": "choice",
-   "choices": [
+  "id": "bardo_lucian",
+  "npc_name": "Bardo Lucian",
+  "portrait": "bard",
+  "repeatable": true,
+  "steps": [
     {
-     "text": "Você compôs uma balada? Já?",
-     "next": "balada"
+      "id": "start",
+      "type": "lines",
+      "se": "entregou_com_pipo",
+      "lines": [
+        "Ele chegou em casa falando pelos cotovelos. Puxou a mim nisso.",
+        "Disse que o Dorn deixou ele segurar uma ferramenta. — Você deixou?",
+        "Devolveu, então. Do jeito que prometeu.",
+        "Não se acostuma, {PLAYER_NAME}."
+      ],
+      "next": "fim"
     },
     {
-     "text": "Talvez outra hora, Lucian.",
-     "next": "recusa"
+      "id": "start",
+      "type": "lines",
+      "se": "pipo_levado",
+      "lines": [
+        "Eu achei uns palitos de tambor no chão outro dia.",
+        "Guardei. Não sei por quê. — Não sei de quem são.",
+        "Você já teve vontade de chorar sem motivo, {PLAYER_NAME}?"
+      ],
+      "next": "fim"
+    },
+    {
+      "id": "start",
+      "type": "lines",
+      "lines": [
+        "Opa! Rosto novo! Rosto novo é público novo!",
+        "Lucian, bardo desta praça por escolha própria e por decisão do conselho da cidade.",
+        "Foi mais decisão do conselho, na verdade.",
+        "E você é {PLAYER_NAME}, o que veio da floresta a pé. A cidade inteira já sabe.",
+        "Quer ouvir a balada que eu compus sobre isso?"
+      ],
+      "next": "escolha",
+      "se": "!pipo_levado"
+    },
+    {
+      "id": "escolha",
+      "type": "choice",
+      "choices": [
+        {
+          "text": "Você compôs uma balada? Já?",
+          "next": "balada"
+        },
+        {
+          "text": "Talvez outra hora, Lucian.",
+          "next": "recusa"
+        }
+      ]
+    },
+    {
+      "id": "balada",
+      "type": "lines",
+      "lines": [
+        "Ainda não tem melodia. Nem letra. Mas o título está pronto:",
+        "\"O Andarilho Que Não Sabia Que Devia Ter Medo\".",
+        "Forte, não é? Eu chorei escrevendo o título.",
+        "Olha, brincadeiras à parte...",
+        "Ninguém sai daquela floresta de noite, {PLAYER_NAME}. Ninguém.",
+        "Se o Sr. Antony te mandou falar comigo, é porque ele viu alguma coisa em você.",
+        "O velho não erra. Irrita, mas não erra."
+      ],
+      "next": "fim"
+    },
+    {
+      "id": "recusa",
+      "type": "lines",
+      "lines": [
+        "Justo. Guardo para quando você tiver feito algo ainda mais imprudente.",
+        "E você vai fazer. Está na cara.",
+        "Sério agora: cuidado lá fora. A música do mundo anda desafinada, e eu ouço essas coisas antes das pessoas.",
+        "Foi bom te conhecer, {PLAYER_NAME}."
+      ],
+      "next": "fim"
+    },
+    {
+      "id": "fim",
+      "type": "end"
     }
-   ]
-  },
-  {
-   "id": "balada",
-   "type": "lines",
-   "lines": [
-    "Ainda não tem melodia. Nem letra. Mas o título está pronto:",
-    "\"O Andarilho Que Não Sabia Que Devia Ter Medo\".",
-    "Forte, não é? Eu chorei escrevendo o título.",
-    "Olha, brincadeiras à parte...",
-    "Ninguém sai daquela floresta de noite, {PLAYER_NAME}. Ninguém.",
-    "Se o Sr. Antony te mandou falar comigo, é porque ele viu alguma coisa em você.",
-    "O velho não erra. Irrita, mas não erra."
-   ],
-   "next": "fim"
-  },
-  {
-   "id": "recusa",
-   "type": "lines",
-   "lines": [
-    "Justo. Guardo para quando você tiver feito algo ainda mais imprudente.",
-    "E você vai fazer. Está na cara.",
-    "Sério agora: cuidado lá fora. A música do mundo anda desafinada, e eu ouço essas coisas antes das pessoas.",
-    "Foi bom te conhecer, {PLAYER_NAME}."
-   ],
-   "next": "fim"
-  },
-  {
-   "id": "fim",
-   "type": "end"
-  }
- ]
+  ]
 }

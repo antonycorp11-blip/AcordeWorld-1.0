@@ -1,0 +1,188 @@
+{
+  "id": "cap1_entrega",
+  "nome": "Cap. 1 · Cena 5c — Carvalho velho",
+  "_": "O fecho do passeio, que faltava: entregar o material ao Dorn não fazia nada. Aqui o Pipo colhe o crédito na frente de um adulto que o leva a sério, e o Lucian recebe o filho de volta — o 'eu devolvo' pago pela primeira vez, para doer na segunda.",
+  "mapa": "custom_1785880661560_858",
+  "autoStart": false,
+  "gatilho": {
+    "tipo": "falar",
+    "npc": "Dorn"
+  },
+  "requer": {
+    "objetivos": {
+      "missao": "madeira_e_pedra",
+      "ids": [
+        "madeira",
+        "pedra"
+      ]
+    }
+  },
+  "prioridade": 15,
+  "passos": [
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Deixa eu ver."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Quem escolheu?"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 700
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Ele."
+    },
+    {
+      "_": "── o velho bate na madeira e escuta, que é o que ensinou ao menino ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "som",
+      "tipo": "brilho"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 800
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Carvalho velho."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Pipo",
+      "texto": "!!"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Seco também."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Pipo",
+      "texto": "EU FALEI!"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Falou umas quinze vezes."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Então falou pouco. Com nove anos eu falava vinte."
+    },
+    {
+      "_": "── e o deixa segurar uma ferramenta ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Segura isto aqui. Com as duas mãos."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1200
+    },
+    {
+      "cmd": "falar",
+      "quem": "Pipo",
+      "texto": "É pesado."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "É pra ser. Ferramenta leve mente pra você."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1000
+    },
+    {
+      "cmd": "falar",
+      "quem": "Pipo",
+      "texto": "Posso voltar amanhã?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Ferreiro Dorn",
+      "texto": "Pode. Traz o carvalho."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1000
+    },
+    {
+      "cmd": "falar",
+      "quem": "Pipo",
+      "texto": "Eu vou contar pro meu pai. — Ele vai dizer que eu inventei."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Eu confirmo."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "Pipo",
+      "texto": "Você é gente boa, {PLAYER_NAME}."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1400
+    },
+    {
+      "cmd": "acompanhante",
+      "dispensar": true
+    },
+    {
+      "cmd": "rota"
+    },
+    {
+      "cmd": "bandeira",
+      "id": "entregou_com_pipo"
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "fim"
+    }
+  ]
+}

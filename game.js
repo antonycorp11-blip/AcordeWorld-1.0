@@ -6743,6 +6743,17 @@ function doAttack() {
       * (orbitaAtiva() ? orbitaBonusDeDano() : 1)
       * bonusDeConjunto()
       * (crit ? multCritico(s) : 1));
+    // Eco sem Ressonador não recebe golpe. Bater nele não é uma opção que o jogo
+    // ofereça: sem o sino o som se desfaz e o fragmento morre, que é exatamente o que
+    // o Sr. Antony explica antes de mandar forjar um. Antes disso o Eco é paisagem.
+    if (ecoProtegido(m)) {
+      if (!m.avisoEcoAte || now > m.avisoEcoAte) {
+        m.avisoEcoAte = now + 3000;
+        addFloater(m.x, monsterBounds(m).y - 12, 'o som escapa', '#93c5fd');
+        showToast('Sem um Ressonador o som se desfaz. Não adianta bater num Eco.');
+      }
+      return;
+    }
     m.hp -= dmg;
     m.hurtUntil = now + 260;
     addFloater(m.x, monsterBounds(m).y - 12, crit ? `${dmg}!` : `-${dmg}`,
@@ -7157,6 +7168,14 @@ function killMonster(m, now) {
   } else {
     showToast(`✨ ${def.name || 'Monstro'} derrotado!`);
   }
+}
+
+// Eco só se resolve com Ressonador. Antes dele, bater não faz nada — é o que o Sr.
+// Antony explica na Cena 10, e era estranho o jogo permitir o contrário.
+function ecoProtegido(m) {
+  const d = monsterDef(m) || {};
+  if (!d.notaDoEco) return false;
+  return !(playerInventory.reson_cobre || playerInventory.reson_prata || playerInventory.reson_clave);
 }
 
 function damagePlayer(amount) {
@@ -12205,8 +12224,24 @@ function atualizarCaminhadas() {
       }
       return false;
     }
-    ent.x += (dx / d) * c.vel;
-    ent.y += (dy / d) * c.vel;
+    // Caminhada roteirizada andava em LINHA RETA por cima de casa, muro e cerca — o
+    // Lucian atravessava a praça inteira quebrando o cenário. Agora tenta o passo
+    // inteiro, depois cada eixo em separado (contornar quina) e, se estiver realmente
+    // preso, desliza pela lateral em vez de travar a cena.
+    const px = (dx / d) * c.vel, py = (dy / d) * c.vel;
+    if (canMoveTo(ent.x + px, ent.y + py)) { ent.x += px; ent.y += py; }
+    else {
+      let andou = false;
+      if (canMoveTo(ent.x + px, ent.y)) { ent.x += px; andou = true; }
+      if (canMoveTo(ent.x, ent.y + py)) { ent.y += py; andou = true; }
+      if (!andou) {
+        // Encostou de frente: tenta escorregar perpendicular para achar a volta.
+        const lx = -py, ly = px;
+        if (canMoveTo(ent.x + lx, ent.y + ly)) { ent.x += lx; ent.y += ly; }
+        else if (canMoveTo(ent.x - lx, ent.y - ly)) { ent.x -= lx; ent.y -= ly; }
+        else { c.travado = (c.travado || 0) + 1; if (c.travado > 90) return false; }
+      }
+    }
     if (c.tipo === 'jogador') {
       player.direction = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right')
                                                      : (dy < 0 ? 'up' : 'down');
@@ -18649,7 +18684,9 @@ function restaurarAcompanhante() {
 
 function atualizarAcompanhante(now) {
   const n = ACOMP.npc;
-  if (!n || !personagemAndando()) return;
+  // Nada de balão durante cena (a fala dele atropelava o diálogo) nem antes de o
+  // passeio começar de verdade.
+  if (!n || !personagemAndando() || CUT.ativo || preTelaAberta) return;
 
   // Troca de mapa: ele vem junto. Sem isto o menino ficava para trás no mapa anterior
   // e o "vamos juntos" virava mentira na primeira placa.
@@ -18661,6 +18698,35 @@ function atualizarAcompanhante(now) {
     falaDeAcompanhante(now, 'mapa');
     return;
   }
+
+  // ── Guiar, não só seguir ──────────────────────────────────────────────────────
+  // Quem conhece a mata é ele. Com uma rota traçada, o menino vai NA FRENTE até a placa
+  // do próximo salto e espera ali — é o "ele me mostra o caminho". Sem rota, volta a
+  // andar atrás, que é o certo quando não há para onde levar.
+  const salto = ROTA.destino ? proximoSaltoDaRota() : null;
+  const placa = salto ? npcData.find(p2 => p2.mapKey === currentKey
+                        && p2.type === 'signpost' && p2.targetMapKey === salto) : null;
+  if (placa) {
+    const dpx = placa.x - n.x, dpy = placa.y - n.y;
+    const dp = Math.hypot(dpx, dpy);
+    if (dp > 34) {
+      // Só corre à frente se o jogador não ficou para trás demais: guia que abandona
+      // o guiado não guia ninguém.
+      if (Math.hypot(player.x - n.x, player.y - n.y) < 300) {
+        const vel = 2.0;
+        const px = (dpx / dp) * vel, py = (dpy / dp) * vel;
+        if (canMoveTo(n.x + px, n.y)) n.x += px;
+        if (canMoveTo(n.x, n.y + py)) n.y += py;
+        n.flipX = px < 0;
+      }
+    } else if (!ACOMP.avisouPlaca || ACOMP.avisouPlaca !== salto) {
+      ACOMP.avisouPlaca = salto;
+      say(n, 'É por aqui! Vem, eu te espero na placa.', 4200);
+    }
+    if (now >= ACOMP.proximaFala) falaDeAcompanhante(now, 'andando');
+    return;
+  }
+  ACOMP.avisouPlaca = null;
 
   const dx = player.x - n.x, dy = player.y - n.y;
   const d = Math.hypot(dx, dy);
@@ -21236,7 +21302,7 @@ function abrirPreTela() {
 // senão a cena roda mas nada em volta faz sentido.
 const ORDEM_DA_HISTORIA = [
   'abertura', 'vilarejo', 'portoes', 'apresentacao', 'cap1_pipo_junto',
-  'ponte', 'ferraria', 'ponte_obra', 'ponte_pronta', 'ressonador', 'cap1_wins',
+  'cap1_entrega', 'ponte', 'ferraria', 'ponte_obra', 'ponte_pronta', 'ressonador', 'cap1_wins',
   'altar', 'primeira_voz', 'cap1_composicao', 'notas_sagradas',
   'cap1_patio', 'cap1_esquecimento', 'cap1_rapto', 'cap1_selo',
 ];
@@ -21283,7 +21349,8 @@ const DEIXA_DA_CENA = {
   apresentacao:     { feitas: ['welcome_to_acordelot'], missoes: ['amizade_importa'] },
   cap1_pipo_junto:  { feitas: ['amizade_importa'], missoes: ['madeira_e_pedra'],
                       bandeiras: ['pipo_no_grupo'], acompanhante: 'Pipo' },
-  ponte:            { feitas: ['madeira_e_pedra'], missoes: ['ponte_de_acordelot'] },
+  cap1_entrega:     { feitas: ['madeira_e_pedra'], bandeiras: ['entregou_com_pipo'] },
+  ponte:            { missoes: ['ponte_de_acordelot'] },
   ferraria:         { feitas: ['ponte_de_acordelot'], missoes: ['martelo_do_ferreiro'] },
   ponte_obra:       { feitas: ['martelo_do_ferreiro'], missoes: ['consertar_ponte'] },
   ponte_pronta:     { feitas: ['consertar_ponte'] },
