@@ -21320,16 +21320,21 @@ function talvezPularParaCena() {
 }
 
 function fecharPreTela() {
+  // FECHAR primeiro, sempre. Eu tinha posto o pulo de cena antes desta linha, com um
+  // `return` no meio: quando havia cena selecionada, a pré-tela nunca era escondida e a
+  // cena rodava ATRÁS dela. Da poltrona, o sintoma era "clico em INICIAR e não acontece
+  // nada" — inclusive o aviso de erro ficava escondido junto.
   preTelaAberta = false;
+  document.getElementById('preTela')?.classList.add('hidden');
+  initAudio();
+  if (TRILHA.ligada && !TRILHA.humor) { TRILHA.humor = humorDoMomento(); iniciarTrilha(); }
+
+  // Só depois de a tela sair é que se decide o que começa.
   if (talvezPularParaCena()) return;
-  // Agora sim: a cena que estava esperando pode rodar, com o jogador olhando.
   if (cenaPendenteDoMapa) {
     const m = cenaPendenteDoMapa; cenaPendenteDoMapa = null;
     setTimeout(() => talvezIniciarCenaDoMapa(m), 260);
   }
-  document.getElementById('preTela')?.classList.add('hidden');
-  initAudio();
-  if (TRILHA.ligada && !TRILHA.humor) { TRILHA.humor = humorDoMomento(); iniciarTrilha(); }
 }
 document.getElementById('ptJogar')?.addEventListener('click', fecharPreTela);
 document.getElementById('mapaBtn')?.addEventListener('click', abrirMiniMapa);
