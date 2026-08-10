@@ -21217,6 +21217,19 @@ function abrirPreTela() {
 // Testar a cena do Pipo exigia jogar o capítulo inteiro de novo a cada correção. Isto
 // põe o jogador direto na cena escolhida, com o estado que ela pressupõe já montado —
 // senão a cena roda mas nada em volta faz sentido.
+const ORDEM_DA_HISTORIA = [
+  'abertura', 'vilarejo', 'portoes', 'apresentacao', 'cap1_pipo_junto',
+  'ponte', 'ferraria', 'ponte_obra', 'ponte_pronta', 'ressonador', 'cap1_wins',
+  'altar', 'primeira_voz', 'cap1_composicao', 'notas_sagradas',
+  'cap1_patio', 'cap1_esquecimento', 'cap1_rapto', 'cap1_selo',
+];
+
+function cenasEmOrdemDaHistoria() {
+  const lista = (CUT.roteiros || []).slice();
+  const pos = id => { const i = ORDEM_DA_HISTORIA.indexOf(id); return i < 0 ? 900 : i; };
+  return lista.sort((a, b) => pos(a.id) - pos(b.id) || String(a.id).localeCompare(b.id));
+}
+
 function montarSeletorDeCena() {
   const box = document.getElementById('ptCenaBox');
   const sel = document.getElementById('ptCena');
@@ -21224,9 +21237,19 @@ function montarSeletorDeCena() {
   if (!SELETOR_DE_CENA_LIGADO) { box.classList.add('hidden'); return; }
   box.classList.remove('hidden');
   const guardado = (() => { try { return localStorage.getItem('acordelot_cena_teste') || ''; } catch (e) { return ''; } })();
+  const emOrdem = cenasEmOrdemDaHistoria();
   sel.innerHTML = '<option value="">— jogar normalmente —</option>' +
-    (CUT.roteiros || []).map(c =>
-      `<option value="${c.id}">${(c.nome || c.id).replace(/"/g, '')}</option>`).join('');
+    emOrdem.map((c, i) => {
+      const n = ORDEM_DA_HISTORIA.indexOf(c.id);
+      const num = n < 0 ? '··' : String(n + 1).padStart(2, '0');
+      const nome = String(c.nome || c.id)
+        .replace(/"/g, '')
+        .replace(/^Cap\. 1 · /, '')
+        .replace(/^(Cena|Epílogo|Abertura)\s*[0-9]*[a-z]?\s*(—|-)\s*/i, '')
+        .trim() || c.id;
+      const fora = n < 0 ? ' (fora da ordem)' : '';
+      return `<option value="${c.id}">${num}. ${nome}${fora}</option>`;
+    }).join('');
   sel.value = guardado;
   sel.onchange = () => { try { localStorage.setItem('acordelot_cena_teste', sel.value); } catch (e) {} };
 }
@@ -21275,7 +21298,24 @@ function talvezPularParaCena() {
   }
   delete CUT.jaRodou[id];
   showToast(`▶ Cena de teste: ${r.nome || id}`);
-  setTimeout(() => iniciarCena(r), 320);
+  // Uma cena já em andamento (gatilho de mapa, abertura) faria o iniciarCena desistir
+  // em silêncio — e o sintoma seria "cliquei e não aconteceu nada". Insiste algumas
+  // vezes e, se ainda assim não for, diz o motivo em vez de sumir.
+  let tentativas = 0;
+  const tentar = () => {
+    if (CUT.ativo && CUT.roteiro?.id === id) return;            // já está rodando
+    if (CUT.ativo) {
+      if (++tentativas > 12) {
+        showToast(`⚠ Não deu para abrir a cena: "${CUT.roteiro?.id}" está no meio.`);
+        return;
+      }
+      setTimeout(tentar, 400);
+      return;
+    }
+    iniciarCena(r);
+    if (!CUT.ativo) showToast('⚠ A cena não iniciou — veja o console.');
+  };
+  setTimeout(tentar, 320);
   return true;
 }
 
