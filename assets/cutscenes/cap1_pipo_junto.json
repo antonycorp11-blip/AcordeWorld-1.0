@@ -50,9 +50,11 @@
       "ms": 900
     },
     {
-      "cmd": "esperarPerto",
+      "cmd": "andar",
       "npc": "Pipo",
-      "distancia": 200
+      "para": "jogador",
+      "velocidade": 2.6,
+      "sumir": false
     },
     {
       "cmd": "acenar",

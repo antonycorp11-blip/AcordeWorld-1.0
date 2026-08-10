@@ -11294,6 +11294,9 @@ async function carregarCatalogoDeCenas() {
     .sort((a, b) => ((a.c.prioridade ?? 100) - (b.c.prioridade ?? 100)) || (a.i - b.i))
     .map(x => x.c);
   window.__abertura = CUT.roteiros.find(c => c.id === 'abertura') || null;
+  // A pré-tela costuma abrir ANTES de as cenas chegarem (isto aqui é assíncrono), e o
+  // seletor de teste nascia só com o placeholder. Remonta agora que a lista existe.
+  if (typeof montarSeletorDeCena === 'function') montarSeletorDeCena();
   return CUT.roteiros;
 }
 
@@ -11389,6 +11392,12 @@ function alvoDaCena(para, refX, refY) {
   if (!para) return null;
   if (typeof para === 'object' && Number.isFinite(para.x)) return { x: para.x, y: para.y };
   const nome = String(para).toLowerCase();
+  // Andar ATÉ o jogador. Sem isto, uma cena só sabia mandar NPC para porta ou para outro
+  // NPC, e "o menino veio correndo" precisava do jogador como alvo.
+  if (nome === 'jogador' || nome === 'player') {
+    const a2 = Math.atan2(refY - player.y, refX - player.x);
+    return { x: player.x + Math.cos(a2) * 44, y: player.y + Math.sin(a2) * 44 };
+  }
   const portas = npcData.filter(n => n.type === 'porta' && n.mapKey === currentKey);
   if (nome === 'porta') {
     if (!portas.length) return null;
@@ -11688,7 +11697,8 @@ function executarPasso(p) {
       return true;
 
     case 'esperarPerto':
-      CUT.aguardando = { tipo: 'perto', npc: p.npc, dist: p.distancia || 120 };
+      CUT.aguardando = { tipo: 'perto', npc: p.npc, dist: p.distancia || 120,
+                          ate: agora + (p.limite ?? 9000) };
       return true;
 
     case 'acenar': {
@@ -11985,11 +11995,30 @@ function atualizarCena(now) {
 
   const a = CUT.aguardando;
   if (!a) return;
+
+  // ── Cão de guarda ─────────────────────────────────────────────────────────────
+  // Uma cena não pode prender o jogo. Já aconteceu duas vezes: uma espera por
+  // proximidade com o controle desligado (o jogador precisava andar e não podia) e uma
+  // espera por vídeo que nunca resolvia. Toda espera que não depende do jogador tem
+  // agora um prazo; estourou, a cena segue e o motivo vai para o console.
+  // 'toque' fica de fora de propósito: essa espera É o jogador, e ele pode demorar.
+  if (a.tipo !== 'toque') {
+    a.nascida = a.nascida || now;
+    const limite = a.tipo === 'video' ? 45000 : 20000;
+    if (now - a.nascida > limite) {
+      console.warn('[cena] espera "%s" estourou o prazo em %s — seguindo',
+                   a.tipo, CUT.roteiro?.id);
+      CUT.aguardando = null; proximoPasso(); return;
+    }
+  }
+
   if (a.tipo === 'tempo' && now >= a.ate) { CUT.aguardando = null; proximoPasso(); }
   else if (a.tipo === 'perto') {
     const alvo = npcPorNome(a.npc);
     if (!alvo) { CUT.aguardando = null; proximoPasso(); return; }   // NPC sumiu: não trava a cena
-    if (Math.hypot(player.x - alvo.x, player.y - alvo.y) <= a.dist) {
+    // Desistir depois do limite: se o jogador não pode (ou não quer) chegar perto, a
+    // cena segue. Roteiro nenhum vale prender o jogo.
+    if (Math.hypot(player.x - alvo.x, player.y - alvo.y) <= a.dist || (a.ate && now >= a.ate)) {
       CUT.aguardando = null; proximoPasso();
     }
   }
@@ -21174,10 +21203,79 @@ function abrirPreTela() {
     ? `<span>CONTINUAR</span><b>${q.title || q.id}</b>
        <small>${(objetivoAtual(q) || {}).text || ''}</small>`
     : `<span>COMEÇO</span><b>Reino da Música</b><small>Acordelot espera por você.</small>`;
+  montarSeletorDeCena();
   el.classList.remove('hidden');
 }
+
+// ── Seletor de cena (banca) ────────────────────────────────────────────────────
+// Testar a cena do Pipo exigia jogar o capítulo inteiro de novo a cada correção. Isto
+// põe o jogador direto na cena escolhida, com o estado que ela pressupõe já montado —
+// senão a cena roda mas nada em volta faz sentido.
+function montarSeletorDeCena() {
+  const box = document.getElementById('ptCenaBox');
+  const sel = document.getElementById('ptCena');
+  if (!box || !sel) return;
+  if (!BANCA_DE_TESTES) { box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+  const guardado = (() => { try { return localStorage.getItem('acordelot_cena_teste') || ''; } catch (e) { return ''; } })();
+  sel.innerHTML = '<option value="">— jogar normalmente —</option>' +
+    (CUT.roteiros || []).map(c =>
+      `<option value="${c.id}">${(c.nome || c.id).replace(/"/g, '')}</option>`).join('');
+  sel.value = guardado;
+  sel.onchange = () => { try { localStorage.setItem('acordelot_cena_teste', sel.value); } catch (e) {} };
+}
+
+// O estado mínimo que cada cena pressupõe. Sem isto, pular para a cena do rapto mostra
+// um Akles nível 1 sem escala forjada, e metade das falas fica sem sentido.
+const PREPARO_DA_CENA = {
+  cap1_pipo_junto: { feitas: ['welcome_to_acordelot'], cenas: ['abertura','vilarejo','portoes','apresentacao'] },
+  ponte:           { feitas: ['welcome_to_acordelot','madeira_e_pedra'], cenas: ['apresentacao','cap1_pipo_junto'] },
+  ferraria:        { feitas: ['welcome_to_acordelot','madeira_e_pedra'], missoes: ['ponte_de_acordelot'] },
+  cap1_wins:       { feitas: ['welcome_to_acordelot','o_primeiro_ressonador'] },
+  cap1_patio:      { herois: ['wins'] },
+  cap1_rapto:      { herois: ['wins'], bandeiras: ['pipo_no_grupo'] },
+  cap1_selo:       { herois: ['wins'], bandeiras: ['pipo_levado'] },
+};
+
+function prepararEstadoDaCena(id) {
+  const pre = PREPARO_DA_CENA[id];
+  if (!pre) return;
+  (pre.feitas || []).forEach(q => { if (!completedQuests.includes(q)) completedQuests.push(q); });
+  (pre.missoes || []).forEach(q => unlockQuest(q));
+  (pre.cenas || []).forEach(c => { CUT.jaRodou[c] = true; });
+  (pre.bandeiras || []).forEach(b => marcarBandeira(b));
+  (pre.herois || []).forEach(h => {
+    if (!HERO_DEFINITIONS[h]) return;
+    HERO_DEFINITIONS[h].desbloqueado = true;
+    marcarBandeira('heroi_' + h);
+    const vaga = partyState.party.findIndex(x => !x);
+    if (vaga >= 0 && !partyState.party.includes(h)) partyState.party[vaga] = h;
+  });
+  renderPartyHUD();
+}
+
+function talvezPularParaCena() {
+  if (!BANCA_DE_TESTES) return false;
+  const id = document.getElementById('ptCena')?.value;
+  if (!id) return false;
+  const r = (CUT.roteiros || []).find(c => c.id === id);
+  if (!r) return false;
+  prepararEstadoDaCena(id);
+  cenaPendenteDoMapa = null;
+  if (r.mapa && cenarioExiste(r.mapa)) {
+    currentKey = r.mapa;
+    const sp = spawns[r.mapa] || { x: 512, y: 380 };
+    player.x = sp.x; player.y = sp.y;
+  }
+  delete CUT.jaRodou[id];
+  showToast(`▶ Cena de teste: ${r.nome || id}`);
+  setTimeout(() => iniciarCena(r), 320);
+  return true;
+}
+
 function fecharPreTela() {
   preTelaAberta = false;
+  if (talvezPularParaCena()) return;
   // Agora sim: a cena que estava esperando pode rodar, com o jogador olhando.
   if (cenaPendenteDoMapa) {
     const m = cenaPendenteDoMapa; cenaPendenteDoMapa = null;

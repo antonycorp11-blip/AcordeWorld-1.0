@@ -7450,3 +7450,12 @@ body.em-cena #questNotification { display: none !important; }
                  background: linear-gradient(to top, rgba(12,8,20,.92) 0%, rgba(12,8,20,.35) 70%); }
 .mm-cel b, .mm-cel i, .mm-cel u { position: relative; z-index: 2;
                                   text-shadow: 0 1px 3px rgba(0,0,0,.9); }
+
+/* Seletor de cena da banca: atalho de teste, escondido no jogo do jogador. */
+.pt-cena { margin: 10px 0 4px; text-align: left; }
+.pt-cena.hidden { display: none; }
+.pt-cena label { display: block; font-size: 9.5px; letter-spacing: .16em;
+                 color: #a79bc2; margin-bottom: 4px; }
+.pt-cena select { width: 100%; background: #1b1428; color: #e9d5ff;
+                  border: 1px solid #4c3a63; border-radius: 7px; padding: 7px 8px;
+                  font: 500 12px Outfit, sans-serif; }

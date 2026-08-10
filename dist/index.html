@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=c2eb5c024e">
+  <link rel="stylesheet" href="style.css?v=b9306a1482">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -658,6 +658,12 @@
                 </div>
               </div>
               <div class="pt-missao" id="ptMissao"></div>
+              <!-- Só na banca de testes: pular direto para uma cena, em vez de
+                   jogar o capítulo inteiro para chegar nela. -->
+              <div class="pt-cena hidden" id="ptCenaBox">
+                <label for="ptCena">IR DIRETO PARA A CENA</label>
+                <select id="ptCena"></select>
+              </div>
               <button class="pt-jogar" id="ptJogar">INICIAR</button>
             </div>
           </div>
@@ -1114,6 +1120,6 @@
 ">🔄 Enviar minhas ruas</button>
 
 <script src="config.js?v=20260807161410"></script>
-<script src="game.js?v=7c3795ca4a"></script>
+<script src="game.js?v=56ddbbf6ef"></script>
 </body>
 </html>
