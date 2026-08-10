@@ -155,5 +155,6 @@
     "nivel": 2,
     "claves": 2,
     "moedas": 60
-  }
+  },
+  "prioridade": 5
 }

@@ -7390,7 +7390,10 @@ body.em-cena #touchControls,
 body.em-cena #questTracker,
 body.em-cena #dgHud,
 body.em-cena #rodaCombate,
-body.em-cena #drawerToggle { display: none !important; }
+body.em-cena #drawerToggle,
+body.em-cena #hudMissao,
+body.em-cena #miniMapa,
+body.em-cena #questNotification { display: none !important; }
 
 /* Botão de HUD ainda não liberado pela história: some sem deixar buraco na fila. */
 .icon-btn.trancado { display: none !important; }

@@ -4,49 +4,182 @@
   "_": "A Wins entrava no Pátio das Ruínas sem nunca ter sido apresentada. Aqui ela chega pelo Sr. Antony, e a primeira coisa que faz é notar algo estranho no Akles que nem ele percebeu. É a segunda testemunha do ouvido absoluto — e a única pessoa do capítulo que diz 'é impossível' sem estar brincando.",
   "mapa": "custom_1785869541494_557",
   "autoStart": false,
-  "gatilho": { "tipo": "falar", "npc": "Antony" },
-  "requer": { "missaoConcluida": "o_primeiro_ressonador" },
+  "gatilho": {
+    "tipo": "falar",
+    "npc": "Antony"
+  },
+  "requer": {
+    "missaoConcluida": "o_primeiro_ressonador"
+  },
   "passos": [
-    { "cmd": "controle", "ativo": false },
-    { "cmd": "esperar", "ms": 600 },
-
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Antes de você sair de novo — tem alguém que precisa te conhecer." },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Wins, do Caminho da Voz. Ela trabalha com ressonância há mais tempo que você tem de cidade." },
-    { "cmd": "esperar", "ms": 800 },
-    { "cmd": "falar", "quem": "Wins", "texto": "Então é você." },
-    { "cmd": "falar", "quem": "Personagem", "texto": "Depende do que falaram." },
-    { "cmd": "falar", "quem": "Wins", "texto": "Falaram que você atravessou a floresta à noite. Isso eu não acreditei." },
-    { "cmd": "falar", "quem": "Wins", "texto": "Falaram que você acertou o tom de um Eco na quarta tentativa. Isso eu acreditei menos ainda." },
-
-    { "_": "── ela percebe antes de ele perceber ──" },
-    { "cmd": "esperar", "ms": 900 },
-    { "cmd": "falar", "quem": "Wins", "texto": "Toca o Ressonador. Só uma vez." },
-    { "cmd": "cancao", "notas": ["mi"], "passo": 400, "dur": 1.4, "vol": 0.12 },
-    { "cmd": "esperar", "ms": 500 },
-    { "cmd": "falar", "quem": "Personagem", "texto": "Mi." },
-    { "cmd": "esperar", "ms": 1600 },
-    { "cmd": "falar", "quem": "Wins", "texto": "Você escuta antes do Ressonador responder." },
-    { "cmd": "falar", "quem": "Personagem", "texto": "Isso é ruim?" },
-    { "cmd": "esperar", "ms": 1200 },
-    { "cmd": "falar", "quem": "Wins", "texto": "É impossível." },
-    { "cmd": "esperar", "ms": 1800 },
-    { "cmd": "falar", "quem": "Personagem", "texto": "Tenho ouvido isso bastante ultimamente." },
-
-    { "_": "── por que ela vai junto ──" },
-    { "cmd": "esperar", "ms": 900 },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "Há relatos das aldeias a leste. Coisas que ninguém consegue descrever direito." },
-    { "cmd": "falar", "quem": "Sr. Antony", "texto": "As pessoas dizem que falta alguma coisa no lugar, e não sabem dizer o quê." },
-    { "cmd": "falar", "quem": "Wins", "texto": "Eu sei o que é. Só não quero dizer em voz alta na praça." },
-    { "cmd": "esperar", "ms": 1000 },
-    { "cmd": "falar", "quem": "Wins", "texto": "Você vem comigo. Eu escuto o que sobrou; você bate no que ainda está de pé." },
-    { "cmd": "falar", "quem": "Personagem", "texto": "É assim que você faz amizade?" },
-    { "cmd": "falar", "quem": "Wins", "texto": "É assim que eu volto viva." },
-
-    { "cmd": "recrutar", "heroi": "wins" },
-    { "cmd": "bandeira", "id": "wins_no_grupo" },
-    { "cmd": "tutorial", "texto": "Wins entrou no grupo. Troque de herói pelos retratos no canto da tela — cada um tem nível, atributos e habilidades próprios." },
-    { "cmd": "hud", "visivel": true },
-    { "cmd": "controle", "ativo": true },
-    { "cmd": "fim" }
-  ]
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Antes de você sair de novo — tem alguém que precisa te conhecer."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Wins, do Caminho da Voz. Ela trabalha com ressonância há mais tempo que você tem de cidade."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 800
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Então é você."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Depende do que falaram."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Falaram que você atravessou a floresta à noite. Isso eu não acreditei."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Falaram que você acertou o tom de um Eco na quarta tentativa. Isso eu acreditei menos ainda."
+    },
+    {
+      "_": "── ela percebe antes de ele perceber ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Toca o Ressonador. Só uma vez."
+    },
+    {
+      "cmd": "cancao",
+      "notas": [
+        "mi"
+      ],
+      "passo": 400,
+      "dur": 1.4,
+      "vol": 0.12
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Mi."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Você escuta antes do Ressonador responder."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Isso é ruim?"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1200
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "É impossível."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1800
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Tenho ouvido isso bastante ultimamente."
+    },
+    {
+      "_": "── por que ela vai junto ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Há relatos das aldeias a leste. Coisas que ninguém consegue descrever direito."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "As pessoas dizem que falta alguma coisa no lugar, e não sabem dizer o quê."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Eu sei o que é. Só não quero dizer em voz alta na praça."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1000
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Você vem comigo. Eu escuto o que sobrou; você bate no que ainda está de pé."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "É assim que você faz amizade?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "É assim que eu volto viva."
+    },
+    {
+      "cmd": "recrutar",
+      "heroi": "wins"
+    },
+    {
+      "cmd": "bandeira",
+      "id": "wins_no_grupo"
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "Wins entrou no grupo. Troque de herói pelos retratos no canto da tela — cada um tem nível, atributos e habilidades próprios."
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "fim"
+    }
+  ],
+  "prioridade": 30
 }

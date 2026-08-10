@@ -217,5 +217,6 @@
       "wood": 6,
       "stone": 4
     }
-  }
+  },
+  "prioridade": 20
 }

@@ -144,5 +144,6 @@
       "hammer_ferro"
     ],
     "qualidade": "ressonante"
-  }
+  },
+  "prioridade": 30
 }

@@ -81,6 +81,24 @@ for cid, d in sorted(cenas.items()):
         if c=='recrutar' and ("'%s'"%p.get('heroi')) not in motor:
             erro(cid, 'passo %d: herói inexistente — %s' % (i, p.get('heroi')))
 
+# Conflito de gatilho: duas cenas disputando o MESMO NPC no mesmo mapa. O motor pega a
+# primeira que casa, entao a de tras so roda se o jogador voltar a falar sem motivo — foi
+# assim que a cena do Pipo perdeu para a da ponte e sumiu por varios playtests.
+porGatilho = {}
+for cid, d in cenas.items():
+    g = d.get('gatilho') or {}
+    if g.get('tipo') != 'falar': continue
+    porGatilho.setdefault((d.get('mapa'), str(g.get('npc')).lower()), []).append(cid)
+for (mapa, npc), lista in porGatilho.items():
+    if len(lista) < 2: continue
+    semCondicao = [c for c in lista if not (cenas[c].get('requer'))]
+    if len(semCondicao) > 1:
+        erro('gatilho:'+npc, 'cenas sem condicao disputando o mesmo NPC: %s' % ', '.join(semCondicao))
+    # Prioridade explicita resolve; sem ela, a ordem do index decide no escuro.
+    semPrio = [c for c in lista if cenas[c].get('prioridade') is None]
+    if len(semPrio) > 1:
+        aviso('gatilho:'+npc, 'ordem decide entre %s — considere `prioridade`' % ', '.join(semPrio))
+
 # Missões: todo objetivo tem que ser cumprível.
 for qid, q in sorted(quests.items()):
     for o in q['objectives']:

@@ -3,79 +3,300 @@
   "nome": "Cena 12 — O Lugar das Notas Sagradas",
   "mapa": "custom_1785869541494_557",
   "autoStart": true,
-  "gatilho": { "tipo": "falar", "npc": "Lucian" },
-  "requer": { "notasCondensadas": 3 },
+  "gatilho": {
+    "tipo": "falar",
+    "npc": "Lucian"
+  },
+  "requer": {
+    "notasCondensadas": 3
+  },
   "estadoInicial": {
-    "nivel": 6, "claves": 14, "moedas": 400,
-    "forjar": ["hammer_ferro", "reson_cobre"], "qualidade": "ressonante",
-    "itens": { "fragmento": 12, "tom": 3, "semitom": 1 },
-    "notas": ["do", "re", "mi"],
+    "nivel": 6,
+    "claves": 14,
+    "moedas": 400,
+    "forjar": [
+      "hammer_ferro",
+      "reson_cobre"
+    ],
+    "qualidade": "ressonante",
+    "itens": {
+      "fragmento": 12,
+      "tom": 3,
+      "semitom": 1
+    },
+    "notas": [
+      "do",
+      "re",
+      "mi"
+    ],
     "mapa": "custom_1785869541494_557"
   },
   "passos": [
-    { "cmd": "controle", "ativo": false },
-    { "cmd": "acenar", "npc": "Lucian", "ms": 1500 },
-
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Ei. Ei! Para tudo." },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Três notas condensadas. Três. Em quantos dias?" },
-    { "cmd": "falar", "quem": "Personagem", "texto": "Não faço ideia. Perdi a conta.", "auto": 1600 },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Claro que perdeu. Você não dorme." },
-
-    { "cmd": "esperar", "ms": 500 },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Escuta, agora falando sério um minuto." },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Você está andando por aí com um martelo e um sino." },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Contra Ecos Cristalinos, tudo bem. Contra o que vem depois deles, não." },
-    { "cmd": "falar", "quem": "Personagem", "texto": "O que vem depois deles?", "auto": 1600 },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Coisas vermelhas. Vamos deixar assim por enquanto." },
-
-    { "_": "── a proposta ──" },
-    { "cmd": "esperar", "ms": 600 },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Montar uma escala inteira leva semanas. Você não tem semanas." },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Mas existe um atalho. Meio duvidoso, mas existe." },
-    { "cmd": "falar", "quem": "Personagem", "texto": "Estou ouvindo.", "auto": 1300 },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "O Lugar das Notas Sagradas. Fica floresta adentro." },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Lá os acordes não precisam ser construídos. Eles já nasceram prontos." },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Se personificam. Viram bichinhos. Pulam no lago dourado e ficam brincando." },
-    { "cmd": "falar", "quem": "Personagem", "texto": "...bichinhos.", "auto": 1400 },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Eu avisei que era duvidoso, não avisei?" },
-
-    { "cmd": "esperar", "ms": 400 },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Você joga umas claves na água. O lago gira. E devolve alguma coisa." },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Às vezes um acorde. Às vezes um acorde melhor." },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Às vezes nada, e você fica ali parado se sentindo um idiota." },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Vem. Eu pago a primeira." },
-
-    { "_": "── o sorteio, que dá em nada ──" },
-    { "cmd": "tutorial", "texto": "O Bardo te levou ao Lugar das Notas Sagradas." },
-    { "cmd": "sorteio", "resultado": "nada" },
-
-    { "cmd": "esperar", "ms": 700 },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "..." },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Isso acontece." },
-    { "cmd": "falar", "quem": "Personagem", "texto": "Você pagou cinco claves para o lago fazer barulho.", "auto": 2000 },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Eu paguei cinco claves por uma EXPERIÊNCIA." },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Que foi decepcionante. Mas foi uma experiência." },
-
-    { "_": "── a revelação: magia sem instrumento não sai ──" },
-    { "cmd": "esperar", "ms": 800 },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Olha, vou te contar uma coisa que ia contar depois." },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Se você tivesse ganhado o acorde agora... não ia adiantar nada." },
-    { "cmd": "falar", "quem": "Personagem", "texto": "Como assim?", "auto": 1400 },
-    { "cmd": "esperar", "ms": 500 },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Acorde é a música. Mas música não sai sozinha do ar, rapaz." },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Alguém precisa TOCAR." },
-    { "cmd": "esperar", "ms": 600 },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Você tem os acordes. Falta o instrumento." },
-    { "cmd": "falar", "quem": "Personagem", "texto": "E onde eu arrumo um instrumento?", "auto": 1700 },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Boa pergunta. Excelente pergunta." },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Guarda essa pergunta com carinho. Ela vai ser importante." },
-    { "cmd": "esperar", "ms": 500 },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "Por ora: continue juntando notas. E volte aqui quando tiver claves sobrando." },
-    { "cmd": "falar", "quem": "Bardo Lucian", "texto": "O lago é injusto, mas é rápido. E eu gosto de ver gente perdendo dinheiro comigo." },
-
-    { "cmd": "tutorial", "texto": "O Lugar das Notas Sagradas fica aberto.\nTentar a sorte custa 5 claves." },
-    { "cmd": "hud", "visivel": true },
-    { "cmd": "controle", "ativo": true },
-    { "cmd": "fim" }
-  ]
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "acenar",
+      "npc": "Lucian",
+      "ms": 1500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Ei. Ei! Para tudo."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Três notas condensadas. Três. Em quantos dias?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Não faço ideia. Perdi a conta.",
+      "auto": 1600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Claro que perdeu. Você não dorme."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Escuta, agora falando sério um minuto."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Você está andando por aí com um martelo e um sino."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Contra Ecos Cristalinos, tudo bem. Contra o que vem depois deles, não."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "O que vem depois deles?",
+      "auto": 1600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Coisas vermelhas. Vamos deixar assim por enquanto."
+    },
+    {
+      "_": "── a proposta ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Montar uma escala inteira leva semanas. Você não tem semanas."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Mas existe um atalho. Meio duvidoso, mas existe."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Estou ouvindo.",
+      "auto": 1300
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "O Lugar das Notas Sagradas. Fica floresta adentro."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Lá os acordes não precisam ser construídos. Eles já nasceram prontos."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Se personificam. Viram bichinhos. Pulam no lago dourado e ficam brincando."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "...bichinhos.",
+      "auto": 1400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Eu avisei que era duvidoso, não avisei?"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 400
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Você joga umas claves na água. O lago gira. E devolve alguma coisa."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Às vezes um acorde. Às vezes um acorde melhor."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Às vezes nada, e você fica ali parado se sentindo um idiota."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Vem. Eu pago a primeira."
+    },
+    {
+      "_": "── o sorteio, que dá em nada ──"
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "O Bardo te levou ao Lugar das Notas Sagradas."
+    },
+    {
+      "cmd": "sorteio",
+      "resultado": "nada"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 700
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "..."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Isso acontece."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Você pagou cinco claves para o lago fazer barulho.",
+      "auto": 2000
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Eu paguei cinco claves por uma EXPERIÊNCIA."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Que foi decepcionante. Mas foi uma experiência."
+    },
+    {
+      "_": "── a revelação: magia sem instrumento não sai ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 800
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Olha, vou te contar uma coisa que ia contar depois."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Se você tivesse ganhado o acorde agora... não ia adiantar nada."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "Como assim?",
+      "auto": 1400
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Acorde é a música. Mas música não sai sozinha do ar, rapaz."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Alguém precisa TOCAR."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Você tem os acordes. Falta o instrumento."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "E onde eu arrumo um instrumento?",
+      "auto": 1700
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Boa pergunta. Excelente pergunta."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Guarda essa pergunta com carinho. Ela vai ser importante."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 500
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "Por ora: continue juntando notas. E volte aqui quando tiver claves sobrando."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Bardo Lucian",
+      "texto": "O lago é injusto, mas é rápido. E eu gosto de ver gente perdendo dinheiro comigo."
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "O Lugar das Notas Sagradas fica aberto.\nTentar a sorte custa 5 claves."
+    },
+    {
+      "cmd": "hud",
+      "visivel": true
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "fim"
+    }
+  ],
+  "prioridade": 40
 }

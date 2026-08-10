@@ -7490,6 +7490,23 @@ function savePlayerData() {
     }));
   } catch (e) {}
 }
+// Casa a missão salva com a definição de hoje: a REGRA vem do quests.json (tipo, alvo,
+// quantidade, texto), o PROGRESSO vem do save. Assim corrigir uma missão conserta também
+// quem já estava no meio dela, em vez de deixar o jogador preso num save morto.
+function migrarMissaoSalva(q) {
+  const def = questsData.find(x => x.id === q.id);
+  if (!def) return q;
+  const novo = JSON.parse(JSON.stringify(def));
+  novo.objectives.forEach(o => {
+    const antigo = (q.objectives || []).find(x => x.id === o.id);
+    if (!antigo) return;
+    o.completed = !!antigo.completed;
+    o.progresso = antigo.progresso || 0;
+    if (o.quantidade && o.progresso >= o.quantidade) o.completed = true;
+  });
+  return novo;
+}
+
 function loadPlayerData() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -7519,7 +7536,7 @@ function loadPlayerData() {
       selectedHeroId = HERO_DEFINITIONS[d.heroi] ? d.heroi : 'achilles';
     }
     if (d.inventario) playerInventory = { ...playerInventory, ...d.inventario };
-    if (Array.isArray(d.missoesAtivas)) activeQuests = d.missoesAtivas;
+    if (Array.isArray(d.missoesAtivas)) activeQuests = d.missoesAtivas.map(migrarMissaoSalva);
     if (Array.isArray(d.missoesFeitas)) completedQuests = d.missoesFeitas;
     if (d.cenas) CUT.jaRodou = { ...CUT.jaRodou, ...d.cenas };
     if (d.mapa) window.__mapaSalvo = d.mapa;
@@ -7577,6 +7594,7 @@ async function loadShopCatalog() {
   carregarEquipamentos();
   loadPlayerData(); // saved balance wins over the catalogue default
   aplicarHeroisRecrutados();
+  limparHeroisTrancadosDoGrupo();
   abastecerBancaDeTestes();
   // As roupas da loja são 3,9 MB que ninguém vê até abrir a loja. Ficam num pedido
   // adiado: quem abre a vitrine chama isto, e aí sim elas chegam.
@@ -17050,6 +17068,16 @@ function abastecerBancaDeTestes() {
 
 // Heróis recrutados pela história voltam desbloqueados ao carregar o save — a bandeira
 // é a fonte da verdade, não o valor de fábrica da definição.
+function limparHeroisTrancadosDoGrupo() {
+  partyState.party = partyState.party.map(h =>
+    (h && HERO_DEFINITIONS[h] && HERO_DEFINITIONS[h].desbloqueado === false) ? null : h);
+  if (!partyState.party.some(Boolean)) partyState.party[0] = 'achilles';
+  const i = partyState.activePartyIndex;
+  if (!partyState.party[i]) partyState.activePartyIndex = partyState.party.findIndex(Boolean);
+  const ativo = partyState.party[partyState.activePartyIndex];
+  if (ativo && selectedHeroId !== ativo) selectedHeroId = ativo;
+}
+
 function aplicarHeroisRecrutados() {
   Object.keys(HERO_DEFINITIONS).forEach(id => {
     if (temBandeira('heroi_' + id)) HERO_DEFINITIONS[id].desbloqueado = true;
@@ -21035,7 +21063,7 @@ function atualizarMissaoNoHud(forcar = false) {
   const cx = document.getElementById('hudMissao');
   if (!cx) return;
   const q = missaoAtual();
-  const podeAparecer = !!q && personagemAndando() && !fichaAberta()
+  const podeAparecer = !!q && personagemAndando() && !fichaAberta() && !CUT.ativo
                   && document.getElementById('playerHud')
                   && !document.getElementById('playerHud').classList.contains('hidden');
   if (!podeAparecer) { cx.classList.add('hidden'); return; }
