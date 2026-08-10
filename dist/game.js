@@ -11266,7 +11266,15 @@ async function carregarCatalogoDeCenas() {
     if (Array.isArray(j.cenas) && j.cenas.length) ids = j.cenas;
   } catch (e) {}
   const cenas = await Promise.all(ids.map(carregarCena));
-  CUT.roteiros = cenas.filter(Boolean);
+  // Ordem = prioridade. Quando duas cenas dependem do MESMO gatilho (falar com o Sr.
+  // Antony, por exemplo) e as duas estão liberadas, quem vem primeiro na lista ganha —
+  // e a outra fica esperando uma conversa que o jogador não tem motivo para ter.
+  // Foi assim que a cena do Pipo perdeu para a da ponte e nunca apareceu. Cena com
+  // `prioridade` menor é ouvida antes; sem o campo, vale 100 e mantém a ordem do index.
+  CUT.roteiros = cenas.filter(Boolean)
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => ((a.c.prioridade ?? 100) - (b.c.prioridade ?? 100)) || (a.i - b.i))
+    .map(x => x.c);
   window.__abertura = CUT.roteiros.find(c => c.id === 'abertura') || null;
   return CUT.roteiros;
 }
@@ -11808,6 +11816,12 @@ function executarPasso(p) {
       }
       return false;
     }
+
+    case 'rota':
+      // O menino conhece a mata: quem sabe o caminho é ele, então a cena traça a rota
+      // em vez de o jogador ter que descobrir sozinho onde fica a floresta.
+      if (p.para) definirRota(p.para); else limparRota();
+      return false;
 
     case 'acompanhante':
       // `npc` engata alguém; sem `npc` (ou com dispensar:true) solta quem estiver junto.
@@ -18412,6 +18426,15 @@ function nomeCurtoDoMapa(k) {
   return n.length > 26 ? n.slice(0, 24).trimEnd() + '…' : n;
 }
 
+// A arte do próprio cenário como miniatura. Blocos de texto num mapa não dizem nada:
+// o jogador reconhece o lugar pela imagem, não pelo nome do arquivo. Sai de graça —
+// é o mesmo JPG que o jogo já carrega como fundo.
+function miniaturaDoMapa(k) {
+  const src = bgSources[k];
+  if (!src) return '';
+  return ` style="background-image:url('${src}')"`;
+}
+
 // O que existe naquele cenário, para o minimapa não ser uma lista de nomes crus.
 function resumoDoMapa(k) {
   const ic = [];
@@ -18444,6 +18467,7 @@ function abrirMiniMapa() {
     else if (naRota) cls.push('rota');
     return `<button class="${cls.join(' ')}" data-mapa="${k}"
               style="grid-column:${g.col - c0 + 1};grid-row:${g.row - r0 + 1}">
+              <span class="mm-mini"${miniaturaDoMapa(k)}></span>
               <b>${nomeCurtoDoMapa(k)}</b><i>${resumoDoMapa(k)}</i>
               ${k === currentKey ? '<u>você está aqui</u>' : ''}
             </button>`;
@@ -21000,22 +21024,44 @@ function missoesBloqueadas() {
     !activeQuests.some(a => a.id === q.id) && !completedQuests.includes(q.id));
 }
 
-function atualizarMissaoNoHud() {
+// A caixa da missão era "sempre visível" por decisão minha, e no teste ela virou um
+// adesivo no meio da tela que nunca mudava. Uma missão dura horas: mostrar o mesmo texto
+// durante horas não informa, só ocupa. Agora ela aparece quando MUDA — missão nova,
+// objetivo concluído, contador que avançou — e se recolhe sozinha depois de alguns
+// segundos. O 📜 continua ali para quem quiser conferir a qualquer momento.
+let _hmAssinatura = '', _hmEsconder = null;
+
+function atualizarMissaoNoHud(forcar = false) {
   const cx = document.getElementById('hudMissao');
   if (!cx) return;
   const q = missaoAtual();
-  const mostrar = !!q && personagemAndando() && !fichaAberta()
+  const podeAparecer = !!q && personagemAndando() && !fichaAberta()
                   && document.getElementById('playerHud')
                   && !document.getElementById('playerHud').classList.contains('hidden');
-  cx.classList.toggle('hidden', !mostrar);
-  // O rastreador antigo mostrava a mesma coisa no canto: duas caixas dizendo o mesmo é
-  // ruído. A nova fica, porque é centrada e legível no celular.
-  document.getElementById('questTracker')?.classList.toggle('hidden', mostrar);
-  if (!mostrar) return;
+  if (!podeAparecer) { cx.classList.add('hidden'); return; }
+
   const o = objetivoAtual(q);
-  document.getElementById('hmNome').textContent = q.title || q.id;
-  document.getElementById('hmObj').textContent = o ? (o.text || '') : 'Volte para entregar';
+  const nome = q.title || q.id;
+  const obj = o ? (o.text || '') + (o.quantidade ? ` (${o.progresso || 0}/${o.quantidade})` : '')
+                : 'Volte para entregar';
+  const assinatura = nome + '|' + obj;
+
+  if (assinatura !== _hmAssinatura || forcar) {
+    _hmAssinatura = assinatura;
+    document.getElementById('hmNome').textContent = nome;
+    document.getElementById('hmObj').textContent = obj;
+    cx.classList.remove('hidden');
+    clearTimeout(_hmEsconder);
+    // Some depois de mostrar. Objetivo com contador aparece a cada avanço, que é
+    // justamente quando o jogador quer saber quanto falta.
+    _hmEsconder = setTimeout(() => cx.classList.add('hidden'), 5200);
+  }
+  // O rastreador do canto continua desligado: duas caixas dizendo a mesma coisa é ruído.
+  document.getElementById('questTracker')?.classList.add('hidden');
 }
+
+// Um toque no 🗺️/📜 ou no próprio HUD relembra a missão sem esperar mudança.
+function relembrarMissao() { atualizarMissaoNoHud(true); }
 
 function abrirMissoes() {
   document.getElementById('telaMissoes')?.classList.remove('hidden');

@@ -8,13 +8,7 @@
     "npc": "Antony"
   },
   "requer": {
-    "objetivos": {
-      "missao": "amizade_importa",
-      "ids": [
-        "bardo",
-        "mercador"
-      ]
-    }
+    "missaoConcluida": "madeira_e_pedra"
   },
   "passos": [
     {
@@ -153,5 +147,6 @@
     "nivel": 3,
     "claves": 3,
     "moedas": 80
-  }
+  },
+  "prioridade": 50
 }

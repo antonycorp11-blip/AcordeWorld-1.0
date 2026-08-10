@@ -7437,3 +7437,13 @@ body.em-cena #drawerToggle { display: none !important; }
 .quest-tracker.recolhido .qt-objs li:not(.agora) { display: none; }
 .quest-tracker.recolhido .qt-objs { margin: 0; padding: 0; }
 .qt-mais { font-size: 9.5px; color: #a79bc2; margin-top: 2px; letter-spacing: .04em; }
+
+/* Miniatura do cenário no minimapa: a arte real, recortada, com o texto por cima. */
+.mm-cel { position: relative; overflow: hidden; min-height: 74px; justify-content: flex-end; }
+.mm-mini { position: absolute; inset: 0; background-size: cover; background-position: center;
+           opacity: .5; filter: saturate(.85); z-index: 0; }
+.mm-cel.aqui .mm-mini, .mm-cel.destino .mm-mini { opacity: .75; }
+.mm-cel::after { content: ''; position: absolute; inset: 0; z-index: 1;
+                 background: linear-gradient(to top, rgba(12,8,20,.92) 0%, rgba(12,8,20,.35) 70%); }
+.mm-cel b, .mm-cel i, .mm-cel u { position: relative; z-index: 2;
+                                  text-shadow: 0 1px 3px rgba(0,0,0,.9); }

@@ -202,6 +202,10 @@
       "texto": "Vamos! Eu sei um lugar com carvalho velho!"
     },
     {
+      "cmd": "rota",
+      "para": "custom_1786198430678_105"
+    },
+    {
       "cmd": "acompanhante",
       "npc": "Pipo"
     },
@@ -231,5 +235,6 @@
   ],
   "requer": {
     "missaoConcluida": "welcome_to_acordelot"
-  }
+  },
+  "prioridade": 10
 }
