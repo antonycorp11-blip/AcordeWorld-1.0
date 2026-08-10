@@ -6,7 +6,7 @@
    147,
    289
   ],
-  "corpo": 161,
+  "corpo": 181,
   "base": 283
  },
  "achilles_ataque.png": {
@@ -16,7 +16,7 @@
    287,
    289
   ],
-  "corpo": 173,
+  "corpo": 168,
   "base": 283
  },
  "achilles_ataque_vertical.png": {
@@ -36,7 +36,7 @@
    137,
    289
   ],
-  "corpo": 173,
+  "corpo": 192,
   "base": 283
  },
  "achilles_estocada.png": {
@@ -46,7 +46,7 @@
    271,
    289
   ],
-  "corpo": 173,
+  "corpo": 201,
   "base": 283
  },
  "achilles_giro.png": {
@@ -56,7 +56,7 @@
    318,
    289
   ],
-  "corpo": 173,
+  "corpo": 171,
   "base": 283
  },
  "achilles_guarda.png": {
@@ -66,7 +66,7 @@
    236,
    289
   ],
-  "corpo": 173,
+  "corpo": 238,
   "base": 283
  },
  "achilles_parado.png": {
@@ -76,7 +76,7 @@
    183,
    289
   ],
-  "corpo": 173,
+  "corpo": 248,
   "base": 283
  },
  "wins_estocada.png": {
@@ -96,7 +96,7 @@
    223,
    289
   ],
-  "corpo": 161,
+  "corpo": 184,
   "base": 283
  },
  "wins_varredura.png": {
@@ -106,7 +106,7 @@
    217,
    289
   ],
-  "corpo": 161,
+  "corpo": 193,
   "base": 283
  },
  "wins_vertical.png": {

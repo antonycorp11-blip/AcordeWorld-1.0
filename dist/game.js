@@ -8887,7 +8887,8 @@ function renderPlayer() {
     // vertical é bem mais alta que o personagem para caber a espada erguida; desenhar
     // pela célula deixaria o herói com metade do tamanho justamente ali. Com `corpo` e
     // `base` da ficha, qualquer folha nova entra do tamanho certo sem ajuste na mão.
-    const esc = troca ? (pH / troca.m.corpo) : (pH / fh);
+    const PROPORCAO_CORPO = 192 / 289;   // corpo medido ÷ célula, folha de caminhada
+    const esc = troca ? (pH / troca.m.corpo) : (pH / (fh * PROPORCAO_CORPO));
     const dW = fw * esc, dH = fh * esc;
     // Distância do topo da célula até a linha dos pés, já escalada: é o quanto o
     // desenho precisa subir para os pés caírem em player.y.
@@ -11385,6 +11386,10 @@ function condicoesDaCena(c) {
   if (!r) return true;
   if (r.missaoConcluida && !missaoConcluida(r.missaoConcluida)) return false;
   if (r.missaoAtiva && !missaoAtiva(r.missaoAtiva)) return false;
+  // Bandeira: é o que impede o jogador de pular uma conversa indo direto ao NPC
+  // seguinte. `bandeira` exige; `semBandeira` proíbe.
+  if (r.bandeira && !temBandeira(r.bandeira)) return false;
+  if (r.semBandeira && temBandeira(r.semBandeira)) return false;
   if (r.notasCondensadas != null &&
       Object.values(notasPossuidas).filter(v => v > 0).length < r.notasCondensadas) return false;
   if (r.objetivos) {
@@ -21207,11 +21212,14 @@ function atualizarMissaoNoHud(forcar = false) {
     document.getElementById('hmNome').textContent = nome;
     document.getElementById('hmObj').textContent = obj;
     cx.classList.remove('hidden');
+    // Fica. No centro do topo ela era um adesivo no meio da cena; encostada na barra de
+    // XP, no canto, ela é o lugar onde o jogador procura o objetivo — e sumir sozinha
+    // deixava ele sem saber o que fazer.
+    cx.classList.add('destaque');
     clearTimeout(_hmEsconder);
-    // Some depois de mostrar. Objetivo com contador aparece a cada avanço, que é
-    // justamente quando o jogador quer saber quanto falta.
-    _hmEsconder = setTimeout(() => cx.classList.add('hidden'), 5200);
+    _hmEsconder = setTimeout(() => cx.classList.remove('destaque'), 2600);
   }
+  cx.classList.remove('hidden');
   // O rastreador do canto continua desligado: duas caixas dizendo a mesma coisa é ruído.
   document.getElementById('questTracker')?.classList.add('hidden');
 }

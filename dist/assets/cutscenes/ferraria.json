@@ -8,13 +8,8 @@
     "npc": "Dorn"
   },
   "requer": {
-    "objetivos": {
-      "missao": "ponte_de_acordelot",
-      "ids": [
-        "madeira",
-        "pedra"
-      ]
-    }
+    "missaoConcluida": "madeira_e_pedra",
+    "bandeira": "antony_mandou_ponte"
   },
   "passos": [
     {
@@ -31,18 +26,7 @@
     {
       "cmd": "falar",
       "quem": "Ferreiro Dorn",
-      "texto": "Opa. Você trouxe material."
-    },
-    {
-      "cmd": "falar",
-      "quem": "Ferreiro Dorn",
-      "texto": "Madeira boa. Pedra melhor ainda. O Antony te avisou direitinho."
-    },
-    {
-      "cmd": "falar",
-      "quem": "Personagem",
-      "texto": "É tudo seu. Pode consertar a ponte.",
-      "auto": 1600
+      "texto": "O Antony te mandou, não foi? Ele sempre manda alguém depois que eu já resolvi metade."
     },
     {
       "cmd": "esperar",
@@ -218,5 +202,5 @@
       "stone": 4
     }
   },
-  "prioridade": 20
+  "prioridade": 25
 }

@@ -16,120 +16,81 @@
       "ativo": false
     },
     {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
       "cmd": "falar",
       "quem": "Sr. Antony",
-      "texto": "E então? Sobreviveu ao Lucian?"
+      "texto": "O Dorn já me contou. Duas vezes."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "Disse que o menino escolheu a madeira e que você não atrapalhou. Vindo dele, é elogio para os dois."
     },
     {
       "cmd": "falar",
       "quem": "Personagem",
-      "texto": "Ele cantou três músicas. Eu pedi uma.",
-      "auto": 1600
+      "texto": "Ele que sabia qual servia."
     },
     {
       "cmd": "falar",
       "quem": "Sr. Antony",
-      "texto": "Você saiu barato. Semana passada eu levei sete."
+      "texto": "Sei. E você deixou que soubesse na frente do velho. Isso vale mais do que a madeira."
     },
     {
-      "cmd": "falar",
-      "quem": "Personagem",
-      "texto": "E o Tibério tentou me vender um amuleto.",
-      "auto": 1600
-    },
-    {
-      "cmd": "falar",
-      "quem": "Sr. Antony",
-      "texto": "O anti-Shiker? Ele tem quatorze. Vai morrer com quatorze."
-    },
-    {
-      "_": "── fecha a missão de amizade ──"
-    },
-    {
-      "cmd": "objetivo",
-      "missao": "amizade_importa",
-      "id": "voltar"
+      "_": "── e emenda o próximo passo, sem pedir nada de novo ──"
     },
     {
       "cmd": "esperar",
-      "ms": 700
+      "ms": 900
     },
     {
       "cmd": "falar",
       "quem": "Sr. Antony",
-      "texto": "Muito bem, {PLAYER_NAME}. Agora você tem rosto nesta cidade."
+      "texto": "Agora o problema de verdade: a ponte da entrada cedeu na última chuva."
     },
     {
       "cmd": "falar",
       "quem": "Sr. Antony",
-      "texto": "E quem tem rosto aqui, ajuda."
+      "texto": "O material já está com o Dorn, graças a vocês dois. Falta braço."
     },
     {
-      "_": "── e emenda a próxima ──"
+      "cmd": "falar",
+      "quem": "Personagem",
+      "texto": "O meu, imagino."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Sr. Antony",
+      "texto": "O seu. Ele tem sessenta anos e uma coluna de quarenta — vai te dizer isso umas seis vezes."
     },
     {
       "cmd": "esperar",
-      "ms": 500
+      "ms": 800
     },
     {
       "cmd": "falar",
       "quem": "Sr. Antony",
-      "texto": "Falta você conhecer o Ferreiro Dorn. Ele fica lá embaixo, nos Portões Reais."
+      "texto": "Vá até os Portões Reais e diga que eu mandei. Ele vai reclamar e vai aceitar."
     },
     {
       "cmd": "falar",
       "quem": "Sr. Antony",
-      "texto": "A ponte da entrada cedeu na última chuva. Ele está encarando o buraco desde ontem."
+      "texto": "E {PLAYER_NAME}... quem levanta uma ponte nesta cidade deixa de ser visita."
     },
     {
-      "cmd": "falar",
-      "quem": "Personagem",
-      "texto": "Eu vou me apresentar a ele.",
-      "auto": 1500
+      "cmd": "bandeira",
+      "id": "antony_mandou_ponte"
     },
     {
-      "cmd": "falar",
-      "quem": "Sr. Antony",
-      "texto": "Vá. Mas escute o conselho de um velho:"
-    },
-    {
-      "cmd": "falar",
-      "quem": "Sr. Antony",
-      "texto": "Não chegue de mãos vazias. O Dorn não aperta mão, ele avalia carga."
-    },
-    {
-      "cmd": "falar",
-      "quem": "Sr. Antony",
-      "texto": "Passe antes na floresta a leste da praça. Traga madeira e pedra."
-    },
-    {
-      "cmd": "falar",
-      "quem": "Sr. Antony",
-      "texto": "Aparecer lá já com o material é o jeito mais rápido de virar amigo dele."
-    },
-    {
-      "cmd": "falar",
-      "quem": "Personagem",
-      "texto": "Madeira e pedra. Anotado.",
-      "auto": 1400
-    },
-    {
-      "cmd": "falar",
-      "quem": "Sr. Antony",
-      "texto": "E {PLAYER_NAME}... se ouvir silêncio absoluto lá dentro, volte correndo."
-    },
-    {
-      "cmd": "falar",
-      "quem": "Sr. Antony",
-      "texto": "Você já sabe o que isso significa."
-    },
-    {
-      "cmd": "missao",
-      "id": "ponte_de_acordelot"
+      "cmd": "rota",
+      "para": "custom_1785880661560_858"
     },
     {
       "cmd": "tutorial",
-      "texto": "Colete madeira e pedra na floresta a leste, depois leve ao Ferreiro Dorn nos Portões Reais."
+      "texto": "Vá aos Portões Reais e fale com o Ferreiro Dorn."
     },
     {
       "cmd": "hud",
@@ -148,5 +109,6 @@
     "claves": 3,
     "moedas": 80
   },
-  "prioridade": 50
+  "prioridade": 18,
+  "_": "O Antony reage à entrega e emenda a ponte. NÃO pede material: o Pipo e o Akles acabaram de levar. Pedir de novo era a dobra que quebrava a narrativa."
 }
