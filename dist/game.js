@@ -23,6 +23,12 @@ const BANCA_DE_TESTES = (() => {
 // Sufixo aplicado só às chaves de PROGRESSO, para os dois modos não se sobrescreverem.
 const SUFIXO_DO_SAVE = BANCA_DE_TESTES ? '_banca' : '';
 
+// ── Seletor de cena no link público ───────────────────────────────────────────
+// Enquanto o capítulo está em teste, pular direto para uma cena precisa funcionar
+// TAMBÉM no link publicado — testar no celular pelo link normal é o fluxo real do
+// Antony. Vira `false` numa linha quando o jogo abrir para jogador de verdade.
+const SELETOR_DE_CENA_LIGADO = true;
+
 const SCREEN_W = 1024;
 const SCREEN_H = 571;
 
@@ -21215,7 +21221,7 @@ function montarSeletorDeCena() {
   const box = document.getElementById('ptCenaBox');
   const sel = document.getElementById('ptCena');
   if (!box || !sel) return;
-  if (!BANCA_DE_TESTES) { box.classList.add('hidden'); return; }
+  if (!SELETOR_DE_CENA_LIGADO) { box.classList.add('hidden'); return; }
   box.classList.remove('hidden');
   const guardado = (() => { try { return localStorage.getItem('acordelot_cena_teste') || ''; } catch (e) { return ''; } })();
   sel.innerHTML = '<option value="">— jogar normalmente —</option>' +
@@ -21255,7 +21261,7 @@ function prepararEstadoDaCena(id) {
 }
 
 function talvezPularParaCena() {
-  if (!BANCA_DE_TESTES) return false;
+  if (!SELETOR_DE_CENA_LIGADO) return false;
   const id = document.getElementById('ptCena')?.value;
   if (!id) return false;
   const r = (CUT.roteiros || []).find(c => c.id === id);
