@@ -119,6 +119,17 @@
       "ms": 900
     },
     {
+      "cmd": "andar",
+      "npc": "Lucian",
+      "para": "jogador",
+      "velocidade": 2.0,
+      "sumir": false
+    },
+    {
+      "cmd": "esperar",
+      "ms": 400
+    },
+    {
       "cmd": "falar",
       "quem": "Bardo Lucian",
       "texto": "Antony. Ele tem nove anos."

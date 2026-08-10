@@ -1974,8 +1974,24 @@ function say(npc, text, ms = 2800) {
 function drawBubble(c, cx, baseY, text, style = {}) {
   c.save();
   c.font = style.font || '11px Outfit, sans-serif';
-  const padX = 10, h = 21, r = 6, tail = 6;
-  const w = Math.ceil(c.measureText(text).width) + padX * 2;
+  const padX = 10, r = 6, tail = 6, alturaLinha = 14;
+  // Balão de uma linha só espichava até a largura da tela e saía do enquadramento nas
+  // falas mais longas do Pipo. Agora o texto quebra em palavras, com largura máxima
+  // proporcional à tela, e o balão cresce em altura em vez de em comprimento.
+  const larguraMax = Math.min(style.maxW || 250, SCREEN_W - 24) - padX * 2;
+  const linhas = [];
+  String(text).split('\n').forEach(paragrafo => {
+    let linha = '';
+    paragrafo.split(' ').forEach(palavra => {
+      const teste = linha ? linha + ' ' + palavra : palavra;
+      if (c.measureText(teste).width > larguraMax && linha) { linhas.push(linha); linha = palavra; }
+      else linha = teste;
+    });
+    linhas.push(linha);
+  });
+  const larguraTexto = Math.max(...linhas.map(l => c.measureText(l).width));
+  const w = Math.ceil(larguraTexto) + padX * 2;
+  const h = Math.max(21, linhas.length * alturaLinha + 8);
   const x = Math.max(4, Math.min(SCREEN_W - w - 4, Math.round(cx - w / 2)));
   const y = Math.max(4, Math.round(baseY - h - tail));
   const tipX = Math.max(x + r + tail, Math.min(x + w - r - tail, cx));
@@ -1986,7 +2002,7 @@ function drawBubble(c, cx, baseY, text, style = {}) {
   c.lineTo(x + w - r, y);          c.arcTo(x + w, y, x + w, y + r, r);
   c.lineTo(x + w, y + h - r);      c.arcTo(x + w, y + h, x + w - r, y + h, r);
   c.lineTo(tipX + tail, y + h);
-  c.lineTo(tipX, y + h + tail);    // tail
+  c.lineTo(tipX, y + h + tail);    // rabinho
   c.lineTo(tipX - tail, y + h);
   c.lineTo(x + r, y + h);          c.arcTo(x, y + h, x, y + h - r, r);
   c.lineTo(x, y + r);              c.arcTo(x, y, x + r, y, r);
@@ -1998,7 +2014,8 @@ function drawBubble(c, cx, baseY, text, style = {}) {
   c.lineWidth = 1.5; c.stroke();
   c.fillStyle = style.fg || '#fde68a';
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  c.fillText(text, x + w / 2, y + h / 2 + 0.5);
+  const y0 = y + h / 2 - ((linhas.length - 1) * alturaLinha) / 2 + 0.5;
+  linhas.forEach((l, i) => c.fillText(l, x + w / 2, y0 + i * alturaLinha));
   c.restore();
 }
 
@@ -21254,33 +21271,69 @@ function montarSeletorDeCena() {
   sel.onchange = () => { try { localStorage.setItem('acordelot_cena_teste', sel.value); } catch (e) {} };
 }
 
-// O estado mínimo que cada cena pressupõe. Sem isto, pular para a cena do rapto mostra
-// um Akles nível 1 sem escala forjada, e metade das falas fica sem sentido.
-const PREPARO_DA_CENA = {
-  cap1_pipo_junto: { feitas: ['welcome_to_acordelot'], cenas: ['abertura','vilarejo','portoes','apresentacao'] },
-  ponte:           { feitas: ['welcome_to_acordelot','madeira_e_pedra'], cenas: ['apresentacao','cap1_pipo_junto'] },
-  ferraria:        { feitas: ['welcome_to_acordelot','madeira_e_pedra'], missoes: ['ponte_de_acordelot'] },
-  cap1_wins:       { feitas: ['welcome_to_acordelot','o_primeiro_ressonador'] },
-  cap1_patio:      { herois: ['wins'] },
-  cap1_rapto:      { herois: ['wins'], bandeiras: ['pipo_no_grupo'] },
-  cap1_selo:       { herois: ['wins'], bandeiras: ['pipo_levado'] },
+// O que cada cena DEIXA para trás. Pular para a cena N aplica a soma de tudo que as
+// anteriores deixariam — é a diferença entre "a cena roda" e "a cena faz sentido".
+// Antes eu declarava o estado alvo de cada cena uma a uma, e pular para a 4 deixava a
+// missão de chegada nem sequer aberta: a 5, que exige ela concluída, nunca disparava
+// depois. Cumulativo resolve isso sem eu ter que lembrar de cada dependência.
+const DEIXA_DA_CENA = {
+  abertura:         { missoes: ['welcome_to_acordelot'], bandeiras: ['acordou_na_floresta'] },
+  vilarejo:         { bandeiras: ['viu_abertura'] },
+  portoes:          {},
+  apresentacao:     { feitas: ['welcome_to_acordelot'], missoes: ['amizade_importa'] },
+  cap1_pipo_junto:  { feitas: ['amizade_importa'], missoes: ['madeira_e_pedra'],
+                      bandeiras: ['pipo_no_grupo'], acompanhante: 'Pipo' },
+  ponte:            { feitas: ['madeira_e_pedra'], missoes: ['ponte_de_acordelot'] },
+  ferraria:         { feitas: ['ponte_de_acordelot'], missoes: ['martelo_do_ferreiro'] },
+  ponte_obra:       { feitas: ['martelo_do_ferreiro'], missoes: ['consertar_ponte'] },
+  ponte_pronta:     { feitas: ['consertar_ponte'] },
+  ressonador:       { missoes: ['o_primeiro_ressonador'] },
+  cap1_wins:        { feitas: ['o_primeiro_ressonador'], herois: ['wins'],
+                      bandeiras: ['wins_no_grupo'] },
+  altar:            { missoes: ['primeira_nota'] },
+  primeira_voz:     { feitas: ['primeira_nota'], missoes: ['a_escala_maior'] },
+  cap1_composicao:  { feitas: ['a_escala_maior'] },
+  notas_sagradas:   {},
+  cap1_patio:       { missoes: ['patrulha_do_patio'] },
+  cap1_esquecimento:{},
+  cap1_rapto:       { feitas: ['patrulha_do_patio'], missoes: ['memoria_do_pipo'],
+                      bandeiras: ['pipo_levado'] },
+  cap1_selo:        { feitas: ['memoria_do_pipo'], bandeiras: ['capitulo_1_fim'] },
 };
 
 function prepararEstadoDaCena(id) {
-  const pre = PREPARO_DA_CENA[id];
-  if (!pre) return;
-  (pre.feitas || []).forEach(q => { if (!completedQuests.includes(q)) completedQuests.push(q); });
-  (pre.missoes || []).forEach(q => unlockQuest(q));
-  (pre.cenas || []).forEach(c => { CUT.jaRodou[c] = true; });
-  (pre.bandeiras || []).forEach(b => marcarBandeira(b));
-  (pre.herois || []).forEach(h => {
-    if (!HERO_DEFINITIONS[h]) return;
-    HERO_DEFINITIONS[h].desbloqueado = true;
-    marcarBandeira('heroi_' + h);
-    const vaga = partyState.party.findIndex(x => !x);
-    if (vaga >= 0 && !partyState.party.includes(h)) partyState.party[vaga] = h;
-  });
+  const ordem = ORDEM_DA_HISTORIA;
+  const alvo = ordem.indexOf(id);
+  if (alvo < 0) return;
+  for (let i = 0; i < alvo; i++) {
+    const cid = ordem[i];
+    const d = DEIXA_DA_CENA[cid] || {};
+    CUT.jaRodou[cid] = true;                       // cena anterior já foi vista
+    (d.missoes || []).forEach(q => unlockQuest(q));
+    (d.feitas || []).forEach(q => {
+      activeQuests = activeQuests.filter(x => x.id !== q);
+      if (!completedQuests.includes(q)) completedQuests.push(q);
+    });
+    (d.bandeiras || []).forEach(b => marcarBandeira(b));
+    (d.herois || []).forEach(h => {
+      if (!HERO_DEFINITIONS[h]) return;
+      HERO_DEFINITIONS[h].desbloqueado = true;
+      marcarBandeira('heroi_' + h);
+      const vaga = partyState.party.findIndex(x => !x);
+      if (vaga >= 0 && !partyState.party.includes(h)) partyState.party[vaga] = h;
+    });
+    if (d.acompanhante) chamarAcompanhante(d.acompanhante);
+  }
+  // E DESMARCA tudo que vem depois. Usar o seletor várias vezes ia acumulando cenas
+  // como "já vistas", e a seguinte deixava de disparar — foi o que fez a 5 não vir
+  // depois da 4. Pular para a cena N deve deixar o futuro intacto.
+  for (let i = alvo; i < ordem.length; i++) {
+    delete CUT.jaRodou[ordem[i]];
+    const c = (CUT.roteiros || []).find(x => x.id === ordem[i]);
+    if (c && c.mapa) delete CUT.jaRodou['mapa:' + c.mapa];
+  }
   renderPartyHUD();
+  atualizarRastreador();
 }
 
 function talvezPularParaCena() {
@@ -21293,8 +21346,15 @@ function talvezPularParaCena() {
   cenaPendenteDoMapa = null;
   if (r.mapa && cenarioExiste(r.mapa)) {
     currentKey = r.mapa;
-    const sp = spawns[r.mapa] || { x: 512, y: 380 };
-    player.x = sp.x; player.y = sp.y;
+    // Ao lado de quem dispara a cena, não no spawn do mapa: numa cena de conversa o
+    // jogador estaria de pé na frente do NPC, e nascer no centro faz o Sr. Antony falar
+    // de longe com alguém que acabou de aparecer no meio da praça.
+    const dono = r.gatilho?.npc ? npcData.find(n => n.mapKey === r.mapa &&
+        String(n.name || '').toLowerCase().includes(String(r.gatilho.npc).toLowerCase())) : null;
+    const base = dono ? { x: dono.x, y: dono.y + 70 } : (spawns[r.mapa] || { x: 512, y: 380 });
+    const pa = pontoAndavelPerto(base.x, base.y);
+    player.x = pa.x; player.y = pa.y;
+    if (dono) player.direction = 'up';
   }
   delete CUT.jaRodou[id];
   showToast(`▶ Cena de teste: ${r.nome || id}`);
