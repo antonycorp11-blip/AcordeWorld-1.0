@@ -5505,10 +5505,18 @@ function ressonadorEmUso() {
 function danoDeFeitico(base)  { return Math.round(base * (1 + derivedStats().dmgMagia / 100)); }
 function recargaDeFeitico(ms) { return Math.round(ms * (1 - derivedStats().recarga / 100)); }
 
+const FATOR_TOQUE = 0.78;   // manche entrega força cheia fácil demais
+
 function applyMovementStats() {
-  const m = 1 + derivedStats().moveSpeed / 100;
+  const m = (1 + derivedStats().moveSpeed / 100) * (usandoToque() ? FATOR_TOQUE : 1);
   player.speed = BASE_SPEED * m;
   player.sprintSpeed = BASE_SPRINT * m;
+}
+
+// Está jogando com o dedo? O manche em uso é o sinal mais honesto — largura de tela
+// mente (janela estreita no PC) e user agent mente mais ainda.
+function usandoToque() {
+  return !!(window.__manchePreso || document.body.classList.contains('mobile-play'));
 }
 
 function grantXp(amount) {
@@ -10041,6 +10049,8 @@ function bindTouchControls() {
   zone.addEventListener('pointercancel', () => { release(); });
 
   // Touch fallback
+  // Marca que o jogo está sendo tocado com o dedo, para a velocidade se ajustar.
+  zone.addEventListener('touchstart', () => { window.__manchePreso = true; applyMovementStats(); }, { passive: true });
   zone.addEventListener('touchstart', e => {
     e.preventDefault(); initAudio();
     const t = e.touches[0];

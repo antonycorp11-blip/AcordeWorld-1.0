@@ -2,70 +2,30 @@
   "id": "guard_intro",
   "npc_name": "Guarda Renaldo",
   "portrait": "guard",
-  "repeatable": false,
+  "repeatable": true,
   "steps": [
     {
       "id": "start",
       "type": "lines",
+      "se": "pipo_levado",
       "lines": [
-        "Ei! Espera um momento, viajante!",
-        "Você não parece familiar...",
-        "Você acabou de chegar no Reino da Música?"
+        "Passou gente estranha por aqui e eu não anotei. — Eu SEMPRE anoto.",
+        "Tem algo errado com a minha cabeça hoje, {PLAYER_NAME}."
       ],
-      "next": "choice_1"
+      "next": "fim"
     },
     {
-      "id": "choice_1",
-      "type": "choice",
-      "choices": [
-        {
-          "text": "Sim, acabei de chegar.",
-          "next": "path_arrived"
-        },
-        {
-          "text": "Estou procurando alguém.",
-          "next": "path_searching"
-        }
-      ]
-    },
-    {
-      "id": "path_arrived",
+      "id": "start",
       "type": "lines",
       "lines": [
-        "Achei que sim!",
-        "Bem-vindo a Acordelot!",
-        "Esta é a primeira cidade do Reino da Música.",
-        "Músicos de todos os cantos do reino começam sua jornada aqui.",
-        "Já anotei sua chegada aqui no registro, {PLAYER_NAME}."
+        "Tudo em ordem no portão, {PLAYER_NAME}.",
+        "Se estiver perdido, olha o pergaminho — ou o mapa. Eu uso o mapa."
       ],
-      "next": "after_name"
+      "next": "fim"
     },
     {
-      "id": "path_searching",
-      "type": "lines",
-      "lines": [
-        "Entendo, viajante.",
-        "Mas Acordelot é o lugar certo para começar sua busca.",
-        "Chegada registrada, {PLAYER_NAME}. Sem burocracia hoje."
-      ],
-      "next": "after_name"
-    },
-    {
-      "id": "after_name",
-      "type": "lines",
-      "lines": [
-        "Bem-vindo, {PLAYER_NAME}.",
-        "Sua chegada foi registrada com sucesso.",
-        "Seu mentor musical já foi informado da sua chegada.",
-        "Ele está esperando por você na Praça Central.",
-        "Siga pela estrada de pedra — você não vai se perder."
-      ],
-      "next": "end"
-    },
-    {
-      "id": "end",
-      "type": "end",
-      "quest_unlock": "welcome_to_acordelot"
+      "id": "fim",
+      "type": "end"
     }
   ]
 }

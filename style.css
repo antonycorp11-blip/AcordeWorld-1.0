@@ -7459,3 +7459,18 @@ body.em-cena #questNotification { display: none !important; }
 .pt-cena select { width: 100%; background: #1b1428; color: #e9d5ff;
                   border: 1px solid #4c3a63; border-radius: 7px; padding: 7px 8px;
                   font: 500 12px Outfit, sans-serif; }
+
+
+/* Caixa de missão: ancorada abaixo da barra de vida/XP, alinhada à esquerda. */
+.hm-caixa {
+  position: absolute !important;
+  left: 14px !important; top: 74px !important;
+  right: auto !important; bottom: auto !important;
+  transform: none !important;
+  max-width: 260px; text-align: left !important;
+  align-items: flex-start !important;
+  padding: 6px 10px !important;
+}
+.hm-caixa .hm-rot { font-size: 8.5px !important; letter-spacing: .18em; }
+.hm-caixa .hm-nome { font-size: 12px !important; }
+.hm-caixa .hm-obj { font-size: 10.5px !important; }

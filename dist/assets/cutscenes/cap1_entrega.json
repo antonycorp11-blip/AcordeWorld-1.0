@@ -167,11 +167,16 @@
       "dispensar": true
     },
     {
-      "cmd": "rota"
+      "cmd": "rota",
+      "para": "custom_1785869541494_557"
     },
     {
       "cmd": "bandeira",
       "id": "entregou_com_pipo"
+    },
+    {
+      "cmd": "tutorial",
+      "texto": "O Dorn ficou com o material. Volte à Praça Central e fale com o Sr. Antony — ele vai querer saber."
     },
     {
       "cmd": "hud",
