@@ -9413,6 +9413,14 @@ function onPointerDown(m){
   if(dlg.state===DLG_STATE.TYPING||dlg.state===DLG_STATE.WAITING){ advanceDlg(); return; }
   if(dlg.state===DLG_STATE.NAME_INPUT) return;
 
+  // Lógica da Fazendinha: se tem ferramenta armada na tela da fazenda, clique no canvas planta/coloca
+  if (currentScene === 'farm' && propParaColocar) {
+    colocarObjeto(propParaColocar, m.x, m.y);
+    // Para a fazenda, permitimos pintar continuamente (ex: plantar 5 sementes)
+    // O propParaColocar só limpa ao fechar a barra ou trocar de ferramenta
+    return;
+  }
+
   // Clique no cenário ataca — só JOGANDO de verdade. No editor o clique continua sendo
   // da ferramenta (plantar, pintar, selecionar), senão não daria para trabalhar. Vem
   // depois da captura e do diálogo de propósito: quem está ressoando ou escolhendo uma
@@ -12616,6 +12624,12 @@ function updateMapStatus(){
   const ciclo = typeof calculoDoCicloDiaNoite === 'function' ? calculoDoCicloDiaNoite(performance.now()) : null;
   const infoTempo = ciclo ? ` (${ciclo.nome})` : '';
   if(statusMap)statusMap.textContent=`🗺️ ${name}${infoTempo}`;
+
+  // Fazendinha: O botão fica sempre disponível (será acessado via HUD geral)
+  const btnBuildMode = document.getElementById('btnBuildMode');
+  if (btnBuildMode && currentScene !== 'farm') {
+    btnBuildMode.classList.remove('hidden');
+  }
 }
 let toastTimer=null;
 function showToast(msg){if(!toastEl)return;toastEl.textContent=msg;toastEl.classList.remove('hidden');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>toastEl.classList.add('hidden'),2500);}
@@ -13084,7 +13098,8 @@ function quadro(now){
   // Cenário sem arte não é tela preta: é um cenário sem arte. Sem este aviso o sintoma
   // fica idêntico ao de um erro de render, e foi assim que um mapa novo sem fundo salvo
   // passou por bug de zoom.
-  if (!isMegaWorld && !bgSources[mapKey] && !videoSources[mapKey] && !INTERIORS[mapKey]) {
+  if (!isMegaWorld && currentScene !== 'farm'
+      && !bgSources[mapKey] && !videoSources[mapKey] && !INTERIORS[mapKey]) {
     ctx.fillStyle = '#150d1f';
     ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
     ctx.fillStyle = '#e9d5ff';
@@ -13137,7 +13152,17 @@ function quadro(now){
       try { ctx.drawImage(bg, 0, 0, dims.w, dims.h); } catch(e) {}
     }
   } else {
-    if(currentScene==='world'||!isPlayMode){
+    if (currentScene === 'farm') {
+      if (!bgImages['farm']) {
+        const img = new Image();
+        img.src = 'assets/cenarios/bg_fazenda.png';
+        bgImages['farm'] = img;
+      }
+      if (bgImages['farm'].complete) {
+        ctx.drawImage(bgImages['farm'], 0, 0, SCREEN_W, SCREEN_H);
+      }
+      // O ciclo de dia/noite será desenhado por cima depois
+    } else if(currentScene==='world'||!isPlayMode){
       const vid = videoDoMapa(mapKey);
       if (vid) ctx.drawImage(vid, 0, 0, SCREEN_W, SCREEN_H);
       else { garantirFundo(mapKey); const bg=bgImages[mapKey]; if(bg?.complete) ctx.drawImage(bg,0,0,SCREEN_W,SCREEN_H); }
@@ -13269,7 +13294,7 @@ function quadro(now){
     atualizarNumerosDoHud();
     // Interiors are their own space: the outdoor map's NPCs, chatter and overlays must
     // not bleed through onto the shop floor.
-    const outdoors=currentScene==='world';
+    const outdoors=currentScene==='world' || currentScene==='farm';
     if(outdoors){
       npcData.forEach(npc=>{if(npc.mapKey!==currentKey||npc.oculto)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
       renderDrops(now);   // on the ground, under everyone
@@ -13711,6 +13736,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   bindTouchControls();
   initMobileEditorToggle();
   initModoTablet();
+  initFazendaUI();
   initCustomProps();
   bindStoreUI();
   bindCharUI();
@@ -21560,4 +21586,75 @@ function renderSelo(now) {
     ctx.fillStyle = cor; ctx.fillText(txt, SELO.x, SELO.y - 30);
   }
   ctx.restore();
+}
+
+// ============================================================
+// FAZENDINHA (BUILD MODE E AGRICULTURA)
+// ============================================================
+let sceneBeforeFarm = 'world';
+
+// Ponte temporária: ferramenta da fazenda -> prop que existe hoje na biblioteca.
+// Os ids que a barra usava ('semente_trigo', 'galinha'...) não existem no objects.json,
+// e colocar um prop sem arte não desenha nada — o sintoma seria "clico e não acontece".
+// Quando a arte da fazenda chegar, é trocar o valor à direita.
+const PROP_DA_FERRAMENTA = {
+  enxada:        'f2_06',        // Canteiro Silvestre — marca o solo arado
+  semente_trigo: 'mata3_02',     // Flores do Campo — o broto plantado
+  cerca_madeira: 'vila2_03',     // Cerca de Tábuas
+  casa_nivel1:   'cidade2_02',   // Casa de Camponês
+  galinha:       'f4_03',        // sem arte de bicho ainda: marcador
+  vaca:          'f4_06',        // idem
+};
+
+function propDaFerramenta(t) { return PROP_DA_FERRAMENTA[t] || t; }
+
+function initFazendaUI() {
+  const btnBuildMode = document.getElementById('btnBuildMode');
+  const farmToolbar = document.getElementById('farmToolbar');
+  const btnCloseFarm = document.getElementById('btnCloseFarm');
+  
+  if (btnBuildMode) {
+    btnBuildMode.addEventListener('click', () => {
+      sceneBeforeFarm = currentScene;
+      window.keyBeforeFarm = currentKey; // Save the map
+      currentScene = 'farm';
+      currentKey = 'farm';
+      farmToolbar.classList.remove('hidden');
+      btnBuildMode.classList.add('hidden');
+      document.getElementById('partyHud')?.classList.add('hidden');
+      document.getElementById('mapaBtn')?.classList.add('hidden');
+      document.getElementById('statusMap')?.classList.add('hidden');
+    });
+  }
+  
+  if (btnCloseFarm) {
+    btnCloseFarm.addEventListener('click', () => {
+      currentScene = sceneBeforeFarm;
+      currentKey = window.keyBeforeFarm || '0_0';
+      farmToolbar.classList.add('hidden');
+      btnBuildMode.classList.remove('hidden');
+      document.getElementById('partyHud')?.classList.remove('hidden');
+      document.getElementById('mapaBtn')?.classList.remove('hidden');
+      document.getElementById('statusMap')?.classList.remove('hidden');
+      propParaColocar = null;
+      document.querySelectorAll('.farm-tool').forEach(b => b.classList.remove('ativo'));
+      const canvas = document.getElementById('gameCanvas');
+      if (canvas) canvas.classList.remove('cursor-crosshair');
+    });
+  }
+
+  document.querySelectorAll('.farm-tool:not(.fechar)').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.farm-tool').forEach(b => b.classList.remove('ativo'));
+      btn.classList.add('ativo');
+      const tool = btn.dataset.tool;
+      // Traduz a ferramenta para um prop que existe: o id da barra ('semente_trigo') não
+      // está no objects.json, e prop sem arte não desenha nada.
+      propParaColocar = propDaFerramenta(tool);
+      showToast(`🔨 ${btn.title || tool} — toque no terreno para colocar`);
+      
+      const canvas = document.getElementById('gameCanvas');
+      if (canvas) canvas.classList.add('cursor-crosshair');
+    });
+  });
 }

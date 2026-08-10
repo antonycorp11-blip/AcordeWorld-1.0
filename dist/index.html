@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=36569d4a8a">
+  <link rel="stylesheet" href="style.css?v=da7ebe2478">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -253,6 +253,23 @@
               <div class="party-hp-mini"><i id="partyHpFill1"></i></div>
             </div>
           </div>
+
+          <!-- Botão Modo Fazenda -->
+          <button id="btnBuildMode" class="btn-build-mode hidden" title="Modo Fazenda (B)">
+            <span>🔨</span><small>FAZENDA</small>
+          </button>
+
+          <!-- Barra de Ferramentas da Fazenda -->
+          <div id="farmToolbar" class="farm-toolbar hidden">
+            <button class="farm-tool" data-tool="enxada" title="Enxada (Arar Solo)">⛏️</button>
+            <button class="farm-tool" data-tool="semente_trigo" title="Semente de Trigo">🌾</button>
+            <button class="farm-tool" data-tool="cerca_madeira" title="Cerca de Madeira">🪵</button>
+            <button class="farm-tool" data-tool="casa_nivel1" title="Casa da Fazenda">🏡</button>
+            <button class="farm-tool" data-tool="galinha" title="Galinha">🐔</button>
+            <button class="farm-tool" data-tool="vaca" title="Vaca">🐮</button>
+            <button class="farm-tool fechar" id="btnCloseFarm" title="Sair do Modo Fazenda">✖</button>
+          </div>
+
 
           <!-- Name input overlay -->
           <div id="nameInputOverlay" class="game-overlay hidden">
@@ -1120,6 +1137,6 @@
 ">🔄 Enviar minhas ruas</button>
 
 <script src="config.js?v=20260807161410"></script>
-<script src="game.js?v=7f64a518e7"></script>
+<script src="game.js?v=6231242512"></script>
 </body>
 </html>

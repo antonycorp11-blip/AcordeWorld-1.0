@@ -7476,3 +7476,35 @@ body.em-cena #questNotification { display: none !important; }
 .hm-caixa .hm-obj { font-size: 10.5px !important; }
 /* Piscada curta quando o objetivo muda, sem sumir depois. */
 .hm-caixa.destaque { box-shadow: 0 0 0 2px rgba(251,191,36,.85), 0 6px 18px rgba(0,0,0,.5); }
+
+/* ── Fazendinha ──────────────────────────────────────────────────────────────
+   O botão e a barra vinham sem estilo nenhum no HTML: apareciam como texto cru
+   no canto da tela. Enquanto o modo é de teste, o visual segue o do resto do HUD. */
+.btn-build-mode {
+  position: absolute; right: 14px; bottom: 120px; z-index: 60;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  width: 54px; padding: 6px 0;
+  background: linear-gradient(#2b1f14, #1a1209);
+  border: 1px solid #7c5030; border-radius: 10px;
+  color: #fde68a; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,.45);
+}
+.btn-build-mode.hidden { display: none; }
+.btn-build-mode span { font-size: 20px; line-height: 1; }
+.btn-build-mode small { font-size: 7.5px; letter-spacing: .1em; opacity: .85; }
+
+.farm-toolbar {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: 61;
+  display: flex; gap: 6px; padding: 8px 10px;
+  background: rgba(14,10,20,.93); border: 1px solid #4c3a63; border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+}
+.farm-toolbar.hidden { display: none; }
+.farm-tool {
+  width: 44px; height: 44px; font-size: 20px; cursor: pointer;
+  background: #221a30; border: 1px solid #3b2d52; border-radius: 9px; color: #e9d5ff;
+}
+.farm-tool:hover { border-color: #7c5cab; }
+.farm-tool.ativo { border-color: #fbbf24; background: #2f2416; box-shadow: 0 0 0 1px #fbbf24 inset; }
+.farm-tool.fechar { background: #2a1414; border-color: #7f1d1d; color: #fca5a5; }
+.cursor-crosshair { cursor: crosshair; }
