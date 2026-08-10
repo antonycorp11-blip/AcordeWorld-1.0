@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=06002914b1">
+  <link rel="stylesheet" href="style.css?v=30fe0467d8">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -298,6 +298,11 @@
                    para o botão da ficha. -->
               <!-- Temporário: os forjadores vão viver em pontos fixos do mapa. Enquanto
                    isso, este botão abre os dois para poder testar. -->
+              <!-- Minimapa: a grade real do mundo, para escolher destino e acender
+                   as placas do caminho. -->
+              <button id="mapaBtn" class="icon-btn trancado" title="Mapa do Reino (M)">
+                <span class="hud-emoji">🗺️</span>
+              </button>
               <button id="missoesBtn" class="icon-btn trancado" title="Missões (J)">
                 <span class="hud-emoji">📜</span>
               </button>
@@ -318,6 +323,13 @@
             </div>
           </div>
 
+      <div id="miniMapa" class="mm-tela hidden">
+        <div class="mm-caixa">
+          <header><b>MAPA DO REINO</b><button class="mm-x" onclick="fecharMiniMapa()">✕</button></header>
+          <div class="mm-grade"></div>
+          <p class="mm-nota"></p>
+        </div>
+      </div>
           <!-- Rastreador de missão: o que fazer agora, logo abaixo da barra de vida -->
           <div id="questTracker" class="quest-tracker hidden"></div>
 
@@ -1102,6 +1114,6 @@
 ">🔄 Enviar minhas ruas</button>
 
 <script src="config.js?v=20260807161410"></script>
-<script src="game.js?v=b638aada90"></script>
+<script src="game.js?v=72a1a22348"></script>
 </body>
 </html>

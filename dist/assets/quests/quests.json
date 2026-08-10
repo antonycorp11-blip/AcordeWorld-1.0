@@ -7,12 +7,9 @@
       "objectives": [
         {
           "id": "meet_mentor",
-          "text": "Encontre seu mentor na Praça Central",
-          "completed": false,
-          "trigger_map": "custom_1785869541494_557",
-          "trigger_x": 512,
-          "trigger_y": 300,
-          "trigger_radius": 120
+          "type": "talk",
+          "npc": "Antony",
+          "text": "Encontre seu mentor na Praça Central"
         }
       ],
       "path_waypoints": {
@@ -296,7 +293,9 @@
         {
           "id": "limpar",
           "text": "Limpe o Pátio das Ruínas",
-          "completed": false
+          "completed": false,
+          "type": "limpar",
+          "item": "patio"
         }
       ],
       "path_waypoints": {}
@@ -310,7 +309,9 @@
         {
           "id": "selar",
           "text": "Sele a memória do Pipo nas Cavernas da Clave",
-          "completed": false
+          "completed": false,
+          "type": "selar",
+          "item": "pipo"
         }
       ],
       "path_waypoints": {}
@@ -324,7 +325,9 @@
         {
           "id": "floresta",
           "text": "Chegue à Floresta Sombria",
-          "completed": false
+          "completed": false,
+          "type": "chegar",
+          "item": "custom_1785254196551_992"
         }
       ],
       "path_waypoints": {}

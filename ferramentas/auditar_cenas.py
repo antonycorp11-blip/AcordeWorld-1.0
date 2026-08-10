@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+"""Confere se cada cena PODE disparar e se cada passo dela tem com o que trabalhar.
+
+Escrito depois de a cena do Pipo nunca ter rodado por causa de uma missão que nunca
+concluía. Erro desse tipo é invisível jogando — só aparece se alguém cruzar os dados.
+"""
+import json, glob, os, re, io, sys
+
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+def ler(p): return json.load(open(os.path.join(RAIZ, p)))
+
+cfg   = ler('assets/dados/acordelot_world_config.json')
+mapas = set(cfg.get('sceneNames', {}))
+npcs  = ler('assets/dados/npcs.json'); npcs = npcs if isinstance(npcs, list) else npcs['npcs']
+quests= {q['id']: q for q in ler('assets/quests/quests.json')['quests']}
+mons  = set(ler('assets/dados/monsters.json')['types'])
+motor = io.open(os.path.join(RAIZ,'game.js'), encoding='utf-8').read()
+videos= {os.path.basename(v) for v in glob.glob(os.path.join(RAIZ,'assets/videos/*'))}
+cenas = {}
+for f in glob.glob(os.path.join(RAIZ,'assets/cutscenes/*.json')):
+    if f.endswith('index.json'): continue
+    d = json.load(open(f)); cenas[d['id']] = d
+indice = ler('assets/cutscenes/index.json')
+indice = indice if isinstance(indice, list) else (indice.get('cenas') or indice.get('scenes'))
+
+# Comandos que o motor conhece.
+conhecidos = set(re.findall(r"case '([a-zA-Zç]+)':", motor))
+# Tipos de objetivo que algum código realmente cumpre.
+tipos_ok = set(re.findall(r"progressoDeMissao\('([a-z_]+)'", motor))
+
+def npcs_do_mapa(m):
+    return [ (n.get('name') or '').strip().lower() for n in npcs if n.get('mapKey')==m ]
+
+def tem_npc(m, alvo):
+    a = str(alvo).strip().lower()
+    return any(a==x or x.startswith(a) or a in x for x in npcs_do_mapa(m))
+
+problemas = []
+def erro(cena, msg): problemas.append(('ERRO', cena, msg))
+def aviso(cena, msg): problemas.append(('AVISO', cena, msg))
+
+for cid, d in sorted(cenas.items()):
+    if cid not in indice: erro(cid, 'não está no index.json — o jogo nem carrega')
+    m = d.get('mapa')
+    if m and m not in mapas: erro(cid, 'mapa inexistente: %s' % m)
+
+    g = d.get('gatilho') or {}
+    if g.get('tipo')=='falar':
+        if not m: erro(cid, 'gatilho de fala sem mapa definido')
+        elif not tem_npc(m, g.get('npc')): erro(cid, 'gatilho fala com "%s", que não está nesse mapa' % g.get('npc'))
+
+    # Requisitos alcançáveis?
+    r = d.get('requer') or {}
+    for chave in ('missaoConcluida','missaoAtiva'):
+        q = r.get(chave)
+        if q and q not in quests: erro(cid, '%s aponta missão inexistente: %s' % (chave, q))
+    if r.get('objetivos'):
+        qid = r['objetivos'].get('missao')
+        q = quests.get(qid)
+        if not q: erro(cid, 'requer objetivos de missão inexistente: %s' % qid)
+        else:
+            ids = {o['id'] for o in q['objectives']}
+            for oid in r['objetivos'].get('ids', []):
+                if oid not in ids: erro(cid, 'requer objetivo "%s" que não existe em %s' % (oid, qid))
+
+    for i, p in enumerate(d['passos']):
+        c = p.get('cmd')
+        if c is None: continue
+        if c not in conhecidos: erro(cid, 'passo %d: comando desconhecido "%s"' % (i, c))
+        if c=='video' and p.get('arquivo') not in videos:
+            erro(cid, 'passo %d: vídeo ausente — %s' % (i, p.get('arquivo')))
+        if c=='missao' and p.get('id') not in quests:
+            erro(cid, 'passo %d: abre missão inexistente — %s' % (i, p.get('id')))
+        if c=='monstro' and p.get('tipo') not in mons:
+            erro(cid, 'passo %d: monstro inexistente — %s' % (i, p.get('tipo')))
+        if c=='guiar' and p.get('para') not in mapas:
+            erro(cid, 'passo %d: guia para mapa inexistente — %s' % (i, p.get('para')))
+        if c in ('esperarPerto','acenar','andar','mostrar') and p.get('npc'):
+            if str(p['npc']).lower() not in ('jogador','player') and m and not tem_npc(m, p['npc']):
+                erro(cid, 'passo %d: %s precisa de "%s" nesse mapa' % (i, c, p['npc']))
+        if c=='recrutar' and ("'%s'"%p.get('heroi')) not in motor:
+            erro(cid, 'passo %d: herói inexistente — %s' % (i, p.get('heroi')))
+
+# Missões: todo objetivo tem que ser cumprível.
+for qid, q in sorted(quests.items()):
+    for o in q['objectives']:
+        t = o.get('type')
+        if not t: erro('missão:'+qid, 'objetivo "%s" sem type — nunca conclui' % o.get('id'))
+        elif t not in tipos_ok: erro('missão:'+qid, 'objetivo "%s" com type "%s" que nenhum código cumpre' % (o.get('id'), t))
+        elif t!='talk' and not (o.get('item') or o.get('npc')):
+            erro('missão:'+qid, 'objetivo "%s" sem item/npc — o casamento nunca bate' % o.get('id'))
+
+erros = [p for p in problemas if p[0]=='ERRO']
+for nivel, cena, msg in problemas:
+    print('%-6s %-22s %s' % (nivel, cena, msg))
+print('\n%d erro(s), %d aviso(s), %d cenas, %d missões'
+      % (len(erros), len(problemas)-len(erros), len(cenas), len(quests)))
+sys.exit(1 if erros else 0)

@@ -1068,6 +1068,11 @@
                    para o botão da ficha. -->
               <!-- Temporário: os forjadores vão viver em pontos fixos do mapa. Enquanto
                    isso, este botão abre os dois para poder testar. -->
+              <!-- Minimapa: a grade real do mundo, para escolher destino e acender
+                   as placas do caminho. -->
+              <button id="mapaBtn" class="icon-btn trancado" title="Mapa do Reino (M)">
+                <span class="hud-emoji">🗺️</span>
+              </button>
               <button id="missoesBtn" class="icon-btn trancado" title="Missões (J)">
                 <span class="hud-emoji">📜</span>
               </button>
@@ -1088,6 +1093,13 @@
             </div>
           </div>
 
+      <div id="miniMapa" class="mm-tela hidden">
+        <div class="mm-caixa">
+          <header><b>MAPA DO REINO</b><button class="mm-x" onclick="fecharMiniMapa()">✕</button></header>
+          <div class="mm-grade"></div>
+          <p class="mm-nota"></p>
+        </div>
+      </div>
           <!-- Rastreador de missão: o que fazer agora, logo abaixo da barra de vida -->
           <div id="questTracker" class="quest-tracker hidden"></div>
 

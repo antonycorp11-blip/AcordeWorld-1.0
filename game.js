@@ -1524,21 +1524,50 @@ function objetivoFeito(questId, objId) {
 }
 
 // Rastreador na tela: o quadrinho de "o que fazer agora", logo abaixo da barra de vida.
+// O rastreador ficava aberto com TODAS as missões e TODOS os objetivos, para sempre,
+// num canto da tela. Além de nunca mudar (porque a missão de chegada nunca concluía),
+// ele ocupava espaço permanente sem pedir licença.
+// Agora: abre inteiro quando algo muda, e depois de alguns segundos encolhe para uma
+// linha só — o objetivo de agora. Um toque abre de novo. A informação continua toda lá,
+// só deixa de gritar.
+let _rastAssinatura = '', _rastRecolher = null;
+
 function atualizarRastreador() {
   const el = document.getElementById('questTracker');
   if (!el) return;
   if (!isPlayMode || !activeQuests.length) { el.classList.add('hidden'); return; }
-  el.innerHTML = activeQuests.map(q => {
-    const linhas = q.objectives.map(o => {
-      const bloqueado = !o.completed && !objetivoLiberado(q, o);
-      const marca = o.completed ? '☑' : bloqueado ? '🔒' : '☐';
-      const cont = o.quantidade ? ` (${o.progresso || 0}/${o.quantidade})` : '';
-      const cls = o.completed ? 'feito' : bloqueado ? 'bloq' : '';
-      return `<li class="${cls}">${marca} ${o.text}${cont}</li>`;
-    }).join('');
-    return `<div class="qt-title">📜 ${q.title}</div><ul class="qt-objs">${linhas}</ul>`;
+
+  const q = missaoAtual() || activeQuests[0];
+  let linhas_marcou = false;
+  const linhas = q.objectives.map(o => {
+    const bloqueado = !o.completed && !objetivoLiberado(q, o);
+    const marca = o.completed ? '☑' : bloqueado ? '🔒' : '☐';
+    const cont = o.quantidade ? ` (${o.progresso || 0}/${o.quantidade})` : '';
+    const cls = [o.completed ? 'feito' : bloqueado ? 'bloq' : ''];
+    // A linha do objetivo ATUAL é a que sobrevive no modo recolhido.
+    if (!o.completed && !bloqueado && !linhas_marcou) { cls.push('agora'); linhas_marcou = true; }
+    return `<li class="${cls.join(' ')}">${marca} ${o.text}${cont}</li>`;
   }).join('');
+  const resto = activeQuests.length - 1;
+
+  el.innerHTML = `<div class="qt-title">📜 ${q.title}</div>`
+    + `<ul class="qt-objs">${linhas}</ul>`
+    + (resto > 0 ? `<div class="qt-mais">+${resto} outra(s) — 📜 para ver</div>` : '');
   el.classList.remove('hidden');
+  el.onclick = () => {
+    el.classList.toggle('recolhido');
+    clearTimeout(_rastRecolher);
+  };
+
+  // Mudou algo? Abre e programa o recolhimento. Igual? Deixa como está, para não
+  // reabrir sozinho a cada quadro.
+  const assinatura = el.innerHTML;
+  if (assinatura !== _rastAssinatura) {
+    _rastAssinatura = assinatura;
+    el.classList.remove('recolhido');
+    clearTimeout(_rastRecolher);
+    _rastRecolher = setTimeout(() => el.classList.add('recolhido'), 6000);
+  }
 }
 
 function showQuestNotif(q) {
@@ -8373,6 +8402,7 @@ function changeMapWithFade(targetMapKey, targetX = 512, targetY = 300) {
     player.x = targetX; player.y = targetY;
     updateMapStatus();
     refreshNPCHierarchy();
+    progressoDeMissao('chegar', targetMapKey);
     avisarRecursosDoCenario(targetMapKey);
     talvezIniciarCenaDoMapa(targetMapKey);
     return;
@@ -8389,6 +8419,7 @@ function changeMapWithFade(targetMapKey, targetX = 512, targetY = 300) {
     bordaTravada = true;
     updateMapStatus();
     refreshNPCHierarchy();
+    progressoDeMissao('chegar', targetMapKey);
     avisarRecursosDoCenario(targetMapKey);
     talvezIniciarCenaDoMapa(targetMapKey);
 
@@ -13244,6 +13275,7 @@ function quadro(now){
     if (camOn || zoomOn) ctx.restore();
     renderBussolaDeMonstros(now);
     renderBussolaDeRecursos(now);
+    renderPlacaDaRota(now);
     if (camOn) renderRotuloDoDestaque(now);
     renderAmbiente();
     renderDlg(now);
@@ -17544,6 +17576,7 @@ function avaliarCorrida(c) {
 function concluirCorrida() {
   if (!corridaAtiva()) return;
   corrida.fim = performance.now();
+  progressoDeMissao('limpar', corrida.dungeon || corrida.mapa || '');
   const r = avaliarCorrida(corrida);
   // Escrito direto: `corrida.fim` já foi marcado acima, então `registrarNaCorrida` sairia
   // fora por achar que a corrida acabou — e o prêmio de conclusão, que é a maior parte do
@@ -18303,6 +18336,161 @@ function renderBussolaDeRecursos(now) {
   }
 }
 
+// ══ Minimapa e rota ═══════════════════════════════════════════════════════════
+// O jogo mandava "colete madeira e pedra" sem nunca dizer ONDE. Quem construiu o mundo
+// sabe; quem está jogando não. Isto resolve pelo mundo real do jogo, não por um mapa
+// desenhado à mão: as posições vêm de `gridPos`, e o caminho vem das placas que já
+// existem. Escolher um destino acende a placa certa em cada cenário do trajeto.
+const ROTA = { destino: null, caminho: [] };
+
+function vizinhosNaGrade(k) {
+  const a = gridPos[k];
+  if (!a) return [];
+  return Object.keys(gridPos).filter(o => {
+    if (o === k) return false;
+    const b = gridPos[o];
+    return Math.abs(b.col - a.col) + Math.abs(b.row - a.row) === 1;
+  });
+}
+
+// Busca em largura: o caminho mais curto em número de travessias. Não há custo por
+// cenário, então largura já dá o ótimo e é a mais simples de conferir.
+function calcularRota(de, para) {
+  if (de === para) return [de];
+  const fila = [[de]], vistos = new Set([de]);
+  while (fila.length) {
+    const cam = fila.shift();
+    for (const v of vizinhosNaGrade(cam[cam.length - 1])) {
+      if (vistos.has(v)) continue;
+      const novo = cam.concat(v);
+      if (v === para) return novo;
+      vistos.add(v);
+      fila.push(novo);
+    }
+  }
+  return null;
+}
+
+function definirRota(destino) {
+  if (destino === currentKey) { limparRota(); return; }
+  const cam = calcularRota(currentKey, destino);
+  if (!cam) { showToast('Não há caminho conhecido até lá.'); return; }
+  ROTA.destino = destino;
+  ROTA.caminho = cam;
+  showToast(`Rota traçada: ${cam.length - 1} travessia(s) até ${nomeCurtoDoMapa(destino)}`);
+}
+
+function limparRota() { ROTA.destino = null; ROTA.caminho = []; }
+
+// Próximo cenário do trajeto. Se o jogador saiu da rota, recalcula de onde ele está.
+function proximoSaltoDaRota() {
+  if (!ROTA.destino) return null;
+  if (ROTA.destino === currentKey) { limparRota(); showToast('✦ Você chegou.'); return null; }
+  const i = ROTA.caminho.indexOf(currentKey);
+  if (i < 0) {
+    const cam = calcularRota(currentKey, ROTA.destino);
+    if (!cam) { limparRota(); return null; }
+    ROTA.caminho = cam;
+    return cam[1] || null;
+  }
+  return ROTA.caminho[i + 1] || null;
+}
+
+// Vários cenários ainda têm o nome cru do arquivo de origem
+// ("Pixel_art_medieval_city_map_202608041450"). No minimapa isso vira uma parede de
+// texto ilegível, então aqui a etiqueta é limpa: fora o emoji, fora o carimbo de data,
+// underscores viram espaço e o resto é encurtado. O nome real no editor não muda.
+function nomeCurtoDoMapa(k) {
+  let n = String(SCENE_NAMES[k] || k)
+    .replace(/^[^\wÀ-ÿ]+/, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s*\d{8,}\s*$/, '')          // carimbo de data no fim
+    .replace(/\b[0-9A-F]{8}(\s[0-9A-F]{4}){3}\s[0-9A-F]{12}\b/i, 'Caverna')  // UUID
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!n) n = k;
+  return n.length > 26 ? n.slice(0, 24).trimEnd() + '…' : n;
+}
+
+// O que existe naquele cenário, para o minimapa não ser uma lista de nomes crus.
+function resumoDoMapa(k) {
+  const ic = [];
+  const rec = objetos.filter(o => o.mapKey === k && recursoDoProp(o));
+  if (rec.some(o => recursoDoProp(o) === 'wood')) ic.push('🪵');
+  if (rec.some(o => recursoDoProp(o) === 'stone')) ic.push('🪨');
+  const gente = npcData.filter(n => n.mapKey === k && n.dialogue && n.dialogue !== 'none');
+  if (gente.length) ic.push('💬');
+  if (typeof dungeonDoMapa === 'function' && dungeonDoMapa(k)) ic.push('⚔️');
+  return ic.join('');
+}
+
+// ── A tela ────────────────────────────────────────────────────────────────────
+function abrirMiniMapa() {
+  const el = document.getElementById('miniMapa');
+  if (!el) return;
+  const chaves = Object.keys(gridPos);
+  if (!chaves.length) { showToast('Nenhum cenário posicionado na grade.'); return; }
+  const cols = chaves.map(k => gridPos[k].col), rows = chaves.map(k => gridPos[k].row);
+  const c0 = Math.min(...cols), r0 = Math.min(...rows);
+  const nc = Math.max(...cols) - c0 + 1, nr = Math.max(...rows) - r0 + 1;
+
+  const passo = ROTA.caminho.indexOf(currentKey);
+  const celulas = chaves.map(k => {
+    const g = gridPos[k];
+    const naRota = ROTA.caminho.includes(k);
+    const cls = ['mm-cel'];
+    if (k === currentKey) cls.push('aqui');
+    if (k === ROTA.destino) cls.push('destino');
+    else if (naRota) cls.push('rota');
+    return `<button class="${cls.join(' ')}" data-mapa="${k}"
+              style="grid-column:${g.col - c0 + 1};grid-row:${g.row - r0 + 1}">
+              <b>${nomeCurtoDoMapa(k)}</b><i>${resumoDoMapa(k)}</i>
+              ${k === currentKey ? '<u>você está aqui</u>' : ''}
+            </button>`;
+  }).join('');
+
+  el.querySelector('.mm-grade').style.gridTemplateColumns = `repeat(${nc}, minmax(84px, 1fr))`;
+  el.querySelector('.mm-grade').style.gridTemplateRows = `repeat(${nr}, auto)`;
+  el.querySelector('.mm-grade').innerHTML = celulas;
+  el.querySelector('.mm-nota').textContent = ROTA.destino
+    ? `Rota até ${nomeCurtoDoMapa(ROTA.destino)} — siga a placa acesa em cada cenário.`
+    : 'Toque num cenário para traçar a rota. As placas do caminho ficam acesas.';
+  el.querySelectorAll('[data-mapa]').forEach(b => {
+    b.onclick = () => { definirRota(b.dataset.mapa); abrirMiniMapa(); };
+  });
+  el.classList.remove('hidden');
+}
+
+function fecharMiniMapa() { document.getElementById('miniMapa')?.classList.add('hidden'); }
+
+// ── A placa acesa ─────────────────────────────────────────────────────────────
+// É isto que "pinta o caminho": no cenário, a placa que leva ao próximo salto da rota
+// ganha um anel e uma seta. O jogador não precisa decorar a grade — só seguir o brilho.
+function renderPlacaDaRota(now) {
+  const salto = proximoSaltoDaRota();
+  if (!salto) return;
+  const placa = npcData.find(n => n.mapKey === currentKey && n.type === 'signpost'
+                                 && n.targetMapKey === salto);
+  if (!placa) return;
+  const p = telaDoPonto(placa.x, placa.y);
+  const pulso = (Math.sin(now * 0.005) + 1) / 2;
+  ctx.save();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = `rgba(12,10,6,0.7)`;
+  ctx.beginPath(); ctx.ellipse(p.x, p.y, 26, 11, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = `rgba(96,165,250,${0.6 + pulso * 0.4})`;
+  ctx.beginPath(); ctx.ellipse(p.x, p.y, 26, 11, 0, 0, Math.PI * 2); ctx.stroke();
+  // Seta apontando para baixo, na placa, subindo e descendo de leve.
+  const y = p.y - 54 - pulso * 5;
+  ctx.fillStyle = `rgba(96,165,250,${0.75 + pulso * 0.25})`;
+  ctx.strokeStyle = 'rgba(12,10,6,0.75)';
+  ctx.beginPath();
+  ctx.moveTo(p.x, y + 14); ctx.lineTo(p.x - 9, y); ctx.lineTo(p.x + 9, y);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
 // ══ Acompanhante ══════════════════════════════════════════════════════════════
 // Um NPC que anda com o jogador, inclusive atravessando mapas. Existe por uma razão
 // dramática: o Capítulo 1 termina com a cidade inteira esquecendo o Pipo, e isso só
@@ -19004,6 +19192,8 @@ function sincronizarHabilidadesSePreciso() {
 const LIBERACAO_DE_BOTOES = {
   // Trilha é ajuste, não sistema de jogo: nunca fica trancada.
   somBtn:     () => true,
+  // O mapa abre quando existe mais de um cenário para escolher.
+  mapaBtn:    () => Object.keys(gridPos).length > 1,
   // O pergaminho aparece junto com a primeira missão que entra nele.
   missoesBtn: () => activeQuests.length > 0 || completedQuests.length > 0,
   // A mochila abre no primeiro item CONQUISTADO. A arma inicial não conta: o jogador
@@ -20924,6 +21114,12 @@ function fecharPreTela() {
   if (TRILHA.ligada && !TRILHA.humor) { TRILHA.humor = humorDoMomento(); iniciarTrilha(); }
 }
 document.getElementById('ptJogar')?.addEventListener('click', fecharPreTela);
+document.getElementById('mapaBtn')?.addEventListener('click', abrirMiniMapa);
+window.addEventListener('keydown', e => {
+  if (e.code === 'KeyM' && dlg.state === DLG_STATE.CLOSED && !CUT.ativo) {
+    document.getElementById('miniMapa')?.classList.contains('hidden') ? abrirMiniMapa() : fecharMiniMapa();
+  }
+});
 
 // ══ Os palitos do Pipo ════════════════════════════════════════════════════════
 // O desfecho do Capítulo 1. A Wins pergunta onde guardar uma memória num lugar que não
@@ -20961,6 +21157,7 @@ function noSelo() {
 }
 
 function selarAMemoria() {
+  progressoDeMissao('selar', 'pipo');
   if (!noSelo()) return;
   marcarBandeira('pipo_selado');
   delete playerInventory.palito_1; delete playerInventory.palito_2;

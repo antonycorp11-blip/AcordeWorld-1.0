@@ -7402,3 +7402,38 @@ body.em-cena #drawerToggle { display: none !important; }
   object-fit: contain; background: #000;
   cursor: pointer;
 }
+
+/* ── Minimapa ────────────────────────────────────────────────────────────────
+   A grade vem de gridPos, então o mapa é o mundo de verdade — não um desenho que
+   pode ficar desatualizado quando o autor move um cenário. */
+.mm-tela { position: fixed; inset: 0; z-index: 8000; display: grid; place-items: center;
+           background: rgba(6,4,12,0.78); backdrop-filter: blur(3px); }
+.mm-tela.hidden { display: none; }
+.mm-caixa { background: #16111f; border: 1px solid #4c3a63; border-radius: 12px;
+            padding: 14px 16px 12px; max-width: min(94vw, 720px); max-height: 88vh;
+            overflow: auto; box-shadow: 0 18px 50px rgba(0,0,0,.55); }
+.mm-caixa header { display: flex; align-items: center; justify-content: space-between;
+                   margin-bottom: 10px; }
+.mm-caixa header b { color: #e9d5ff; letter-spacing: .16em; font-size: 12px; }
+.mm-x { background: none; border: 0; color: #c4b5fd; font-size: 16px; cursor: pointer; }
+.mm-grade { display: grid; gap: 6px; }
+.mm-cel { background: #221a30; border: 1px solid #3b2d52; border-radius: 8px;
+          padding: 7px 6px; color: #d8cdea; cursor: pointer; text-align: center;
+          display: flex; flex-direction: column; gap: 2px; min-height: 56px; }
+.mm-cel:hover { border-color: #7c5cab; }
+.mm-cel b { font-size: 10.5px; line-height: 1.15; font-weight: 600; }
+.mm-cel i { font-style: normal; font-size: 12px; }
+.mm-cel u { text-decoration: none; font-size: 9px; color: #fbbf24; letter-spacing: .06em; }
+.mm-cel.aqui { border-color: #fbbf24; background: #2b2033; }
+.mm-cel.rota { border-color: #60a5fa; background: #1b2440; }
+.mm-cel.destino { border-color: #60a5fa; background: #24365e; box-shadow: 0 0 0 1px #60a5fa inset; }
+.mm-nota { margin: 10px 2px 0; font-size: 11px; color: #a79bc2; line-height: 1.4; }
+
+/* Rastreador recolhido: sobra a linha do objetivo de agora. Um toque abre de novo. */
+.quest-tracker { cursor: pointer; transition: opacity .25s ease; }
+.quest-tracker.recolhido { opacity: .72; }
+.quest-tracker.recolhido .qt-title,
+.quest-tracker.recolhido .qt-mais,
+.quest-tracker.recolhido .qt-objs li:not(.agora) { display: none; }
+.quest-tracker.recolhido .qt-objs { margin: 0; padding: 0; }
+.qt-mais { font-size: 9.5px; color: #a79bc2; margin-top: 2px; letter-spacing: .04em; }
