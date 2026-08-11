@@ -21593,15 +21593,12 @@ function renderSelo(now) {
 // ============================================================
 let sceneBeforeFarm = 'world';
 
-// Ponte temporária: ferramenta da fazenda -> prop que existe hoje na biblioteca.
-// Os ids que a barra usava ('semente_trigo', 'galinha'...) não existem no objects.json,
-// e colocar um prop sem arte não desenha nada — o sintoma seria "clico e não acontece".
-// Quando a arte da fazenda chegar, é trocar o valor à direita.
+// As ferramentas já apontam para objetos que existem no objects.json
 const PROP_DA_FERRAMENTA = {
-  enxada:        'f2_06',        // Canteiro Silvestre — marca o solo arado
-  semente_trigo: 'mata3_02',     // Flores do Campo — o broto plantado
-  cerca_madeira: 'vila2_03',     // Cerca de Tábuas
-  casa_nivel1:   'cidade2_02',   // Casa de Camponês
+  enxada:        'enxada',
+  semente_trigo: 'semente_trigo',
+  cerca_madeira: 'cerca_madeira',
+  casa_nivel1:   'casa_nivel1',
   galinha:       'f4_03',        // sem arte de bicho ainda: marcador
   vaca:          'f4_06',        // idem
 };

@@ -2007,6 +2007,30 @@
       "colide": true,
       "altura": 70,
       "bau": "mitico"
+    },
+    "casa_nivel1": {
+      "nome": "Casa de Madeira",
+      "sprite": "assets/props/casa_nivel1.png",
+      "w": 250, "h": 200, "cx": 125, "cy": 180, "cr": 90,
+      "cat": "Fazenda", "draw": "img"
+    },
+    "enxada": {
+      "nome": "Solo Arado",
+      "sprite": "assets/props/enxada.png",
+      "w": 64, "h": 64, "cx": 32, "cy": 32, "cr": 1,
+      "cat": "Fazenda", "draw": "img"
+    },
+    "semente_trigo": {
+      "nome": "Broto de Trigo",
+      "sprite": "assets/props/semente_trigo.png",
+      "w": 32, "h": 32, "cx": 16, "cy": 30, "cr": 1,
+      "cat": "Fazenda", "draw": "img"
+    },
+    "cerca_madeira": {
+      "nome": "Cerca",
+      "sprite": "assets/props/cerca_madeira.png",
+      "w": 64, "h": 64, "cx": 32, "cy": 50, "cr": 20,
+      "cat": "Fazenda", "draw": "img"
     }
   },
   "objetos": [
