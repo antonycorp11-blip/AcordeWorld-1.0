@@ -5389,6 +5389,29 @@ function renderRitualDeCaptura(now) {
 // jogador tinha de andar até ela para ver quanta ressonância restava — informação que
 // precisa estar sempre à vista, porque é ela que diz se vale a pena ressoar aqui.
 // Em HTML ela é imune ao zoom e à câmera, e some sozinha onde não há Eco.
+// O relógio do mundo, dito ao jogador. Ele precisa saber que a noite está vindo ANTES de
+// escurecer — a escolha "entro na clareira agora ou espero amanhecer?" só existe se ele
+// puder ver o relógio. Mora junto da ressonância porque as duas respondem à mesma
+// pergunta: vale a pena caçar aqui, agora?
+function renderRelogioDoMundo() {
+  const el = document.getElementById('hudTempo');
+  if (!el) return;
+  const mostrar = isPlayMode && currentScene === 'world' && !CUT.ativo && !fichaAberta()
+                  && !corridaAtiva() && !dungeonDoMapa(currentKey);
+  el.classList.toggle('hidden', !mostrar);
+  if (!mostrar) return;
+  const noite = ehNoite(), min = minutosParaAVirada();
+  const sig = (noite ? 'n' : 'd') + min + (mapaTemEcos(currentKey) ? 'e' : '');
+  if (el.dataset.sig === sig) return;
+  el.dataset.sig = sig;
+  el.classList.toggle('noite', noite);
+  // Na clareira o aviso é mais forte: é lá que a noite tem consequência.
+  const perigo = noite && mapaTemEcos(currentKey);
+  el.innerHTML = `<span class="ht-ico">${noite ? '🌑' : '☀️'}</span>`
+    + `<span class="ht-txt">${noite ? 'NOITE' : 'DIA'}`
+    + `<small>${perigo ? 'caçadores entre os Ecos' : (noite ? 'amanhece' : 'anoitece') + ` em ${min} min`}</small></span>`;
+}
+
 function renderRessonancia() {
   const el = document.getElementById('hudRessonancia');
   if (!el) return;
@@ -7512,8 +7535,37 @@ function damagePlayer(amount) {
     // Cair DENTRO de uma dungeon expulsa. É a punição que dá peso a escolher uma
     // dificuldade acima do próprio poder: pode tentar, mas perde a tentativa.
     if (corridaAtiva()) { expulsarDaDungeon(); return; }
-    showToast('💀 Você desmaiou... voltando ao início.');
+    showToast('💀 ' + fraseDeQuedaAleatoria());
   }
+}
+
+// Cair não é fim de jogo: é acordar em Acordelot. A frase é sorteada para a volta não
+// virar a mesma tela lida quinze vezes — e ela é do vocabulário do jogo, não genérica.
+// Isso é o que dá PESO à caçada noturna: o perigo custa o caminho de volta.
+const FRASES_DE_QUEDA = [
+  'Nota errada não é o fim da música. É só um compasso perdido.',
+  'Quem nunca desafinou nunca tentou nada difícil.',
+  'A cidade te pegou no colo. De novo.',
+  'Você caiu no tom errado. Levanta no certo.',
+  'Silêncio também é parte da partitura. Só não deixe ser a última.',
+  'O Ressonador aguentou. Você é que não.',
+  'Ninguém aprende a escala sem errar a mão.',
+  'Respira. A próxima entrada é sua.',
+  'A floresta não perdoa quem entra distraído.',
+  'Acordou em Acordelot. Podia ser pior — podia não ter acordado.',
+];
+function fraseDeQuedaAleatoria() {
+  return FRASES_DE_QUEDA[Math.floor(Math.random() * FRASES_DE_QUEDA.length)];
+}
+
+// Onde se acorda depois de cair. O Centro de Acordelot é o lugar da lore para isso; se
+// ele não existir mais, a Praça serve — voltar para o cenário onde se morreu seria
+// devolver o jogador direto para o bicho que o matou.
+const MAPA_DE_RENASCIMENTO = 'custom_1785871568442_57';
+function mapaParaRenascer() {
+  if (cenarioExiste(MAPA_DE_RENASCIMENTO)) return MAPA_DE_RENASCIMENTO;
+  if (cenarioExiste('custom_1785869541494_557')) return 'custom_1785869541494_557';
+  return currentKey;
 }
 
 function updateRespawn(now) {
@@ -7521,6 +7573,19 @@ function updateRespawn(now) {
   deadUntil = 0;
   playerHp = playerMaxHp();
   playerLocked = false;
+  // Volta para Acordelot, não para o lugar da queda: renascer ao lado do que te matou é
+  // punição sem escolha, e some com a decisão de "vale a pena voltar lá?".
+  const destino = mapaParaRenascer();
+  if (destino !== currentKey) {
+    limparCacaNoturna();
+    const p = pousoSeguro(destino, SCREEN_W / 2, SCREEN_H / 2);
+    currentKey = destino; player.x = p.x; player.y = p.y;
+    if (activeMapSelect && cenarioExiste(destino)) activeMapSelect.value = destino;
+    updateMapStatus();
+    anunciar('ACORDELOT', 1600);
+    showToast('✦ ' + fraseDeQuedaAleatoria());
+    return;
+  }
   const sp = spawns[currentKey] || { x: 512, y: 400 };
   player.x = sp.x; player.y = sp.y;
   // Reset the monsters here so you don't respawn straight into the mob that felled you.
@@ -12728,6 +12793,120 @@ function avancarCena() {
 // em volta do jogador, para escuro não virar "não dá para jogar".
 // Amanhecer e anoitecer dentro da cena: o comando `ambiente` sobrepõe o clima fixo do
 // mapa e caminha até o novo valor, para o sol nascer em vez de piscar.
+// ══ CICLO DE DIA E NOITE ══════════════════════════════════════════════════════
+// Só dia e noite, como pedido — sem tarde nem madrugada. O relógio é o de PAREDE
+// (`Date.now`), nunca `performance.now`: o segundo conta desde que a aba abriu e zerava a
+// cada carregamento, então o mundo amanhecia toda vez que o jogador atualizasse a página.
+//
+// A noite não é enfeite: é ela que traz os Dissonantes para o meio dos Ecos. Capturar de
+// dia é seguro e rende menos sustos; de noite rende o mesmo e pode custar caro. Essa é a
+// escolha que a mecânica oferece, e por isso o jogo AVISA quando a noite cai.
+const DIA_MS   = 12 * 60000;   // doze minutos de luz
+const NOITE_MS =  6 * 60000;   // seis de escuro: o bastante para dar medo, pouco para irritar
+const CICLO_MS = DIA_MS + NOITE_MS;
+const CREPUSCULO_MS = 45000;   // a virada, para não piscar de claro para escuro
+const ESCURO_DA_NOITE = 0.62;
+
+function relogioDoMundo() { return Date.now() % CICLO_MS; }
+function ehNoite() { return relogioDoMundo() >= DIA_MS; }
+
+// Quanto de escuro o ciclo pede AGORA, de 0 a 1, com as duas viradas suaves.
+function escuroDoCiclo() {
+  const t = relogioDoMundo();
+  if (t < DIA_MS - CREPUSCULO_MS) return 0;                       // dia cheio
+  if (t < DIA_MS) return ESCURO_DA_NOITE * ((t - (DIA_MS - CREPUSCULO_MS)) / CREPUSCULO_MS);
+  if (t < CICLO_MS - CREPUSCULO_MS) return ESCURO_DA_NOITE;       // noite cheia
+  return ESCURO_DA_NOITE * ((CICLO_MS - t) / CREPUSCULO_MS);      // amanhecendo
+}
+
+// Quanto falta para a próxima virada, para o aviso poder dizer em minutos.
+function minutosParaAVirada() {
+  const t = relogioDoMundo();
+  return Math.max(1, Math.ceil((t < DIA_MS ? DIA_MS - t : CICLO_MS - t) / 60000));
+}
+
+// ── Os Dissonantes da noite ───────────────────────────────────────────────────
+// Quando escurece, as clareiras de Eco ganham caçadores. A escolha dos tipos não é
+// aleatória: o Nocturno Alado é rápido e fraco (aparece em número, dá o susto), a Dama do
+// Silêncio é lenta e pesada (uma só, e ela é o motivo de fugir). Nenhum dos dois é maior
+// que um Eco crescido — o dono pediu bom senso de TAMANHO, e criatura que ocupa meia tela
+// numa clareira de captura estraga a leitura do cenário.
+//
+// Eles somem ao amanhecer. A noite é uma janela, não um estado permanente do mapa.
+const CACA_NOTURNA = [
+  { tipo: 'nocturno_alado',   quantos: [2, 4], escala: 0.75 },
+  { tipo: 'dama_do_silencio', quantos: [0, 1], escala: 0.85 },
+];
+
+let noiteAnterior = null;
+let mapaDaCacaNoturna = null;
+
+function limparCacaNoturna() {
+  monsters = monsters.filter(m => !m.daNoite);
+  mapaDaCacaNoturna = null;
+}
+
+// Ao trocar de cenário a caçada do anterior é dispensada: ela pertence àquele lugar
+// naquela noite, e arrastá-la junto encheria o mundo de bicho órfão.
+function conferirCacaAoTrocarDeMapa() {
+  if (mapaDaCacaNoturna && mapaDaCacaNoturna !== currentKey) limparCacaNoturna();
+}
+
+function soltarCacaNoturna() {
+  if (!mapaTemEcos(currentKey) || corridaAtiva()) return;
+  if (mapaDaCacaNoturna === currentKey) return;
+  limparCacaNoturna();
+  mapaDaCacaNoturna = currentKey;
+  let nasceram = 0;
+  CACA_NOTURNA.forEach(c => {
+    const def = monsterDefs[c.tipo];
+    if (!def) return;
+    const [a, b] = c.quantos;
+    const n = a + Math.floor(Math.random() * (b - a + 1));
+    for (let i = 0; i < n; i++) {
+      window.__carregarFolhaDeMonstro?.(c.tipo);
+      // Longe do jogador: nascer em cima dele é emboscada, não perigo.
+      let alvo = null;
+      for (let t = 0; t < 20 && !alvo; t++) {
+        const p = pontoAndavelPerto(60 + Math.random() * (SCREEN_W - 120),
+                                    60 + Math.random() * (SCREEN_H - 120));
+        if (Math.hypot(p.x - player.x, p.y - player.y) > 260) alvo = p;
+      }
+      if (!alvo) continue;
+      const vida = Math.round((def.hp ?? 40) * fatorDoEco());
+      monsters.push({
+        id: `noite_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        type: c.tipo, mapKey: currentKey,
+        x: alvo.x, y: alvo.y, homeX: alvo.x, homeY: alvo.y,
+        hp: vida, maxHp: vida, escala: c.escala,
+        dead: false, respawnAt: 0, hurtUntil: 0, lastHit: 0, facing: 1,
+        phase: Math.random() * Math.PI * 2,
+        daNoite: true, persegue: true,
+      });
+      nasceram++;
+    }
+  });
+  if (nasceram) {
+    anunciar('A NOITE CAIU', 2200);
+    showToast(`🌑 Algo entrou na clareira. ${nasceram} presença(s) que não são Eco.`);
+  }
+}
+
+// Chamado todo quadro: é ele que faz a noite acontecer de verdade em vez de só escurecer.
+function atualizarCicloDeTempo() {
+  const noite = ehNoite();
+  if (noite !== noiteAnterior) {
+    noiteAnterior = noite;
+    if (!noite) {
+      limparCacaNoturna();
+      if (mapaTemEcos(currentKey)) showToast('☀️ Amanheceu. Os caçadores recuaram.');
+    }
+  }
+  conferirCacaAoTrocarDeMapa();
+  if (noite) soltarCacaNoturna();
+  else if (mapaDaCacaNoturna) limparCacaNoturna();
+}
+
 const ambienteRuntime = {};
 function ambienteAtual() {
   const base = ambience[currentKey];
@@ -12743,14 +12922,21 @@ function atualizarAmbiente() {
 }
 
 function renderAmbiente() {
+  // Interior e dungeon não têm céu: escurecer lá dentro é só sujar a tela.
+  const aoArLivre = currentScene === 'world' && !corridaAtiva() && !dungeonDoMapa(currentKey);
   // O ciclo dia/noite automático obedece TEMPO_LIGADO. A escuridão pedida por uma CENA
   // não: ela é direção, não simulação. Com o ciclo desligado, o comando `ambiente` da
   // chegada à vila ajustava o estado e nada nunca desenhava — a noite simplesmente não
   // acontecia, e a cena da Mirela rodava em plena luz.
   const daCena = !!ambienteRuntime[currentKey];
-  if (!TEMPO_LIGADO && !daCena) return;
   atualizarAmbiente();
-  const a = ambienteAtual();
+  let a = ambienteAtual();
+  // A cena manda mais que o relógio: quando um roteiro pediu escuro, é aquele que vale.
+  // Fora disso, quem escurece é o ciclo.
+  if (!daCena && aoArLivre) {
+    const e = escuroDoCiclo();
+    a = { ...(a || {}), escuro: Math.max(a?.escuro || 0, e), cor: (a && a.cor) || '#0b1220' };
+  }
   if (!a || !(a.escuro > 0)) return;
   const c = ctx;
   c.save();
@@ -13677,6 +13863,10 @@ function quadro(now){
   // estava dentro do bloco `outdoors`, que não roda em todos os modos — o portão nunca
   // abria no modo andar do editor.
   atualizarDungeon(now);
+  // O ciclo de dia e noite pela MESMA razão: ele é regra de jogo — é o que solta os
+  // caçadores noturnos — e dentro de um ramo de desenho simplesmente não rodaria em
+  // todos os modos. Esta é a armadilha nº 1 do projeto, e ela já custou caro.
+  if (personagemAndando()) { atualizarCicloDeTempo(); renderRessonancia(); renderRelogioDoMundo(); }
   // Os números do HUD pela mesma razão: o bloco que os atualizava só roda no modo jogo,
   // e no modo ANDAR a barra ficava congelada nos valores do primeiro quadro.
   if (personagemAndando()) { atualizarNumerosDoHud(); atualizarMissaoNoHud(); }
@@ -14061,7 +14251,7 @@ function quadro(now){
       });
     }
     if (outdoors) {
-      renderMarcadoresDeNPC(now); renderCaptura(now); renderRessonancia(now);
+      renderMarcadoresDeNPC(now); renderCaptura(now);
       renderCombo(now); renderAnuncio(now);
       atualizarLaminaVoando(now); renderLaminaVoando(now); renderMira(now);
       atualizarOrbita(now); renderOrbita(now);
@@ -22466,7 +22656,10 @@ function ascender(id) {
 // ── habilidades por nível de personagem ──
 // Trocou clave por nível: abrir uma habilidade deixou de ser questão de dinheiro e passou
 // a ser questão de ter treinado o herói. Faz a segunda e a suprema virarem marcos.
-const NIVEL_DA_HABILIDADE = { 1: 1, 2: 10, 3: 20 };
+// A segunda abria no 10, e o TETO do heroi e 5 ate a Ascensao: ela era inalcancavel, e a
+// ficha nao explicava isso. No 5 ela cai junto com o primeiro teto — o jogador conquista
+// a habilidade no mesmo momento em que descobre que existe ascensao.
+const NIVEL_DA_HABILIDADE = { 1: 1, 2: 5, 3: 20 };
 function nivelQueLibera(posicao) { return NIVEL_DA_HABILIDADE[posicao] || 1; }
 
 // Bloco de nível do herói na ficha: barra de XP, botão de usar Partitura e a ascensão

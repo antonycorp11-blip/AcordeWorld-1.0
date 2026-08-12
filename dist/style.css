@@ -7870,3 +7870,21 @@ body.em-cena #questNotification { display: none !important; }
 .hr-caixa.vazia .hr-rot { color: #94a3b8; }
 @media (max-height: 560px) { .hr-caixa { top: 8px; padding: 4px 8px; }
                              .hr-barra i { width: 9px; height: 6px; } }
+
+/* ── Relógio do mundo ─────────────────────────────────────────────────────────
+   Ao lado da ressonância, no topo. A noite tem consequência (caçadores nas clareiras),
+   e consequência que o jogador não pode prever é armadilha, não risco. */
+.ht-caixa { position: absolute; left: 50%; transform: translateX(-50%); top: 40px;
+            z-index: 31; display: flex; align-items: center; gap: 7px;
+            padding: 4px 11px; border-radius: 999px;
+            background: rgba(6,12,22,.82); border: 1px solid rgba(251,191,36,.4);
+            pointer-events: none; }
+.ht-caixa.hidden { display: none; }
+.ht-caixa.noite { border-color: rgba(129,140,248,.55); background: rgba(10,10,26,.88); }
+.ht-ico { font-size: 13px; line-height: 1; }
+.ht-txt { display: flex; flex-direction: column; line-height: 1.15; }
+.ht-txt { font: 700 9px Outfit, sans-serif; letter-spacing: .14em; color: #fde68a; }
+.ht-caixa.noite .ht-txt { color: #c7d2fe; }
+.ht-txt small { font-weight: 600; font-size: 8px; letter-spacing: .04em; color: #94a3b8; }
+.ht-caixa.noite .ht-txt small { color: #a5b4fc; }
+@media (max-height: 560px) { .ht-caixa { top: 34px; padding: 3px 9px; } }
