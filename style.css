@@ -7415,6 +7415,54 @@ body.em-cena #questNotification { display: none !important; }
 .mm-caixa { background: #16111f; border: 1px solid #4c3a63; border-radius: 12px;
             padding: 14px 16px 12px; max-width: min(94vw, 720px); max-height: 88vh;
             overflow: auto; box-shadow: 0 18px 50px rgba(0,0,0,.55); }
+
+/* ── Menu de Construção Fazenda ───────────────────────────────────────────────── */
+.farm-tool-cat {
+  width: 56px; height: 56px; font-size: 28px; cursor: pointer;
+  background: #2a203a; border: 2px solid #3b2d52; border-radius: 12px; color: #e9d5ff;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  position: relative;
+}
+.farm-tool-cat::after {
+  content: attr(title);
+  position: absolute; bottom: 105%; left: 50%; transform: translateX(-50%) translateY(10px);
+  background: rgba(0,0,0,0.9); color: white; padding: 6px 12px; border-radius: 6px;
+  font-size: 12px; white-space: nowrap; pointer-events: none;
+  opacity: 0; transition: all 0.2s; border: 1px solid #443;
+}
+.farm-tool-cat:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+.farm-tool-cat:hover { border-color: #9a75d1; transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.5); }
+.farm-tool-cat.ativo { 
+  border-color: #fbbf24; background: #3d2a1a; 
+  box-shadow: 0 0 15px rgba(251,191,36,0.4), inset 0 0 10px rgba(251,191,36,0.2); 
+  transform: translateY(-5px) scale(1.05);
+}
+.farm-tool-cat.fechar { background: #3a1a1a; border-color: #8f2d2d; color: #fca5a5; margin-left: 12px; }
+.farm-tool-cat.fechar:hover { border-color: #ef4444; background: #5a1a1a; }
+.cursor-crosshair { cursor: crosshair; }
+
+.build-modal {
+  width: 600px;
+  max-width: 95vw;
+}
+.build-grid-container {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+.build-item {
+  display: flex; flex-direction: column; align-items: center;
+  background: #1c1524; border: 1px solid #3c2a52; border-radius: 8px;
+  padding: 12px; cursor: pointer; transition: all 0.2s;
+  text-align: center;
+}
+.build-item:hover { border-color: #fbbf24; transform: translateY(-2px); }
+.build-item.disabled { opacity: 0.5; filter: grayscale(1); cursor: not-allowed; }
+.build-item.disabled:hover { border-color: #3c2a52; transform: none; }
+.build-img { width: 64px; height: 64px; object-fit: contain; margin-bottom: 8px; }
+.build-name { font-weight: bold; font-size: 14px; color: #e9d5ff; margin-bottom: 4px; }
+.build-price { font-size: 13px; color: #fbbf24; }
 .mm-caixa header { display: flex; align-items: center; justify-content: space-between;
                    margin-bottom: 10px; }
 .mm-caixa header b { color: #e9d5ff; letter-spacing: .16em; font-size: 12px; }
@@ -7478,8 +7526,7 @@ body.em-cena #questNotification { display: none !important; }
 .hm-caixa.destaque { box-shadow: 0 0 0 2px rgba(251,191,36,.85), 0 6px 18px rgba(0,0,0,.5); }
 
 /* ── Fazendinha ──────────────────────────────────────────────────────────────
-   O botão e a barra vinham sem estilo nenhum no HTML: apareciam como texto cru
-   no canto da tela. Enquanto o modo é de teste, o visual segue o do resto do HUD. */
+   Barra estilo construtor (SimCity). Fica centralizada na parte inferior. */
 .btn-build-mode {
   position: absolute; right: 14px; bottom: 120px; z-index: 60;
   display: flex; flex-direction: column; align-items: center; gap: 1px;
@@ -7494,17 +7541,35 @@ body.em-cena #questNotification { display: none !important; }
 .btn-build-mode small { font-size: 7.5px; letter-spacing: .1em; opacity: .85; }
 
 .farm-toolbar {
-  position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: 61;
-  display: flex; gap: 6px; padding: 8px 10px;
-  background: rgba(14,10,20,.93); border: 1px solid #4c3a63; border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 20px; z-index: 61;
+  display: flex; gap: 8px; padding: 12px;
+  background: linear-gradient(180deg, rgba(30,22,40,0.95), rgba(15,10,20,0.98));
+  border: 2px solid #5a457a; border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.7), inset 0 2px 0 rgba(255,255,255,0.1);
 }
 .farm-toolbar.hidden { display: none; }
 .farm-tool {
-  width: 44px; height: 44px; font-size: 20px; cursor: pointer;
-  background: #221a30; border: 1px solid #3b2d52; border-radius: 9px; color: #e9d5ff;
+  width: 56px; height: 56px; font-size: 28px; cursor: pointer;
+  background: #2a203a; border: 2px solid #3b2d52; border-radius: 12px; color: #e9d5ff;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  position: relative;
 }
-.farm-tool:hover { border-color: #7c5cab; }
-.farm-tool.ativo { border-color: #fbbf24; background: #2f2416; box-shadow: 0 0 0 1px #fbbf24 inset; }
-.farm-tool.fechar { background: #2a1414; border-color: #7f1d1d; color: #fca5a5; }
+.farm-tool::after {
+  content: attr(title);
+  position: absolute; bottom: 105%; left: 50%; transform: translateX(-50%) translateY(10px);
+  background: rgba(0,0,0,0.9); color: white; padding: 6px 12px; border-radius: 6px;
+  font-size: 12px; white-space: nowrap; pointer-events: none;
+  opacity: 0; transition: all 0.2s; border: 1px solid #443;
+}
+.farm-tool:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+.farm-tool:hover { border-color: #9a75d1; transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.5); }
+.farm-tool.ativo { 
+  border-color: #fbbf24; background: #3d2a1a; 
+  box-shadow: 0 0 15px rgba(251,191,36,0.4), inset 0 0 10px rgba(251,191,36,0.2); 
+  transform: translateY(-5px) scale(1.05);
+}
+.farm-tool.fechar { background: #3a1a1a; border-color: #8f2d2d; color: #fca5a5; margin-left: 12px; }
+.farm-tool.fechar:hover { border-color: #ef4444; background: #5a1a1a; }
 .cursor-crosshair { cursor: crosshair; }
+

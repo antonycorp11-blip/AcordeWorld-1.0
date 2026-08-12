@@ -351,7 +351,7 @@
       "x": 240,
       "y": 400,
       "scale": 0.9,
-      "dialogue": "blacksmith_intro",
+      "dialogue": "none",
       "ambient": [
         "O martelo e o fogo moldam as ferramentas perfeitas.",
         "Precisa de forja?"
@@ -365,7 +365,7 @@
       "x": 370,
       "y": 360,
       "scale": 0.9,
-      "dialogue": "merchant_intro",
+      "dialogue": "none",
       "ambient": [
         "As melhores relíquias e mantimentos de Acordelot!",
         "Confira minhas ofertas!"
@@ -379,7 +379,7 @@
       "x": 200,
       "y": 240,
       "scale": 0.9,
-      "dialogue": "elder_intro",
+      "dialogue": "none",
       "ambient": [
         "Ouça os ecos da catedral ancestral.",
         "A música cura todas as feridas."

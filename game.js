@@ -1672,7 +1672,7 @@ function getMapDimensions(key) {
 }
 
 function isWalkable(x,y) {
-  const dims = currentKey === 'mega_world' ? getMegaWorldDimensions() : { w: SCREEN_W, h: SCREEN_H };
+  const dims = currentKey === 'mega_world' ? getMapDimensions('mega_world') : { w: SCREEN_W, h: SCREEN_H };
   if (x < 24 || x > dims.w - 24 || y < 28 || y > dims.h - 28) return false;
   if (currentScene !== 'world') return true;   // interiors have no painted collision
   if (!hasRoadPaint(currentKey)) return true;
@@ -4410,6 +4410,19 @@ async function loadObjetos() {
   propDefs = cfg.props || {};
   objetos = (cfg.objetos || []).map(o => ({ ...o, escala: o.escala || 1 }));
 
+  // No build publicado, restaura objetos da fazenda salvos pelo jogador.
+  if (IS_PLAY_BUILD) {
+    try {
+      const farmRaw = localStorage.getItem('acordelot_farm_v1');
+      if (farmRaw) {
+        const farmObjs = JSON.parse(farmRaw);
+        // Remove quaisquer farm objects que já vieram do JSON para evitar duplicatas
+        objetos = objetos.filter(o => o.mapKey !== 'farm');
+        objetos.push(...farmObjs.map(o => ({ ...o, escala: o.escala || 1 })));
+      }
+    } catch (e) {}
+  }
+
   // Carregar os 200 props do catálogo custava 14,5 MB e 200 recortes no fio principal —
   // e só 25 estão de fato plantados nos mapas. No celular isso é a diferença entre abrir
   // em segundos e abrir com o cenário preto enquanto o processador termina o serviço.
@@ -4439,7 +4452,11 @@ async function loadObjetos() {
   // Os baús entram na primeira leva mesmo sem estarem plantados: o sorteio da dungeon
   // troca a arte em tempo de execução, então qualquer raridade pode ser precisada a
   // qualquer momento — e eles são item de jogo, não enfeite de paleta.
-  const necessarios = fila.filter(([id, def]) => usados.has(id) || def.bau);
+  // Props da fazenda também precisam estar prontos: o jogador pode colocar a qualquer
+  // momento, e sem o sprite carregado o objeto fica invisível.
+  const idsFazenda = typeof PROP_DA_FERRAMENTA !== 'undefined'
+    ? new Set(Object.values(PROP_DA_FERRAMENTA)) : new Set();
+  const necessarios = fila.filter(([id, def]) => usados.has(id) || def.bau || idsFazenda.has(id) || def.cat === 'Fazenda');
   const resto = fila.filter(([id, def]) => !usados.has(id) && !def.bau);
   necessarios.forEach(carregarProp);
   window.__propsDoJogoPedidos = necessarios.length;
@@ -4588,6 +4605,32 @@ function renderObjetos(now, lado) {
 
       if (!isPlayMode) renderMarcaDoObjeto(o, b);
     });
+}
+
+// Renderiza o fantasma do objeto (preview) antes de posicioná-lo, seguindo o mouse
+function renderGhostProp(id, x, y) {
+  if (!id) return;
+  const def = propDefs[id] || {};
+  const spr = propSprites[id];
+  if (!spr) return;
+  const o = { id: 'ghost', prop: id, x, y, escala: 1, flipX: false };
+  const b = objetoBounds(o);
+  
+  ctx.save();
+  ctx.globalAlpha = 0.6;
+  ctx.drawImage(spr.canvas, 0, 0, b.w, b.h, b.x, b.y, b.w, b.h);
+  
+  // Desenha uma marcação visual na base para ajudar a mirar
+  const r = def.raio || 15;
+  ctx.fillStyle = 'rgba(251, 191, 36, 0.2)';
+  ctx.beginPath();
+  ctx.ellipse(x, y, r, r * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(251, 191, 36, 0.8)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  
+  ctx.restore();
 }
 
 // O fundo destes cenários já vem com dezenas de árvores e pedras PINTADAS. Um prop de
@@ -5939,7 +5982,7 @@ function ativarChuva() {
   return true;
 }
 
-function atualizarChuva(now) {
+function atualizarChuvaDeLancas(now) {
   if (!chuva) return;
   if (now - chuva.inicio > CHUVA_MS) { chuva = null; return; }
   const s = derivedStats();
@@ -10219,6 +10262,18 @@ function bindCanvasEvents(){
 // ============================================================
 // ── Objetos de cenário: catálogo e inspetor ──────────────────────────────────────
 function colocarObjeto(propId, x, y) {
+  const def = propDefs[propId] || {};
+  if (currentScene === 'farm' && def.preco && playerCoins < def.preco) {
+    showToast('Ouro insuficiente para construir isto.');
+    return;
+  }
+  if (currentScene === 'farm' && def.preco) {
+    playerCoins -= def.preco;
+    savePlayerData();
+    if (typeof playForgeHit === 'function') playForgeHit();
+    // Optional: play build sound here
+  }
+  
   const o = {
     id: `${propId}_${Date.now()}`, prop: propId,
     mapKey: activeMapSelect?.value || currentKey,
@@ -10228,6 +10283,14 @@ function colocarObjeto(propId, x, y) {
   objetoSelecionado = o;
   mostrarInspetorDeObjeto(o);
   saveObjetos();
+  // No build publicado, saveObjetos() sai cedo — mas a fazenda precisa persistir.
+  // Salva os objetos da fazenda separadamente no localStorage.
+  if (IS_PLAY_BUILD && currentScene === 'farm') {
+    try {
+      const farmObjs = objetos.filter(ob => ob.mapKey === 'farm');
+      localStorage.setItem('acordelot_farm_v1', JSON.stringify(farmObjs));
+    } catch (e) {}
+  }
 }
 
 function aplicarEscalaDoObjeto(v) {
@@ -13241,7 +13304,7 @@ function quadro(now){
         if(canMoveTo(tx,ty)){player.x=tx;player.y=ty;}
         else if(canMoveTo(tx,player.y))player.x=tx;
         else if(canMoveTo(player.x,ty))player.y=ty;
-        const dims = isMegaWorld ? getMegaWorldDimensions() : { w: SCREEN_W, h: SCREEN_H };
+        const dims = isMegaWorld ? getMapDimensions('mega_world') : { w: SCREEN_W, h: SCREEN_H };
         player.x = Math.max(28, Math.min(dims.w - 28, player.x));
         player.y = Math.max(32, Math.min(dims.h - 32, player.y));
         const quadros = personagemAtivo().cols || 4;
@@ -13331,6 +13394,9 @@ function quadro(now){
      renderHat(pW,pH);renderAura(now,pH);}
     if(outdoors){
       renderObjetos(now, 'frente');  // pé abaixo do jogador: cobre o personagem
+      if (currentScene === 'farm' && propParaColocar && typeof mouseCanvasX !== 'undefined') {
+        renderGhostProp(propParaColocar, mouseCanvasX, mouseCanvasY);
+      }
       renderAttackSwing(now);
       renderGatherSwing(now);
       ctx.drawImage(L.fgCanvas,0,0);renderHeroiPorTras(currentKey);renderDoorMarkers(now);updateLeaves();renderLeaves();
@@ -13422,7 +13488,7 @@ function quadro(now){
       renderCombo(now); renderAnuncio(now);
       atualizarLaminaVoando(now); renderLaminaVoando(now); renderMira(now);
       atualizarOrbita(now); renderOrbita(now);
-      atualizarChuva(now); renderChuva(now);
+      atualizarChuvaDeLancas(now); renderChuva(now);
       renderGrito(now); atualizarSono(now);
       renderEstadosDeMonstro(now);
       renderFaroisDeBau(now);
@@ -13908,7 +13974,7 @@ function initMegaWorldControls() {
       if (activeMapSelect) activeMapSelect.value = 'mega_world';
       megaBar?.classList.remove('hidden');
       megaPillBtn?.classList.remove('hidden');
-      const dims = getMegaWorldDimensions();
+      const dims = getMapDimensions('mega_world');
       player.x = dims.w / 2;
       player.y = dims.h / 2;
       if (!isPlayMode) togglePlay();
@@ -21634,24 +21700,75 @@ function initFazendaUI() {
       document.getElementById('mapaBtn')?.classList.remove('hidden');
       document.getElementById('statusMap')?.classList.remove('hidden');
       propParaColocar = null;
-      document.querySelectorAll('.farm-tool').forEach(b => b.classList.remove('ativo'));
+      document.querySelectorAll('.farm-tool-cat').forEach(b => b.classList.remove('ativo'));
       const canvas = document.getElementById('gameCanvas');
       if (canvas) canvas.classList.remove('cursor-crosshair');
     });
   }
 
-  document.querySelectorAll('.farm-tool:not(.fechar)').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      document.querySelectorAll('.farm-tool').forEach(b => b.classList.remove('ativo'));
+  document.querySelectorAll('.farm-tool-cat:not(.fechar)').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.farm-tool-cat').forEach(b => b.classList.remove('ativo'));
       btn.classList.add('ativo');
-      const tool = btn.dataset.tool;
-      // Traduz a ferramenta para um prop que existe: o id da barra ('semente_trigo') não
-      // está no objects.json, e prop sem arte não desenha nada.
-      propParaColocar = propDaFerramenta(tool);
-      showToast(`🔨 ${btn.title || tool} — toque no terreno para colocar`);
-      
-      const canvas = document.getElementById('gameCanvas');
-      if (canvas) canvas.classList.add('cursor-crosshair');
+      window.buildMenuCategory = btn.dataset.cat;
+      openBuildMenu();
     });
   });
+
+  document.getElementById('buildClose')?.addEventListener('click', closeBuildMenu);
+  document.getElementById('farmBuildOverlay')?.addEventListener('click', e => {
+    if (e.target.id === 'farmBuildOverlay') closeBuildMenu();
+  });
+}
+
+function openBuildMenu() {
+  const overlay = document.getElementById('farmBuildOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('hidden');
+  document.getElementById('buildMenuCoins').textContent = playerCoins || 0;
+  document.getElementById('buildMenuTitle').textContent = "Construir: " + window.buildMenuCategory;
+  
+  const grid = document.getElementById('buildGrid');
+  grid.innerHTML = '';
+  
+  const items = Object.entries(propDefs).filter(([k,v]) => v.cat === 'Fazenda' && v.subcat === window.buildMenuCategory);
+  
+  if (items.length === 0) {
+    grid.innerHTML = '<div style="color:#aaa; text-align:center; padding:20px; grid-column:1/-1;">Nenhum item nesta categoria.</div>';
+    return;
+  }
+  
+  items.forEach(([id, def]) => {
+    const card = document.createElement('div');
+    const preco = def.preco || 0;
+    const canAfford = (playerCoins || 0) >= preco;
+    
+    card.className = 'build-item' + (canAfford ? '' : ' disabled');
+    card.innerHTML = `
+      <img class="build-img" src="${def.sprite}">
+      <div class="build-name">${def.nome || id}</div>
+      <div class="build-price">${preco > 0 ? preco + ' moedas' : 'Grátis'}</div>
+    `;
+    
+    card.onclick = () => {
+      if (!canAfford) {
+        showToast('Ouro insuficiente!');
+        return;
+      }
+      propParaColocar = id;
+      closeBuildMenu();
+      showToast(`🔨 ${def.nome || id} selecionado — toque no terreno para construir (Custo: ${preco})`);
+      const canvas = document.getElementById('gameCanvas');
+      if (canvas) canvas.classList.add('cursor-crosshair');
+    };
+    
+    grid.appendChild(card);
+  });
+}
+
+function closeBuildMenu() {
+  document.getElementById('farmBuildOverlay')?.classList.add('hidden');
+  if (!propParaColocar) {
+     document.querySelectorAll('.farm-tool-cat').forEach(b => b.classList.remove('ativo'));
+  }
 }

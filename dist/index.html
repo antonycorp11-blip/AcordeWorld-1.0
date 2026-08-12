@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=da7ebe2478">
+  <link rel="stylesheet" href="style.css?v=428b5e9046">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -259,15 +259,29 @@
             <span>🔨</span><small>FAZENDA</small>
           </button>
 
-          <!-- Barra de Ferramentas da Fazenda -->
+          <!-- Barra de Categorias da Fazenda -->
           <div id="farmToolbar" class="farm-toolbar hidden">
-            <button class="farm-tool" data-tool="enxada" title="Enxada (Arar Solo)">⛏️</button>
-            <button class="farm-tool" data-tool="semente_trigo" title="Semente de Trigo">🌾</button>
-            <button class="farm-tool" data-tool="cerca_madeira" title="Cerca de Madeira">🪵</button>
-            <button class="farm-tool" data-tool="casa_nivel1" title="Casa da Fazenda">🏡</button>
-            <button class="farm-tool" data-tool="galinha" title="Galinha">🐔</button>
-            <button class="farm-tool" data-tool="vaca" title="Vaca">🐮</button>
-            <button class="farm-tool fechar" id="btnCloseFarm" title="Sair do Modo Fazenda">✖</button>
+            <button class="farm-tool-cat" data-cat="Estruturas" title="Estruturas">🏡</button>
+            <button class="farm-tool-cat" data-cat="Agricultura" title="Agricultura">🌾</button>
+            <button class="farm-tool-cat" data-cat="Animais" title="Animais">🐮</button>
+            <button class="farm-tool-cat" data-cat="Decoração" title="Decoração">🪵</button>
+            <button class="farm-tool-cat fechar" id="btnCloseFarm" title="Sair do Modo Fazenda">✖</button>
+          </div>
+
+          <!-- Build Menu Overlay -->
+          <div id="farmBuildOverlay" class="game-overlay hidden">
+            <div class="store-modal build-modal">
+              <div class="store-header">
+                <h2 id="buildMenuTitle">Construir</h2>
+                <div class="store-coins"><span id="buildMenuCoins">0</span> moedas</div>
+                <button class="close-btn" id="buildClose">×</button>
+              </div>
+              <div class="build-grid-container">
+                <div id="buildGrid" class="store-grid">
+                  <!-- JS vai preencher os cards aqui -->
+                </div>
+              </div>
+            </div>
           </div>
 
 
@@ -1137,6 +1151,6 @@
 ">🔄 Enviar minhas ruas</button>
 
 <script src="config.js?v=20260807161410"></script>
-<script src="game.js?v=6231242512"></script>
+<script src="game.js?v=6b6b041de4"></script>
 </body>
 </html>
