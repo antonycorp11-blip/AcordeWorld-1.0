@@ -1,368 +1,368 @@
 {
-  "quests": [
+ "quests": [
+  {
+   "id": "welcome_to_acordelot",
+   "title": "Bem-vindo a Acordelot",
+   "description": "Você chegou à primeira cidade do Reino da Música.",
+   "objectives": [
     {
-      "id": "welcome_to_acordelot",
-      "title": "Bem-vindo a Acordelot",
-      "description": "Você chegou à primeira cidade do Reino da Música.",
-      "objectives": [
-        {
-          "id": "meet_mentor",
-          "type": "talk",
-          "npc": "Antony",
-          "text": "Encontre seu mentor na Praça Central"
-        }
-      ],
-      "path_waypoints": {
-        "custom_1785869541494_557": [
-          {
-            "x": 512,
-            "y": 530
-          },
-          {
-            "x": 512,
-            "y": 430
-          },
-          {
-            "x": 512,
-            "y": 330
-          },
-          {
-            "x": 512,
-            "y": 300
-          }
-        ],
-        "custom_1785881037059_214": [
-          {
-            "x": 512,
-            "y": 280
-          },
-          {
-            "x": 512,
-            "y": 200
-          },
-          {
-            "x": 512,
-            "y": 80
-          }
-        ],
-        "custom_1785884200706_430": [
-          {
-            "x": 512,
-            "y": 280
-          },
-          {
-            "x": 512,
-            "y": 200
-          },
-          {
-            "x": 512,
-            "y": 80
-          }
-        ],
-        "custom_1785880661560_858": [
-          {
-            "x": 512,
-            "y": 280
-          },
-          {
-            "x": 512,
-            "y": 200
-          },
-          {
-            "x": 512,
-            "y": 80
-          }
-        ]
-      }
-    },
-    {
-      "id": "amizade_importa",
-      "title": "Amizade Importa",
-      "description": "O Sr. Antony quer que você conheça a cidade pelas pessoas dela.",
-      "xp": 90,
-      "recompensa": {
-        "moedas": 60
-      },
-      "objectives": [
-        {
-          "id": "bardo",
-          "type": "talk",
-          "npc": "Lucian",
-          "text": "Fale com o Bardo Lucian"
-        },
-        {
-          "id": "mercador",
-          "type": "talk",
-          "npc": "Tibério",
-          "text": "Fale com o Mercador Tibério"
-        },
-        {
-          "id": "voltar",
-          "type": "talk",
-          "npc": "Antony",
-          "text": "Volte ao Sr. Antony",
-          "requer": [
-            "bardo",
-            "mercador"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "ponte_de_acordelot",
-      "title": "A Ponte Quebrada",
-      "description": "O Ferreiro Dorn precisa de material para reconstruir a ponte na entrada da cidade.",
-      "xp": 140,
-      "recompensa": {
-        "moedas": 120
-      },
-      "objectives": [
-        {
-          "id": "madeira",
-          "type": "coletar",
-          "item": "wood",
-          "quantidade": 6,
-          "text": "Colete madeira na floresta"
-        },
-        {
-          "id": "pedra",
-          "type": "coletar",
-          "item": "stone",
-          "quantidade": 4,
-          "text": "Colete pedra na floresta"
-        },
-        {
-          "id": "entregar",
-          "type": "talk",
-          "npc": "Dorn",
-          "text": "Leve o material ao Ferreiro Dorn",
-          "requer": [
-            "madeira",
-            "pedra"
-          ]
-        }
-      ],
-      "custo": {
-        "wood": 6,
-        "stone": 4
-      }
-    },
-    {
-      "id": "martelo_do_ferreiro",
-      "title": "O Martelo do Aprendiz",
-      "description": "Dorn ensina: ninguém conserta ponte sem ferramenta própria.",
-      "xp": 120,
-      "recompensa": {
-        "moedas": 80
-      },
-      "objectives": [
-        {
-          "id": "forjar",
-          "type": "forjar",
-          "item": "hammer_ferro",
-          "text": "Forje o Martelo do Ferreiro na bigorna"
-        },
-        {
-          "id": "mostrar",
-          "type": "talk",
-          "npc": "Dorn",
-          "text": "Mostre o martelo ao Ferreiro Dorn",
-          "requer": [
-            "forjar"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "consertar_ponte",
-      "title": "Braço a Braço",
-      "description": "Dorn ensina, você bate. A ponte não vai se levantar sozinha.",
-      "xp": 180,
-      "recompensa": {
-        "moedas": 150
-      },
-      "aoConcluir": {
-        "cena": "ponte_pronta"
-      },
-      "objectives": [
-        {
-          "id": "martelar",
-          "type": "martelar",
-          "item": "ponte",
-          "quantidade": 10,
-          "text": "Martele a ponte ao lado do Ferreiro Dorn"
-        }
-      ]
-    },
-    {
-      "id": "o_primeiro_ressonador",
-      "title": "O Som Que Se Perde",
-      "description": "Sem um Ressonador, todo Eco derrotado leva sua música embora.",
-      "xp": 200,
-      "recompensa": {
-        "moedas": 100
-      },
-      "objectives": [
-        {
-          "id": "forjar",
-          "type": "forjar",
-          "item": "reson_cobre",
-          "text": "Forje um Ressonador de Cobre"
-        },
-        {
-          "id": "fragmentos",
-          "type": "coletar",
-          "item": "fragmento",
-          "quantidade": 8,
-          "text": "Capture fragmentos dos Ecos na Clareira",
-          "requer": [
-            "forjar"
-          ]
-        },
-        {
-          "id": "voltar",
-          "type": "talk",
-          "npc": "Antony",
-          "text": "Leve os fragmentos ao Sr. Antony",
-          "requer": [
-            "forjar",
-            "fragmentos"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "primeira_nota",
-      "title": "A Primeira Nota",
-      "description": "Fragmentos não tocam. É preciso condensá-los numa nota inteira.",
-      "xp": 250,
-      "recompensa": {
-        "moedas": 120
-      },
-      "objectives": [
-        {
-          "id": "sintetizar",
-          "type": "sintetizar",
-          "item": "nota",
-          "quantidade": 1,
-          "text": "Condense sua primeira nota no Altar das Escalas"
-        }
-      ],
-      "aoConcluir": {
-        "cena": "primeira_voz"
-      }
-    },
-    {
-      "id": "a_escala_maior",
-      "title": "A Escala Maior",
-      "description": "Sete notas nas distâncias certas. T · T · S · T · T · T · S.",
-      "xp": 400,
-      "recompensa": {
-        "moedas": 250
-      },
-      "objectives": [
-        {
-          "id": "naturais",
-          "type": "sintetizar",
-          "item": "natural",
-          "quantidade": 7,
-          "text": "Condense as sete notas naturais"
-        },
-        {
-          "id": "tons",
-          "type": "coletar",
-          "item": "tom",
-          "quantidade": 5,
-          "text": "Reúna 5 Tons (Ecos Cristalinos)"
-        },
-        {
-          "id": "semitons",
-          "type": "coletar",
-          "item": "semitom",
-          "quantidade": 2,
-          "text": "Reúna 2 Semitons (Ecos Cromáticos)"
-        }
-      ]
-    },
-    {
-      "id": "patrulha_do_patio",
-      "title": "O Caminho Guardado",
-      "description": "O Sr. Antony disse que o Salão do Forjador fica além do pátio em ruínas. E que o pátio não está vazio.",
-      "xp": 60,
-      "objectives": [
-        {
-          "id": "chegar",
-          "type": "chegar",
-          "item": "custom_1786501580114_289",
-          "text": "Atravesse o Pátio das Ruínas e chegue ao Salão do Forjador"
-        }
-      ],
-      "path_waypoints": {}
-    },
-    {
-      "id": "memoria_do_pipo",
-      "title": "O Que Não Se Esquece",
-      "description": "Ninguém na cidade lembra do Pipo. Guardar o nome dele antes que você também esqueça.",
-      "xp": 120,
-      "objectives": [
-        {
-          "id": "selar",
-          "text": "Sele a memória do Pipo nas Cavernas da Clave",
-          "completed": false,
-          "type": "selar",
-          "item": "pipo"
-        }
-      ],
-      "path_waypoints": {}
-    },
-    {
-      "id": "atras_dos_dissonantes",
-      "title": "Atrás dos Dissonantes",
-      "description": "Nocth e Vexor voltaram para a Floresta Sombria. O Pipo foi com eles.",
-      "xp": 200,
-      "objectives": [
-        {
-          "id": "floresta",
-          "text": "Chegue à Floresta Sombria",
-          "completed": false,
-          "type": "chegar",
-          "item": "custom_1785254196551_992"
-        }
-      ],
-      "path_waypoints": {}
-    },
-    {
-      "id": "madeira_e_pedra",
-      "title": "Um Favor ao Ferreiro",
-      "description": "O Sr. Antony pediu que você levasse o Pipo para juntar material para o Dorn. O menino insistiu.",
-      "xp": 90,
-      "objectives": [
-        {
-          "id": "madeira",
-          "type": "coletar",
-          "item": "wood",
-          "quantidade": 3,
-          "text": "Junte 3 de Madeira Rústica"
-        },
-        {
-          "id": "pedra",
-          "type": "coletar",
-          "item": "stone",
-          "quantidade": 3,
-          "text": "Junte 3 de Pedra Bruta"
-        },
-        {
-          "id": "entregar",
-          "type": "talk",
-          "npc": "Dorn",
-          "text": "Leve tudo ao Ferreiro Dorn",
-          "requer": [
-            "madeira",
-            "pedra"
-          ]
-        }
-      ],
-      "path_waypoints": {}
+     "id": "meet_mentor",
+     "type": "talk",
+     "npc": "Antony",
+     "text": "Encontre seu mentor na Praça Central"
     }
-  ]
+   ],
+   "path_waypoints": {
+    "custom_1785869541494_557": [
+     {
+      "x": 512,
+      "y": 530
+     },
+     {
+      "x": 512,
+      "y": 430
+     },
+     {
+      "x": 512,
+      "y": 330
+     },
+     {
+      "x": 512,
+      "y": 300
+     }
+    ],
+    "custom_1785881037059_214": [
+     {
+      "x": 512,
+      "y": 280
+     },
+     {
+      "x": 512,
+      "y": 200
+     },
+     {
+      "x": 512,
+      "y": 80
+     }
+    ],
+    "custom_1785884200706_430": [
+     {
+      "x": 512,
+      "y": 280
+     },
+     {
+      "x": 512,
+      "y": 200
+     },
+     {
+      "x": 512,
+      "y": 80
+     }
+    ],
+    "custom_1785880661560_858": [
+     {
+      "x": 512,
+      "y": 280
+     },
+     {
+      "x": 512,
+      "y": 200
+     },
+     {
+      "x": 512,
+      "y": 80
+     }
+    ]
+   }
+  },
+  {
+   "id": "amizade_importa",
+   "title": "Amizade Importa",
+   "description": "O Sr. Antony quer que você conheça a cidade pelas pessoas dela.",
+   "xp": 90,
+   "recompensa": {
+    "moedas": 60
+   },
+   "objectives": [
+    {
+     "id": "bardo",
+     "type": "talk",
+     "npc": "Lucian",
+     "text": "Fale com o Bardo Lucian"
+    },
+    {
+     "id": "mercador",
+     "type": "talk",
+     "npc": "Tibério",
+     "text": "Fale com o Mercador Tibério"
+    },
+    {
+     "id": "voltar",
+     "type": "talk",
+     "npc": "Antony",
+     "text": "Volte ao Sr. Antony",
+     "requer": [
+      "bardo",
+      "mercador"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ponte_de_acordelot",
+   "title": "A Ponte Quebrada",
+   "description": "O Ferreiro Dorn precisa de material para reconstruir a ponte na entrada da cidade.",
+   "xp": 140,
+   "recompensa": {
+    "moedas": 120
+   },
+   "objectives": [
+    {
+     "id": "madeira",
+     "type": "coletar",
+     "item": "wood",
+     "quantidade": 6,
+     "text": "Colete madeira na floresta"
+    },
+    {
+     "id": "pedra",
+     "type": "coletar",
+     "item": "stone",
+     "quantidade": 4,
+     "text": "Colete pedra na floresta"
+    },
+    {
+     "id": "entregar",
+     "type": "talk",
+     "npc": "Dorn",
+     "text": "Leve o material ao Ferreiro Dorn",
+     "requer": [
+      "madeira",
+      "pedra"
+     ]
+    }
+   ],
+   "custo": {
+    "wood": 6,
+    "stone": 4
+   }
+  },
+  {
+   "id": "martelo_do_ferreiro",
+   "title": "O Martelo do Aprendiz",
+   "description": "Dorn ensina: ninguém conserta ponte sem ferramenta própria.",
+   "xp": 120,
+   "recompensa": {
+    "moedas": 80
+   },
+   "objectives": [
+    {
+     "id": "forjar",
+     "type": "forjar",
+     "item": "hammer_ferro",
+     "text": "Forje o Martelo do Ferreiro na bigorna"
+    },
+    {
+     "id": "mostrar",
+     "type": "talk",
+     "npc": "Dorn",
+     "text": "Mostre o martelo ao Ferreiro Dorn",
+     "requer": [
+      "forjar"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "consertar_ponte",
+   "title": "Braço a Braço",
+   "description": "Dorn ensina, você bate. A ponte não vai se levantar sozinha.",
+   "xp": 180,
+   "recompensa": {
+    "moedas": 150
+   },
+   "aoConcluir": {
+    "cena": "ponte_pronta"
+   },
+   "objectives": [
+    {
+     "id": "martelar",
+     "type": "martelar",
+     "item": "ponte",
+     "quantidade": 10,
+     "text": "Martele a ponte ao lado do Ferreiro Dorn"
+    }
+   ]
+  },
+  {
+   "id": "o_primeiro_ressonador",
+   "title": "O Som Que Se Perde",
+   "description": "Sem um Ressonador, todo Eco derrotado leva sua música embora.",
+   "xp": 200,
+   "recompensa": {
+    "moedas": 100
+   },
+   "objectives": [
+    {
+     "id": "forjar",
+     "type": "forjar",
+     "item": "reson_cobre",
+     "text": "Forje um Ressonador de Cobre"
+    },
+    {
+     "id": "fragmentos",
+     "type": "coletar",
+     "item": "fragmento",
+     "quantidade": 8,
+     "text": "Capture fragmentos dos Ecos na Clareira",
+     "requer": [
+      "forjar"
+     ]
+    },
+    {
+     "id": "voltar",
+     "type": "talk",
+     "npc": "Antony",
+     "text": "Leve os fragmentos ao Sr. Antony",
+     "requer": [
+      "forjar",
+      "fragmentos"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "primeira_nota",
+   "title": "A Primeira Nota",
+   "description": "Fragmentos não tocam. É preciso condensá-los numa nota inteira.",
+   "xp": 250,
+   "recompensa": {
+    "moedas": 120
+   },
+   "objectives": [
+    {
+     "id": "sintetizar",
+     "type": "sintetizar",
+     "item": "nota",
+     "quantidade": 1,
+     "text": "Condense sua primeira nota no Altar das Escalas"
+    }
+   ],
+   "aoConcluir": {
+    "cena": "primeira_voz"
+   }
+  },
+  {
+   "id": "a_escala_maior",
+   "title": "A Escala Maior",
+   "description": "Sete notas nas distâncias certas. T · T · S · T · T · T · S.",
+   "xp": 400,
+   "recompensa": {
+    "moedas": 250
+   },
+   "objectives": [
+    {
+     "id": "naturais",
+     "type": "sintetizar",
+     "item": "natural",
+     "quantidade": 7,
+     "text": "Condense as sete notas naturais"
+    },
+    {
+     "id": "tons",
+     "type": "coletar",
+     "item": "tom",
+     "quantidade": 5,
+     "text": "Reúna 5 Tons (Ecos Cristalinos)"
+    },
+    {
+     "id": "semitons",
+     "type": "coletar",
+     "item": "semitom",
+     "quantidade": 2,
+     "text": "Reúna 2 Semitons (Ecos Cromáticos)"
+    }
+   ]
+  },
+  {
+   "id": "patrulha_do_patio",
+   "title": "O Caminho Guardado",
+   "description": "O Sr. Antony disse que o Salão do Forjador fica além do pátio em ruínas. E que o pátio não está vazio.",
+   "xp": 60,
+   "objectives": [
+    {
+     "id": "chegar",
+     "type": "chegar",
+     "item": "custom_1786501580114_289",
+     "text": "Atravesse o Pátio das Ruínas e chegue ao Salão do Forjador"
+    }
+   ],
+   "path_waypoints": {}
+  },
+  {
+   "id": "memoria_do_pipo",
+   "title": "O Que Não Se Esquece",
+   "description": "Ninguém na cidade lembra do Pipo. Guardar o nome dele antes que você também esqueça.",
+   "xp": 120,
+   "objectives": [
+    {
+     "id": "selar",
+     "text": "Sele a memória do Pipo nas Cavernas da Clave",
+     "completed": false,
+     "type": "selar",
+     "item": "pipo"
+    }
+   ],
+   "path_waypoints": {}
+  },
+  {
+   "id": "atras_dos_dissonantes",
+   "title": "Atrás dos Dissonantes",
+   "description": "Nocth e Vexor voltaram para a Floresta Sombria. O Pipo foi com eles.",
+   "xp": 200,
+   "objectives": [
+    {
+     "id": "floresta",
+     "text": "Chegue à Floresta Sombria",
+     "completed": false,
+     "type": "chegar",
+     "item": "custom_1786547045830_14"
+    }
+   ],
+   "path_waypoints": {}
+  },
+  {
+   "id": "madeira_e_pedra",
+   "title": "Um Favor ao Ferreiro",
+   "description": "O Sr. Antony pediu que você levasse o Pipo para juntar material para o Dorn. O menino insistiu.",
+   "xp": 90,
+   "objectives": [
+    {
+     "id": "madeira",
+     "type": "coletar",
+     "item": "wood",
+     "quantidade": 3,
+     "text": "Junte 3 de Madeira Rústica"
+    },
+    {
+     "id": "pedra",
+     "type": "coletar",
+     "item": "stone",
+     "quantidade": 3,
+     "text": "Junte 3 de Pedra Bruta"
+    },
+    {
+     "id": "entregar",
+     "type": "talk",
+     "npc": "Dorn",
+     "text": "Leve tudo ao Ferreiro Dorn",
+     "requer": [
+      "madeira",
+      "pedra"
+     ]
+    }
+   ],
+   "path_waypoints": {}
+  }
+ ]
 }

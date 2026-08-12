@@ -1,0 +1,1610 @@
+{
+  "types": {
+    "tempo_toad": {
+      "name": "Sapo do Compasso",
+      "sprite": "assets/monsters/tempo_toad.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 62,
+      "hp": 30,
+      "damage": 0,
+      "speed": 0.9,
+      "aggroRange": 150,
+      "touchRange": 34,
+      "pacifico": true,
+      "persegue": false,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        }
+      ]
+    },
+    "octave_owl": {
+      "name": "Coruja das Oitavas",
+      "sprite": "assets/monsters/octave_owl.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        1,
+        1
+      ],
+      "height": 66,
+      "hp": 26,
+      "damage": 0,
+      "speed": 1.5,
+      "aggroRange": 200,
+      "touchRange": 34,
+      "pacifico": true,
+      "persegue": false,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        }
+      ]
+    },
+    "bass_crawler": {
+      "name": "Rastejante Grave",
+      "sprite": "assets/monsters/bass_crawler.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 58,
+      "hp": 40,
+      "damage": 0,
+      "speed": 0.7,
+      "aggroRange": 140,
+      "touchRange": 36,
+      "pacifico": true,
+      "persegue": false,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        }
+      ]
+    },
+    "treble_flyer": {
+      "name": "Voador Agudo",
+      "sprite": "assets/monsters/treble_flyer.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 60,
+      "hp": 22,
+      "damage": 0,
+      "speed": 1.7,
+      "aggroRange": 210,
+      "touchRange": 32,
+      "pacifico": true,
+      "persegue": false,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        }
+      ]
+    },
+    "coda_crawler": {
+      "name": "Rastejante da Coda",
+      "sprite": "assets/monsters/coda_crawler.jpg",
+      "cols": 4,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 60,
+      "hp": 35,
+      "damage": 0,
+      "speed": 0.8,
+      "aggroRange": 150,
+      "touchRange": 34,
+      "pacifico": true,
+      "persegue": false,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        }
+      ]
+    },
+    "shiker": {
+      "name": "Shiker",
+      "sprite": "assets/monsters/shiker.jpg",
+      "cols": 4,
+      "rows": 3,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 74,
+      "hp": 60,
+      "damage": 6,
+      "speed": 1.7,
+      "aggroRange": 320,
+      "touchRange": 38,
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 4,
+      "attackWindup": 190,
+      "attackMs": 460,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 1,
+          "chance": 0.55
+        }
+      ]
+    },
+    "tambor_selvagem": {
+      "name": "Tambor Selvagem",
+      "sprite": "assets/monsters/tambor_selvagem.jpg",
+      "cols": 4,
+      "rows": 3,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 66,
+      "hp": 95,
+      "damage": 9,
+      "speed": 0.75,
+      "aggroRange": 165,
+      "touchRange": 40,
+      "persegue": true,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 2,
+          "max": 4
+        }
+      ],
+      "idleRow": 0,
+      "idleFrames": 4,
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 3,
+      "attackMs": 520
+    },
+    "espectro_do_cello": {
+      "name": "Espectro do Violoncelo",
+      "sprite": "assets/monsters/espectro_do_cello.jpg",
+      "cols": 6,
+      "rows": 3,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 72,
+      "hp": 45,
+      "damage": 6,
+      "speed": 1.9,
+      "aggroRange": 260,
+      "touchRange": 34,
+      "persegue": true,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 3
+        }
+      ],
+      "idleRow": 0,
+      "idleFrames": 6,
+      "walkRow": 0,
+      "walkFrames": 6,
+      "attackRow": 1,
+      "attackFrames": 5,
+      "attackMs": 480
+    },
+    "colosso_grave": {
+      "name": "Colosso Grave",
+      "sprite": "assets/monsters/colosso_grave.jpg",
+      "cols": 4,
+      "rows": 3,
+      "cell": [
+        0,
+        0
+      ],
+      "height": 88,
+      "hp": 160,
+      "damage": 13,
+      "speed": 0.65,
+      "aggroRange": 190,
+      "touchRange": 46,
+      "persegue": true,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 3,
+          "max": 6
+        }
+      ],
+      "idleRow": 0,
+      "idleFrames": 4,
+      "walkRow": 1,
+      "walkFrames": 4,
+      "attackRow": 2,
+      "attackFrames": 3,
+      "attackMs": 620
+    },
+    "nocturno_alado": {
+      "name": "Noturno Alado",
+      "sprite": "assets/monsters/nocturno_alado.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 74,
+      "hp": 55,
+      "damage": 7,
+      "speed": 1.45,
+      "aggroRange": 230,
+      "touchRange": 40,
+      "persegue": true,
+      "xp": 26,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 3
+        },
+        {
+          "item": "fragmento",
+          "min": 1,
+          "max": 2,
+          "chance": 0.5
+        }
+      ]
+    },
+    "aranha_da_pauta": {
+      "name": "Aranha da Pauta",
+      "sprite": "assets/monsters/aranha_da_pauta.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 62,
+      "hp": 45,
+      "damage": 6,
+      "speed": 1.15,
+      "aggroRange": 190,
+      "touchRange": 38,
+      "persegue": true,
+      "xp": 20,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 1,
+          "max": 2
+        },
+        {
+          "item": "fragmento",
+          "min": 1,
+          "max": 3,
+          "chance": 0.6
+        }
+      ]
+    },
+    "maestro_esqueleto": {
+      "name": "Maestro Ossudo",
+      "sprite": "assets/monsters/maestro_esqueleto.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 86,
+      "hp": 80,
+      "damage": 10,
+      "speed": 0.95,
+      "aggroRange": 240,
+      "touchRange": 46,
+      "persegue": true,
+      "xp": 40,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 2,
+          "max": 4
+        },
+        {
+          "item": "fragmento",
+          "min": 2,
+          "max": 4,
+          "chance": 0.7
+        }
+      ]
+    },
+    "dama_do_silencio": {
+      "name": "Dama do Silêncio",
+      "sprite": "assets/monsters/dama_do_silencio.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 92,
+      "hp": 95,
+      "damage": 12,
+      "speed": 0.8,
+      "aggroRange": 260,
+      "touchRange": 48,
+      "persegue": true,
+      "xp": 52,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 3,
+          "max": 6
+        },
+        {
+          "item": "fragmento",
+          "min": 2,
+          "max": 5,
+          "chance": 0.8
+        }
+      ]
+    },
+    "colosso_dissonante": {
+      "name": "Colosso Dissonante",
+      "sprite": "assets/monsters/colosso_dissonante.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 118,
+      "hp": 420,
+      "damage": 20,
+      "speed": 0.62,
+      "aggroRange": 320,
+      "touchRange": 62,
+      "persegue": true,
+      "xp": 220,
+      "chefe": true,
+      "drops": [
+        {
+          "item": "clave",
+          "min": 12,
+          "max": 24
+        },
+        {
+          "item": "fragmento",
+          "min": 8,
+          "max": 14,
+          "chance": 1
+        }
+      ]
+    },
+    "nocth": {
+      "name": "Nocth",
+      "sprite": "assets/personagens/nocth.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 86,
+      "hp": 9999,
+      "damage": 0,
+      "speed": 0.9,
+      "aggroRange": 0,
+      "touchRange": 0,
+      "pacifico": true,
+      "persegue": false,
+      "xp": 0,
+      "drops": []
+    },
+    "vexor": {
+      "name": "Vexor",
+      "sprite": "assets/personagens/vexor.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 86,
+      "hp": 9999,
+      "damage": 0,
+      "speed": 0.9,
+      "aggroRange": 0,
+      "touchRange": 0,
+      "pacifico": true,
+      "persegue": false,
+      "xp": 0,
+      "drops": []
+    },
+    "eco_do": {
+      "name": "Eco do Dó",
+      "lore": "Alegre e saltitante. Vibra com pureza e novos começos.",
+      "sprite": "assets/monsters/eco_do.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 54,
+      "hp": 26,
+      "damage": 0,
+      "speed": 1.25,
+      "aggroRange": 150,
+      "touchRange": 30,
+      "pacifico": true,
+      "persegue": false,
+      "exigeRessonador": true,
+      "xp": 14,
+      "notaDoEco": "do",
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 2,
+          "max": 4
+        }
+      ]
+    },
+    "eco_re": {
+      "name": "Eco do Ré",
+      "lore": "Curioso e brincalhão. Traz ritmo, movimento e crescimento.",
+      "sprite": "assets/monsters/eco_re.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 54,
+      "hp": 26,
+      "damage": 0,
+      "speed": 1.25,
+      "aggroRange": 150,
+      "touchRange": 30,
+      "pacifico": true,
+      "persegue": false,
+      "exigeRessonador": true,
+      "xp": 14,
+      "notaDoEco": "re",
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 2,
+          "max": 4
+        }
+      ]
+    },
+    "eco_mi": {
+      "name": "Eco do Mi",
+      "lore": "Radiante e otimista. Sua luz aquece e inspira.",
+      "sprite": "assets/monsters/eco_mi.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 54,
+      "hp": 26,
+      "damage": 0,
+      "speed": 1.25,
+      "aggroRange": 150,
+      "touchRange": 30,
+      "pacifico": true,
+      "persegue": false,
+      "exigeRessonador": true,
+      "xp": 14,
+      "notaDoEco": "mi",
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 2,
+          "max": 4
+        }
+      ]
+    },
+    "eco_fa": {
+      "name": "Eco do Fá",
+      "lore": "Livre e sereno. Desliza nas brisas levando harmonia.",
+      "sprite": "assets/monsters/eco_fa.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 54,
+      "hp": 26,
+      "damage": 0,
+      "speed": 1.25,
+      "aggroRange": 150,
+      "touchRange": 30,
+      "pacifico": true,
+      "persegue": false,
+      "exigeRessonador": true,
+      "xp": 14,
+      "notaDoEco": "fa",
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 2,
+          "max": 4
+        }
+      ]
+    },
+    "eco_sol": {
+      "name": "Eco do Sol",
+      "lore": "Profundo e sábio. Sua presença fortalece e equilibra.",
+      "sprite": "assets/monsters/eco_sol.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 54,
+      "hp": 26,
+      "damage": 0,
+      "speed": 1.25,
+      "aggroRange": 150,
+      "touchRange": 30,
+      "pacifico": true,
+      "persegue": false,
+      "exigeRessonador": true,
+      "xp": 14,
+      "notaDoEco": "sol",
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 2,
+          "max": 4
+        }
+      ]
+    },
+    "eco_la": {
+      "name": "Eco do Lá",
+      "lore": "Doce e sonhador. Canta emoções e desperta encantos.",
+      "sprite": "assets/monsters/eco_la.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 54,
+      "hp": 26,
+      "damage": 0,
+      "speed": 1.25,
+      "aggroRange": 150,
+      "touchRange": 30,
+      "pacifico": true,
+      "persegue": false,
+      "exigeRessonador": true,
+      "xp": 14,
+      "notaDoEco": "la",
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 2,
+          "max": 4
+        }
+      ]
+    },
+    "eco_si": {
+      "name": "Eco do Si",
+      "lore": "Esperto e misterioso. Guarda segredos e conduz ao destino.",
+      "sprite": "assets/monsters/eco_si.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": [
+        0,
+        0
+      ],
+      "idleRow": 0,
+      "walkRow": 1,
+      "attackRow": 2,
+      "deathRow": 3,
+      "height": 54,
+      "hp": 26,
+      "damage": 0,
+      "speed": 1.25,
+      "aggroRange": 150,
+      "touchRange": 30,
+      "pacifico": true,
+      "persegue": false,
+      "exigeRessonador": true,
+      "xp": 14,
+      "notaDoEco": "si",
+      "drops": [
+        {
+          "item": "fragmento",
+          "min": 2,
+          "max": 4
+        }
+      ]
+    }
+  },
+  "spawns": [
+    {
+      "id": "m1",
+      "type": "tempo_toad",
+      "mapKey": "2_1",
+      "x": 378,
+      "y": 498,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "m3",
+      "type": "octave_owl",
+      "mapKey": "2_1",
+      "x": 528,
+      "y": 309,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "m4",
+      "type": "treble_flyer",
+      "mapKey": "2_1",
+      "x": 752,
+      "y": 118,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "m5",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 150,
+      "y": 133,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "m6",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 307,
+      "y": 488,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "m7",
+      "type": "octave_owl",
+      "mapKey": "3_1",
+      "x": 749,
+      "y": 361,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "m8",
+      "type": "bass_crawler",
+      "mapKey": "3_0",
+      "x": 300,
+      "y": 320,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "m9",
+      "type": "coda_crawler",
+      "mapKey": "3_0",
+      "x": 640,
+      "y": 420,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "m10",
+      "type": "treble_flyer",
+      "mapKey": "3_0",
+      "x": 800,
+      "y": 260,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "eco_mi_clareira_1",
+      "type": "eco_mi",
+      "mapKey": "custom_1785254692668_431",
+      "x": 500,
+      "y": 143,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "eco_re_clareira_2",
+      "type": "eco_re",
+      "mapKey": "custom_1785254692668_431",
+      "x": 338,
+      "y": 228,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "eco_fa_clareira_3",
+      "type": "eco_fa",
+      "mapKey": "custom_1785254692668_431",
+      "x": 661,
+      "y": 212,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_la_clareira_4",
+      "type": "eco_la",
+      "mapKey": "custom_1785254692668_431",
+      "x": 325,
+      "y": 350,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_do_clareira_5",
+      "type": "eco_do",
+      "mapKey": "custom_1785254692668_431",
+      "x": 741,
+      "y": 247,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "bass_crawler_1785341970403",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 136,
+      "y": 243,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "bass_crawler_1785341970886",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 304,
+      "y": 127,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "bass_crawler_1785341971067",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 218,
+      "y": 273,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "bass_crawler_1785341971270",
+      "type": "bass_crawler",
+      "mapKey": "3_1",
+      "x": 310,
+      "y": 213,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "octave_owl_1785341994252",
+      "type": "octave_owl",
+      "mapKey": "3_1",
+      "x": 880,
+      "y": 484,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "octave_owl_1785341994446",
+      "type": "octave_owl",
+      "mapKey": "3_1",
+      "x": 861,
+      "y": 346,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342020242",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 404,
+      "y": 454,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342020478",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 413,
+      "y": 493,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342020642",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 496,
+      "y": 448,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342020825",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 483,
+      "y": 477,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342021005",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 327,
+      "y": 430,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342021291",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 641,
+      "y": 608,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "coda_crawler_1785342021489",
+      "type": "coda_crawler",
+      "mapKey": "3_1",
+      "x": 681,
+      "y": 628,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "tempo_toad_1785342067034",
+      "type": "tempo_toad",
+      "mapKey": "2_1",
+      "x": 428,
+      "y": 486,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "octave_owl_1785342079364",
+      "type": "octave_owl",
+      "mapKey": "2_1",
+      "x": 472,
+      "y": 354,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "treble_flyer_1785342091147",
+      "type": "treble_flyer",
+      "mapKey": "2_1",
+      "x": 792,
+      "y": 138,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "treble_flyer_1785342091546",
+      "type": "treble_flyer",
+      "mapKey": "2_1",
+      "x": 832,
+      "y": 168,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "treble_flyer_1785342093515",
+      "type": "treble_flyer",
+      "mapKey": "2_1",
+      "x": 872,
+      "y": 208,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "tambor_selvagem_1785902973788",
+      "type": "tambor_selvagem",
+      "mapKey": "custom_1785900374897_630",
+      "x": 247,
+      "y": 183,
+      "escala": 0.65,
+      "flipX": false
+    },
+    {
+      "id": "tambor_selvagem_1785903025257",
+      "type": "tambor_selvagem",
+      "mapKey": "custom_1785900374897_630",
+      "x": 200,
+      "y": 267,
+      "escala": 0.65,
+      "flipX": false
+    },
+    {
+      "id": "tambor_selvagem_1785903030475",
+      "type": "tambor_selvagem",
+      "mapKey": "custom_1785900374897_630",
+      "x": 269,
+      "y": 241,
+      "escala": 0.65,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982518833",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 862,
+      "y": 404,
+      "escala": 0.6,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982526420",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 923,
+      "y": 378,
+      "escala": 0.5,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982526921",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 903,
+      "y": 435,
+      "escala": 0.4,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982527354",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 889,
+      "y": 501,
+      "escala": 0.5,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982542854",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 961,
+      "y": 444,
+      "escala": 0.5,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982574609",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785967453140_198",
+      "x": 431,
+      "y": 105,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982588742",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785967453140_198",
+      "x": 571,
+      "y": 111,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982596260",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785967453140_198",
+      "x": 505,
+      "y": 139,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "maestro_esqueleto_1785982623880",
+      "type": "maestro_esqueleto",
+      "mapKey": "custom_1785967453140_198",
+      "x": 718,
+      "y": 96,
+      "escala": 0.6,
+      "flipX": false
+    },
+    {
+      "id": "maestro_esqueleto_1785982669834",
+      "type": "maestro_esqueleto",
+      "mapKey": "custom_1785967453140_198",
+      "x": 653,
+      "y": 220,
+      "escala": 0.5,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982704051",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 219,
+      "y": 116,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982709467",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 287,
+      "y": 129,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982711484",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785967453140_198",
+      "x": 225,
+      "y": 160,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "dama_do_silencio_1785982725552",
+      "type": "dama_do_silencio",
+      "mapKey": "custom_1785967453140_198",
+      "x": 121,
+      "y": 441,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "dama_do_silencio_1785982730569",
+      "type": "dama_do_silencio",
+      "mapKey": "custom_1785967453140_198",
+      "x": 134,
+      "y": 498,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982769573",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785967453140_198",
+      "x": 429,
+      "y": 469,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982773405",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785967453140_198",
+      "x": 487,
+      "y": 515,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982775039",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785967453140_198",
+      "x": 527,
+      "y": 463,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982889751",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785976286672_61",
+      "x": 718,
+      "y": 109,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982895480",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785976286672_61",
+      "x": 757,
+      "y": 91,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982895964",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785976286672_61",
+      "x": 764,
+      "y": 133,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982896414",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785976286672_61",
+      "x": 821,
+      "y": 130,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785982897398",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785976286672_61",
+      "x": 847,
+      "y": 167,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "maestro_esqueleto_1785982925418",
+      "type": "maestro_esqueleto",
+      "mapKey": "custom_1785976286672_61",
+      "x": 476,
+      "y": 106,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "maestro_esqueleto_1785982933721",
+      "type": "maestro_esqueleto",
+      "mapKey": "custom_1785976286672_61",
+      "x": 439,
+      "y": 150,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "maestro_esqueleto_1785982940006",
+      "type": "maestro_esqueleto",
+      "mapKey": "custom_1785976286672_61",
+      "x": 463,
+      "y": 189,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "maestro_esqueleto_1785982940451",
+      "type": "maestro_esqueleto",
+      "mapKey": "custom_1785976286672_61",
+      "x": 528,
+      "y": 190,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "dama_do_silencio_1785982967954",
+      "type": "dama_do_silencio",
+      "mapKey": "custom_1785976286672_61",
+      "x": 419,
+      "y": 352,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "dama_do_silencio_1785982971855",
+      "type": "dama_do_silencio",
+      "mapKey": "custom_1785976286672_61",
+      "x": 604,
+      "y": 408,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982986655",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785976286672_61",
+      "x": 131,
+      "y": 342,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982990658",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785976286672_61",
+      "x": 151,
+      "y": 406,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982991123",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785976286672_61",
+      "x": 188,
+      "y": 478,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982991388",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785976286672_61",
+      "x": 245,
+      "y": 390,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "nocturno_alado_1785982991605",
+      "type": "nocturno_alado",
+      "mapKey": "custom_1785976286672_61",
+      "x": 278,
+      "y": 449,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "aranha_da_pauta_1785983009658",
+      "type": "aranha_da_pauta",
+      "mapKey": "custom_1785976286672_61",
+      "x": 176,
+      "y": 139,
+      "escala": 1.2000000000000002,
+      "flipX": false
+    },
+    {
+      "id": "colosso_dissonante_1785983064829",
+      "type": "colosso_dissonante",
+      "mapKey": "custom_1785976318486_785",
+      "x": 509,
+      "y": 294,
+      "escala": 1.8000000000000007,
+      "flipX": false,
+      "chefeForca": 3.5
+    },
+    {
+      "id": "eco_re_1786203687404",
+      "type": "eco_re",
+      "mapKey": "custom_1786198430678_105",
+      "x": 444,
+      "y": 319,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_re_1786203700720",
+      "type": "eco_re",
+      "mapKey": "custom_1786198430678_105",
+      "x": 115,
+      "y": 252,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_re_1786203710362",
+      "type": "eco_re",
+      "mapKey": "custom_1786198430678_105",
+      "x": 245,
+      "y": 166,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_re_1786203727227",
+      "type": "eco_re",
+      "mapKey": "custom_1786198430678_105",
+      "x": 685,
+      "y": 169,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "colosso_grave_1786504247846",
+      "type": "colosso_grave",
+      "mapKey": "custom_1785900374897_630",
+      "x": 406,
+      "y": 176,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "colosso_grave_1786504254230",
+      "type": "colosso_grave",
+      "mapKey": "custom_1785900374897_630",
+      "x": 619,
+      "y": 173,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "tambor_selvagem_1786504280816",
+      "type": "tambor_selvagem",
+      "mapKey": "custom_1785900374897_630",
+      "x": 739,
+      "y": 213,
+      "escala": 0.40000000000000013,
+      "flipX": false
+    },
+    {
+      "id": "tambor_selvagem_1786504287433",
+      "type": "tambor_selvagem",
+      "mapKey": "custom_1785900374897_630",
+      "x": 797,
+      "y": 178,
+      "escala": 0.40000000000000013,
+      "flipX": false
+    },
+    {
+      "id": "tambor_selvagem_1786504287814",
+      "type": "tambor_selvagem",
+      "mapKey": "custom_1785900374897_630",
+      "x": 806,
+      "y": 236,
+      "escala": 0.40000000000000013,
+      "flipX": false
+    },
+    {
+      "id": "eco_si_1786545732877",
+      "type": "eco_si",
+      "mapKey": "custom_1785254692668_431",
+      "x": 420,
+      "y": 272,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_sol_1786545755078",
+      "type": "eco_sol",
+      "mapKey": "custom_1785254692668_431",
+      "x": 534,
+      "y": 200,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_mi_1786545772104",
+      "type": "eco_mi",
+      "mapKey": "custom_1785254692668_431",
+      "x": 465,
+      "y": 177,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_fa_1786545774945",
+      "type": "eco_fa",
+      "mapKey": "custom_1785254692668_431",
+      "x": 701,
+      "y": 232,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "eco_do_1786545778879",
+      "type": "eco_do",
+      "mapKey": "custom_1785254692668_431",
+      "x": 710,
+      "y": 304,
+      "escala": 0.6000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_sol_1786545786750",
+      "type": "eco_sol",
+      "mapKey": "custom_1785254692668_431",
+      "x": 574,
+      "y": 220,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "eco_si_1786545790599",
+      "type": "eco_si",
+      "mapKey": "custom_1785254692668_431",
+      "x": 460,
+      "y": 292,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_re_1786545793914",
+      "type": "eco_re",
+      "mapKey": "custom_1785254692668_431",
+      "x": 381,
+      "y": 209,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_la_1786545798899",
+      "type": "eco_la",
+      "mapKey": "custom_1785254692668_431",
+      "x": 365,
+      "y": 370,
+      "escala": 0.5000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_la_1786545799446",
+      "type": "eco_la",
+      "mapKey": "custom_1785254692668_431",
+      "x": 393,
+      "y": 323,
+      "escala": 0.5,
+      "flipX": false
+    },
+    {
+      "id": "eco_si_1786546055719",
+      "type": "eco_si",
+      "mapKey": "custom_1786545873824_206",
+      "x": 241,
+      "y": 140,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "eco_si_1786546065408",
+      "type": "eco_si",
+      "mapKey": "custom_1786545873824_206",
+      "x": 297,
+      "y": 118,
+      "escala": 0.9,
+      "flipX": false
+    },
+    {
+      "id": "eco_si_1786546065668",
+      "type": "eco_si",
+      "mapKey": "custom_1786545873824_206",
+      "x": 324,
+      "y": 159,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "eco_la_1786546082585",
+      "type": "eco_la",
+      "mapKey": "custom_1786545873824_206",
+      "x": 471,
+      "y": 128,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "eco_la_1786546084234",
+      "type": "eco_la",
+      "mapKey": "custom_1786545873824_206",
+      "x": 467,
+      "y": 172,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "eco_la_1786546084553",
+      "type": "eco_la",
+      "mapKey": "custom_1786545873824_206",
+      "x": 537,
+      "y": 147,
+      "escala": 0.9,
+      "flipX": false
+    },
+    {
+      "id": "eco_do_1786546134023",
+      "type": "eco_do",
+      "mapKey": "custom_1786545873824_206",
+      "x": 597,
+      "y": 187,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "eco_do_1786546137209",
+      "type": "eco_do",
+      "mapKey": "custom_1786545873824_206",
+      "x": 637,
+      "y": 207,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_do_1786546140138",
+      "type": "eco_do",
+      "mapKey": "custom_1786545873824_206",
+      "x": 592,
+      "y": 221,
+      "escala": 0.7000000000000001,
+      "flipX": false
+    },
+    {
+      "id": "eco_mi_1786546154509",
+      "type": "eco_mi",
+      "mapKey": "custom_1786545873824_206",
+      "x": 346,
+      "y": 258,
+      "escala": 1,
+      "flipX": false
+    }
+  ]
+}

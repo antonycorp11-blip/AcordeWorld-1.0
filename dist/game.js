@@ -4818,6 +4818,11 @@ async function loadMonsters() {
     };
   });
 
+  // Os Ecos que o jogador invocou na fazenda não estão no monsters.json — são dele, e
+  // vêm do save. Precisa ser aqui: `monsters` acabou de ser reescrito acima, e carregar
+  // antes disso seria jogá-los fora no mesmo quadro.
+  if (IS_PLAY_BUILD) carregarEcosDaFazenda();
+
   // O mapa que está aberto pede as folhas dele agora; o resto espera ser pisado.
   garantirFolhasDoMapa(currentKey);
   // No editor a paleta de monstros precisa de todas as miniaturas, mas isso pode chegar
@@ -4898,16 +4903,46 @@ const PASSEIO = {
   velocidade: 0.42,  // fração da velocidade de perseguição
 };
 
+// ── Temperamento: o passeio de cada bicho ─────────────────────────────────────
+// Um sorteio só para todos fazia vinte e um Ecos numa clareira andarem exatamente da
+// mesma maneira, e o campo parecia um só bicho copiado. Cada temperamento mexe em quatro
+// números do passeio e, em três casos, no RUMO — e o rumo é onde a personalidade aparece.
+//
+// A escolha não é decorativa: o temperamento vem da FUNÇÃO da nota no campo harmônico.
+// A tônica fica onde está porque é para ela que a música volta; a sensível não suporta
+// ficar perto sem resolver, e foge. Quem sabe harmonia reconhece a nota pelo jeito de
+// andar antes de encostar o Ressonador nela — é a teoria virando jogo, não texto.
+const TEMPERAMENTOS = {
+  firme:       { raio: 0.30, parada: 2.2, passo: 0.7, vel: 0.7 },
+  inquieto:    { raio: 0.55, parada: 0.30, passo: 0.40, vel: 1.1 },
+  flutuante:   { raio: 1.20, parada: 1.3, passo: 1.8, vel: 0.6 },
+  puxa:        { raio: 1.35, parada: 0.7, passo: 1.5, vel: 0.9, rumo: 'teimoso' },
+  agitado:     { raio: 1.60, parada: 0.35, passo: 1.2, vel: 1.4 },
+  melancolico: { raio: 0.85, parada: 1.6, passo: 1.4, vel: 0.6, rumo: 'circulo' },
+  esquivo:     { raio: 1.10, parada: 0.5, passo: 0.8, vel: 1.3, rumo: 'foge' },
+};
+function temperamentoDe(def) {
+  return TEMPERAMENTOS[def.temperamento] || { raio: 1, parada: 1, passo: 1, vel: 1 };
+}
+
 function atualizarRotina(m, def, now) {
-  if (!m.rotina) m.rotina = { estado: 'parado', ate: now + Math.random() * PASSEIO.paradaMax };
+  const t = temperamentoDe(def);
+  const paradaMin = PASSEIO.paradaMin * t.parada, paradaMax = PASSEIO.paradaMax * t.parada;
+  const passoMin  = PASSEIO.passoMin  * t.passo,  passoMax  = PASSEIO.passoMax  * t.passo;
+
+  if (!m.rotina) {
+    m.rotina = { estado: 'parado', ate: now + Math.random() * paradaMax };
+    // Rumo de nascença, para dois bichos do mesmo tipo não andarem em fila.
+    m.rotina.rumo = Math.random() * Math.PI * 2;
+  }
 
   const r = m.rotina;
   if (now < r.ate) {
     if (r.estado === 'andando') {
       const dx = r.alvoX - m.x, dy = r.alvoY - m.y;
       const d = Math.hypot(dx, dy);
-      if (d < 3) { r.estado = 'parado'; r.ate = now + PASSEIO.paradaMin + Math.random() * (PASSEIO.paradaMax - PASSEIO.paradaMin); return; }
-      const v = (def.speed || 1) * PASSEIO.velocidade;
+      if (d < 3) { r.estado = 'parado'; r.ate = now + paradaMin + Math.random() * (paradaMax - paradaMin); return; }
+      const v = (def.speed || 1) * PASSEIO.velocidade * t.vel;
       const nx = m.x + (dx / d) * v, ny = m.y + (dy / d) * v;
       if (canMoveTo(nx, ny)) {
         m.x = nx; m.y = ny;
@@ -4915,6 +4950,7 @@ function atualizarRotina(m, def, now) {
         m.andandoAte = now + 120;         // liga a animação de caminhada
       } else {
         r.estado = 'parado'; r.ate = now + 600;   // esbarrou: para e escolhe outro rumo
+        r.rumo = Math.random() * Math.PI * 2;     // e um rumo novo, senão bate na mesma pedra
       }
     }
     return;
@@ -4924,28 +4960,52 @@ function atualizarRotina(m, def, now) {
     // Escolhe um ponto perto de casa. Se não achar chão livre, fica mais um tempo
     // parado — bicho encurralado não atravessa pedra.
     const homeX = m.homeX ?? m.x, homeY = m.homeY ?? m.y;
-    for (let t = 0; t < 8; t++) {
-      const ang = Math.random() * Math.PI * 2;
-      const dist = 18 + Math.random() * PASSEIO.raio;
+    const raio = PASSEIO.raio * t.raio;
+    for (let tent = 0; tent < 8; tent++) {
+      // É aqui que o temperamento vira jeito de andar. Sem rumo declarado, o passeio é o
+      // sorteio de sempre; com rumo, o bicho tem intenção.
+      let ang;
+      if (t.rumo === 'teimoso') {
+        // A subdominante puxa: mantém o rumo e só o desvia de pouco. Dá a leitura de um
+        // bicho que está indo para algum lugar, em vez de sorteando o próximo passo.
+        r.rumo += (Math.random() - 0.5) * 0.7;
+        ang = r.rumo;
+      } else if (t.rumo === 'circulo') {
+        // A relativa menor roda e volta: o rumo avança um passo fixo por vez, então a
+        // trajetória fecha em círculo em torno de casa.
+        r.rumo += 0.9 + Math.random() * 0.3;
+        ang = r.rumo;
+      } else if (t.rumo === 'foge') {
+        // A sensível resolve para longe: perto do jogador, o rumo é o oposto dele.
+        const dxp = m.x - player.x, dyp = m.y - player.y;
+        const dp = Math.hypot(dxp, dyp);
+        ang = dp < 190 && dp > 0 ? Math.atan2(dyp, dxp) + (Math.random() - 0.5) * 0.8
+                                 : Math.random() * Math.PI * 2;
+      } else {
+        ang = Math.random() * Math.PI * 2;
+      }
+      const dist = 18 + Math.random() * raio;
       const ax = homeX + Math.cos(ang) * dist, ay = homeY + Math.sin(ang) * dist * 0.6;
       if (canMoveTo(ax, ay)) {
         r.estado = 'andando'; r.alvoX = ax; r.alvoY = ay;
-        r.ate = now + PASSEIO.passoMin + Math.random() * (PASSEIO.passoMax - PASSEIO.passoMin);
+        r.ate = now + passoMin + Math.random() * (passoMax - passoMin);
         return;
       }
     }
     // Sem para onde ir: só vira a cabeça, que já dá sinal de vida.
     m.facing = Math.random() < 0.5 ? -1 : 1;
-    r.ate = now + PASSEIO.paradaMin + Math.random() * PASSEIO.paradaMax;
+    r.ate = now + paradaMin + Math.random() * paradaMax;
   } else {
     r.estado = 'parado';
-    r.ate = now + PASSEIO.paradaMin + Math.random() * (PASSEIO.paradaMax - PASSEIO.paradaMin);
+    r.ate = now + paradaMin + Math.random() * (paradaMax - paradaMin);
   }
 }
 const ESPACO_ENTRE_MONSTROS = 46;
 
 function updateMonsters(now) {
-  if (!monstrosVivos() || currentScene !== 'world') return;
+  // A fazenda tambem tem bicho: Eco invocado mora la e precisa andar. Sem isto o
+  // temperamento nunca rodava na fazenda e o Eco pago com almas ficava de pedra.
+  if (!monstrosVivos() || (currentScene !== 'world' && currentScene !== 'farm')) return;
   atualizarCaptura(now);
 
   // Elege os que perseguem nesta rodada: os mais próximos primeiro. Os demais rondam
@@ -6923,6 +6983,7 @@ function ecoProntoPerto() {
   let melhor = null, menor = Infinity;
   liveMonsters().forEach(m => {
     if (!m.pronto) return;
+    if (m.daFazenda) return;   // bicho de casa, pago com almas: nao se captura de novo
     const d = Math.hypot(player.x - m.x, player.y - m.y);
     if (d < ALCANCE_RESSOAR && d < menor) { melhor = m; menor = d; }
   });
@@ -8482,6 +8543,8 @@ function actionAvailable() {
   // through talkTarget() — they need their own entry.
   if(spotTarget())return 'gather';
   if(propColetavelTarget())return 'gather';
+  if(ecoDaFazendaTarget())return 'alimentar';  // bicho de casa ganha do canteiro
+  if(habitatTarget())return 'invocar';
   if(plantaTarget())return 'fazenda';   // regar/colher usam a mesma ação da coleta
   if(signpostTarget())return 'travel';
   if(forgeDoorTarget())return 'enterForge';
@@ -8561,6 +8624,17 @@ function tryTalk() {
   const act=actionAvailable();
   if(act==='ressoar'){ ressoar(); return; }
   if(act==='attack'){ doAttack(); return; }
+  if(act==='invocar'){ const h = habitatTarget(); if (h) { abrirBarraDeInvocar(h); return; } }
+  if(act==='alimentar'){
+    const m = ecoDaFazendaTarget();
+    if (m) {
+      const c = comidaParaOEco(m);
+      if (!c) showToast('Nada para dar. Colha algo na fazenda primeiro.');
+      else if (!ecoComFome(m)) showToast(`${monsterDef(m).name} não está com fome ainda.`);
+      else alimentarEco(m, c.prop);
+      return;
+    }
+  }
   if(act==='fazenda'){ const p = plantaTarget(); if (p) { cuidarDaPlanta(p); return; } }
   if(act==='gather' && !spotTarget()){
     const alvo = propColetavelTarget();
@@ -13444,7 +13518,7 @@ function quadro(now){
       updateAmbient(now);renderSpeech(now);renderFloaters(now);
       // Prompt over whatever the action button is currently pointing at — not just
       // NPCs. A door you can't see is a door that doesn't exist.
-      const ACT_PROMPT={sortear:'E  ·  Tentar a Sorte',ressoar:'E  ·  RESSOAR',talk:'E  ·  Falar',travel:'E  ·  Viajar',gather:'E  ·  Coletar',forjar:'E  ·  Montar escala',enterForge:'E  ·  Entrar',martelar:'E  ·  Martelar',entrarPorta:'E  ·  Entrar'};
+      const ACT_PROMPT={sortear:'E  ·  Tentar a Sorte',ressoar:'E  ·  RESSOAR',talk:'E  ·  Falar',travel:'E  ·  Viajar',gather:'E  ·  Coletar',forjar:'E  ·  Montar escala',enterForge:'E  ·  Entrar',martelar:'E  ·  Martelar',entrarPorta:'E  ·  Entrar',invocar:'E  ·  Invocar Eco',alimentar:'E  ·  Alimentar'};
       const act=actionAvailable();
       const tgt = act==='talk' ? talkTarget()
                 : act==='travel' ? signpostTarget()
@@ -13452,6 +13526,8 @@ function quadro(now){
                 : act==='entrarPorta' ? portaTarget()
                 : act==='martelar' ? marteladaTarget()
                 : act==='gather' ? (spotTarget() || propColetavelTarget())
+                : act==='invocar' ? habitatTarget()
+                : act==='alimentar' ? ecoDaFazendaTarget()
                 : act==='fazenda' ? plantaTarget()
                 : act==='enterForge' ? forgeDoorTarget() : null;
       // O rótulo da planta muda com o estado dela: um botão só, três respostas.
@@ -20546,6 +20622,11 @@ function nomeDoItemColetado(chave) {
   if (chave === 'potions') return { nome: 'Poções', ico: '🧪' };
   if (chave === 'partitura') return { nome: 'Partituras', ico: '🎼' };
   if (chave.startsWith('palito_')) return { nome: 'Palito de tambor', ico: '🥁' };
+  // Alma de Eco: uma por nota. E ela que invoca o bicho na fazenda.
+  if (chave.startsWith('alma_')) {
+    const n = notaPorId(chave.slice(5));
+    return { nome: `Alma de ${n ? n.nome : chave.slice(5)}`, ico: '✦' };
+  }
   if (chave === 'fragmento_puro') return { nome: 'Fragmentos puros', arte: 'assets/itens/fragmentos/tom.png' };
   if (chave === 'tom') return { nome: 'Tons', arte: 'assets/itens/fragmentos/tom.png' };
   if (chave === 'semitom') return { nome: 'Semitons', arte: 'assets/itens/fragmentos/semitom.png' };
@@ -22501,9 +22582,168 @@ function alimentarEco(m, propId) {
   showToast(dobro ? `${def.name} reconheceu a própria nota — rendeu o dobro.`
                   : `${def.name} comeu. Comida da nota dele renderia mais.`);
   m.alimentadoEm = agoraNaFazenda();
+  salvarEcosDaFazenda();
   updateInventorySlotsUI();
   savePlayerData();
   return true;
+}
+
+// ── Almas de Eco e invocação na fazenda ───────────────────────────────────────
+// A alma fecha o laço da economia inteira: capturar Eco na Clareira dá a ALMA daquela
+// nota; várias almas da MESMA nota fazem nascer um Eco na fazenda; o Eco come o que a
+// fazenda planta e devolve fragmento; o fragmento sobe acorde. Nada disso é moeda
+// genérica — para criar o Eco do Ré é preciso ter ido atrás do Eco do Ré.
+const NOTAS_DE_ECO = ['do', 're', 'mi', 'fa', 'sol', 'la', 'si'];
+
+function almasDe(nota) { return playerInventory['alma_' + nota] || 0; }
+function custoDaInvocacao() { return (FAZENDA && FAZENDA.ecos.almasParaInvocar) || 5; }
+
+function habitatTarget() {
+  if (currentScene !== 'farm' || playerLocked || propParaColocar) return null;
+  let melhor = null, menor = Infinity;
+  for (const o of objetos) {
+    if (o.mapKey !== 'farm') continue;
+    const def = propDefs[o.prop] || {};
+    if (def.subcat !== 'Habitats') continue;
+    const d = Math.hypot(player.x - o.x, player.y - o.y);
+    if (d <= RAIO_DE_COLETA && d < menor) { melhor = o; menor = d; }
+  }
+  return melhor;
+}
+
+function ecosNoHabitat(o) {
+  return monsters.filter(m => !m.dead && m.mapKey === 'farm' && m.habitat === o.id).length;
+}
+
+function invocarEco(habitat, nota) {
+  const custo = custoDaInvocacao();
+  if (almasDe(nota) < custo) {
+    showToast(`Faltam ${custo - almasDe(nota)} Almas de ${NOME_DA_NOTA[nota]}. Elas vêm de capturar o Eco dessa nota.`);
+    return false;
+  }
+  const teto = (FAZENDA && FAZENDA.ecos.ecosPorHabitat) || 2;
+  if (ecosNoHabitat(habitat) >= teto) { showToast(`Este habitat já abriga ${teto}.`); return false; }
+  const tipo = 'eco_' + nota;
+  const def = monsterDefs[tipo];
+  if (!def) { showToast('Este Eco ainda não existe no jogo.'); return false; }
+  playerInventory['alma_' + nota] -= custo;
+  const alvo = pontoAndavelPerto(habitat.x + (Math.random() - 0.5) * 50, habitat.y + 26);
+  monsters.push({
+    id: `fz_eco_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    type: tipo, mapKey: 'farm',
+    x: alvo.x, y: alvo.y, homeX: alvo.x, homeY: alvo.y,
+    hp: def.hp ?? 20, maxHp: def.hp ?? 20,
+    dead: false, respawnAt: 0, hurtUntil: 0, lastHit: 0, facing: 1,
+    phase: Math.random() * Math.PI * 2,
+    // Nascido na fazenda: é bicho de casa, não presa. Não abre para ressonância e não
+    // volta a nascer se morrer — o jogador pagou almas por ele.
+    habitat: habitat.id, daFazenda: true, persegue: false,
+  });
+  addFloater(alvo.x, alvo.y - 40, `✦ Eco do ${NOME_DA_NOTA[nota]}`, '#a7f3d0');
+  showToast(`Um Eco do ${NOME_DA_NOTA[nota]} nasceu. Alimente-o com o que a fazenda dá.`);
+  salvarEcosDaFazenda();
+  savePlayerData();
+  updateInventorySlotsUI();
+  return true;
+}
+
+// Os Ecos da fazenda moram no save do jogador, como o resto da fazenda: ele pagou almas
+// por cada um, e um bicho que evapora no recarregamento é pior que não existir.
+const CHAVE_DOS_ECOS = 'acordelot_ecos_fazenda_v1' + SUFIXO_DO_SAVE;
+
+function salvarEcosDaFazenda() {
+  try {
+    const meus = monsters.filter(m => m.daFazenda && !m.dead).map(m => ({
+      id: m.id, type: m.type, x: Math.round(m.x), y: Math.round(m.y),
+      habitat: m.habitat, alimentadoEm: Math.round(m.alimentadoEm || 0),
+    }));
+    localStorage.setItem(CHAVE_DOS_ECOS, JSON.stringify(meus));
+  } catch (e) {}
+}
+
+function carregarEcosDaFazenda() {
+  let lista = null;
+  try { lista = JSON.parse(localStorage.getItem(CHAVE_DOS_ECOS) || 'null'); } catch (e) { return; }
+  if (!Array.isArray(lista)) return;
+  monsters = monsters.filter(m => !m.daFazenda);
+  lista.forEach(s => {
+    const def = monsterDefs[s.type];
+    if (!def) return;
+    monsters.push({
+      id: s.id, type: s.type, mapKey: 'farm',
+      x: s.x, y: s.y, homeX: s.x, homeY: s.y,
+      hp: def.hp ?? 20, maxHp: def.hp ?? 20,
+      dead: false, respawnAt: 0, hurtUntil: 0, lastHit: 0, facing: 1,
+      phase: Math.random() * Math.PI * 2,
+      habitat: s.habitat, daFazenda: true, persegue: false,
+      alimentadoEm: s.alimentadoEm || 0,
+    });
+  });
+}
+
+// Eco de casa com fome, para o botão saber que há o que fazer.
+function ecoDaFazendaTarget() {
+  if (currentScene !== 'farm' || playerLocked || propParaColocar) return null;
+  let melhor = null, menor = Infinity;
+  for (const m of monsters) {
+    if (m.dead || !m.daFazenda || m.mapKey !== 'farm') continue;
+    const d = Math.hypot(player.x - m.x, player.y - m.y);
+    if (d <= RAIO_DE_COLETA && d < menor) { melhor = m; menor = d; }
+  }
+  return melhor;
+}
+
+function ecoComFome(m) {
+  const espera = ((FAZENDA && FAZENDA.ecos.minutosParaFome) || 240) * 60000;
+  return agoraNaFazenda() - (m.alimentadoEm || 0) >= espera;
+}
+
+// O que dar de comer: o que está na bolsa, com prioridade para a nota do bicho — comida
+// da nota certa rende o dobro, então oferecer a errada primeiro seria trabalhar contra
+// o jogador sem ele saber.
+function comidaParaOEco(m) {
+  if (!FAZENDA) return null;
+  const def = monsterDef(m) || {};
+  const tem = Object.values(FAZENDA.culturas).filter(c => (playerInventory[c.prop] || 0) > 0);
+  if (!tem.length) return null;
+  return tem.find(c => c.nota === def.notaDoEco) || tem[0];
+}
+
+// A barra de invocar, irmã da barra da forja e da fazenda. Montada em JS de propósito:
+// o `dist/index.html` é mantido à mão e um painel novo em dois arquivos é uma chance a
+// mais de o jogo publicado sair sem ele.
+function abrirBarraDeInvocar(habitat) {
+  let el = document.getElementById('invocarBarra');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'invocarBarra';
+    el.className = 'forja-barra';   // a mesma barra da forja: já é o vocabulário da casa
+    // Irmã da barra da forja, no MESMO pai: `.forja-barra` é `position: absolute`, e num
+    // pai diferente ela se posicionaria contra outra caixa — fora da tela do jogo.
+    const irma = document.getElementById('forjaBarra');
+    (irma && irma.parentNode ? irma.parentNode : document.body).appendChild(el);
+  }
+  const custo = custoDaInvocacao();
+  const teto = (FAZENDA && FAZENDA.ecos.ecosPorHabitat) || 2;
+  el.innerHTML = `<span class="fj-rot">INVOCAR ECO · ${custo} almas da mesma nota`
+    + ` · habitat ${ecosNoHabitat(habitat)}/${teto}</span><div class="fj-linha">`
+    + NOTAS_DE_ECO.map(n => {
+        const tem = almasDe(n), pode = tem >= custo;
+        return `<button class="fj-nota${pode ? ' fj-ok' : ''}" data-invocar="${n}"
+                        ${pode ? '' : 'disabled'} title="${NOME_DA_NOTA[n]}">
+          <img class="fj-img" src="assets/itens/notas/${ARQ_DA_NOTA[n]}.png" alt="">
+          <b>${NOME_DA_NOTA[n]}</b><small>${tem}/${custo}</small></button>`;
+      }).join('')
+    + '<button class="fj-x" data-fechar="1">✖</button></div>';
+  el.classList.remove('hidden');
+  el.querySelectorAll('[data-invocar]').forEach(b => b.onclick = () => {
+    if (invocarEco(habitat, b.dataset.invocar)) fecharBarraDeInvocar();
+    else abrirBarraDeInvocar(habitat);
+  });
+  el.querySelector('[data-fechar]').onclick = fecharBarraDeInvocar;
+}
+function fecharBarraDeInvocar() {
+  document.getElementById('invocarBarra')?.classList.add('hidden');
 }
 
 // ── Expansão da ilha ──────────────────────────────────────────────────────────

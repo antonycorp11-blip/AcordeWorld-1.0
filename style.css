@@ -7689,6 +7689,11 @@ body.em-cena #questNotification { display: none !important; }
   color: var(--c, #e9d5ff); font: 700 12px Outfit, sans-serif;
 }
 .fj-nota:hover { background: #2a2038; box-shadow: 0 0 0 1px var(--c) inset; }
+/* Barra de invocar Eco: cada nota mostra quantas almas o jogador tem do total exigido.
+   Sem o placar na própria tecla, "faltam almas" não diz de qual nota nem quantas. */
+.fj-nota small { display: block; font-size: 8.5px; font-weight: 600; color: #a79bc2; margin-top: 1px; }
+.fj-nota.fj-ok small { color: #86efac; }
+.fj-nota:disabled { opacity: .45; cursor: not-allowed; }
 .fj-passo {
   min-width: 88px; padding: 10px 12px; cursor: pointer;
   background: linear-gradient(#2b2138, #1a1426); border: 1px solid #6d5a91;

@@ -70,17 +70,44 @@ de chutar.
 Recorte por chroma magenta: `mag = min(R,B) − G`, limite 55–60, depois erosão de 1px
 (`MinFilter(3)`) para matar a franja roxa.
 
+## Duas armadilhas de sistema, das que custam mais caro
+
+**Registro duplo com nomes parecidos.** `acordesObtidos` é por GRAU e alimenta a tela
+antiga da bigorna; `acordesPossuidos` é por ID e é o que a Composição lê. A forja escrevia
+no primeiro: o jogador fechava a escala e não tinha acorde nenhum para equipar, sem erro
+nenhum no console. Antes de escrever num registro, confira quem o LÊ.
+
+**Função definida e nunca chamada.** A fazenda inteira (`regar`, `colher`,
+`estagioDaPlanta`, `alimentarEco`, `comprarExpansao`) existia escrita e ninguém a chamava.
+Código que não é chamado não aparece em nenhuma ferramenta e passa por pronto. Ao terminar
+um sistema, procure o `grep` que prova que alguém o invoca.
+
+**Relógio de jogo é `Date.now()`, nunca `performance.now()`.** O segundo conta desde que a
+ABA abriu e zera a cada carregamento: o Abeto de doze horas, que existe para ser plantado
+antes de dormir, não tinha como crescer.
+
 ## Estado atual
 
-Capítulo 1 inteiro escrito (20 cenas), com trilha sintetizada, sistema de acordes por
-campo harmônico, dungeons, equipamentos e progressão por herói. Falta:
+Capítulo 1 inteiro escrito (21 cenas), com trilha sintetizada, acordes por campo harmônico
+(nove equipáveis em três compassos, com evolução em cinco níveis), dungeons, equipamentos,
+progressão por herói e fazenda funcionando. O `alcance.py` fecha: **tudo que a história
+pede é alcançável.**
 
-- **Placas** ligando quatro ilhas: Salão do Forjador (3 cenas acontecem lá), Clareira dos
-  Ecos, Floresta Sombria (alvo da missão final) e Notas Sagradas. São ilhas hoje.
-- **Captura de Ecos** não é alcançável pelo capítulo.
+O laço da economia fecha assim: capturar Eco na Clareira dá a **Alma** daquela nota →
+cinco almas da mesma nota invocam um Eco na fazenda → o Eco come o que a fazenda planta e
+devolve fragmento → o fragmento sobe acorde. Nenhuma etapa aceita moeda genérica.
+
+Falta:
+
+- **Arte da Alma de Eco** — hoje é um `✦` com o nome da nota. São sete (uma por nota).
+- **Ilhas que sobraram** (nenhuma cena ou missão pede): Notas Sagradas, Academia de
+  Música, Centro de Acordelot, e duas sobras do Salão do Forjador.
 - **Pipo** desvia de obstáculo localmente, mas não busca caminho: trava em beco.
-- **Fazendinha** é protótipo — os props das ferramentas não existem (veja
-  `PROP_DA_FERRAMENTA`) e o que se constrói não persiste (`saveObjetos` sai cedo no dist).
+- **Atributo só sobe com Partitura**, e Partitura cai em dungeon e captura de Eco. Quem só
+  segue o capítulo chega ao altar com os cinco atributos em zero.
+- As duas Florestas Sombrias novas estão **sem monstro** — o dono posiciona.
+- Os dois cenários novos de floresta vieram **noturnos**, contra a regra do
+  `PROMPT_CENARIOS.md`; para a Floresta Sombria isso combina, mas não dá para clarear.
 - `SELETOR_DE_CENA_LIGADO` e `BANCA_DE_TESTES` são de teste: desligar antes de publicar
   para jogador.
 
