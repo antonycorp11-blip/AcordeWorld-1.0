@@ -181,5 +181,7 @@
       "cmd": "fim"
     }
   ],
-  "prioridade": 30
+  "prioridade": 30,
+  "ordem": 13,
+  "_ordem": "A Wins entra no grupo"
 }

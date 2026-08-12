@@ -249,5 +249,7 @@
   "requer": {
     "missaoConcluida": "welcome_to_acordelot"
   },
-  "prioridade": 10
+  "prioridade": 10,
+  "ordem": 6,
+  "_ordem": "O Antony manda o Pipo junto"
 }

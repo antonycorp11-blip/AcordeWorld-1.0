@@ -106,10 +106,25 @@ class Jogo:
             elif not all(q['obj'].get(i) for i in o['ids']): return False
         return True
 
+    def falta_antes(self, c):
+        """A cena tem alguem na frente dela que ainda nao aconteceu?
+
+        E a mesma regra do motor: uma cena so acontece depois que tudo o que vem antes
+        aconteceu. `opcional` sai da corrente — pode ser pulada — mas ainda respeita o
+        proprio lugar."""
+        n = c.get('ordem', 999)
+        if n >= 999: return None
+        for _, o in self.cenas:
+            if o is c or o.get('opcional'): continue
+            if o.get('ordem', 999) < n and o['id'] not in self.rodadas:
+                return o['id']
+        return None
+
     def pode_rodar(self, c):
         """A cena dispara SOZINHA agora? Cena de roteiro (`autoStart: false`) nao conta:
         ela so roda quando outra cena ou o fim de uma missao a chama."""
         if c['id'] in self.rodadas: return False
+        if self.falta_antes(c): return False
         g = c.get('gatilho') or {}
         if not g and c.get('autoStart') is False: return False
         if not g and not c.get('mapa'): return False   # sem gatilho e sem mapa: so roteiro
@@ -242,6 +257,31 @@ def main():
 
     # Heroi que fala numa cena sem ter sido recrutado: a queixa do dono de que a Wins
     # aparecia em cena sem estar no grupo.
+    # A ORDEM foi respeitada? Nao basta a corrente existir no motor: aqui se confere que a
+    # partida que acabou de ser jogada nunca viu uma cena antes da hora dela. E a resposta
+    # direta a "entrar no mapa e do nada ter uma cena que nao era pra ter ali".
+    posicao = {cid: i for i, (cid, _) in enumerate(j.diario)}
+    porId = {c['id']: c for _, c in cenas}
+    for cid, quando in posicao.items():
+        c = porId[cid]
+        n = c.get('ordem', 999)
+        if n >= 999: continue
+        for _, antes in cenas:
+            if antes is c or antes.get('opcional'): continue
+            if antes.get('ordem', 999) >= n: continue
+            if antes['id'] not in posicao:
+                problemas.append(f'"{cid}" (ordem {n}) rodou, mas "{antes["id"]}" '
+                                 f'(ordem {antes.get("ordem")}) nunca rodou')
+            elif posicao[antes['id']] > quando:
+                problemas.append(f'FORA DE ORDEM: "{cid}" (ordem {n}) rodou ANTES de '
+                                 f'"{antes["id"]}" (ordem {antes.get("ordem")})')
+
+    # Toda cena tem lugar na corrente? Sem `ordem`, ela escapa da regra inteira.
+    for _, c in cenas:
+        if c.get('ordem') is None and (c.get('gatilho') or {}).get('tipo') != 'roteiro':
+            problemas.append(f'"{c["id"]}" nao tem `ordem` — fica fora da corrente e pode '
+                             f'disparar a qualquer momento')
+
     # A regra que o dono cobrou depois de ver a Wins falando numa cena sem estar no grupo:
     # se um heroi recrutavel fala numa cena, a cena TEM de exigir a bandeira dele. Isto e
     # verificado por estrutura, nao pela ordem que esta simulacao calhou de produzir — a

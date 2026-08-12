@@ -11617,12 +11617,37 @@ function tipoDoGatilho(c) {
   return c.mapa ? 'mapa' : 'roteiro';
 }
 
+// ── A ORDEM DO CAPÍTULO ───────────────────────────────────────────────────────
+// Até aqui cada cena tinha um punhado de condições próprias e disparava se elas CALHASSEM
+// de bater. Com 21 cenas e oito tipos de gatilho, as combinações viraram grandes demais
+// para caber na cabeça, e passamos dias tapando buraco: uma cena do fim do capítulo
+// disparava ao entrar num cenário porque uma bandeira velha tinha sobrado no save.
+//
+// Condição não é ordem. Agora a história TEM ordem, declarada em `ordem: N`, e a regra é
+// uma só: uma cena só pode acontecer depois que tudo o que vem antes dela já aconteceu.
+// Isso não substitui o `requer` — ele continua dizendo o que a cena precisa do mundo —,
+// mas torna impossível ver a cena 18 antes da 12, aconteça o que acontecer com as
+// bandeiras. É a diferença entre uma lista de condições e uma corrente.
+//
+// `opcional: true` sai da corrente: pode ser pulada sem travar o que vem depois. Mas ainda
+// respeita o próprio lugar — conteúdo de lado nunca aparece cedo demais.
+function ordemDaCena(c) { return c.ordem ?? 999; }
+
+function faltaAlgumaCenaAntes(c) {
+  const n = ordemDaCena(c);
+  if (n >= 999) return null;              // cena sem lugar na corrente não é barrada
+  return CUT.roteiros.find(outra =>
+    outra !== c && !outra.opcional && ordemDaCena(outra) < n && !cenaJaRodou(outra)) || null;
+}
+
 // A pergunta única: que cena está esperando ESTE gatilho, agora, neste estado?
 // `ctx` traz o que o tipo precisa (npc, corrida, fração, primeira...).
 function cenaDoGatilho(tipo, ctx = {}) {
   return CUT.roteiros.find(c => {
     if (tipoDoGatilho(c) !== tipo) return false;
     if (cenaJaRodou(c)) return false;
+    // A CORRENTE, antes de qualquer outra coisa.
+    if (faltaAlgumaCenaAntes(c)) return false;
     if (c.mapa && c.mapa !== currentKey && tipo !== 'missao') return false;
     if (!condicoesDaCena(c)) return false;
     const g = c.gatilho || {};
@@ -11656,7 +11681,25 @@ function dispararCena(tipo, ctx = {}, aoTerminar = null) {
   return true;
 }
 
+// Cena de entrada de cenario. Passa pelo MESMO portao de todo mundo: ja rodou, condicoes,
+// e a ordem do capitulo. Antes olhava so o mapa e o tipo, e era uma porta de servico por
+// onde qualquer cena entrava fora de hora.
 function cenaDoMapa(mapKey) {
+  return CUT.roteiros.find(c => c.mapa === mapKey && tipoDoGatilho(c) === 'mapa'
+                             && !cenaJaRodou(c) && !faltaAlgumaCenaAntes(c)
+                             && condicoesDaCenaEm(c, mapKey)) || null;
+}
+
+// `condicoesDaCena` le `currentKey` em alguns pontos; ao entrar num mapa o valor ja mudou,
+// mas nem todo chamador garante isso. Aqui a leitura e feita com o mapa certo, sempre.
+function condicoesDaCenaEm(c, mapKey) {
+  const salvo = currentKey;
+  currentKey = mapKey;
+  try { return condicoesDaCena(c); } finally { currentKey = salvo; }
+}
+
+// Busca crua, sem portao: so para o seletor de testes, que existe justamente para forcar.
+function cenaDoMapaCrua(mapKey) {
   return CUT.roteiros.find(c => c.mapa === mapKey && tipoDoGatilho(c) === 'mapa') || null;
 }
 
@@ -14139,7 +14182,7 @@ function initTesteDeCena() {
     if (!CUT.roteiros.length) await carregarCatalogoDeCenas();
     // Roda a cena do mapa aberto no editor; sem cena aqui, cai na abertura.
     const mapa = activeMapSelect?.value || currentKey;
-    const r = cenaDoMapa(mapa) || window.__abertura;
+    const r = cenaDoMapaCrua(mapa) || window.__abertura;
     if (!r) { showToast('⚠️ Nenhuma cena cadastrada em assets/cutscenes/index.json'); return; }
     if (!bgSources[r.mapa]) { showToast('⚠️ O cenário da cena não existe mais: ' + r.mapa); return; }
     CUT.jaRodou = {};

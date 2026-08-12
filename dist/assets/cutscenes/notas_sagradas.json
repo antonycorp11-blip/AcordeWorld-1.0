@@ -298,5 +298,8 @@
       "cmd": "fim"
     }
   ],
-  "prioridade": 40
+  "prioridade": 40,
+  "ordem": 17,
+  "opcional": true,
+  "_ordem": "OPCIONAL: o Lucian e o sorteio que da em nada"
 }

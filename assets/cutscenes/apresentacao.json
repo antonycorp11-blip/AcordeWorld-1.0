@@ -156,5 +156,7 @@
     "claves": 2,
     "moedas": 60
   },
-  "prioridade": 5
+  "prioridade": 5,
+  "ordem": 5,
+  "_ordem": "Primeira conversa com o Sr. Antony"
 }

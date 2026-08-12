@@ -202,5 +202,7 @@
       "stone": 4
     }
   },
-  "prioridade": 25
+  "prioridade": 25,
+  "ordem": 9,
+  "_ordem": "O Dorn e o martelo"
 }

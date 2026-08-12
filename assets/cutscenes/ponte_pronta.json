@@ -113,5 +113,7 @@
     "tipo": "missao",
     "missao": "consertar_ponte"
   },
-  "prioridade": 35
+  "prioridade": 35,
+  "ordem": 11,
+  "_ordem": "A ponte fica pronta"
 }

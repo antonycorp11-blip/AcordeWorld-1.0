@@ -542,5 +542,7 @@
       "stone": 10
     }
   },
-  "prioridade": 40
+  "prioridade": 40,
+  "ordem": 12,
+  "_ordem": "O primeiro Ressonador"
 }

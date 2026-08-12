@@ -121,5 +121,8 @@
   "prioridade": 75,
   "requer": {
     "bandeira": "wins_no_grupo"
-  }
+  },
+  "ordem": 19,
+  "opcional": true,
+  "_ordem": "OPCIONAL: no meio da limpeza, a Wins esquece"
 }

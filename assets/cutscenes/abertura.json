@@ -550,5 +550,7 @@
   "prioridade": 2,
   "gatilho": {
     "tipo": "roteiro"
-  }
+  },
+  "ordem": 2,
+  "_ordem": "Akles acorda na floresta sem memoria"
 }

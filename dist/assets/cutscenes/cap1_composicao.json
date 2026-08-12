@@ -157,5 +157,7 @@
   "vozes": [
     "Guardiã da Escala"
   ],
-  "_vozes": "A Guardia e a voz da escala recem-forjada. Sem corpo de proposito."
+  "_vozes": "A Guardia e a voz da escala recem-forjada. Sem corpo de proposito.",
+  "ordem": 16,
+  "_ordem": "A Guardia explica o campo harmonico"
 }

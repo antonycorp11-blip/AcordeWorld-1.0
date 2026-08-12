@@ -110,5 +110,7 @@
     "moedas": 80
   },
   "prioridade": 18,
-  "_": "O Antony reage à entrega e emenda a ponte. NÃO pede material: o Pipo e o Akles acabaram de levar. Pedir de novo era a dobra que quebrava a narrativa."
+  "_": "O Antony reage à entrega e emenda a ponte. NÃO pede material: o Pipo e o Akles acabaram de levar. Pedir de novo era a dobra que quebrava a narrativa.",
+  "ordem": 8,
+  "_ordem": "O Antony fala da ponte"
 }

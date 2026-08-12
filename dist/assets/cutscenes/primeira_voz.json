@@ -311,5 +311,7 @@
   "vozes": [
     "O Altar"
   ],
-  "_vozes": "O Altar fala sozinho: e o lugar que responde, nao uma pessoa. Nao ha sprite e nao deve haver."
+  "_vozes": "O Altar fala sozinho: e o lugar que responde, nao uma pessoa. Nao ha sprite e nao deve haver.",
+  "ordem": 15,
+  "_ordem": "A primeira nota condensada"
 }
