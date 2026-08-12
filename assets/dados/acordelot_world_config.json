@@ -21,8 +21,8 @@
       "row": 2
     },
     "custom_1785900374897_630": {
-      "col": 0,
-      "row": 4
+      "col": -2,
+      "row": 2
     },
     "custom_1785967453140_198": {
       "col": -2,
@@ -43,6 +43,10 @@
     "custom_1786198430678_105": {
       "col": 1,
       "row": 2
+    },
+    "custom_1786499037621_343": {
+      "col": 4,
+      "row": 0
     }
   },
   "spawns": {
@@ -109,6 +113,10 @@
     "custom_1786198430678_105": {
       "x": 512,
       "y": 300
+    },
+    "custom_1786499037621_343": {
+      "x": 512,
+      "y": 300
     }
   },
   "bgSources": {
@@ -126,7 +134,8 @@
     "custom_1785976237901_373": "assets/cenarios/mapas/bg_custom_1785976237901_373.jpg",
     "custom_1785976286672_61": "assets/cenarios/mapas/bg_custom_1785976286672_61.jpg",
     "custom_1785976318486_785": "assets/cenarios/mapas/bg_custom_1785976318486_785.jpg",
-    "custom_1786198430678_105": "assets/cenarios/mapas/bg_custom_1786198430678_105.jpg"
+    "custom_1786198430678_105": "assets/cenarios/mapas/bg_custom_1786198430678_105.jpg",
+    "custom_1786499037621_343": "assets/cenarios/mapas/bg_custom_1786499037621_343.jpg"
   },
   "sceneNames": {
     "custom_1785254196551_992": "🌑 Orla da Floresta Sombria",
@@ -144,7 +153,8 @@
     "custom_1785976237901_373": "🕳️ Passagem Inferior",
     "custom_1785976286672_61": "⛏️ Cavernas da Clave II — Salão em Ruínas",
     "custom_1785976318486_785": "⛏️ Cavernas da Clave III — Arena do Selo",
-    "custom_1786198430678_105": "🌾 Floresta de Coleta"
+    "custom_1786198430678_105": "🌾 Floresta de Coleta",
+    "custom_1786499037621_343": "🏰 bg_salao_forjador"
   },
   "startMap": "custom_1785881037059_214",
   "ambience": {},

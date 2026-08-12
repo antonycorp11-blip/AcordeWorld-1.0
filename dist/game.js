@@ -4436,6 +4436,7 @@ async function loadObjetos() {
     .sort((a, b) => (usados.has(b[0]) ? 1 : 0) - (usados.has(a[0]) ? 1 : 0));
 
   const carregarProp = ([id, def]) => {
+    if (propSprites[id]) return;
     const img = new Image();
     img.onload = () => {
       // PNG já vem com transparência; JPG precisa do chroma-key, igual aos monstros.
@@ -4456,8 +4457,9 @@ async function loadObjetos() {
   // momento, e sem o sprite carregado o objeto fica invisível.
   const idsFazenda = typeof PROP_DA_FERRAMENTA !== 'undefined'
     ? new Set(Object.values(PROP_DA_FERRAMENTA)) : new Set();
-  const necessarios = fila.filter(([id, def]) => usados.has(id) || def.bau || idsFazenda.has(id) || def.cat === 'Fazenda');
+  const necessarios = fila.filter(([id, def]) => usados.has(id) || def.bau);
   const resto = fila.filter(([id, def]) => !usados.has(id) && !def.bau);
+  window.carregarPropPorId = (id, def) => carregarProp([id, def]);
   necessarios.forEach(carregarProp);
   window.__propsDoJogoPedidos = necessarios.length;
 
@@ -9063,21 +9065,31 @@ function renderWorldMap(now) {
   ctx.fillText('🗺️ EDITOR DE MAPA — Arraste cenários para organizar o mundo e definir onde cada um nasce.',16,22);
   ctx.fillStyle='#475569';ctx.font='10px Outfit, sans-serif';
   ctx.fillText('🖐️ Mover  |  📍 Spawn  |  🗑️ Excluir  |  💾 Salvar — a viagem entre mapas é feita por Placas na aba Elementos',16,36);
+  let __miniaturasNesteQuadro = 0;
   for(let row=0;row<GROWS;row++){for(let col=0;col<GCOLS;col++){
     const r=cellRect(col,row),key=keyAtCell(col,row),cur=key===currentKey;
     ctx.fillStyle='#131c28';ctx.strokeStyle='#2d3748';ctx.lineWidth=1;ctx.setLineDash([3,3]);
     ctx.fillRect(r.x,r.y,r.w,r.h);ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.setLineDash([]);
     if(key&&key!==wvDragKey){
-      garantirFundo(key);
-      const img=bgImages[key];
-      if(img?.complete){
-        if(!bgThumbnails[key]){
-          const tcv=document.createElement('canvas');tcv.width=185;tcv.height=122;
-          tcv.getContext('2d',{alpha:false}).drawImage(img,0,0,185,122);
-          bgThumbnails[key]=tcv;
+      // A miniatura e feita UMA vez e guardada. Antes, `garantirFundo` era chamado para
+      // cada celula em cada quadro: os dezesseis fundos em tamanho cheio ficavam
+      // decodificados na memoria ao mesmo tempo (~37 MB de bitmap) e o mapa-mundi
+      // travava. Agora so pede o fundo de quem ainda nao tem miniatura, no maximo dois
+      // por quadro, e solta a imagem grande assim que a miniatura existe.
+      if(!bgThumbnails[key]){
+        if(__miniaturasNesteQuadro < 2){
+          __miniaturasNesteQuadro++;
+          garantirFundo(key);
+          const img0=bgImages[key];
+          if(img0?.complete&&img0.width){
+            const tcv=document.createElement('canvas');tcv.width=185;tcv.height=122;
+            tcv.getContext('2d',{alpha:false}).drawImage(img0,0,0,185,122);
+            bgThumbnails[key]=tcv;
+            if(key!==currentKey) delete bgImages[key];   // libera o bitmap grande
+          }
         }
-        ctx.drawImage(bgThumbnails[key],r.x,r.y,r.w,r.h);
       }
+      if(bgThumbnails[key]) ctx.drawImage(bgThumbnails[key],r.x,r.y,r.w,r.h);
       if(cur){ctx.strokeStyle='#38bdf8';ctx.lineWidth=3;ctx.shadowColor='#38bdf8';ctx.shadowBlur=10;ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.shadowBlur=0;}
       [['north','▲'],['south','▼'],['east','▶'],['west','◀']].forEach(([d,sym])=>{
         if(!getNeighbor(key,d))return;
@@ -21668,6 +21680,18 @@ function renderSelo(now) {
 // encosta na vizinha sem sobra.
 const GRADE_FAZENDA = 32;
 
+// Props da fazenda entram sob demanda. Eram 148 imagens (3,9 MB) decodificadas no boot,
+// e nenhuma delas aparece em cenario algum ate o jogador abrir o modo fazenda.
+let __propsFazendaProntos = false;
+function carregarPropsDaFazenda() {
+  if (__propsFazendaProntos) return;
+  __propsFazendaProntos = true;
+  Object.entries(propDefs).forEach(([id, def]) => {
+    if (def.cat !== 'Fazenda' || propSprites[id]) return;
+    if (typeof window.carregarPropPorId === 'function') window.carregarPropPorId(id, def);
+  });
+}
+
 function encaixarNaGrade(v) { return Math.round(v / GRADE_FAZENDA) * GRADE_FAZENDA; }
 
 function renderGradeDaFazenda() {
@@ -21860,6 +21884,7 @@ function initFazendaUI() {
       window.keyBeforeFarm = currentKey; // Save the map
       currentScene = 'farm';
       currentKey = 'farm';
+      carregarPropsDaFazenda();
       farmToolbar.classList.remove('hidden');
       btnBuildMode.classList.add('hidden');
       document.getElementById('partyHud')?.classList.add('hidden');
