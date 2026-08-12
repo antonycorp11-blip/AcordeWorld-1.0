@@ -7632,6 +7632,11 @@ function reiniciarProgressoDeJogo() {
   playerInventory.wood = 0; playerInventory.stone = 0; playerInventory.potions = 0;
   claveCount = 0;
   activeQuests = []; completedQuests = [];
+  // AS BANDEIRAS. Ficavam de fora, e bandeira e a espinha do sistema de cenas: uma
+  // partida nova herdava as da partida anterior. Com `pipo_levado` de uma sessao velha, o
+  // Pipo nascia INVISIVEL numa historia em que ele ainda nem foi levado, e as cenas do fim
+  // do capitulo ja nasciam liberadas.
+  bandeiras = {};
   level = 1; xp = 0; attrPoints = 0; skillPoints = 1;
   attrs = { ritmo: 0, afinacao: 0, folego: 0, dinamica: 0, memoria: 0 };
   learnedSkills = [];
@@ -14757,6 +14762,22 @@ function initMainMenu() {
         marcarCenaRodada(r);
         (r.passos || []).forEach(p => {
           if (p.cmd === 'missao' && p.id && !completedQuests.includes(p.id)) completedQuests.push(p.id);
+          // BANDEIRA e RECRUTAR faltavam. Comecar pela cena N deixava o jogador sem as
+          // bandeiras das cenas 1..N-1, entao o estado do mundo nao correspondia ao ponto
+          // da historia: heroi que ja devia estar no grupo nao estava, e cena que so
+          // deveria abrir depois continuava trancada por uma bandeira que ninguem levantou.
+          if (p.cmd === 'bandeira' && p.id) marcarBandeira(p.id);
+          if (p.cmd === 'recrutar' && p.heroi) {
+            // Mesmo efeito do `case 'recrutar'`: a bandeira e a fonte da verdade, e o
+            // `aplicarHeroisRecrutados` no boot le ela para reconstruir o grupo.
+            const h = HERO_DEFINITIONS[p.heroi];
+            if (h && !h.desbloqueado) {
+              h.desbloqueado = true;
+              const vaga = partyState.party.findIndex(x => !x);
+              if (vaga >= 0) partyState.party[vaga] = p.heroi;
+            }
+            marcarBandeira('heroi_' + p.heroi);
+          }
           if (p.cmd === 'dar') {
             if (p.item === 'clave') claveCount += (p.quantidade || 1);
             else playerInventory[p.item] = (playerInventory[p.item] || 0) + (p.quantidade || 1);
