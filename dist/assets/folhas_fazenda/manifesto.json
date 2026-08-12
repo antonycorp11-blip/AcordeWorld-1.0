@@ -1,0 +1,1010 @@
+{
+ "faz_cult": [
+  {
+   "arquivo": "faz_cult_01.png",
+   "linha": 0,
+   "coluna": 0,
+   "w": 51,
+   "h": 76
+  },
+  {
+   "arquivo": "faz_cult_02.png",
+   "linha": 0,
+   "coluna": 1,
+   "w": 57,
+   "h": 94
+  },
+  {
+   "arquivo": "faz_cult_03.png",
+   "linha": 1,
+   "coluna": 0,
+   "w": 52,
+   "h": 87
+  },
+  {
+   "arquivo": "faz_cult_04.png",
+   "linha": 2,
+   "coluna": 0,
+   "w": 116,
+   "h": 62
+  },
+  {
+   "arquivo": "faz_cult_05.png",
+   "linha": 3,
+   "coluna": 0,
+   "w": 117,
+   "h": 63
+  },
+  {
+   "arquivo": "faz_cult_06.png",
+   "linha": 4,
+   "coluna": 0,
+   "w": 59,
+   "h": 51
+  },
+  {
+   "arquivo": "faz_cult_07.png",
+   "linha": 5,
+   "coluna": 0,
+   "w": 74,
+   "h": 68
+  },
+  {
+   "arquivo": "faz_cult_08.png",
+   "linha": 5,
+   "coluna": 1,
+   "w": 74,
+   "h": 69
+  },
+  {
+   "arquivo": "faz_cult_09.png",
+   "linha": 6,
+   "coluna": 0,
+   "w": 50,
+   "h": 79
+  },
+  {
+   "arquivo": "faz_cult_10.png",
+   "linha": 7,
+   "coluna": 0,
+   "w": 54,
+   "h": 82
+  },
+  {
+   "arquivo": "faz_cult_11.png",
+   "linha": 8,
+   "coluna": 0,
+   "w": 62,
+   "h": 62
+  },
+  {
+   "arquivo": "faz_cult_12.png",
+   "linha": 9,
+   "coluna": 0,
+   "w": 62,
+   "h": 42
+  },
+  {
+   "arquivo": "faz_cult_13.png",
+   "linha": 9,
+   "coluna": 1,
+   "w": 62,
+   "h": 68
+  },
+  {
+   "arquivo": "faz_cult_14.png",
+   "linha": 9,
+   "coluna": 2,
+   "w": 64,
+   "h": 71
+  },
+  {
+   "arquivo": "faz_cult_15.png",
+   "linha": 10,
+   "coluna": 0,
+   "w": 56,
+   "h": 49
+  },
+  {
+   "arquivo": "faz_cult_16.png",
+   "linha": 11,
+   "coluna": 0,
+   "w": 56,
+   "h": 52
+  },
+  {
+   "arquivo": "faz_cult_17.png",
+   "linha": 11,
+   "coluna": 1,
+   "w": 75,
+   "h": 65
+  },
+  {
+   "arquivo": "faz_cult_18.png",
+   "linha": 11,
+   "coluna": 2,
+   "w": 75,
+   "h": 65
+  },
+  {
+   "arquivo": "faz_cult_19.png",
+   "linha": 11,
+   "coluna": 3,
+   "w": 76,
+   "h": 69
+  },
+  {
+   "arquivo": "faz_cult_20.png",
+   "linha": 12,
+   "coluna": 0,
+   "w": 48,
+   "h": 77
+  },
+  {
+   "arquivo": "faz_cult_21.png",
+   "linha": 13,
+   "coluna": 0,
+   "w": 62,
+   "h": 86
+  },
+  {
+   "arquivo": "faz_cult_22.png",
+   "linha": 13,
+   "coluna": 1,
+   "w": 66,
+   "h": 93
+  }
+ ],
+ "faz_solo": [
+  {
+   "arquivo": "faz_solo_01.png",
+   "linha": 0,
+   "coluna": 0,
+   "w": 211,
+   "h": 148
+  },
+  {
+   "arquivo": "faz_solo_02.png",
+   "linha": 0,
+   "coluna": 1,
+   "w": 264,
+   "h": 149
+  },
+  {
+   "arquivo": "faz_solo_03.png",
+   "linha": 0,
+   "coluna": 2,
+   "w": 211,
+   "h": 148
+  },
+  {
+   "arquivo": "faz_solo_04.png",
+   "linha": 1,
+   "coluna": 0,
+   "w": 209,
+   "h": 137
+  },
+  {
+   "arquivo": "faz_solo_05.png",
+   "linha": 2,
+   "coluna": 0,
+   "w": 260,
+   "h": 134
+  },
+  {
+   "arquivo": "faz_solo_06.png",
+   "linha": 3,
+   "coluna": 0,
+   "w": 209,
+   "h": 137
+  },
+  {
+   "arquivo": "faz_solo_07.png",
+   "linha": 4,
+   "coluna": 0,
+   "w": 211,
+   "h": 135
+  },
+  {
+   "arquivo": "faz_solo_08.png",
+   "linha": 5,
+   "coluna": 0,
+   "w": 263,
+   "h": 133
+  },
+  {
+   "arquivo": "faz_solo_09.png",
+   "linha": 6,
+   "coluna": 0,
+   "w": 211,
+   "h": 136
+  },
+  {
+   "arquivo": "faz_solo_10.png",
+   "linha": 7,
+   "coluna": 0,
+   "w": 209,
+   "h": 130
+  },
+  {
+   "arquivo": "faz_solo_11.png",
+   "linha": 8,
+   "coluna": 0,
+   "w": 260,
+   "h": 130
+  },
+  {
+   "arquivo": "faz_solo_12.png",
+   "linha": 9,
+   "coluna": 0,
+   "w": 208,
+   "h": 130
+  }
+ ],
+ "faz_ilha": [
+  {
+   "arquivo": "faz_ilha_01.png",
+   "linha": 0,
+   "coluna": 0,
+   "w": 263,
+   "h": 130
+  },
+  {
+   "arquivo": "faz_ilha_02.png",
+   "linha": 0,
+   "coluna": 1,
+   "w": 264,
+   "h": 132
+  },
+  {
+   "arquivo": "faz_ilha_03.png",
+   "linha": 0,
+   "coluna": 2,
+   "w": 263,
+   "h": 131
+  },
+  {
+   "arquivo": "faz_ilha_04.png",
+   "linha": 0,
+   "coluna": 3,
+   "w": 264,
+   "h": 130
+  },
+  {
+   "arquivo": "faz_ilha_05.png",
+   "linha": 1,
+   "coluna": 0,
+   "w": 264,
+   "h": 131
+  },
+  {
+   "arquivo": "faz_ilha_06.png",
+   "linha": 2,
+   "coluna": 0,
+   "w": 263,
+   "h": 137
+  },
+  {
+   "arquivo": "faz_ilha_07.png",
+   "linha": 3,
+   "coluna": 0,
+   "w": 70,
+   "h": 143
+  },
+  {
+   "arquivo": "faz_ilha_08.png",
+   "linha": 3,
+   "coluna": 1,
+   "w": 70,
+   "h": 143
+  },
+  {
+   "arquivo": "faz_ilha_09.png",
+   "linha": 4,
+   "coluna": 0,
+   "w": 215,
+   "h": 134
+  },
+  {
+   "arquivo": "faz_ilha_10.png",
+   "linha": 5,
+   "coluna": 0,
+   "w": 115,
+   "h": 127
+  },
+  {
+   "arquivo": "faz_ilha_11.png",
+   "linha": 6,
+   "coluna": 0,
+   "w": 115,
+   "h": 128
+  },
+  {
+   "arquivo": "faz_ilha_12.png",
+   "linha": 6,
+   "coluna": 1,
+   "w": 188,
+   "h": 134
+  },
+  {
+   "arquivo": "faz_ilha_13.png",
+   "linha": 6,
+   "coluna": 2,
+   "w": 197,
+   "h": 134
+  },
+  {
+   "arquivo": "faz_ilha_14.png",
+   "linha": 7,
+   "coluna": 0,
+   "w": 157,
+   "h": 133
+  },
+  {
+   "arquivo": "faz_ilha_15.png",
+   "linha": 8,
+   "coluna": 0,
+   "w": 115,
+   "h": 132
+  },
+  {
+   "arquivo": "faz_ilha_16.png",
+   "linha": 9,
+   "coluna": 0,
+   "w": 116,
+   "h": 132
+  },
+  {
+   "arquivo": "faz_ilha_17.png",
+   "linha": 9,
+   "coluna": 1,
+   "w": 237,
+   "h": 139
+  },
+  {
+   "arquivo": "faz_ilha_18.png",
+   "linha": 9,
+   "coluna": 2,
+   "w": 286,
+   "h": 114
+  }
+ ],
+ "faz_hab": [
+  {
+   "arquivo": "faz_hab_01.png",
+   "linha": 0,
+   "coluna": 0,
+   "w": 162,
+   "h": 164
+  },
+  {
+   "arquivo": "faz_hab_02.png",
+   "linha": 0,
+   "coluna": 1,
+   "w": 185,
+   "h": 110
+  },
+  {
+   "arquivo": "faz_hab_03.png",
+   "linha": 0,
+   "coluna": 2,
+   "w": 205,
+   "h": 155
+  },
+  {
+   "arquivo": "faz_hab_04.png",
+   "linha": 0,
+   "coluna": 3,
+   "w": 153,
+   "h": 125
+  },
+  {
+   "arquivo": "faz_hab_05.png",
+   "linha": 1,
+   "coluna": 0,
+   "w": 199,
+   "h": 179
+  },
+  {
+   "arquivo": "faz_hab_06.png",
+   "linha": 2,
+   "coluna": 0,
+   "w": 196,
+   "h": 179
+  },
+  {
+   "arquivo": "faz_hab_07.png",
+   "linha": 3,
+   "coluna": 0,
+   "w": 194,
+   "h": 144
+  },
+  {
+   "arquivo": "faz_hab_08.png",
+   "linha": 3,
+   "coluna": 1,
+   "w": 199,
+   "h": 138
+  },
+  {
+   "arquivo": "faz_hab_09.png",
+   "linha": 3,
+   "coluna": 2,
+   "w": 192,
+   "h": 178
+  },
+  {
+   "arquivo": "faz_hab_10.png",
+   "linha": 3,
+   "coluna": 3,
+   "w": 196,
+   "h": 141
+  }
+ ],
+ "faz_estr": [
+  {
+   "arquivo": "faz_estr_01.png",
+   "linha": 0,
+   "coluna": 0,
+   "w": 135,
+   "h": 137
+  },
+  {
+   "arquivo": "faz_estr_02.png",
+   "linha": 0,
+   "coluna": 1,
+   "w": 148,
+   "h": 156
+  },
+  {
+   "arquivo": "faz_estr_03.png",
+   "linha": 0,
+   "coluna": 2,
+   "w": 103,
+   "h": 168
+  },
+  {
+   "arquivo": "faz_estr_04.png",
+   "linha": 1,
+   "coluna": 0,
+   "w": 164,
+   "h": 153
+  },
+  {
+   "arquivo": "faz_estr_05.png",
+   "linha": 2,
+   "coluna": 0,
+   "w": 99,
+   "h": 165
+  },
+  {
+   "arquivo": "faz_estr_06.png",
+   "linha": 3,
+   "coluna": 0,
+   "w": 125,
+   "h": 162
+  },
+  {
+   "arquivo": "faz_estr_07.png",
+   "linha": 4,
+   "coluna": 0,
+   "w": 114,
+   "h": 166
+  },
+  {
+   "arquivo": "faz_estr_08.png",
+   "linha": 5,
+   "coluna": 0,
+   "w": 163,
+   "h": 128
+  },
+  {
+   "arquivo": "faz_estr_09.png",
+   "linha": 6,
+   "coluna": 0,
+   "w": 82,
+   "h": 106
+  },
+  {
+   "arquivo": "faz_estr_10.png",
+   "linha": 6,
+   "coluna": 1,
+   "w": 118,
+   "h": 118
+  },
+  {
+   "arquivo": "faz_estr_11.png",
+   "linha": 6,
+   "coluna": 2,
+   "w": 106,
+   "h": 72
+  },
+  {
+   "arquivo": "faz_estr_12.png",
+   "linha": 7,
+   "coluna": 0,
+   "w": 100,
+   "h": 55
+  },
+  {
+   "arquivo": "faz_estr_13.png",
+   "linha": 8,
+   "coluna": 0,
+   "w": 186,
+   "h": 47
+  },
+  {
+   "arquivo": "faz_estr_14.png",
+   "linha": 9,
+   "coluna": 0,
+   "w": 58,
+   "h": 59
+  },
+  {
+   "arquivo": "faz_estr_15.png",
+   "linha": 10,
+   "coluna": 0,
+   "w": 59,
+   "h": 60
+  },
+  {
+   "arquivo": "faz_estr_16.png",
+   "linha": 10,
+   "coluna": 1,
+   "w": 95,
+   "h": 59
+  },
+  {
+   "arquivo": "faz_estr_17.png",
+   "linha": 10,
+   "coluna": 2,
+   "w": 123,
+   "h": 66
+  },
+  {
+   "arquivo": "faz_estr_18.png",
+   "linha": 10,
+   "coluna": 3,
+   "w": 122,
+   "h": 67
+  }
+ ],
+ "faz_deco": [
+  {
+   "arquivo": "faz_deco_01.png",
+   "linha": 0,
+   "coluna": 0,
+   "w": 78,
+   "h": 67
+  },
+  {
+   "arquivo": "faz_deco_02.png",
+   "linha": 0,
+   "coluna": 1,
+   "w": 78,
+   "h": 67
+  },
+  {
+   "arquivo": "faz_deco_03.png",
+   "linha": 0,
+   "coluna": 2,
+   "w": 78,
+   "h": 67
+  },
+  {
+   "arquivo": "faz_deco_04.png",
+   "linha": 0,
+   "coluna": 3,
+   "w": 78,
+   "h": 66
+  },
+  {
+   "arquivo": "faz_deco_05.png",
+   "linha": 0,
+   "coluna": 4,
+   "w": 78,
+   "h": 65
+  },
+  {
+   "arquivo": "faz_deco_06.png",
+   "linha": 0,
+   "coluna": 5,
+   "w": 78,
+   "h": 66
+  },
+  {
+   "arquivo": "faz_deco_07.png",
+   "linha": 0,
+   "coluna": 6,
+   "w": 78,
+   "h": 66
+  },
+  {
+   "arquivo": "faz_deco_08.png",
+   "linha": 0,
+   "coluna": 7,
+   "w": 77,
+   "h": 65
+  },
+  {
+   "arquivo": "faz_deco_09.png",
+   "linha": 1,
+   "coluna": 0,
+   "w": 78,
+   "h": 66
+  },
+  {
+   "arquivo": "faz_deco_10.png",
+   "linha": 1,
+   "coluna": 1,
+   "w": 78,
+   "h": 66
+  },
+  {
+   "arquivo": "faz_deco_11.png",
+   "linha": 1,
+   "coluna": 2,
+   "w": 77,
+   "h": 66
+  },
+  {
+   "arquivo": "faz_deco_12.png",
+   "linha": 1,
+   "coluna": 3,
+   "w": 78,
+   "h": 66
+  },
+  {
+   "arquivo": "faz_deco_13.png",
+   "linha": 1,
+   "coluna": 4,
+   "w": 78,
+   "h": 66
+  },
+  {
+   "arquivo": "faz_deco_14.png",
+   "linha": 1,
+   "coluna": 5,
+   "w": 78,
+   "h": 66
+  },
+  {
+   "arquivo": "faz_deco_15.png",
+   "linha": 1,
+   "coluna": 6,
+   "w": 78,
+   "h": 66
+  },
+  {
+   "arquivo": "faz_deco_16.png",
+   "linha": 1,
+   "coluna": 7,
+   "w": 77,
+   "h": 66
+  },
+  {
+   "arquivo": "faz_deco_17.png",
+   "linha": 2,
+   "coluna": 0,
+   "w": 78,
+   "h": 67
+  },
+  {
+   "arquivo": "faz_deco_18.png",
+   "linha": 2,
+   "coluna": 1,
+   "w": 78,
+   "h": 67
+  },
+  {
+   "arquivo": "faz_deco_19.png",
+   "linha": 2,
+   "coluna": 2,
+   "w": 77,
+   "h": 67
+  },
+  {
+   "arquivo": "faz_deco_20.png",
+   "linha": 2,
+   "coluna": 3,
+   "w": 78,
+   "h": 67
+  },
+  {
+   "arquivo": "faz_deco_21.png",
+   "linha": 2,
+   "coluna": 4,
+   "w": 79,
+   "h": 67
+  },
+  {
+   "arquivo": "faz_deco_22.png",
+   "linha": 2,
+   "coluna": 5,
+   "w": 78,
+   "h": 67
+  },
+  {
+   "arquivo": "faz_deco_23.png",
+   "linha": 2,
+   "coluna": 6,
+   "w": 78,
+   "h": 66
+  },
+  {
+   "arquivo": "faz_deco_24.png",
+   "linha": 2,
+   "coluna": 7,
+   "w": 78,
+   "h": 66
+  },
+  {
+   "arquivo": "faz_deco_25.png",
+   "linha": 2,
+   "coluna": 8,
+   "w": 77,
+   "h": 66
+  },
+  {
+   "arquivo": "faz_deco_26.png",
+   "linha": 3,
+   "coluna": 0,
+   "w": 64,
+   "h": 42
+  },
+  {
+   "arquivo": "faz_deco_27.png",
+   "linha": 4,
+   "coluna": 0,
+   "w": 141,
+   "h": 101
+  },
+  {
+   "arquivo": "faz_deco_28.png",
+   "linha": 4,
+   "coluna": 1,
+   "w": 74,
+   "h": 85
+  },
+  {
+   "arquivo": "faz_deco_29.png",
+   "linha": 4,
+   "coluna": 2,
+   "w": 132,
+   "h": 95
+  },
+  {
+   "arquivo": "faz_deco_30.png",
+   "linha": 4,
+   "coluna": 3,
+   "w": 51,
+   "h": 77
+  },
+  {
+   "arquivo": "faz_deco_31.png",
+   "linha": 4,
+   "coluna": 4,
+   "w": 44,
+   "h": 63
+  },
+  {
+   "arquivo": "faz_deco_32.png",
+   "linha": 4,
+   "coluna": 5,
+   "w": 66,
+   "h": 90
+  },
+  {
+   "arquivo": "faz_deco_33.png",
+   "linha": 5,
+   "coluna": 0,
+   "w": 95,
+   "h": 117
+  },
+  {
+   "arquivo": "faz_deco_34.png",
+   "linha": 6,
+   "coluna": 0,
+   "w": 37,
+   "h": 108
+  },
+  {
+   "arquivo": "faz_deco_35.png",
+   "linha": 6,
+   "coluna": 1,
+   "w": 52,
+   "h": 71
+  },
+  {
+   "arquivo": "faz_deco_36.png",
+   "linha": 6,
+   "coluna": 2,
+   "w": 63,
+   "h": 72
+  },
+  {
+   "arquivo": "faz_deco_37.png",
+   "linha": 6,
+   "coluna": 3,
+   "w": 62,
+   "h": 72
+  },
+  {
+   "arquivo": "faz_deco_38.png",
+   "linha": 6,
+   "coluna": 4,
+   "w": 94,
+   "h": 48
+  },
+  {
+   "arquivo": "faz_deco_39.png",
+   "linha": 7,
+   "coluna": 0,
+   "w": 115,
+   "h": 62
+  },
+  {
+   "arquivo": "faz_deco_40.png",
+   "linha": 8,
+   "coluna": 0,
+   "w": 64,
+   "h": 59
+  },
+  {
+   "arquivo": "faz_deco_41.png",
+   "linha": 8,
+   "coluna": 1,
+   "w": 109,
+   "h": 79
+  },
+  {
+   "arquivo": "faz_deco_42.png",
+   "linha": 8,
+   "coluna": 2,
+   "w": 127,
+   "h": 76
+  },
+  {
+   "arquivo": "faz_deco_43.png",
+   "linha": 9,
+   "coluna": 0,
+   "w": 130,
+   "h": 104
+  }
+ ],
+ "faz_item": [
+  {
+   "arquivo": "faz_item_01.png",
+   "linha": 0,
+   "coluna": 0,
+   "w": 111,
+   "h": 118
+  },
+  {
+   "arquivo": "faz_item_02.png",
+   "linha": 0,
+   "coluna": 1,
+   "w": 111,
+   "h": 119
+  },
+  {
+   "arquivo": "faz_item_03.png",
+   "linha": 0,
+   "coluna": 2,
+   "w": 111,
+   "h": 119
+  },
+  {
+   "arquivo": "faz_item_04.png",
+   "linha": 0,
+   "coluna": 3,
+   "w": 111,
+   "h": 119
+  },
+  {
+   "arquivo": "faz_item_05.png",
+   "linha": 0,
+   "coluna": 4,
+   "w": 108,
+   "h": 118
+  },
+  {
+   "arquivo": "faz_item_06.png",
+   "linha": 0,
+   "coluna": 5,
+   "w": 110,
+   "h": 117
+  },
+  {
+   "arquivo": "faz_item_07.png",
+   "linha": 1,
+   "coluna": 0,
+   "w": 111,
+   "h": 112
+  },
+  {
+   "arquivo": "faz_item_08.png",
+   "linha": 2,
+   "coluna": 0,
+   "w": 112,
+   "h": 117
+  },
+  {
+   "arquivo": "faz_item_09.png",
+   "linha": 3,
+   "coluna": 0,
+   "w": 121,
+   "h": 78
+  },
+  {
+   "arquivo": "faz_item_10.png",
+   "linha": 3,
+   "coluna": 1,
+   "w": 125,
+   "h": 122
+  },
+  {
+   "arquivo": "faz_item_11.png",
+   "linha": 3,
+   "coluna": 2,
+   "w": 129,
+   "h": 117
+  },
+  {
+   "arquivo": "faz_item_12.png",
+   "linha": 4,
+   "coluna": 0,
+   "w": 121,
+   "h": 117
+  },
+  {
+   "arquivo": "faz_item_13.png",
+   "linha": 5,
+   "coluna": 0,
+   "w": 116,
+   "h": 123
+  },
+  {
+   "arquivo": "faz_item_14.png",
+   "linha": 6,
+   "coluna": 0,
+   "w": 109,
+   "h": 108
+  },
+  {
+   "arquivo": "faz_item_15.png",
+   "linha": 6,
+   "coluna": 1,
+   "w": 81,
+   "h": 123
+  },
+  {
+   "arquivo": "faz_item_16.png",
+   "linha": 6,
+   "coluna": 2,
+   "w": 97,
+   "h": 117
+  },
+  {
+   "arquivo": "faz_item_17.png",
+   "linha": 7,
+   "coluna": 0,
+   "w": 118,
+   "h": 113
+  },
+  {
+   "arquivo": "faz_item_18.png",
+   "linha": 8,
+   "coluna": 0,
+   "w": 91,
+   "h": 105
+  },
+  {
+   "arquivo": "faz_item_19.png",
+   "linha": 9,
+   "coluna": 0,
+   "w": 99,
+   "h": 113
+  }
+ ]
+}
