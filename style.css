@@ -7616,3 +7616,26 @@ body.em-cena #questNotification { display: none !important; }
 
 /* Botoes de zoom na barra da fazenda */
 #farmZoomIn, #farmZoomOut { font-size: 15px; }
+
+
+/* Prateleira de itens da fazenda: abre acima da barra, sem cobrir o cenario. */
+#farmBuildOverlay {
+  position: absolute !important; inset: auto 0 0 0 !important;
+  display: block !important; background: none !important; backdrop-filter: none !important;
+  pointer-events: none; z-index: 62;
+}
+#farmBuildOverlay.hidden { display: none !important; }
+#farmBuildOverlay .build-modal {
+  pointer-events: auto;
+  width: min(96vw, 720px); margin: 0 auto 78px; max-height: 40vh;
+  background: rgba(14,10,20,.96); border: 1px solid #4c3a63; border-radius: 14px;
+  box-shadow: 0 -6px 26px rgba(0,0,0,.55); display: flex; flex-direction: column;
+}
+#farmBuildOverlay .store-header { padding: 8px 12px; border-bottom: 1px solid #2f2544;
+                                  display: flex; align-items: center; gap: 10px; }
+#farmBuildOverlay .store-header h2 { font-size: 12px; margin: 0; flex: 1; color: #e9d5ff; }
+#farmBuildOverlay .build-grid-container { max-height: none; overflow-y: auto; padding: 8px; }
+#buildGrid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.build-img { width: 64px; height: 64px; }
+.build-name { font-size: 10px; }
+.build-price { font-size: 9.5px; }

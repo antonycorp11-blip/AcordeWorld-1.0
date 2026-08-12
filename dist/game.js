@@ -13380,7 +13380,9 @@ function quadro(now){
     // not bleed through onto the shop floor.
     const outdoors=currentScene==='world' || currentScene==='farm';
     if(outdoors){
-      npcData.forEach(npc=>{if(npc.mapKey!==currentKey||npc.oculto)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
+      npcData.forEach(npc=>{if(npc.mapKey!==currentKey||npc.oculto)return;
+        if(currentScene==='farm')return;   // a fazenda nao tem placa, porta nem NPC de mundo
+        (NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
       renderDrops(now);   // on the ground, under everyone
       renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now); renderRotaDaProximaCamara(now); renderSelo(now);
       renderObjetos(now, 'atras');   // pé acima do jogador: ele passa na frente

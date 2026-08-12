@@ -2021,7 +2021,10 @@
       "preco": 50,
       "draw": "img",
       "colide": true,
-      "sprite_desejado": "assets/props/casa_nivel1.png"
+      "sprite_desejado": "assets/props/casa_nivel1.png",
+      "altura": 84,
+      "pe": 0.94,
+      "raio": 25
     },
     "canteiro_terra": {
       "nome": "Canteiro de Plantação",
@@ -2036,7 +2039,10 @@
       "preco": 10,
       "draw": "img",
       "plano": "chao",
-      "sprite_desejado": "assets/props/enxada.png"
+      "sprite_desejado": "assets/props/enxada.png",
+      "altura": 32,
+      "pe": 0.94,
+      "raio": 5
     },
     "semente_trigo": {
       "nome": "Semente de Trigo",
@@ -2050,7 +2056,10 @@
       "subcat": "Sementes",
       "preco": 5,
       "draw": "img",
-      "sprite_desejado": "assets/props/semente_trigo.png"
+      "sprite_desejado": "assets/props/semente_trigo.png",
+      "altura": 24,
+      "pe": 0.94,
+      "raio": 5
     },
     "cerca_madeira": {
       "nome": "Cerca de Madeira",
@@ -2065,7 +2074,10 @@
       "preco": 2,
       "draw": "img",
       "colide": true,
-      "sprite_desejado": "assets/props/cerca_madeira.png"
+      "sprite_desejado": "assets/props/cerca_madeira.png",
+      "altura": 30,
+      "pe": 0.94,
+      "raio": 5
     },
     "galinheiro": {
       "nome": "Galinheiro",
@@ -2079,7 +2091,10 @@
       "subcat": "Animais",
       "preco": 80,
       "draw": "img",
-      "colide": true
+      "colide": true,
+      "altura": 56,
+      "pe": 0.94,
+      "raio": 8
     },
     "estabulo": {
       "nome": "Estábulo",
@@ -2093,7 +2108,10 @@
       "subcat": "Animais",
       "preco": 150,
       "draw": "img",
-      "colide": true
+      "colide": true,
+      "altura": 56,
+      "pe": 0.94,
+      "raio": 8
     },
     "faz_cult_01": {
       "nome": "Muda 1",
@@ -2104,9 +2122,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 10,
+      "raio": 5,
       "colide": false,
-      "altura": 76,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_02": {
@@ -2118,9 +2136,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 11,
+      "raio": 5,
       "colide": false,
-      "altura": 94,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_03": {
@@ -2132,9 +2150,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 10,
+      "raio": 5,
       "colide": false,
-      "altura": 87,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_04": {
@@ -2146,9 +2164,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 23,
+      "raio": 5,
       "colide": false,
-      "altura": 62,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_05": {
@@ -2160,9 +2178,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 23,
+      "raio": 5,
       "colide": false,
-      "altura": 63,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_06": {
@@ -2174,9 +2192,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 11,
+      "raio": 5,
       "colide": false,
-      "altura": 51,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_07": {
@@ -2188,9 +2206,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 14,
+      "raio": 5,
       "colide": false,
-      "altura": 68,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_08": {
@@ -2202,9 +2220,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 14,
+      "raio": 5,
       "colide": false,
-      "altura": 69,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_09": {
@@ -2216,9 +2234,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 10,
+      "raio": 5,
       "colide": false,
-      "altura": 79,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_10": {
@@ -2230,9 +2248,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 10,
+      "raio": 5,
       "colide": false,
-      "altura": 82,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_11": {
@@ -2244,9 +2262,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 12,
+      "raio": 5,
       "colide": false,
-      "altura": 62,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_12": {
@@ -2258,9 +2276,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 12,
+      "raio": 5,
       "colide": false,
-      "altura": 42,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_13": {
@@ -2272,9 +2290,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 12,
+      "raio": 5,
       "colide": false,
-      "altura": 68,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_14": {
@@ -2286,9 +2304,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 12,
+      "raio": 5,
       "colide": false,
-      "altura": 71,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_15": {
@@ -2300,9 +2318,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 11,
+      "raio": 5,
       "colide": false,
-      "altura": 49,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_16": {
@@ -2314,9 +2332,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 11,
+      "raio": 5,
       "colide": false,
-      "altura": 52,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_17": {
@@ -2328,9 +2346,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 65,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_18": {
@@ -2342,9 +2360,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 65,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_19": {
@@ -2356,9 +2374,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 69,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_20": {
@@ -2370,9 +2388,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 9,
+      "raio": 5,
       "colide": false,
-      "altura": 77,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_21": {
@@ -2384,9 +2402,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 12,
+      "raio": 5,
       "colide": false,
-      "altura": 86,
+      "altura": 34,
       "draw": "img"
     },
     "faz_cult_22": {
@@ -2398,9 +2416,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.95,
-      "raio": 13,
+      "raio": 5,
       "colide": false,
-      "altura": 93,
+      "altura": 34,
       "draw": "img"
     },
     "faz_deco_01": {
@@ -2412,9 +2430,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 67,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_02": {
@@ -2426,9 +2444,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 67,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_03": {
@@ -2440,9 +2458,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 67,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_04": {
@@ -2454,9 +2472,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 66,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_05": {
@@ -2468,9 +2486,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 65,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_06": {
@@ -2482,9 +2500,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 66,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_07": {
@@ -2496,9 +2514,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 66,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_08": {
@@ -2510,9 +2528,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 65,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_09": {
@@ -2524,9 +2542,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 66,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_10": {
@@ -2538,9 +2556,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 66,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_11": {
@@ -2552,9 +2570,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 66,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_12": {
@@ -2566,9 +2584,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 66,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_13": {
@@ -2580,9 +2598,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 66,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_14": {
@@ -2594,9 +2612,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 66,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_15": {
@@ -2608,9 +2626,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 66,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_16": {
@@ -2622,9 +2640,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 66,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_17": {
@@ -2636,9 +2654,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 67,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_18": {
@@ -2650,9 +2668,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 67,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_19": {
@@ -2664,9 +2682,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 67,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_20": {
@@ -2678,9 +2696,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 67,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_21": {
@@ -2692,9 +2710,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 67,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_22": {
@@ -2706,9 +2724,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 67,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_23": {
@@ -2720,9 +2738,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 66,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_24": {
@@ -2734,9 +2752,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 66,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_25": {
@@ -2748,9 +2766,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 15,
+      "raio": 5,
       "colide": false,
-      "altura": 66,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_26": {
@@ -2762,9 +2780,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 12,
+      "raio": 5,
       "colide": false,
-      "altura": 42,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_27": {
@@ -2776,9 +2794,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 101,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_28": {
@@ -2790,9 +2808,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 14,
+      "raio": 5,
       "colide": false,
-      "altura": 85,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_29": {
@@ -2804,9 +2822,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 26,
+      "raio": 5,
       "colide": false,
-      "altura": 95,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_30": {
@@ -2818,9 +2836,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 10,
+      "raio": 5,
       "colide": false,
-      "altura": 77,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_31": {
@@ -2832,9 +2850,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 8,
+      "raio": 5,
       "colide": false,
-      "altura": 63,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_32": {
@@ -2846,9 +2864,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 13,
+      "raio": 5,
       "colide": false,
-      "altura": 90,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_33": {
@@ -2860,9 +2878,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 19,
+      "raio": 5,
       "colide": false,
-      "altura": 117,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_34": {
@@ -2874,9 +2892,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 7,
+      "raio": 5,
       "colide": false,
-      "altura": 108,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_35": {
@@ -2888,9 +2906,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 10,
+      "raio": 5,
       "colide": false,
-      "altura": 71,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_36": {
@@ -2902,9 +2920,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 12,
+      "raio": 5,
       "colide": false,
-      "altura": 72,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_37": {
@@ -2916,9 +2934,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 12,
+      "raio": 5,
       "colide": false,
-      "altura": 72,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_38": {
@@ -2930,9 +2948,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 18,
+      "raio": 5,
       "colide": false,
-      "altura": 48,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_39": {
@@ -2944,9 +2962,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 23,
+      "raio": 5,
       "colide": false,
-      "altura": 62,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_40": {
@@ -2958,9 +2976,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 12,
+      "raio": 5,
       "colide": false,
-      "altura": 59,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_41": {
@@ -2972,9 +2990,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 21,
+      "raio": 5,
       "colide": false,
-      "altura": 79,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_42": {
@@ -2986,9 +3004,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 25,
+      "raio": 5,
       "colide": false,
-      "altura": 76,
+      "altura": 30,
       "draw": "img"
     },
     "faz_deco_43": {
@@ -3000,9 +3018,9 @@
       "preco": 12,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 26,
+      "raio": 5,
       "colide": false,
-      "altura": 104,
+      "altura": 30,
       "draw": "img"
     },
     "faz_estr_01": {
@@ -3014,9 +3032,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 27,
+      "raio": 25,
       "colide": true,
-      "altura": 137,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_02": {
@@ -3028,9 +3046,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 28,
+      "raio": 25,
       "colide": true,
-      "altura": 156,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_03": {
@@ -3042,9 +3060,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 20,
+      "raio": 25,
       "colide": true,
-      "altura": 168,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_04": {
@@ -3056,9 +3074,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 28,
+      "raio": 25,
       "colide": true,
-      "altura": 153,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_05": {
@@ -3070,9 +3088,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 19,
+      "raio": 25,
       "colide": true,
-      "altura": 165,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_06": {
@@ -3086,7 +3104,7 @@
       "pe": 0.94,
       "raio": 25,
       "colide": true,
-      "altura": 162,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_07": {
@@ -3098,9 +3116,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 22,
+      "raio": 25,
       "colide": true,
-      "altura": 166,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_08": {
@@ -3112,9 +3130,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 28,
+      "raio": 25,
       "colide": true,
-      "altura": 128,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_09": {
@@ -3126,9 +3144,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 16,
+      "raio": 25,
       "colide": true,
-      "altura": 106,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_10": {
@@ -3140,9 +3158,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 23,
+      "raio": 25,
       "colide": true,
-      "altura": 118,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_11": {
@@ -3154,9 +3172,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 21,
+      "raio": 25,
       "colide": true,
-      "altura": 72,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_12": {
@@ -3168,9 +3186,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 20,
+      "raio": 25,
       "colide": true,
-      "altura": 55,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_13": {
@@ -3182,9 +3200,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 28,
+      "raio": 25,
       "colide": true,
-      "altura": 47,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_14": {
@@ -3196,9 +3214,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 11,
+      "raio": 25,
       "colide": true,
-      "altura": 59,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_15": {
@@ -3210,9 +3228,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 11,
+      "raio": 25,
       "colide": true,
-      "altura": 60,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_16": {
@@ -3224,9 +3242,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 19,
+      "raio": 25,
       "colide": true,
-      "altura": 59,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_17": {
@@ -3238,9 +3256,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 24,
+      "raio": 25,
       "colide": true,
-      "altura": 66,
+      "altura": 84,
       "draw": "img"
     },
     "faz_estr_18": {
@@ -3252,9 +3270,9 @@
       "preco": 90,
       "plano": "objeto",
       "pe": 0.94,
-      "raio": 24,
+      "raio": 25,
       "colide": true,
-      "altura": 67,
+      "altura": 84,
       "draw": "img"
     },
     "faz_hab_01": {
@@ -3266,9 +3284,9 @@
       "preco": 120,
       "plano": "objeto",
       "pe": 0.92,
-      "raio": 28,
+      "raio": 16,
       "colide": true,
-      "altura": 164,
+      "altura": 56,
       "draw": "img"
     },
     "faz_hab_02": {
@@ -3280,9 +3298,9 @@
       "preco": 120,
       "plano": "objeto",
       "pe": 0.92,
-      "raio": 28,
+      "raio": 16,
       "colide": true,
-      "altura": 110,
+      "altura": 56,
       "draw": "img"
     },
     "faz_hab_03": {
@@ -3294,9 +3312,9 @@
       "preco": 120,
       "plano": "objeto",
       "pe": 0.92,
-      "raio": 28,
+      "raio": 16,
       "colide": true,
-      "altura": 155,
+      "altura": 56,
       "draw": "img"
     },
     "faz_hab_04": {
@@ -3308,9 +3326,9 @@
       "preco": 120,
       "plano": "objeto",
       "pe": 0.92,
-      "raio": 28,
+      "raio": 16,
       "colide": true,
-      "altura": 125,
+      "altura": 56,
       "draw": "img"
     },
     "faz_hab_05": {
@@ -3322,9 +3340,9 @@
       "preco": 120,
       "plano": "objeto",
       "pe": 0.92,
-      "raio": 28,
+      "raio": 16,
       "colide": true,
-      "altura": 179,
+      "altura": 56,
       "draw": "img"
     },
     "faz_hab_06": {
@@ -3336,9 +3354,9 @@
       "preco": 120,
       "plano": "objeto",
       "pe": 0.92,
-      "raio": 28,
+      "raio": 16,
       "colide": true,
-      "altura": 179,
+      "altura": 56,
       "draw": "img"
     },
     "faz_hab_07": {
@@ -3350,9 +3368,9 @@
       "preco": 120,
       "plano": "objeto",
       "pe": 0.92,
-      "raio": 28,
+      "raio": 16,
       "colide": true,
-      "altura": 144,
+      "altura": 56,
       "draw": "img"
     },
     "faz_hab_08": {
@@ -3364,9 +3382,9 @@
       "preco": 120,
       "plano": "objeto",
       "pe": 0.92,
-      "raio": 28,
+      "raio": 16,
       "colide": true,
-      "altura": 138,
+      "altura": 56,
       "draw": "img"
     },
     "faz_hab_09": {
@@ -3378,9 +3396,9 @@
       "preco": 120,
       "plano": "objeto",
       "pe": 0.92,
-      "raio": 28,
+      "raio": 16,
       "colide": true,
-      "altura": 178,
+      "altura": 56,
       "draw": "img"
     },
     "faz_hab_10": {
@@ -3392,9 +3410,9 @@
       "preco": 120,
       "plano": "objeto",
       "pe": 0.92,
-      "raio": 28,
+      "raio": 16,
       "colide": true,
-      "altura": 141,
+      "altura": 56,
       "draw": "img"
     },
     "faz_ilha_01": {
@@ -3406,9 +3424,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 130,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_02": {
@@ -3420,9 +3438,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 132,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_03": {
@@ -3434,9 +3452,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 131,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_04": {
@@ -3448,9 +3466,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 130,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_05": {
@@ -3462,9 +3480,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 131,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_06": {
@@ -3476,9 +3494,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 137,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_07": {
@@ -3490,9 +3508,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 14,
+      "raio": 5,
       "colide": false,
-      "altura": 143,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_08": {
@@ -3504,9 +3522,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 14,
+      "raio": 5,
       "colide": false,
-      "altura": 143,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_09": {
@@ -3518,9 +3536,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 134,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_10": {
@@ -3532,9 +3550,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 23,
+      "raio": 5,
       "colide": false,
-      "altura": 127,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_11": {
@@ -3546,9 +3564,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 23,
+      "raio": 5,
       "colide": false,
-      "altura": 128,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_12": {
@@ -3560,9 +3578,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 134,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_13": {
@@ -3574,9 +3592,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 134,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_14": {
@@ -3588,9 +3606,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 133,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_15": {
@@ -3602,9 +3620,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 23,
+      "raio": 5,
       "colide": false,
-      "altura": 132,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_16": {
@@ -3616,9 +3634,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 23,
+      "raio": 5,
       "colide": false,
-      "altura": 132,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_17": {
@@ -3630,9 +3648,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 139,
+      "altura": 32,
       "draw": "img"
     },
     "faz_ilha_18": {
@@ -3644,9 +3662,9 @@
       "preco": 0,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 114,
+      "altura": 32,
       "draw": "img"
     },
     "faz_item_01": {
@@ -3658,9 +3676,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 22,
+      "raio": 5,
       "colide": false,
-      "altura": 118,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_02": {
@@ -3672,9 +3690,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 22,
+      "raio": 5,
       "colide": false,
-      "altura": 119,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_03": {
@@ -3686,9 +3704,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 22,
+      "raio": 5,
       "colide": false,
-      "altura": 119,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_04": {
@@ -3700,9 +3718,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 22,
+      "raio": 5,
       "colide": false,
-      "altura": 119,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_05": {
@@ -3714,9 +3732,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 21,
+      "raio": 5,
       "colide": false,
-      "altura": 118,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_06": {
@@ -3728,9 +3746,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 22,
+      "raio": 5,
       "colide": false,
-      "altura": 117,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_07": {
@@ -3742,9 +3760,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 22,
+      "raio": 5,
       "colide": false,
-      "altura": 112,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_08": {
@@ -3756,9 +3774,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 22,
+      "raio": 5,
       "colide": false,
-      "altura": 117,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_09": {
@@ -3770,9 +3788,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 24,
+      "raio": 5,
       "colide": false,
-      "altura": 78,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_10": {
@@ -3784,9 +3802,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 25,
+      "raio": 5,
       "colide": false,
-      "altura": 122,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_11": {
@@ -3798,9 +3816,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 25,
+      "raio": 5,
       "colide": false,
-      "altura": 117,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_12": {
@@ -3812,9 +3830,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 24,
+      "raio": 5,
       "colide": false,
-      "altura": 117,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_13": {
@@ -3826,9 +3844,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 23,
+      "raio": 5,
       "colide": false,
-      "altura": 123,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_14": {
@@ -3840,9 +3858,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 21,
+      "raio": 5,
       "colide": false,
-      "altura": 108,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_15": {
@@ -3854,9 +3872,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 16,
+      "raio": 5,
       "colide": false,
-      "altura": 123,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_16": {
@@ -3868,9 +3886,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 19,
+      "raio": 5,
       "colide": false,
-      "altura": 117,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_17": {
@@ -3882,9 +3900,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 23,
+      "raio": 5,
       "colide": false,
-      "altura": 113,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_18": {
@@ -3896,9 +3914,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 18,
+      "raio": 5,
       "colide": false,
-      "altura": 105,
+      "altura": 26,
       "draw": "img"
     },
     "faz_item_19": {
@@ -3910,9 +3928,9 @@
       "preco": 0,
       "plano": "objeto",
       "pe": 0.9,
-      "raio": 19,
+      "raio": 5,
       "colide": false,
-      "altura": 113,
+      "altura": 26,
       "draw": "img"
     },
     "faz_solo_01": {
@@ -3924,9 +3942,9 @@
       "preco": 6,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 148,
+      "altura": 32,
       "draw": "img"
     },
     "faz_solo_02": {
@@ -3938,9 +3956,9 @@
       "preco": 6,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 149,
+      "altura": 32,
       "draw": "img"
     },
     "faz_solo_03": {
@@ -3952,9 +3970,9 @@
       "preco": 6,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 148,
+      "altura": 32,
       "draw": "img"
     },
     "faz_solo_04": {
@@ -3966,9 +3984,9 @@
       "preco": 6,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 137,
+      "altura": 32,
       "draw": "img"
     },
     "faz_solo_05": {
@@ -3980,9 +3998,9 @@
       "preco": 6,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 134,
+      "altura": 32,
       "draw": "img"
     },
     "faz_solo_06": {
@@ -3994,9 +4012,9 @@
       "preco": 6,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 137,
+      "altura": 32,
       "draw": "img"
     },
     "faz_solo_07": {
@@ -4008,9 +4026,9 @@
       "preco": 6,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 135,
+      "altura": 32,
       "draw": "img"
     },
     "faz_solo_08": {
@@ -4022,9 +4040,9 @@
       "preco": 6,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 133,
+      "altura": 32,
       "draw": "img"
     },
     "faz_solo_09": {
@@ -4036,9 +4054,9 @@
       "preco": 6,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 136,
+      "altura": 32,
       "draw": "img"
     },
     "faz_solo_10": {
@@ -4050,9 +4068,9 @@
       "preco": 6,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 130,
+      "altura": 32,
       "draw": "img"
     },
     "faz_solo_11": {
@@ -4064,9 +4082,9 @@
       "preco": 6,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 130,
+      "altura": 32,
       "draw": "img"
     },
     "faz_solo_12": {
@@ -4078,9 +4096,9 @@
       "preco": 6,
       "plano": "chao",
       "pe": 1.0,
-      "raio": 28,
+      "raio": 5,
       "colide": false,
-      "altura": 130,
+      "altura": 32,
       "draw": "img"
     }
   },
@@ -4624,6 +4642,33 @@
       "y": 165,
       "escala": 0.4,
       "flipX": true
+    },
+    {
+      "id": "casa_nivel1_1786500349376",
+      "prop": "casa_nivel1",
+      "mapKey": "custom_1785881037059_214",
+      "x": 512,
+      "y": 128,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "casa_nivel1_1786500365837",
+      "prop": "casa_nivel1",
+      "mapKey": "custom_1785881037059_214",
+      "x": 288,
+      "y": 160,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "casa_nivel1_1786500493355",
+      "prop": "casa_nivel1",
+      "mapKey": "custom_1785881037059_214",
+      "x": 576,
+      "y": 288,
+      "escala": 1,
+      "flipX": false
     }
   ]
 }
