@@ -7682,3 +7682,27 @@ body.em-cena #questNotification { display: none !important; }
 .fj-nota b { font-size: 9px; }
 .fj-passo { display: inline-flex; align-items: center; gap: 6px; }
 .fj-ok { background: linear-gradient(#2f4a2a, #1c2f19); border-color: #4ade80; color: #bbf7d0; }
+
+/* ── Pauta dos acordes equipados ─────────────────────────────────────────────── */
+.comp-pauta { display: flex; align-items: stretch; gap: 0; overflow-x: auto;
+              padding: 10px 8px; margin-bottom: 8px;
+              background: linear-gradient(rgba(0,0,0,.28), rgba(0,0,0,.14));
+              border-radius: 10px;
+              background-image: repeating-linear-gradient(
+                to bottom, transparent 0 22px, rgba(251,191,36,.20) 22px 23px); }
+.cp-clave { font-size: 34px; color: #fbbf24; padding: 0 10px 0 4px; align-self: center; }
+.cp-compasso { display: flex; flex-direction: column; gap: 5px; padding: 0 8px; }
+.cp-casas { display: flex; gap: 6px; }
+.cp-barra { width: 2px; background: rgba(251,191,36,.35); margin: 4px 2px; }
+.cp-casa { width: 84px; min-height: 62px; padding: 5px 4px; cursor: pointer;
+           background: #1d1729; border: 1px solid var(--c, #3b2d52); border-radius: 8px;
+           color: #e9d5ff; display: flex; flex-direction: column; gap: 1px; text-align: center; }
+.cp-casa b { color: var(--c, #e9d5ff); font-size: 13px; }
+.cp-casa .cp-grau { font-size: 9px; color: #a79bc2; letter-spacing: .1em; }
+.cp-casa small { font-size: 8.5px; color: #cbbfe0; line-height: 1.2; }
+.cp-casa.vazia { border-style: dashed; opacity: .55; align-items: center; justify-content: center; }
+.cp-casa.vazia i { font-size: 20px; font-style: normal; color: #7c5cab; }
+.cp-sinergia { min-height: 26px; text-align: center; }
+.cp-sinergia b { display: block; font-size: 10px; color: #4ade80; letter-spacing: .05em; }
+.cp-sinergia small { font-size: 8.5px; color: #a79bc2; }
+.com-sinergia .cp-casas { box-shadow: 0 0 0 1px rgba(74,222,128,.5); border-radius: 10px; }

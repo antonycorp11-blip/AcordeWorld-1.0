@@ -21266,6 +21266,69 @@ function abrirComposicao() {
 }
 function fecharComposicao() { document.getElementById('composicao')?.classList.add('hidden'); }
 
+// A pauta dos acordes equipados. Sete lugares, barra de compasso a cada tres: cada
+// compasso fechado e uma frase, e frase e onde a cadencia acontece. E por isso que a
+// ORDEM importa — arrastar o mesmo acorde para outro compasso muda o que ele faz.
+const COMPASSOS = [[0, 1, 2], [3, 4, 5], [6]];
+
+// A cadencia de um compasso: os graus daqueles acordes, dentro de cada escala equipada.
+function cadenciaDoCompasso(indices) {
+  const ids = indices.map(i => acordesEquipados[i]).filter(Boolean);
+  if (ids.length < 2) return null;
+  let melhor = null;
+  escalasEquipadas.forEach(tonica => {
+    const graus = ids.map(id => {
+      const f = funcaoNaEscala(id, tonica);
+      return f && escalaAtivaDoAcorde(id) === tonica ? f.grau : null;
+    }).filter(Boolean);
+    CADENCIAS.forEach(c => {
+      // A ordem conta: a cadencia tem que aparecer NA SEQUENCIA em que foi escrita.
+      let k = 0;
+      graus.forEach(g => { if (g === c.graus[k]) k++; });
+      if (k === c.graus.length && (!melhor || c.graus.length > melhor.graus.length)) {
+        melhor = { ...c, tonica };
+      }
+    });
+  });
+  return melhor;
+}
+
+function desenharPautaDaComposicao() {
+  const el = document.getElementById('compPauta');
+  if (!el) return;
+  const casa = i => {
+    const id = acordesEquipados[i];
+    if (!id) return `<button class="cp-casa vazia" data-slot="${i}"><i>+</i></button>`;
+    const f = funcaoAtivaDoAcorde(id);
+    const ef = f ? EFEITO_DA_FUNCAO[f.grau] : null;
+    const cor = ef ? ef.cor : '#64748b';
+    // O efeito fica escrito NO lugar: equipar as cegas e o que tornava esta tela inutil.
+    const efeito = ef ? Object.entries(ef.attrs || {})
+      .map(([k, v]) => `${v > 0 ? '+' : ''}${v} ${k}`).join(' · ') : 'fora das escalas equipadas';
+    return `<button class="cp-casa" data-slot="${i}" style="--c:${cor}">
+      <b>${f ? f.cifra : id}</b>
+      <span class="cp-grau">${f ? f.romano : '—'}</span>
+      <small>${efeito}</small></button>`;
+  };
+  el.innerHTML = '<div class="cp-clave">𝄞</div>' + COMPASSOS.map((comp, ci) => {
+    const cad = cadenciaDoCompasso(comp);
+    return `<div class="cp-compasso${cad ? ' com-sinergia' : ''}">
+        <div class="cp-casas">${comp.map(casa).join('')}</div>
+        <div class="cp-sinergia">${cad
+          ? `<b>${cad.nome}</b><small>${cad.desc}</small>`
+          : (comp.length < 3 ? '<small>compasso incompleto</small>'
+                             : '<small>sem sinergia — tente outra ordem</small>')}</div>
+      </div><div class="cp-barra"></div>`;
+  }).join('');
+  el.querySelectorAll('[data-slot]').forEach(b => b.addEventListener('click', () => {
+    const i = +b.dataset.slot;
+    if (acordesEquipados[i]) {
+      acordesEquipados.splice(i, 1);
+      savePlayerData(); desenharComposicao();
+    } else showToast('Escolha um acorde na lista de guardados.');
+  }));
+}
+
 function desenharComposicao() {
   const el = document.getElementById('composicao');
   if (!el || el.classList.contains('hidden')) return;
@@ -21293,6 +21356,7 @@ function desenharComposicao() {
   }));
 
   // ── acordes equipados e guardados ──
+  desenharPautaDaComposicao();
   document.getElementById('compContaAcordes').textContent =
     `${acordesEquipados.length}/${MAX_ACORDES_EQUIPADOS}`;
   const cartaDoAcorde = (id, equipado) => {
