@@ -1,75 +1,18 @@
 {
   "id": "cap1_patio",
-  "nome": "Cap. 1 · Cena 7 — O Pátio das Ruínas",
-  "_": "A dose controlada de esquecimento. O jogador sente na pele o que o Silêncio faz, numa situação em que ainda não custa nada — para que na Cena 9 ele saiba o tamanho do que está acontecendo.",
+  "nome": "Cap. 1 · Cena 15 — Os Guardiões do Forjador",
+  "_": "Deixou de ser corrida de dungeon: e a estrada ate o Salao do Forjador. Os monstros sao guardioes antigos que ninguem colocou ali — ficaram. Lutar e opcional, e a Wins diz isso em voz alta, porque a escolha e o ponto.",
   "mapa": "custom_1785900374897_630",
   "autoStart": true,
   "passos": [
-    {
-      "_": "── chegada ──"
-    },
     {
       "cmd": "controle",
       "ativo": false
     },
     {
-      "cmd": "escurecer",
-      "para": 1,
-      "ms": 0
-    },
-    {
-      "cmd": "hud",
-      "visivel": false
-    },
-    {
-      "cmd": "esperar",
-      "ms": 500
-    },
-    {
-      "cmd": "escurecer",
-      "para": 0,
-      "ms": 1600
-    },
-    {
-      "cmd": "esperar",
-      "ms": 1200
-    },
-    {
-      "cmd": "falar",
-      "quem": "Wins",
-      "texto": "Chegamos."
-    },
-    {
-      "cmd": "esperar",
-      "ms": 500
-    },
-    {
-      "cmd": "falar",
-      "quem": "Akles",
-      "texto": "Que lugar é este?"
-    },
-    {
-      "cmd": "falar",
-      "quem": "Wins",
-      "texto": "Não sei."
-    },
-    {
-      "cmd": "esperar",
+      "cmd": "trilha",
+      "humor": "caverna",
       "ms": 900
-    },
-    {
-      "cmd": "falar",
-      "quem": "Wins",
-      "texto": "E esse é o problema, Akles. Alguém sabia. Ontem alguém sabia."
-    },
-    {
-      "_": "── os Ecos ──"
-    },
-    {
-      "cmd": "tingir",
-      "cor": "#5b7bd4",
-      "forca": 0.1,
-      "ms": 1400
     },
     {
       "cmd": "esperar",
@@ -78,58 +21,87 @@
     {
       "cmd": "falar",
       "quem": "Wins",
-      "texto": "Está ouvindo? Isso tudo são Ecos."
+      "texto": "Chegamos. — É por aqui que se chega ao Forjador."
     },
     {
       "cmd": "falar",
       "quem": "Akles",
-      "texto": "São muitos."
+      "texto": "Isto aqui já foi cidade."
     },
     {
       "cmd": "falar",
       "quem": "Wins",
-      "texto": "Um Eco é uma lembrança que sobrou de alguém, Akles."
+      "texto": "Já. E ninguém lembra de qual."
+    },
+    {
+      "_": "── o que sao aquelas coisas ──"
     },
     {
       "cmd": "esperar",
-      "ms": 800
-    },
-    {
-      "cmd": "falar",
-      "quem": "Wins",
-      "texto": "Tem quarenta aqui."
-    },
-    {
-      "cmd": "esperar",
-      "ms": 1200
+      "ms": 900
     },
     {
       "cmd": "falar",
       "quem": "Akles",
-      "texto": "...quarenta pessoas."
+      "texto": "Tem coisa se movendo entre as pedras."
     },
     {
       "cmd": "falar",
       "quem": "Wins",
-      "texto": "As casas estão de pé. As camas estão feitas. E não sobrou nome nenhum."
+      "texto": "Guardiões. Estavam aqui antes das ruínas serem ruínas."
     },
     {
-      "_": "── o que o jogador vai fazer ──"
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Ninguém pôs eles de guarda. Eles só... continuaram."
     },
     {
-      "cmd": "tingir",
-      "cor": "#5b7bd4",
-      "forca": 0,
+      "cmd": "falar",
+      "quem": "Akles",
+      "texto": "Guardando o quê?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "A estrada. O Forjador é do outro lado."
+    },
+    {
+      "_": "── a escolha, dita em voz alta ──"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1000
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Eles não perseguem quem passa reto. Já vim por aqui duas vezes sem sacar a lança."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Akles",
+      "texto": "E na terceira?"
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Na terceira eu estava com pressa e fui burra. — Você decide."
+    },
+    {
+      "cmd": "esperar",
       "ms": 1200
-    },
-    {
-      "cmd": "falar",
-      "quem": "Wins",
-      "texto": "A gente não está saqueando este lugar. Está recolhendo gente."
     },
     {
       "cmd": "tutorial",
-      "texto": "Os baús do pátio são o que sobrou de cada casa. Eles não abrem enquanto houver monstro montando guarda — derrote os guardas primeiro."
+      "texto": "Os Guardiões não impedem a passagem: enfrente-os pelo que largam, ou siga direto até o Salão do Forjador.\nO caminho é para o norte."
+    },
+    {
+      "cmd": "missao",
+      "id": "patrulha_do_patio"
+    },
+    {
+      "cmd": "rota",
+      "para": "custom_1786501580114_289"
     },
     {
       "cmd": "hud",
@@ -138,10 +110,6 @@
     {
       "cmd": "controle",
       "ativo": true
-    },
-    {
-      "cmd": "missao",
-      "id": "patrulha_do_patio"
     },
     {
       "cmd": "fim"

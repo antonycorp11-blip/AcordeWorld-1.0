@@ -286,16 +286,15 @@
     },
     {
       "id": "patrulha_do_patio",
-      "title": "A Patrulha do Pátio",
-      "description": "O Sr. Antony pediu que o Pátio das Ruínas fosse limpo antes do anoitecer.",
+      "title": "O Caminho Guardado",
+      "description": "O Sr. Antony disse que o Salão do Forjador fica além do pátio em ruínas. E que o pátio não está vazio.",
       "xp": 60,
       "objectives": [
         {
-          "id": "limpar",
-          "text": "Limpe o Pátio das Ruínas",
-          "completed": false,
-          "type": "limpar",
-          "item": "patio"
+          "id": "chegar",
+          "type": "chegar",
+          "item": "custom_1786501580114_289",
+          "text": "Atravesse o Pátio das Ruínas e chegue ao Salão do Forjador"
         }
       ],
       "path_waypoints": {}

@@ -18782,7 +18782,7 @@ const FORJA = {
 };
 
 // Onde o altar fica no Salão do Forjador, e o raio em que pisar conta como "em cima".
-const ALTAR = { mapa: 'custom_1785776481744_650', x: 512, y: 300, raio: 70 };
+const ALTAR = { mapa: 'custom_1786501580114_289', x: 512, y: 300, raio: 70 };
 
 // Cor de cada nota. Sete naturais em cores próprias e as cinco alteradas puxando para o
 // tom vizinho: assim o arco acende contando uma história de cor, não um arco-íris solto.
@@ -18830,7 +18830,7 @@ function escolherTonica(id) {
 
 // O passo que o jogador dá. Tom vale 2, semitom vale 1, e passar de 12 é recusado —
 // a oitava não estica.
-function passoDaForja(tipo) {
+function passoDaEscala(tipo) {
   if (!FORJA.tonica || FORJA.fechada) return;
   const v = tipo === 'tom' ? 2 : 1;
   if (FORJA.semitons + v > 12) {
@@ -18894,7 +18894,7 @@ function montarBarraDaForja() {
       '<button class="fj-x" data-fechar="1">✖</button>';
   }
   el.querySelectorAll('[data-nota]').forEach(b => b.onclick = () => escolherTonica(b.dataset.nota));
-  el.querySelectorAll('[data-passo]').forEach(b => b.onclick = () => passoDaForja(b.dataset.passo));
+  el.querySelectorAll('[data-passo]').forEach(b => b.onclick = () => passoDaEscala(b.dataset.passo));
   el.querySelector('[data-desfazer]')?.addEventListener('click', desfazerPassoDaForja);
   el.querySelector('[data-fechar]')?.addEventListener('click', fecharForjaDoAltar);
 }
