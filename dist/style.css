@@ -7668,3 +7668,17 @@ body.em-cena #questNotification { display: none !important; }
 .fj-voltar { min-width: 44px; color: #c4b5fd; }
 .fj-x { background: #2a1414; border: 1px solid #7f1d1d; color: #fca5a5;
         border-radius: 8px; padding: 8px 10px; cursor: pointer; }
+/* Forja: sprites de nota de verdade, sequencia visivel e botao de concluir. */
+.forja-barra { flex-direction: column; gap: 8px; }
+.fj-linha { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; }
+.fj-seq { display: flex; align-items: center; gap: 3px; flex-wrap: wrap;
+          justify-content: center; padding: 5px 8px; background: rgba(0,0,0,.32);
+          border-radius: 8px; min-height: 34px; }
+.fj-img { width: 26px; height: 26px; image-rendering: pixelated; display: block; margin: 0 auto; }
+.fj-int { width: 18px; height: 18px; image-rendering: pixelated; opacity: .9; }
+.fj-passo-ico .fj-img { width: 24px; height: 24px; }
+.fj-nota { display: flex; flex-direction: column; align-items: center; gap: 1px;
+           min-width: 40px; padding: 5px 4px; }
+.fj-nota b { font-size: 9px; }
+.fj-passo { display: inline-flex; align-items: center; gap: 6px; }
+.fj-ok { background: linear-gradient(#2f4a2a, #1c2f19); border-color: #4ade80; color: #bbf7d0; }

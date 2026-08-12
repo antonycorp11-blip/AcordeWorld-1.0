@@ -18782,7 +18782,7 @@ const FORJA = {
 };
 
 // Onde o altar fica no Salão do Forjador, e o raio em que pisar conta como "em cima".
-const ALTAR = { mapa: 'custom_1786501580114_289', x: 512, y: 300, raio: 70 };
+const ALTAR = { mapa: 'custom_1786501580114_289', x: 528, y: 268, raio: 78 };
 
 // Cor de cada nota. Sete naturais em cores próprias e as cinco alteradas puxando para o
 // tom vizinho: assim o arco acende contando uma história de cor, não um arco-íris solto.
@@ -18791,6 +18791,18 @@ const COR_DA_NOTA = {
   fa: '#2dd4bf', fa_s: '#38bdf8', sol: '#60a5fa', sol_s: '#818cf8',
   la: '#a78bfa', la_s: '#e879f9', si: '#f472b6',
 };
+const ARQ_DA_NOTA = {
+  do:'C', do_s:'Cs', re:'D', re_s:'Ds', mi:'E', fa:'F', fa_s:'Fs',
+  sol:'G', sol_s:'Gs', la:'A', la_s:'As', si:'B',
+};
+const IMG_DA_NOTA = {};
+function spriteDaNota(id) {
+  if (!IMG_DA_NOTA[id]) {
+    const i = new Image(); i.src = 'assets/itens/notas/' + ARQ_DA_NOTA[id] + '.png';
+    IMG_DA_NOTA[id] = i;
+  }
+  return IMG_DA_NOTA[id];
+}
 const NOME_DA_NOTA = {
   do: 'Dó', do_s: 'Dó♯', re: 'Ré', re_s: 'Ré♯', mi: 'Mi', fa: 'Fá', fa_s: 'Fá♯',
   sol: 'Sol', sol_s: 'Sol♯', la: 'Lá', la_s: 'Lá♯', si: 'Si',
@@ -18811,12 +18823,14 @@ function abrirForjaDoAltar() {
   FORJA.ativo = true; FORJA.tonica = null; FORJA.passos = [];
   FORJA.semitons = 0; FORJA.fechada = false;
   playerLocked = true;
+  document.body.classList.add('em-cena');   // some HUD, joystick e roda de combate
   document.getElementById('forjaBarra')?.classList.remove('hidden');
   montarBarraDaForja();
 }
 
 function fecharForjaDoAltar() {
   FORJA.ativo = false; playerLocked = false;
+  document.body.classList.remove('em-cena');
   document.getElementById('forjaBarra')?.classList.add('hidden');
 }
 
@@ -18878,24 +18892,44 @@ function fecharEscalaDaForja() {
 function montarBarraDaForja() {
   const el = document.getElementById('forjaBarra');
   if (!el) return;
+  const icone = id => `<img class="fj-img" src="assets/itens/notas/${ARQ_DA_NOTA[id]}.png" alt="">`;
+
   if (!FORJA.tonica) {
-    el.innerHTML = '<span class="fj-rot">ESCOLHA A TÔNICA</span>' +
-      CROMA.map(id => `<button class="fj-nota" data-nota="${id}"
-        style="--c:${COR_DA_NOTA[id]}">${NOME_DA_NOTA[id]}</button>`).join('') +
-      '<button class="fj-x" data-fechar="1">✖</button>';
+    el.innerHTML = '<span class="fj-rot">ESCOLHA A TÔNICA</span><div class="fj-linha">' +
+      CROMA.map(id => `<button class="fj-nota" data-nota="${id}" title="${NOME_DA_NOTA[id]}">
+        ${icone(id)}<b>${NOME_DA_NOTA[id]}</b></button>`).join('') +
+      '</div><button class="fj-x" data-fechar="1">✖</button>';
   } else {
+    // A escala sendo construida, nota a nota, com o sprite de cada uma. Sem isto o
+    // jogador escolhe tom e semitom no escuro, sem ver o que esta montando.
+    let acum = 0;
+    const seq = [`<span class="fj-passo-ico">${icone(FORJA.tonica)}</span>`];
+    FORJA.passos.forEach(t => {
+      acum += (t === 'tom' ? 2 : 1);
+      seq.push(`<img class="fj-int" src="assets/itens/notas/${t === 'tom' ? 'tom' : 'semitom'}.png" alt="">`);
+      seq.push(`<span class="fj-passo-ico">${icone(notaEmSemitons(acum))}</span>`);
+    });
     const falta = 12 - FORJA.semitons;
+    const chave = FORJA.passos.map(x => x === 'tom' ? 'T' : 'S').join(',');
+    const modo = CAMINHOS[chave];
     el.innerHTML =
-      `<span class="fj-rot">${NOME_DA_NOTA[FORJA.tonica]} · faltam ${falta} semitom(ns)</span>` +
-      (FORJA.fechada ? '' :
-        `<button class="fj-passo" data-passo="tom" ${falta < 2 ? 'disabled' : ''}>TOM</button>
-         <button class="fj-passo" data-passo="semitom">SEMITOM</button>
-         <button class="fj-passo fj-voltar" data-desfazer="1" ${FORJA.passos.length ? '' : 'disabled'}>↶</button>`) +
-      '<button class="fj-x" data-fechar="1">✖</button>';
+      `<span class="fj-rot">${NOME_DA_NOTA[FORJA.tonica]}${modo ? ' · ' + modo : ''}` +
+      (FORJA.fechada ? ' — fechada' : ` · faltam ${falta}`) + '</span>' +
+      `<div class="fj-seq">${seq.join('')}</div>` +
+      '<div class="fj-linha">' +
+      (FORJA.fechada
+        ? `<button class="fj-passo fj-ok" data-concluir="1">CONCLUIR</button>`
+        : `<button class="fj-passo" data-passo="tom" ${falta < 2 ? 'disabled' : ''}>
+             <img class="fj-int" src="assets/itens/notas/tom.png" alt=""> TOM</button>
+           <button class="fj-passo" data-passo="semitom">
+             <img class="fj-int" src="assets/itens/notas/semitom.png" alt=""> SEMITOM</button>
+           <button class="fj-passo fj-voltar" data-desfazer="1" ${FORJA.passos.length ? '' : 'disabled'}>↶</button>`) +
+      '<button class="fj-x" data-fechar="1">✖</button></div>';
   }
   el.querySelectorAll('[data-nota]').forEach(b => b.onclick = () => escolherTonica(b.dataset.nota));
   el.querySelectorAll('[data-passo]').forEach(b => b.onclick = () => passoDaEscala(b.dataset.passo));
   el.querySelector('[data-desfazer]')?.addEventListener('click', desfazerPassoDaForja);
+  el.querySelector('[data-concluir]')?.addEventListener('click', fecharForjaDoAltar);
   el.querySelector('[data-fechar]')?.addEventListener('click', fecharForjaDoAltar);
 }
 
@@ -18903,9 +18937,9 @@ function montarBarraDaForja() {
 // Onze posições ao longo do arco do fundo. São coordenadas de CENA (o jogo desenha
 // dentro do zoom), medidas sobre a arte do Salão.
 const CRISTAIS = [
-  { x: 296, y: 196 }, { x: 344, y: 168 }, { x: 396, y: 148 }, { x: 452, y: 136 },
-  { x: 512, y: 132 }, { x: 572, y: 136 }, { x: 628, y: 148 }, { x: 680, y: 168 },
-  { x: 728, y: 196 }, { x: 770, y: 230 }, { x: 806, y: 270 },
+  { x: 272, y: 151 }, { x: 323, y: 125 }, { x: 374, y: 106 }, { x: 426, y: 93 },
+  { x: 477, y: 85 },  { x: 528, y: 83 },  { x: 579, y: 88 },  { x: 630, y: 98 },
+  { x: 682, y: 114 }, { x: 733, y: 136 }, { x: 784, y: 164 },
 ];
 
 function renderAltarDaForja(now) {
