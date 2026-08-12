@@ -7592,3 +7592,27 @@ body.em-cena #questNotification { display: none !important; }
 .build-price { font-size: 10px; color: #fbbf24; font-weight: 600; }
 .build-item.disabled .build-price { color: #fca5a5; }
 .store-coins { color: #fbbf24; font-weight: 600; font-size: 12px; }
+
+
+/* Seletor da fazenda: painel largo e centrado, cartao grande o bastante para reconhecer
+   o item de relance. Antes herdava o layout da loja, que e uma coluna estreita. */
+#farmBuildOverlay { display: grid; place-items: end center; }
+#farmBuildOverlay.hidden { display: none; }
+#farmBuildOverlay .build-modal {
+  width: min(96vw, 760px); max-height: 66vh; margin-bottom: 92px;
+  background: #16111f; border: 1px solid #4c3a63; border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(0,0,0,.6); display: flex; flex-direction: column;
+}
+#farmBuildOverlay .store-header {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  border-bottom: 1px solid #2f2544;
+}
+#farmBuildOverlay .store-header h2 { font-size: 13px; margin: 0; color: #e9d5ff;
+                                     letter-spacing: .08em; flex: 1; }
+#buildGrid { grid-template-columns: repeat(auto-fill, minmax(122px, 1fr)); }
+.build-img { width: 88px; height: 88px; }
+.build-name { font-size: 11.5px; }
+.build-price { font-size: 11px; }
+
+/* Botoes de zoom na barra da fazenda */
+#farmZoomIn, #farmZoomOut { font-size: 15px; }

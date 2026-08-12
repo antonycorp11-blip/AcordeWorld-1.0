@@ -1682,7 +1682,7 @@ function isWalkable(x,y) {
 function canMoveTo(x,y){
   // Objetos de cenário bloqueiam pelo próprio pé, sem depender de pintura: mover a
   // árvore no editor move a colisão com ela.
-  if (currentScene === 'world' && objetoBloqueia(x, y)) return false;
+  if ((currentScene === 'world' || currentScene === 'farm') && objetoBloqueia(x, y)) return false;
   return isWalkable(x,y)&&isWalkable(x-4,y)&&isWalkable(x+4,y)&&isWalkable(x,y-4)&&isWalkable(x,y+4);
 }
 
@@ -21680,6 +21680,16 @@ function renderSelo(now) {
 // encosta na vizinha sem sobra.
 const GRADE_FAZENDA = 32;
 
+// A fazenda pede visao mais aberta que o mundo: construir exige enxergar o terreno
+// inteiro, e o zoom de exploracao (1.6~1.8) mostra um pedaco pequeno demais.
+let zoomDaFazenda = 1.0, zoomAntesDaFazenda = null;
+
+function ajustarZoomDaFazenda(delta) {
+  zoomDaFazenda = Math.max(1.0, Math.min(2.4, +(zoomDaFazenda + delta).toFixed(2)));
+  aplicarZoomCenario(zoomDaFazenda, false);
+  showToast(`Zoom ${zoomDaFazenda.toFixed(1)}×`);
+}
+
 // Props da fazenda entram sob demanda. Eram 148 imagens (3,9 MB) decodificadas no boot,
 // e nenhuma delas aparece em cenario algum ate o jogador abrir o modo fazenda.
 let __propsFazendaProntos = false;
@@ -21881,9 +21891,17 @@ function initFazendaUI() {
   if (btnBuildMode) {
     btnBuildMode.addEventListener('click', () => {
       sceneBeforeFarm = currentScene;
-      window.keyBeforeFarm = currentKey; // Save the map
+      window.keyBeforeFarm = currentKey;
+      // A fazenda e um LUGAR, nao uma camada por cima do mapa anterior. Sem guardar e
+      // trocar a posicao, o jogador entrava parado na coordenada em que estava no mapa
+      // de fora — e voltava para o lugar errado depois.
+      window.posBeforeFarm = { x: player.x, y: player.y, dir: player.direction };
       currentScene = 'farm';
       currentKey = 'farm';
+      const pf = window.__posNaFazenda || { x: SCREEN_W / 2, y: SCREEN_H * 0.62 };
+      player.x = pf.x; player.y = pf.y; player.direction = 'down';
+      zoomAntesDaFazenda = zoomCenario;
+      aplicarZoomCenario(zoomDaFazenda, false);
       carregarPropsDaFazenda();
       farmToolbar.classList.remove('hidden');
       btnBuildMode.classList.add('hidden');
@@ -21895,8 +21913,12 @@ function initFazendaUI() {
   
   if (btnCloseFarm) {
     btnCloseFarm.addEventListener('click', () => {
+      window.__posNaFazenda = { x: player.x, y: player.y };
       currentScene = sceneBeforeFarm;
       currentKey = window.keyBeforeFarm || '0_0';
+      const pv = window.posBeforeFarm;
+      if (pv) { player.x = pv.x; player.y = pv.y; player.direction = pv.dir || 'down'; }
+      aplicarZoomCenario(zoomAntesDaFazenda ?? 1.6, false);
       farmToolbar.classList.add('hidden');
       btnBuildMode.classList.remove('hidden');
       document.getElementById('partyHud')?.classList.remove('hidden');
@@ -21909,6 +21931,8 @@ function initFazendaUI() {
     });
   }
 
+  document.getElementById('farmZoomIn')?.addEventListener('click', () => ajustarZoomDaFazenda(+0.2));
+  document.getElementById('farmZoomOut')?.addEventListener('click', () => ajustarZoomDaFazenda(-0.2));
   document.querySelectorAll('.farm-tool-cat:not(.fechar)').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.farm-tool-cat').forEach(b => b.classList.remove('ativo'));
