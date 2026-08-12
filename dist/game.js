@@ -18936,7 +18936,7 @@ function montarBarraDaForja() {
   el.querySelector('[data-concluir]')?.addEventListener('click', () => {
     fecharForjaDoAltar();
     // O jogador acabou de criar sete acordes; a pergunta imediata e "quais eu equipo".
-    setTimeout(() => { if (typeof abrirForjadorDeEscalas === 'function') abrirForjadorDeEscalas(); }, 260);
+    setTimeout(() => { if (typeof abrirComposicao === 'function') abrirComposicao(); }, 260);
   });
   el.querySelector('[data-fechar]')?.addEventListener('click', fecharForjaDoAltar);
 }
