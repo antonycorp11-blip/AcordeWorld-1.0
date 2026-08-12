@@ -7637,6 +7637,7 @@ function reiniciarProgressoDeJogo() {
   // Pipo nascia INVISIVEL numa historia em que ele ainda nem foi levado, e as cenas do fim
   // do capitulo ja nasciam liberadas.
   bandeiras = {};
+  cenaAceita = null;
   level = 1; xp = 0; attrPoints = 0; skillPoints = 1;
   attrs = { ritmo: 0, afinacao: 0, folego: 0, dinamica: 0, memoria: 0 };
   learnedSkills = [];
@@ -7679,6 +7680,7 @@ function savePlayerData() {
       passesDeDungeon, dungeons: ultimaConclusaoDeDungeon,
       acompanhante: ACOMP.npc ? ACOMP.npc.id : null,
       fazendaExpansoes: expansoesCompradas(),
+      cenaAceita,
       niveisDeAcorde: nivelDoAcorde,
       itensPossuidos, equipado,
       acordesPossuidos, escalasEquipadas, acordesEquipados, funcaoPreferida,
@@ -7753,6 +7755,7 @@ function loadPlayerData() {
     // O acompanhante volta pelo id do NPC. Restaurado depois que os NPCs carregam,
     // senão a busca acontece numa lista ainda vazia.
     if (typeof d.fazendaExpansoes === 'number') window.__fazendaExpansoes = d.fazendaExpansoes;
+    cenaAceita = d.cenaAceita || null;
     if (d.acompanhante) window.__acompanhanteSalvo = d.acompanhante;
     if (typeof d.claves === 'number') claveCount = d.claves;
     if (Array.isArray(d.owned)) ownedItems = d.owned;
@@ -11640,6 +11643,65 @@ function faltaAlgumaCenaAntes(c) {
     outra !== c && !outra.opcional && ordemDaCena(outra) < n && !cenaJaRodou(outra)) || null;
 }
 
+// ── A CENA ACEITA ────────────────────────────────────────────────────────────
+// A ordem sozinha impede a cena 18 de vir antes da 12, mas ainda deixava a cena da vez
+// cair em cima do jogador no instante em que ele pisasse no cenario errado. Ele pediu o
+// contrario disso, e tem razao: NADA acontece sem ele mandar.
+//
+// Agora existe UMA cena armada por vez, e ela e a unica que pode disparar no jogo inteiro.
+// Sem aceitar, o jogador anda por onde quiser — fazenda, dungeon, Ecos, e a arena de PvP
+// quando ela existir — e nenhuma cena o interrompe. Quando quiser seguir a historia, abre
+// o pergaminho, le o que vem, e aceita. Ai a cena passa a poder acontecer, no lugar dela.
+//
+// Isso torna "entrar no mapa e do nada ter uma cena" impossivel por construcao, e nao por
+// mais uma condicao que eu tenha lembrado de escrever.
+let cenaAceita = null;
+
+function podeAceitar(c) {
+  return c && !cenaJaRodou(c) && !faltaAlgumaCenaAntes(c) && condicoesDaCena(c);
+}
+
+// O que a Jornada tem para oferecer agora: a proxima da corrente, e as opcionais liberadas.
+function cenasOferecidas() {
+  const emOrdem = CUT.roteiros.filter(c => c.ordem && !cenaJaRodou(c))
+                              .sort((a, b) => a.ordem - b.ordem);
+  const espinha = emOrdem.find(c => !c.opcional && !faltaAlgumaCenaAntes(c));
+  const opcionais = emOrdem.filter(c => c.opcional && !faltaAlgumaCenaAntes(c));
+  return [espinha, ...opcionais].filter(Boolean);
+}
+
+// Onde a cena acontece, em palavras do jogador. Sem isto "aceitar" e aceitar no escuro.
+function ondeAconteceACena(c) {
+  const g = c.gatilho || {};
+  const lugar = c.mapa ? (SCENE_NAMES[c.mapa] || c.mapa) : null;
+  switch (tipoDoGatilho(c)) {
+    case 'falar':  return `Fale com ${g.npc}${lugar ? ' — ' + lugar : ''}`;
+    case 'mapa':   return `Vá até ${lugar}`;
+    case 'lugar':  return `${g.verbo || 'Vá'} — ${lugar}`;
+    case 'missao': return 'Acontece ao concluir a missão em andamento';
+    case 'abates': return `Acontece no meio da luta — ${lugar || 'na dungeon'}`;
+    case 'escala': return 'Acontece ao fechar uma escala no Altar';
+    default:       return lugar || 'Acontece sozinha';
+  }
+}
+
+function aceitarCena(id) {
+  const c = CUT.roteiros.find(x => x.id === id);
+  if (!podeAceitar(c)) { showToast('Essa ainda não é a vez.'); return false; }
+  cenaAceita = id;
+  savePlayerData();
+  // A rota ate o lugar, para aceitar nao virar caca ao tesouro.
+  if (c.mapa && typeof definirRota === 'function' && c.mapa !== currentKey) definirRota(c.mapa);
+  showToast(`📖 ${c.nome || c.id} — ${ondeAconteceACena(c)}`);
+  if (typeof desenharMissoes === 'function') desenharMissoes();
+  return true;
+}
+
+function dispensarCena() {
+  cenaAceita = null; savePlayerData();
+  if (typeof desenharMissoes === 'function') desenharMissoes();
+}
+
 // A pergunta única: que cena está esperando ESTE gatilho, agora, neste estado?
 // `ctx` traz o que o tipo precisa (npc, corrida, fração, primeira...).
 function cenaDoGatilho(tipo, ctx = {}) {
@@ -11648,6 +11710,8 @@ function cenaDoGatilho(tipo, ctx = {}) {
     if (cenaJaRodou(c)) return false;
     // A CORRENTE, antes de qualquer outra coisa.
     if (faltaAlgumaCenaAntes(c)) return false;
+    // E o ACEITE: sem ele nada acontece. Uma armada por vez, no jogo inteiro.
+    if (c.id !== cenaAceita) return false;
     if (c.mapa && c.mapa !== currentKey && tipo !== 'missao') return false;
     if (!condicoesDaCena(c)) return false;
     const g = c.gatilho || {};
@@ -11681,21 +11745,14 @@ function dispararCena(tipo, ctx = {}, aoTerminar = null) {
   return true;
 }
 
-// Cena de entrada de cenario. Passa pelo MESMO portao de todo mundo: ja rodou, condicoes,
-// e a ordem do capitulo. Antes olhava so o mapa e o tipo, e era uma porta de servico por
-// onde qualquer cena entrava fora de hora.
+// Cena de entrada de cenario. NAO tem logica propria: pergunta ao mesmo resolvedor que
+// todo o resto usa. Tres vezes nesta semana um bug voltou porque existia uma SEGUNDA
+// implementacao do portao — a chegada de dungeon, o `aoConcluir`, e esta aqui — e a
+// correcao entrava so em uma delas. Duas implementacoes da mesma regra sao duas regras.
 function cenaDoMapa(mapKey) {
-  return CUT.roteiros.find(c => c.mapa === mapKey && tipoDoGatilho(c) === 'mapa'
-                             && !cenaJaRodou(c) && !faltaAlgumaCenaAntes(c)
-                             && condicoesDaCenaEm(c, mapKey)) || null;
-}
-
-// `condicoesDaCena` le `currentKey` em alguns pontos; ao entrar num mapa o valor ja mudou,
-// mas nem todo chamador garante isso. Aqui a leitura e feita com o mapa certo, sempre.
-function condicoesDaCenaEm(c, mapKey) {
   const salvo = currentKey;
   currentKey = mapKey;
-  try { return condicoesDaCena(c); } finally { currentKey = salvo; }
+  try { return cenaDoGatilho('mapa'); } finally { currentKey = salvo; }
 }
 
 // Busca crua, sem portao: so para o seletor de testes, que existe justamente para forcar.
@@ -11949,6 +12006,9 @@ function encerrarCena() {
   document.body.classList.remove('em-cena');
   playerHud?.classList.remove('hidden');
   marcarCenaRodada(CUT.roteiro);
+  // Desarma: a proxima da corrente so acontece se o jogador aceitar de novo. E o que
+  // garante que ele nunca seja empurrado de uma cena direto para outra.
+  if (CUT.roteiro && CUT.roteiro.id === cenaAceita) cenaAceita = null;
   savePlayerData();
   const seguir = CUT.aoTerminar;
   CUT.aoTerminar = null;
@@ -14861,6 +14921,11 @@ function initMainMenu() {
       document.getElementById('touchControls')?.classList.remove('hidden');
     }
 
+    // A primeira cena ja nasce armada: pedir aceite antes de o jogo comecar seria pedir
+    // que o jogador aceitasse algo que ele ainda nao sabe o que e. Da segunda em diante,
+    // quem decide e ele, pelo pergaminho.
+    const primeira = cenaEscolhida || cenasOferecidas()[0];
+    if (primeira) cenaAceita = primeira.id;
     if (cenaEscolhida) iniciarCena(cenaEscolhida);
     else showToast(`⚔️ Bem-vindo a Acordelot, ${playerName}!`);
    } catch (err) {
@@ -22091,7 +22156,7 @@ function blocoDeNivelDoHeroi(id) {
 // ══ Missões ═══════════════════════════════════════════════════════════════════
 // A atual fica SEMPRE no HUD, porque uma missão que só existe dentro de um menu é uma
 // missão que o jogador esquece. A tela cheia mostra as três categorias.
-let abaDeMissoes = 'ativas';
+let abaDeMissoes = 'jornada';
 
 function missaoAtual() { return activeQuests[0] || null; }
 function objetivoAtual(q) {
@@ -22156,6 +22221,37 @@ function desenharMissoes() {
   if (!cx) return;
   document.querySelectorAll('#telaMissoes .ms-aba').forEach(b =>
     b.classList.toggle('ativa', b.dataset.msaba === abaDeMissoes));
+
+  // ── JORNADA ──
+  // A historia inteira numa lista, com o que ja passou, o que e a vez e o que vem depois.
+  // A vez tem botao de ACEITAR: e ele que arma a cena. Sem apertar, o jogador joga livre.
+  if (abaDeMissoes === 'jornada') {
+    const emOrdem = CUT.roteiros.filter(c => c.ordem).sort((a, b) => a.ordem - b.ordem);
+    const oferecidas = new Set(cenasOferecidas().map(c => c.id));
+    cx.innerHTML = emOrdem.map(c => {
+      const feita = cenaJaRodou(c);
+      const armada = c.id === cenaAceita;
+      const pode = oferecidas.has(c.id);
+      const classe = feita ? ' feita' : armada ? ' armada' : pode ? '' : ' travada';
+      const marca = feita ? '✓' : armada ? '▶' : pode ? '○' : '🔒';
+      return `<div class="ms-item jr-item${classe}">
+        <div class="ms-cab">
+          <b>${marca} ${c.nome || c.id}</b>
+          ${c.opcional ? '<span class="jr-opc">opcional</span>' : ''}
+        </div>
+        <p class="ms-desc">${feita ? 'Já aconteceu.'
+          : pode ? ondeAconteceACena(c)
+          : 'Ainda não é a hora — a história passa por aqui mais tarde.'}</p>
+        ${armada ? `<button class="jr-btn jr-larga" data-dispensar="1">DEIXAR PARA DEPOIS</button>`
+          : pode ? `<button class="jr-btn" data-aceitar="${c.id}">ACEITAR</button>` : ''}
+      </div>`;
+    }).join('') + (cenaAceita ? '' :
+      '<p class="ms-vazio">Nada em curso. Ande à vontade — nenhuma cena começa sozinha.</p>');
+    cx.querySelectorAll('[data-aceitar]').forEach(b =>
+      b.addEventListener('click', () => { if (aceitarCena(b.dataset.aceitar)) fecharMissoes(); }));
+    cx.querySelector('[data-dispensar]')?.addEventListener('click', dispensarCena);
+    return;
+  }
 
   let lista = [], vazio = '';
   if (abaDeMissoes === 'ativas') {

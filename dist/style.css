@@ -7786,3 +7786,20 @@ body.em-cena #questNotification { display: none !important; }
   .cp-sinergia { min-height: 20px; }
   .cp-barra { margin: 2px 1px; }
 }
+
+/* ── Jornada: a historia inteira, e o aceite ──────────────────────────────────
+   Nada dispara sozinho. O que vem a seguir mora aqui, com o lugar escrito, e so acontece
+   depois que o jogador aperta ACEITAR. E o que separa "o jogo me interrompeu" de "eu
+   decidi continuar a historia". */
+.jr-item.armada { border-color: #e8c469; box-shadow: 0 0 0 1px rgba(232,196,105,.35) inset; }
+.jr-item.armada .ms-cab b { color: #ffe9ab; }
+.jr-opc { font-size: 9px; letter-spacing: .12em; color: #7c8bb0; text-transform: uppercase; }
+.jr-btn {
+  margin-top: 6px; padding: 7px 14px; cursor: pointer; font: 700 11px Outfit, sans-serif;
+  letter-spacing: .12em; border-radius: 7px;
+  background: linear-gradient(#2f4a2a, #1c2f19); border: 1px solid #4ade80; color: #bbf7d0;
+}
+.jr-btn:hover { border-color: #86efac; background: linear-gradient(#3a5c33, #24401f); }
+.jr-larga { background: linear-gradient(#3a2b18, #241a0e); border-color: #a97e2c; color: #f4dfa4; }
+.jr-item.travada { opacity: .5; }
+.jr-item.feita .ms-cab b { color: #7c8bb0; }

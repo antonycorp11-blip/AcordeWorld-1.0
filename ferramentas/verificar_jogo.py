@@ -99,10 +99,21 @@ try:
     from PIL import Image
     SEM_CORPO = {'porta', 'signpost', 'forge_entrance', 'lago_sorteio', 'ponto_martelada'}
     mascaras = {}
+    def carregar(mapa):
+        cam = os.path.join(RAIZ, f'assets/cenarios/mascaras/acordelot_road_{mapa}_mask.png')
+        if not os.path.exists(cam): return None
+        im = Image.open(cam).convert('RGBA'); px = im.load(); w, h = im.size
+        # O motor so usa a mascara se ela tiver ALGUMA pintura (`hasRoadPaint`): mascara em
+        # branco significa cenario inteiro andavel. Sem esta leitura eu acusava NPC parado
+        # em chao livre — e foi o que aconteceu: seis avisos falsos, incluindo o Dorn.
+        # So 5 dos 33 cenarios tem colisao pintada.
+        for y in range(0, h, 9):
+            for x in range(0, w, 9):
+                if px[x, y][3] > 50: return px
+        return None
+
     def andavel(mapa, x, y):
-        if mapa not in mascaras:
-            cam = os.path.join(RAIZ, f'assets/cenarios/mascaras/acordelot_road_{mapa}_mask.png')
-            mascaras[mapa] = Image.open(cam).convert('RGBA').load() if os.path.exists(cam) else None
+        if mapa not in mascaras: mascaras[mapa] = carregar(mapa)
         px = mascaras[mapa]
         if px is None: return True          # mapa sem pintura: tudo anda
         for dx, dy in ((0,0), (-4,0), (4,0), (0,-4), (0,4)):
