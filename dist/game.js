@@ -9473,9 +9473,12 @@ function onPointerDown(m){
 
   // Lógica da Fazendinha: se tem ferramenta armada na tela da fazenda, clique no canvas planta/coloca
   if (currentScene === 'farm' && propParaColocar) {
-    colocarObjeto(propParaColocar, encaixarNaGrade(m.x), encaixarNaGrade(m.y));
-    // Para a fazenda, permitimos pintar continuamente (ex: plantar 5 sementes)
-    // O propParaColocar só limpa ao fechar a barra ou trocar de ferramenta
+    // UM por clique. Manter a ferramenta armada fazia o dedo escorregando encher a ilha
+    // de casa — e cada uma cobrando ouro. Para colocar varios, escolhe de novo.
+    const alvo = propParaColocar;
+    propParaColocar = null;
+    document.getElementById('gameCanvas')?.classList.remove('cursor-crosshair');
+    colocarObjeto(alvo, encaixarNaGrade(m.x), encaixarNaGrade(m.y));
     return;
   }
 
