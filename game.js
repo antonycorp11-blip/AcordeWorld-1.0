@@ -18881,6 +18881,10 @@ function fecharEscalaDaForja() {
   if (typeof escalasMontadas !== 'undefined') {
     escalasMontadas.push({ tonica: FORJA.tonica, passos: FORJA.passos.slice(), modo, nome });
   }
+  // Do campo harmonico nascem sete acordes, um sobre cada grau. Nao e premio avulso:
+  // e consequencia direta da escala, e por isso acontece sozinho.
+  const campo = camposDaEscala(FORJA.tonica);
+  campo.forEach(c => { acordesObtidos[c.grau] = (acordesObtidos[c.grau] || 0) + 1; });
   progressoDeMissao('montar', 'escala');
   gainXp(120);
   savePlayerData?.();
@@ -18929,7 +18933,11 @@ function montarBarraDaForja() {
   el.querySelectorAll('[data-nota]').forEach(b => b.onclick = () => escolherTonica(b.dataset.nota));
   el.querySelectorAll('[data-passo]').forEach(b => b.onclick = () => passoDaEscala(b.dataset.passo));
   el.querySelector('[data-desfazer]')?.addEventListener('click', desfazerPassoDaForja);
-  el.querySelector('[data-concluir]')?.addEventListener('click', fecharForjaDoAltar);
+  el.querySelector('[data-concluir]')?.addEventListener('click', () => {
+    fecharForjaDoAltar();
+    // O jogador acabou de criar sete acordes; a pergunta imediata e "quais eu equipo".
+    setTimeout(() => { if (typeof abrirForjadorDeEscalas === 'function') abrirForjadorDeEscalas(); }, 260);
+  });
   el.querySelector('[data-fechar]')?.addEventListener('click', fecharForjaDoAltar);
 }
 

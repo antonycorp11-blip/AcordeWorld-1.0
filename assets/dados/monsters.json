@@ -148,12 +148,19 @@
       "attackMs": 460,
       "drops": [
         {
+          "item": "fragmento",
+          "min": 1,
+          "max": 2
+        },
+        {
           "item": "clave",
           "min": 1,
-          "max": 1,
-          "chance": 0.55
+          "max": 2,
+          "chance": 0.45
         }
-      ]
+      ],
+      "claveLivre": true,
+      "xp": 14
     },
     "tambor_selvagem": {
       "name": "Tambor Selvagem",
@@ -173,9 +180,15 @@
       "persegue": true,
       "drops": [
         {
+          "item": "fragmento",
+          "min": 1,
+          "max": 2
+        },
+        {
           "item": "clave",
-          "min": 2,
-          "max": 4
+          "min": 1,
+          "max": 2,
+          "chance": 0.45
         }
       ],
       "idleRow": 0,
@@ -184,7 +197,9 @@
       "walkFrames": 4,
       "attackRow": 2,
       "attackFrames": 3,
-      "attackMs": 520
+      "attackMs": 520,
+      "claveLivre": true,
+      "xp": 14
     },
     "espectro_do_cello": {
       "name": "Espectro do Violoncelo",
