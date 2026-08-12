@@ -21067,7 +21067,7 @@ let escalasEquipadas = [];    // até 3 tônicas: ['do','sol']
 let acordesEquipados = [];    // até 7 ids
 let funcaoPreferida = {};     // idDoAcorde → tônica escolhida, quando cabe em mais de uma
 const MAX_ESCALAS_EQUIPADAS = 3;
-const MAX_ACORDES_EQUIPADOS = 7;
+const MAX_ACORDES_EQUIPADOS = 9;   // tres compassos de tres: toda frase fecha
 const ACORDES_POR_FORJA = 3;
 
 function temAcorde(id) { return (acordesPossuidos[id] || 0) > 0; }
@@ -21349,7 +21349,7 @@ function fecharComposicao() { document.getElementById('composicao')?.classList.a
 // A pauta dos acordes equipados. Sete lugares, barra de compasso a cada tres: cada
 // compasso fechado e uma frase, e frase e onde a cadencia acontece. E por isso que a
 // ORDEM importa — arrastar o mesmo acorde para outro compasso muda o que ele faz.
-const COMPASSOS = [[0, 1, 2], [3, 4, 5], [6]];
+const COMPASSOS = [[0, 1, 2], [3, 4, 5], [6, 7, 8]];
 
 // A cadencia de um compasso: os graus daqueles acordes, dentro de cada escala equipada.
 function cadenciaDoCompasso(indices) {
