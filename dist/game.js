@@ -9461,7 +9461,7 @@ function onPointerDown(m){
 
   // Lógica da Fazendinha: se tem ferramenta armada na tela da fazenda, clique no canvas planta/coloca
   if (currentScene === 'farm' && propParaColocar) {
-    colocarObjeto(propParaColocar, m.x, m.y);
+    colocarObjeto(propParaColocar, encaixarNaGrade(m.x), encaixarNaGrade(m.y));
     // Para a fazenda, permitimos pintar continuamente (ex: plantar 5 sementes)
     // O propParaColocar só limpa ao fechar a barra ou trocar de ferramenta
     return;
@@ -9586,6 +9586,9 @@ function onPointerDown(m){
 }
 
 function onPointerMove(m){
+  // O fantasma segue o ponteiro em coordenada de TELA — o mesmo cuidado do balão de
+  // diálogo: com zoom, m.x é coordenada de mundo e o desenho sairia deslocado.
+  if (currentScene === 'farm') window.__ponteiroFazenda = { x: m.telaX ?? m.x, y: m.telaY ?? m.y };
   if(engineMode==='mundo'){ mundoPointerMove(m); return; }
   // Mira armada: o dedo (ou o mouse) aponta, e nada mais responde ao movimento.
   if(mirandoSetima()){ apontarSetima(m.x, m.y); return; }
@@ -13227,6 +13230,9 @@ function quadro(now){
       if (bgImages['farm'].complete) {
         ctx.drawImage(bgImages['farm'], 0, 0, SCREEN_W, SCREEN_H);
       }
+      // Grade só enquanto há ferramenta armada: construir sem grade é chute, e grade
+      // permanente polui o cenário quando o jogador só quer olhar a fazenda.
+      if (propParaColocar) renderGradeDaFazenda();
       // O ciclo de dia/noite será desenhado por cima depois
     } else if(currentScene==='world'||!isPlayMode){
       const vid = videoDoMapa(mapKey);
@@ -13503,6 +13509,7 @@ function quadro(now){
     if (camOn || zoomOn) ctx.restore();
     renderBussolaDeMonstros(now);
     renderBussolaDeRecursos(now);
+    renderFantasmaDaFazenda(now);
     renderPlacaDaRota(now);
     if (camOn) renderRotuloDoDestaque(now);
     renderAmbiente();
@@ -21653,6 +21660,58 @@ function renderSelo(now) {
       : `faltam ${2 - palitosNaMao()} palito(s)`;
     ctx.strokeText(txt, SELO.x, SELO.y - 30);
     ctx.fillStyle = cor; ctx.fillText(txt, SELO.x, SELO.y - 30);
+  }
+  ctx.restore();
+}
+
+// Grade de construção. O passo casa com o canteiro (32px), então peça de terreno
+// encosta na vizinha sem sobra.
+const GRADE_FAZENDA = 32;
+
+function encaixarNaGrade(v) { return Math.round(v / GRADE_FAZENDA) * GRADE_FAZENDA; }
+
+function renderGradeDaFazenda() {
+  ctx.save();
+  ctx.globalAlpha = 0.22;
+  ctx.strokeStyle = '#f8fafc';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = 0; x <= SCREEN_W; x += GRADE_FAZENDA) { ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, SCREEN_H); }
+  for (let y = 0; y <= SCREEN_H; y += GRADE_FAZENDA) { ctx.moveTo(0, y + 0.5); ctx.lineTo(SCREEN_W, y + 0.5); }
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Fantasma do que está prestes a ser colocado, encaixado na grade e com a cor dizendo
+// se dá para pagar. É o "ver antes de comprar" do The Sims dentro do cenário.
+function renderFantasmaDaFazenda(now) {
+  if (currentScene !== 'farm' || !propParaColocar) return;
+  const def = propDefs[propParaColocar] || {};
+  const spr = propSprites[propParaColocar];
+  const p = window.__ponteiroFazenda || { x: SCREEN_W / 2, y: SCREEN_H / 2 };
+  const x = encaixarNaGrade(p.x), y = encaixarNaGrade(p.y);
+  const podePagar = (playerCoins || 0) >= (def.preco || 0);
+  ctx.save();
+  ctx.globalAlpha = 0.62;
+  if (spr) {
+    const alt = (def.altura || spr.sh || 64);
+    const larg = alt * (spr.sw / spr.sh);
+    ctx.drawImage(spr.canvas, x - larg / 2, y - alt * (def.pe ?? 0.94), larg, alt);
+  }
+  ctx.globalAlpha = 1;
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = podePagar ? 'rgba(74,222,128,0.95)' : 'rgba(248,113,113,0.95)';
+  ctx.strokeRect(x - GRADE_FAZENDA / 2 + 1, y - GRADE_FAZENDA / 2 + 1,
+                 GRADE_FAZENDA - 2, GRADE_FAZENDA - 2);
+  if (def.preco) {
+    ctx.font = 'bold 11px Outfit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
+    const t = (podePagar ? '' : 'faltam ') + Math.abs((playerCoins || 0) - def.preco) * 0 + def.preco + ' ⛃';
+    ctx.strokeText(t, x, y + 22);
+    ctx.fillStyle = podePagar ? '#fde68a' : '#fca5a5';
+    ctx.fillText(t, x, y + 22);
+    ctx.textAlign = 'left';
   }
   ctx.restore();
 }

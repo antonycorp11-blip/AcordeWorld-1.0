@@ -2096,7 +2096,7 @@
       "colide": true
     },
     "faz_cult_01": {
-      "nome": "faz_cult_01",
+      "nome": "Muda 1",
       "sprite": "assets/props/faz_cult_01.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2110,7 +2110,7 @@
       "draw": "img"
     },
     "faz_cult_02": {
-      "nome": "faz_cult_02",
+      "nome": "Muda 2",
       "sprite": "assets/props/faz_cult_02.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2124,7 +2124,7 @@
       "draw": "img"
     },
     "faz_cult_03": {
-      "nome": "faz_cult_03",
+      "nome": "Muda 3",
       "sprite": "assets/props/faz_cult_03.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2138,7 +2138,7 @@
       "draw": "img"
     },
     "faz_cult_04": {
-      "nome": "faz_cult_04",
+      "nome": "Muda 4",
       "sprite": "assets/props/faz_cult_04.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2152,7 +2152,7 @@
       "draw": "img"
     },
     "faz_cult_05": {
-      "nome": "faz_cult_05",
+      "nome": "Muda 5",
       "sprite": "assets/props/faz_cult_05.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2166,7 +2166,7 @@
       "draw": "img"
     },
     "faz_cult_06": {
-      "nome": "faz_cult_06",
+      "nome": "Muda 6",
       "sprite": "assets/props/faz_cult_06.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2180,7 +2180,7 @@
       "draw": "img"
     },
     "faz_cult_07": {
-      "nome": "faz_cult_07",
+      "nome": "Muda 7",
       "sprite": "assets/props/faz_cult_07.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2194,7 +2194,7 @@
       "draw": "img"
     },
     "faz_cult_08": {
-      "nome": "faz_cult_08",
+      "nome": "Muda 8",
       "sprite": "assets/props/faz_cult_08.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2208,7 +2208,7 @@
       "draw": "img"
     },
     "faz_cult_09": {
-      "nome": "faz_cult_09",
+      "nome": "Muda 9",
       "sprite": "assets/props/faz_cult_09.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2222,7 +2222,7 @@
       "draw": "img"
     },
     "faz_cult_10": {
-      "nome": "faz_cult_10",
+      "nome": "Muda 10",
       "sprite": "assets/props/faz_cult_10.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2236,7 +2236,7 @@
       "draw": "img"
     },
     "faz_cult_11": {
-      "nome": "faz_cult_11",
+      "nome": "Muda 11",
       "sprite": "assets/props/faz_cult_11.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2250,7 +2250,7 @@
       "draw": "img"
     },
     "faz_cult_12": {
-      "nome": "faz_cult_12",
+      "nome": "Muda 12",
       "sprite": "assets/props/faz_cult_12.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2264,7 +2264,7 @@
       "draw": "img"
     },
     "faz_cult_13": {
-      "nome": "faz_cult_13",
+      "nome": "Muda 13",
       "sprite": "assets/props/faz_cult_13.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2278,7 +2278,7 @@
       "draw": "img"
     },
     "faz_cult_14": {
-      "nome": "faz_cult_14",
+      "nome": "Muda 14",
       "sprite": "assets/props/faz_cult_14.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2292,7 +2292,7 @@
       "draw": "img"
     },
     "faz_cult_15": {
-      "nome": "faz_cult_15",
+      "nome": "Muda 15",
       "sprite": "assets/props/faz_cult_15.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2306,7 +2306,7 @@
       "draw": "img"
     },
     "faz_cult_16": {
-      "nome": "faz_cult_16",
+      "nome": "Muda 16",
       "sprite": "assets/props/faz_cult_16.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2320,7 +2320,7 @@
       "draw": "img"
     },
     "faz_cult_17": {
-      "nome": "faz_cult_17",
+      "nome": "Muda 17",
       "sprite": "assets/props/faz_cult_17.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2334,7 +2334,7 @@
       "draw": "img"
     },
     "faz_cult_18": {
-      "nome": "faz_cult_18",
+      "nome": "Muda 18",
       "sprite": "assets/props/faz_cult_18.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2348,7 +2348,7 @@
       "draw": "img"
     },
     "faz_cult_19": {
-      "nome": "faz_cult_19",
+      "nome": "Muda 19",
       "sprite": "assets/props/faz_cult_19.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2362,7 +2362,7 @@
       "draw": "img"
     },
     "faz_cult_20": {
-      "nome": "faz_cult_20",
+      "nome": "Muda 20",
       "sprite": "assets/props/faz_cult_20.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2376,7 +2376,7 @@
       "draw": "img"
     },
     "faz_cult_21": {
-      "nome": "faz_cult_21",
+      "nome": "Muda 21",
       "sprite": "assets/props/faz_cult_21.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2390,7 +2390,7 @@
       "draw": "img"
     },
     "faz_cult_22": {
-      "nome": "faz_cult_22",
+      "nome": "Muda 22",
       "sprite": "assets/props/faz_cult_22.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2404,7 +2404,7 @@
       "draw": "img"
     },
     "faz_deco_01": {
-      "nome": "faz_deco_01",
+      "nome": "Enfeite 1",
       "sprite": "assets/props/faz_deco_01.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2418,7 +2418,7 @@
       "draw": "img"
     },
     "faz_deco_02": {
-      "nome": "faz_deco_02",
+      "nome": "Enfeite 2",
       "sprite": "assets/props/faz_deco_02.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2432,7 +2432,7 @@
       "draw": "img"
     },
     "faz_deco_03": {
-      "nome": "faz_deco_03",
+      "nome": "Enfeite 3",
       "sprite": "assets/props/faz_deco_03.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2446,7 +2446,7 @@
       "draw": "img"
     },
     "faz_deco_04": {
-      "nome": "faz_deco_04",
+      "nome": "Enfeite 4",
       "sprite": "assets/props/faz_deco_04.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2460,7 +2460,7 @@
       "draw": "img"
     },
     "faz_deco_05": {
-      "nome": "faz_deco_05",
+      "nome": "Enfeite 5",
       "sprite": "assets/props/faz_deco_05.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2474,7 +2474,7 @@
       "draw": "img"
     },
     "faz_deco_06": {
-      "nome": "faz_deco_06",
+      "nome": "Enfeite 6",
       "sprite": "assets/props/faz_deco_06.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2488,7 +2488,7 @@
       "draw": "img"
     },
     "faz_deco_07": {
-      "nome": "faz_deco_07",
+      "nome": "Enfeite 7",
       "sprite": "assets/props/faz_deco_07.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2502,7 +2502,7 @@
       "draw": "img"
     },
     "faz_deco_08": {
-      "nome": "faz_deco_08",
+      "nome": "Enfeite 8",
       "sprite": "assets/props/faz_deco_08.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2516,7 +2516,7 @@
       "draw": "img"
     },
     "faz_deco_09": {
-      "nome": "faz_deco_09",
+      "nome": "Enfeite 9",
       "sprite": "assets/props/faz_deco_09.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2530,7 +2530,7 @@
       "draw": "img"
     },
     "faz_deco_10": {
-      "nome": "faz_deco_10",
+      "nome": "Enfeite 10",
       "sprite": "assets/props/faz_deco_10.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2544,7 +2544,7 @@
       "draw": "img"
     },
     "faz_deco_11": {
-      "nome": "faz_deco_11",
+      "nome": "Enfeite 11",
       "sprite": "assets/props/faz_deco_11.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2558,7 +2558,7 @@
       "draw": "img"
     },
     "faz_deco_12": {
-      "nome": "faz_deco_12",
+      "nome": "Enfeite 12",
       "sprite": "assets/props/faz_deco_12.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2572,7 +2572,7 @@
       "draw": "img"
     },
     "faz_deco_13": {
-      "nome": "faz_deco_13",
+      "nome": "Enfeite 13",
       "sprite": "assets/props/faz_deco_13.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2586,7 +2586,7 @@
       "draw": "img"
     },
     "faz_deco_14": {
-      "nome": "faz_deco_14",
+      "nome": "Enfeite 14",
       "sprite": "assets/props/faz_deco_14.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2600,7 +2600,7 @@
       "draw": "img"
     },
     "faz_deco_15": {
-      "nome": "faz_deco_15",
+      "nome": "Enfeite 15",
       "sprite": "assets/props/faz_deco_15.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2614,7 +2614,7 @@
       "draw": "img"
     },
     "faz_deco_16": {
-      "nome": "faz_deco_16",
+      "nome": "Enfeite 16",
       "sprite": "assets/props/faz_deco_16.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2628,7 +2628,7 @@
       "draw": "img"
     },
     "faz_deco_17": {
-      "nome": "faz_deco_17",
+      "nome": "Enfeite 17",
       "sprite": "assets/props/faz_deco_17.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2642,7 +2642,7 @@
       "draw": "img"
     },
     "faz_deco_18": {
-      "nome": "faz_deco_18",
+      "nome": "Enfeite 18",
       "sprite": "assets/props/faz_deco_18.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2656,7 +2656,7 @@
       "draw": "img"
     },
     "faz_deco_19": {
-      "nome": "faz_deco_19",
+      "nome": "Enfeite 19",
       "sprite": "assets/props/faz_deco_19.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2670,7 +2670,7 @@
       "draw": "img"
     },
     "faz_deco_20": {
-      "nome": "faz_deco_20",
+      "nome": "Enfeite 20",
       "sprite": "assets/props/faz_deco_20.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2684,7 +2684,7 @@
       "draw": "img"
     },
     "faz_deco_21": {
-      "nome": "faz_deco_21",
+      "nome": "Enfeite 21",
       "sprite": "assets/props/faz_deco_21.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2698,7 +2698,7 @@
       "draw": "img"
     },
     "faz_deco_22": {
-      "nome": "faz_deco_22",
+      "nome": "Enfeite 22",
       "sprite": "assets/props/faz_deco_22.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2712,7 +2712,7 @@
       "draw": "img"
     },
     "faz_deco_23": {
-      "nome": "faz_deco_23",
+      "nome": "Enfeite 23",
       "sprite": "assets/props/faz_deco_23.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2726,7 +2726,7 @@
       "draw": "img"
     },
     "faz_deco_24": {
-      "nome": "faz_deco_24",
+      "nome": "Enfeite 24",
       "sprite": "assets/props/faz_deco_24.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2740,7 +2740,7 @@
       "draw": "img"
     },
     "faz_deco_25": {
-      "nome": "faz_deco_25",
+      "nome": "Enfeite 25",
       "sprite": "assets/props/faz_deco_25.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2754,7 +2754,7 @@
       "draw": "img"
     },
     "faz_deco_26": {
-      "nome": "faz_deco_26",
+      "nome": "Enfeite 26",
       "sprite": "assets/props/faz_deco_26.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2768,7 +2768,7 @@
       "draw": "img"
     },
     "faz_deco_27": {
-      "nome": "faz_deco_27",
+      "nome": "Enfeite 27",
       "sprite": "assets/props/faz_deco_27.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2782,7 +2782,7 @@
       "draw": "img"
     },
     "faz_deco_28": {
-      "nome": "faz_deco_28",
+      "nome": "Enfeite 28",
       "sprite": "assets/props/faz_deco_28.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2796,7 +2796,7 @@
       "draw": "img"
     },
     "faz_deco_29": {
-      "nome": "faz_deco_29",
+      "nome": "Enfeite 29",
       "sprite": "assets/props/faz_deco_29.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2810,7 +2810,7 @@
       "draw": "img"
     },
     "faz_deco_30": {
-      "nome": "faz_deco_30",
+      "nome": "Enfeite 30",
       "sprite": "assets/props/faz_deco_30.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2824,7 +2824,7 @@
       "draw": "img"
     },
     "faz_deco_31": {
-      "nome": "faz_deco_31",
+      "nome": "Enfeite 31",
       "sprite": "assets/props/faz_deco_31.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2838,7 +2838,7 @@
       "draw": "img"
     },
     "faz_deco_32": {
-      "nome": "faz_deco_32",
+      "nome": "Enfeite 32",
       "sprite": "assets/props/faz_deco_32.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2852,7 +2852,7 @@
       "draw": "img"
     },
     "faz_deco_33": {
-      "nome": "faz_deco_33",
+      "nome": "Enfeite 33",
       "sprite": "assets/props/faz_deco_33.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2866,7 +2866,7 @@
       "draw": "img"
     },
     "faz_deco_34": {
-      "nome": "faz_deco_34",
+      "nome": "Enfeite 34",
       "sprite": "assets/props/faz_deco_34.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2880,7 +2880,7 @@
       "draw": "img"
     },
     "faz_deco_35": {
-      "nome": "faz_deco_35",
+      "nome": "Enfeite 35",
       "sprite": "assets/props/faz_deco_35.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2894,7 +2894,7 @@
       "draw": "img"
     },
     "faz_deco_36": {
-      "nome": "faz_deco_36",
+      "nome": "Enfeite 36",
       "sprite": "assets/props/faz_deco_36.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2908,7 +2908,7 @@
       "draw": "img"
     },
     "faz_deco_37": {
-      "nome": "faz_deco_37",
+      "nome": "Enfeite 37",
       "sprite": "assets/props/faz_deco_37.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2922,7 +2922,7 @@
       "draw": "img"
     },
     "faz_deco_38": {
-      "nome": "faz_deco_38",
+      "nome": "Enfeite 38",
       "sprite": "assets/props/faz_deco_38.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2936,7 +2936,7 @@
       "draw": "img"
     },
     "faz_deco_39": {
-      "nome": "faz_deco_39",
+      "nome": "Enfeite 39",
       "sprite": "assets/props/faz_deco_39.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2950,7 +2950,7 @@
       "draw": "img"
     },
     "faz_deco_40": {
-      "nome": "faz_deco_40",
+      "nome": "Enfeite 40",
       "sprite": "assets/props/faz_deco_40.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2964,7 +2964,7 @@
       "draw": "img"
     },
     "faz_deco_41": {
-      "nome": "faz_deco_41",
+      "nome": "Enfeite 41",
       "sprite": "assets/props/faz_deco_41.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2978,7 +2978,7 @@
       "draw": "img"
     },
     "faz_deco_42": {
-      "nome": "faz_deco_42",
+      "nome": "Enfeite 42",
       "sprite": "assets/props/faz_deco_42.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -2992,7 +2992,7 @@
       "draw": "img"
     },
     "faz_deco_43": {
-      "nome": "faz_deco_43",
+      "nome": "Enfeite 43",
       "sprite": "assets/props/faz_deco_43.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3006,7 +3006,7 @@
       "draw": "img"
     },
     "faz_estr_01": {
-      "nome": "faz_estr_01",
+      "nome": "Construção 1",
       "sprite": "assets/props/faz_estr_01.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3020,7 +3020,7 @@
       "draw": "img"
     },
     "faz_estr_02": {
-      "nome": "faz_estr_02",
+      "nome": "Construção 2",
       "sprite": "assets/props/faz_estr_02.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3034,7 +3034,7 @@
       "draw": "img"
     },
     "faz_estr_03": {
-      "nome": "faz_estr_03",
+      "nome": "Construção 3",
       "sprite": "assets/props/faz_estr_03.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3048,7 +3048,7 @@
       "draw": "img"
     },
     "faz_estr_04": {
-      "nome": "faz_estr_04",
+      "nome": "Construção 4",
       "sprite": "assets/props/faz_estr_04.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3062,7 +3062,7 @@
       "draw": "img"
     },
     "faz_estr_05": {
-      "nome": "faz_estr_05",
+      "nome": "Construção 5",
       "sprite": "assets/props/faz_estr_05.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3076,7 +3076,7 @@
       "draw": "img"
     },
     "faz_estr_06": {
-      "nome": "faz_estr_06",
+      "nome": "Construção 6",
       "sprite": "assets/props/faz_estr_06.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3090,7 +3090,7 @@
       "draw": "img"
     },
     "faz_estr_07": {
-      "nome": "faz_estr_07",
+      "nome": "Construção 7",
       "sprite": "assets/props/faz_estr_07.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3104,7 +3104,7 @@
       "draw": "img"
     },
     "faz_estr_08": {
-      "nome": "faz_estr_08",
+      "nome": "Construção 8",
       "sprite": "assets/props/faz_estr_08.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3118,7 +3118,7 @@
       "draw": "img"
     },
     "faz_estr_09": {
-      "nome": "faz_estr_09",
+      "nome": "Construção 9",
       "sprite": "assets/props/faz_estr_09.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3132,7 +3132,7 @@
       "draw": "img"
     },
     "faz_estr_10": {
-      "nome": "faz_estr_10",
+      "nome": "Construção 10",
       "sprite": "assets/props/faz_estr_10.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3146,7 +3146,7 @@
       "draw": "img"
     },
     "faz_estr_11": {
-      "nome": "faz_estr_11",
+      "nome": "Construção 11",
       "sprite": "assets/props/faz_estr_11.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3160,7 +3160,7 @@
       "draw": "img"
     },
     "faz_estr_12": {
-      "nome": "faz_estr_12",
+      "nome": "Construção 12",
       "sprite": "assets/props/faz_estr_12.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3174,7 +3174,7 @@
       "draw": "img"
     },
     "faz_estr_13": {
-      "nome": "faz_estr_13",
+      "nome": "Construção 13",
       "sprite": "assets/props/faz_estr_13.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3188,7 +3188,7 @@
       "draw": "img"
     },
     "faz_estr_14": {
-      "nome": "faz_estr_14",
+      "nome": "Construção 14",
       "sprite": "assets/props/faz_estr_14.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3202,7 +3202,7 @@
       "draw": "img"
     },
     "faz_estr_15": {
-      "nome": "faz_estr_15",
+      "nome": "Construção 15",
       "sprite": "assets/props/faz_estr_15.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3216,7 +3216,7 @@
       "draw": "img"
     },
     "faz_estr_16": {
-      "nome": "faz_estr_16",
+      "nome": "Construção 16",
       "sprite": "assets/props/faz_estr_16.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3230,7 +3230,7 @@
       "draw": "img"
     },
     "faz_estr_17": {
-      "nome": "faz_estr_17",
+      "nome": "Construção 17",
       "sprite": "assets/props/faz_estr_17.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3244,7 +3244,7 @@
       "draw": "img"
     },
     "faz_estr_18": {
-      "nome": "faz_estr_18",
+      "nome": "Construção 18",
       "sprite": "assets/props/faz_estr_18.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3258,7 +3258,7 @@
       "draw": "img"
     },
     "faz_hab_01": {
-      "nome": "faz_hab_01",
+      "nome": "Habitat 1",
       "sprite": "assets/props/faz_hab_01.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3272,7 +3272,7 @@
       "draw": "img"
     },
     "faz_hab_02": {
-      "nome": "faz_hab_02",
+      "nome": "Habitat 2",
       "sprite": "assets/props/faz_hab_02.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3286,7 +3286,7 @@
       "draw": "img"
     },
     "faz_hab_03": {
-      "nome": "faz_hab_03",
+      "nome": "Habitat 3",
       "sprite": "assets/props/faz_hab_03.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3300,7 +3300,7 @@
       "draw": "img"
     },
     "faz_hab_04": {
-      "nome": "faz_hab_04",
+      "nome": "Habitat 4",
       "sprite": "assets/props/faz_hab_04.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3314,7 +3314,7 @@
       "draw": "img"
     },
     "faz_hab_05": {
-      "nome": "faz_hab_05",
+      "nome": "Habitat 5",
       "sprite": "assets/props/faz_hab_05.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3328,7 +3328,7 @@
       "draw": "img"
     },
     "faz_hab_06": {
-      "nome": "faz_hab_06",
+      "nome": "Habitat 6",
       "sprite": "assets/props/faz_hab_06.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3342,7 +3342,7 @@
       "draw": "img"
     },
     "faz_hab_07": {
-      "nome": "faz_hab_07",
+      "nome": "Habitat 7",
       "sprite": "assets/props/faz_hab_07.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3356,7 +3356,7 @@
       "draw": "img"
     },
     "faz_hab_08": {
-      "nome": "faz_hab_08",
+      "nome": "Habitat 8",
       "sprite": "assets/props/faz_hab_08.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3370,7 +3370,7 @@
       "draw": "img"
     },
     "faz_hab_09": {
-      "nome": "faz_hab_09",
+      "nome": "Habitat 9",
       "sprite": "assets/props/faz_hab_09.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3384,7 +3384,7 @@
       "draw": "img"
     },
     "faz_hab_10": {
-      "nome": "faz_hab_10",
+      "nome": "Habitat 10",
       "sprite": "assets/props/faz_hab_10.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3398,7 +3398,7 @@
       "draw": "img"
     },
     "faz_ilha_01": {
-      "nome": "faz_ilha_01",
+      "nome": "Piso 1",
       "sprite": "assets/props/faz_ilha_01.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3412,7 +3412,7 @@
       "draw": "img"
     },
     "faz_ilha_02": {
-      "nome": "faz_ilha_02",
+      "nome": "Piso 2",
       "sprite": "assets/props/faz_ilha_02.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3426,7 +3426,7 @@
       "draw": "img"
     },
     "faz_ilha_03": {
-      "nome": "faz_ilha_03",
+      "nome": "Piso 3",
       "sprite": "assets/props/faz_ilha_03.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3440,7 +3440,7 @@
       "draw": "img"
     },
     "faz_ilha_04": {
-      "nome": "faz_ilha_04",
+      "nome": "Piso 4",
       "sprite": "assets/props/faz_ilha_04.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3454,7 +3454,7 @@
       "draw": "img"
     },
     "faz_ilha_05": {
-      "nome": "faz_ilha_05",
+      "nome": "Piso 5",
       "sprite": "assets/props/faz_ilha_05.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3468,7 +3468,7 @@
       "draw": "img"
     },
     "faz_ilha_06": {
-      "nome": "faz_ilha_06",
+      "nome": "Piso 6",
       "sprite": "assets/props/faz_ilha_06.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3482,7 +3482,7 @@
       "draw": "img"
     },
     "faz_ilha_07": {
-      "nome": "faz_ilha_07",
+      "nome": "Piso 7",
       "sprite": "assets/props/faz_ilha_07.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3496,7 +3496,7 @@
       "draw": "img"
     },
     "faz_ilha_08": {
-      "nome": "faz_ilha_08",
+      "nome": "Piso 8",
       "sprite": "assets/props/faz_ilha_08.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3510,7 +3510,7 @@
       "draw": "img"
     },
     "faz_ilha_09": {
-      "nome": "faz_ilha_09",
+      "nome": "Piso 9",
       "sprite": "assets/props/faz_ilha_09.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3524,7 +3524,7 @@
       "draw": "img"
     },
     "faz_ilha_10": {
-      "nome": "faz_ilha_10",
+      "nome": "Piso 10",
       "sprite": "assets/props/faz_ilha_10.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3538,7 +3538,7 @@
       "draw": "img"
     },
     "faz_ilha_11": {
-      "nome": "faz_ilha_11",
+      "nome": "Piso 11",
       "sprite": "assets/props/faz_ilha_11.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3552,7 +3552,7 @@
       "draw": "img"
     },
     "faz_ilha_12": {
-      "nome": "faz_ilha_12",
+      "nome": "Piso 12",
       "sprite": "assets/props/faz_ilha_12.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3566,7 +3566,7 @@
       "draw": "img"
     },
     "faz_ilha_13": {
-      "nome": "faz_ilha_13",
+      "nome": "Piso 13",
       "sprite": "assets/props/faz_ilha_13.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3580,7 +3580,7 @@
       "draw": "img"
     },
     "faz_ilha_14": {
-      "nome": "faz_ilha_14",
+      "nome": "Piso 14",
       "sprite": "assets/props/faz_ilha_14.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3594,7 +3594,7 @@
       "draw": "img"
     },
     "faz_ilha_15": {
-      "nome": "faz_ilha_15",
+      "nome": "Piso 15",
       "sprite": "assets/props/faz_ilha_15.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3608,7 +3608,7 @@
       "draw": "img"
     },
     "faz_ilha_16": {
-      "nome": "faz_ilha_16",
+      "nome": "Piso 16",
       "sprite": "assets/props/faz_ilha_16.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3622,7 +3622,7 @@
       "draw": "img"
     },
     "faz_ilha_17": {
-      "nome": "faz_ilha_17",
+      "nome": "Piso 17",
       "sprite": "assets/props/faz_ilha_17.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3636,7 +3636,7 @@
       "draw": "img"
     },
     "faz_ilha_18": {
-      "nome": "faz_ilha_18",
+      "nome": "Piso 18",
       "sprite": "assets/props/faz_ilha_18.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3650,7 +3650,7 @@
       "draw": "img"
     },
     "faz_item_01": {
-      "nome": "faz_item_01",
+      "nome": "Item 1",
       "sprite": "assets/props/faz_item_01.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3664,7 +3664,7 @@
       "draw": "img"
     },
     "faz_item_02": {
-      "nome": "faz_item_02",
+      "nome": "Item 2",
       "sprite": "assets/props/faz_item_02.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3678,7 +3678,7 @@
       "draw": "img"
     },
     "faz_item_03": {
-      "nome": "faz_item_03",
+      "nome": "Item 3",
       "sprite": "assets/props/faz_item_03.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3692,7 +3692,7 @@
       "draw": "img"
     },
     "faz_item_04": {
-      "nome": "faz_item_04",
+      "nome": "Item 4",
       "sprite": "assets/props/faz_item_04.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3706,7 +3706,7 @@
       "draw": "img"
     },
     "faz_item_05": {
-      "nome": "faz_item_05",
+      "nome": "Item 5",
       "sprite": "assets/props/faz_item_05.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3720,7 +3720,7 @@
       "draw": "img"
     },
     "faz_item_06": {
-      "nome": "faz_item_06",
+      "nome": "Item 6",
       "sprite": "assets/props/faz_item_06.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3734,7 +3734,7 @@
       "draw": "img"
     },
     "faz_item_07": {
-      "nome": "faz_item_07",
+      "nome": "Item 7",
       "sprite": "assets/props/faz_item_07.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3748,7 +3748,7 @@
       "draw": "img"
     },
     "faz_item_08": {
-      "nome": "faz_item_08",
+      "nome": "Item 8",
       "sprite": "assets/props/faz_item_08.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3762,7 +3762,7 @@
       "draw": "img"
     },
     "faz_item_09": {
-      "nome": "faz_item_09",
+      "nome": "Item 9",
       "sprite": "assets/props/faz_item_09.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3776,7 +3776,7 @@
       "draw": "img"
     },
     "faz_item_10": {
-      "nome": "faz_item_10",
+      "nome": "Item 10",
       "sprite": "assets/props/faz_item_10.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3790,7 +3790,7 @@
       "draw": "img"
     },
     "faz_item_11": {
-      "nome": "faz_item_11",
+      "nome": "Item 11",
       "sprite": "assets/props/faz_item_11.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3804,7 +3804,7 @@
       "draw": "img"
     },
     "faz_item_12": {
-      "nome": "faz_item_12",
+      "nome": "Item 12",
       "sprite": "assets/props/faz_item_12.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3818,7 +3818,7 @@
       "draw": "img"
     },
     "faz_item_13": {
-      "nome": "faz_item_13",
+      "nome": "Item 13",
       "sprite": "assets/props/faz_item_13.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3832,7 +3832,7 @@
       "draw": "img"
     },
     "faz_item_14": {
-      "nome": "faz_item_14",
+      "nome": "Item 14",
       "sprite": "assets/props/faz_item_14.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3846,7 +3846,7 @@
       "draw": "img"
     },
     "faz_item_15": {
-      "nome": "faz_item_15",
+      "nome": "Item 15",
       "sprite": "assets/props/faz_item_15.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3860,7 +3860,7 @@
       "draw": "img"
     },
     "faz_item_16": {
-      "nome": "faz_item_16",
+      "nome": "Item 16",
       "sprite": "assets/props/faz_item_16.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3874,7 +3874,7 @@
       "draw": "img"
     },
     "faz_item_17": {
-      "nome": "faz_item_17",
+      "nome": "Item 17",
       "sprite": "assets/props/faz_item_17.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3888,7 +3888,7 @@
       "draw": "img"
     },
     "faz_item_18": {
-      "nome": "faz_item_18",
+      "nome": "Item 18",
       "sprite": "assets/props/faz_item_18.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3902,7 +3902,7 @@
       "draw": "img"
     },
     "faz_item_19": {
-      "nome": "faz_item_19",
+      "nome": "Item 19",
       "sprite": "assets/props/faz_item_19.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3916,7 +3916,7 @@
       "draw": "img"
     },
     "faz_solo_01": {
-      "nome": "faz_solo_01",
+      "nome": "Piso 19",
       "sprite": "assets/props/faz_solo_01.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3930,7 +3930,7 @@
       "draw": "img"
     },
     "faz_solo_02": {
-      "nome": "faz_solo_02",
+      "nome": "Piso 20",
       "sprite": "assets/props/faz_solo_02.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3944,7 +3944,7 @@
       "draw": "img"
     },
     "faz_solo_03": {
-      "nome": "faz_solo_03",
+      "nome": "Piso 21",
       "sprite": "assets/props/faz_solo_03.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3958,7 +3958,7 @@
       "draw": "img"
     },
     "faz_solo_04": {
-      "nome": "faz_solo_04",
+      "nome": "Piso 22",
       "sprite": "assets/props/faz_solo_04.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3972,7 +3972,7 @@
       "draw": "img"
     },
     "faz_solo_05": {
-      "nome": "faz_solo_05",
+      "nome": "Piso 23",
       "sprite": "assets/props/faz_solo_05.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -3986,7 +3986,7 @@
       "draw": "img"
     },
     "faz_solo_06": {
-      "nome": "faz_solo_06",
+      "nome": "Piso 24",
       "sprite": "assets/props/faz_solo_06.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -4000,7 +4000,7 @@
       "draw": "img"
     },
     "faz_solo_07": {
-      "nome": "faz_solo_07",
+      "nome": "Piso 25",
       "sprite": "assets/props/faz_solo_07.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -4014,7 +4014,7 @@
       "draw": "img"
     },
     "faz_solo_08": {
-      "nome": "faz_solo_08",
+      "nome": "Piso 26",
       "sprite": "assets/props/faz_solo_08.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -4028,7 +4028,7 @@
       "draw": "img"
     },
     "faz_solo_09": {
-      "nome": "faz_solo_09",
+      "nome": "Piso 27",
       "sprite": "assets/props/faz_solo_09.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -4042,7 +4042,7 @@
       "draw": "img"
     },
     "faz_solo_10": {
-      "nome": "faz_solo_10",
+      "nome": "Piso 28",
       "sprite": "assets/props/faz_solo_10.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -4056,7 +4056,7 @@
       "draw": "img"
     },
     "faz_solo_11": {
-      "nome": "faz_solo_11",
+      "nome": "Piso 29",
       "sprite": "assets/props/faz_solo_11.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
@@ -4070,7 +4070,7 @@
       "draw": "img"
     },
     "faz_solo_12": {
-      "nome": "faz_solo_12",
+      "nome": "Piso 30",
       "sprite": "assets/props/faz_solo_12.png",
       "categoria": "fazenda",
       "cat": "Fazenda",
