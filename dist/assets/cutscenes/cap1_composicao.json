@@ -153,5 +153,9 @@
     "tipo": "escala",
     "primeira": true
   },
-  "prioridade": 65
+  "prioridade": 65,
+  "vozes": [
+    "Guardiã da Escala"
+  ],
+  "_vozes": "A Guardia e a voz da escala recem-forjada. Sem corpo de proposito."
 }

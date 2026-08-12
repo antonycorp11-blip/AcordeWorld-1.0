@@ -1,110 +1,177 @@
 {
-  "_comentario": [
-    "Cada dungeon aponta para um ou mais cenários que já existem.",
-    "",
-    "Uma dungeon de UM mapa usa `mapa`. Uma de vários usa `estagios`: cada estágio é um",
-    "mapa, percorridos em sequência. O cronômetro, o dano e os abates são da corrida inteira.",
-    "",
-    "nivelMinimo: trava dura. Abaixo disso a porta não abre.",
-    "",
-    "dificuldades: o jogador escolhe na porta. `poder` é RECOMENDADO, não exigido — dá para",
-    "entrar abaixo e tentar, com aviso. `monstro` multiplica vida e dano dos inimigos,",
-    "`premio` multiplica claves e ouro, e `grauBonus` empurra o sorteio dos baús para cima.",
-    "",
-    "metas: tempos (ms) e dano sofrido que valem cada medalha, para a corrida toda.",
-    "",
-    "passe.livre: true deixa entrar sempre. Com false, morrer gasta a tentativa: volta com",
-    "passe, ou espera o reset.",
-    "",
-    "baus: tabela de sorteio. Ao entrar em cada estágio, os baús plantados naquele mapa",
-    "sorteiam raridade nesta lista — e o baú só ABRE quando os monstros que o guardam caem."
-  ],
-  "dungeons": [
+ "_comentario": [
+  "Cada dungeon aponta para um ou mais cenários que já existem.",
+  "",
+  "Uma dungeon de UM mapa usa `mapa`. Uma de vários usa `estagios`: cada estágio é um",
+  "mapa, percorridos em sequência. O cronômetro, o dano e os abates são da corrida inteira.",
+  "",
+  "nivelMinimo: trava dura. Abaixo disso a porta não abre.",
+  "",
+  "dificuldades: o jogador escolhe na porta. `poder` é RECOMENDADO, não exigido — dá para",
+  "entrar abaixo e tentar, com aviso. `monstro` multiplica vida e dano dos inimigos,",
+  "`premio` multiplica claves e ouro, e `grauBonus` empurra o sorteio dos baús para cima.",
+  "",
+  "metas: tempos (ms) e dano sofrido que valem cada medalha, para a corrida toda.",
+  "",
+  "passe.livre: true deixa entrar sempre. Com false, morrer gasta a tentativa: volta com",
+  "passe, ou espera o reset.",
+  "",
+  "baus: tabela de sorteio. Ao entrar em cada estágio, os baús plantados naquele mapa",
+  "sorteiam raridade nesta lista — e o baú só ABRE quando os monstros que o guardam caem."
+ ],
+ "dungeons": [
+  {
+   "_": "A primeira dungeon, de proposito perto do comeco e de proposito curta: uma camara so. E ela que ensina o laco de ficar mais forte antes de o capitulo cobrar forca.",
+   "id": "patio_das_ruinas",
+   "nome": "Pátio das Ruínas",
+   "subtitulo": "Uma volta pelo pátio. Os Guardiões não perguntam quem você é.",
+   "nivel": 1,
+   "estagios": [
     {
-      "id": "cavernas_da_clave",
-      "nome": "Cavernas da Clave",
-      "subtitulo": "Três câmaras fundas. Só se sai pelo fim.",
-      "nivel": 2,
-      "estagios": [
-        {
-          "mapa": "custom_1785967453140_198",
-          "nome": "Galerias"
-        },
-        {
-          "mapa": "custom_1785976286672_61",
-          "nome": "Salão em Ruínas"
-        },
-        {
-          "mapa": "custom_1785976318486_785",
-          "nome": "Arena do Selo"
-        }
-      ],
-      "metas": {
-        "tempoOuro": 330000,
-        "tempoPrata": 480000,
-        "tempoBronze": 720000,
-        "danoOuro": 0,
-        "danoPrata": 0.3,
-        "danoBronze": 0.7
-      },
-      "premio": {
-        "claves": 5200,
-        "ouro": 1200
-      },
-      "passe": {
-        "livre": true,
-        "custo": 1,
-        "resetHoras": 8
-      },
-      "baus": [
-        {
-          "raridade": "comum",
-          "peso": 22
-        },
-        {
-          "raridade": "raro",
-          "peso": 30
-        },
-        {
-          "raridade": "epico",
-          "peso": 24
-        },
-        {
-          "raridade": "lendario",
-          "peso": 16
-        },
-        {
-          "raridade": "mitico",
-          "peso": 8
-        }
-      ],
-      "nivelMinimo": 6,
-      "dificuldades": [
-        {
-          "id": "normal",
-          "nome": "Normal",
-          "poder": 1200,
-          "premio": 1.0,
-          "monstro": 1.0,
-          "grauBonus": 0
-        },
-        {
-          "id": "dificil",
-          "nome": "Difícil",
-          "poder": 2280,
-          "premio": 2.0,
-          "monstro": 1.7,
-          "grauBonus": 1
-        },
-        {
-          "id": "extremo",
-          "nome": "Extremo",
-          "poder": 3720,
-          "premio": 3.6,
-          "monstro": 2.6,
-          "grauBonus": 2
-        }
-      ]
+     "mapa": "custom_1785900374897_630",
+     "nome": "O Pátio"
     }
-  ]
+   ],
+   "metas": {
+    "tempoOuro": 150000,
+    "tempoPrata": 240000,
+    "tempoBronze": 360000,
+    "danoOuro": 0,
+    "danoPrata": 0.35,
+    "danoBronze": 0.75
+   },
+   "premio": {
+    "claves": 320,
+    "ouro": 140
+   },
+   "passe": {
+    "livre": true,
+    "custo": 1,
+    "resetHoras": 4
+   },
+   "baus": [
+    {
+     "raridade": "comum",
+     "peso": 46
+    },
+    {
+     "raridade": "raro",
+     "peso": 34
+    },
+    {
+     "raridade": "epico",
+     "peso": 16
+    },
+    {
+     "raridade": "lendario",
+     "peso": 4
+    }
+   ],
+   "nivelMinimo": 1,
+   "dificuldades": [
+    {
+     "id": "normal",
+     "nome": "Normal",
+     "poder": 180,
+     "premio": 1.0,
+     "monstro": 1.0,
+     "grauBonus": 0
+    },
+    {
+     "id": "dificil",
+     "nome": "Difícil",
+     "poder": 420,
+     "premio": 1.9,
+     "monstro": 1.6,
+     "grauBonus": 1
+    }
+   ]
+  },
+  {
+   "id": "cavernas_da_clave",
+   "nome": "Cavernas da Clave",
+   "subtitulo": "Três câmaras fundas. Só se sai pelo fim.",
+   "nivel": 2,
+   "estagios": [
+    {
+     "mapa": "custom_1785967453140_198",
+     "nome": "Galerias"
+    },
+    {
+     "mapa": "custom_1785976286672_61",
+     "nome": "Salão em Ruínas"
+    },
+    {
+     "mapa": "custom_1785976318486_785",
+     "nome": "Arena do Selo"
+    }
+   ],
+   "metas": {
+    "tempoOuro": 330000,
+    "tempoPrata": 480000,
+    "tempoBronze": 720000,
+    "danoOuro": 0,
+    "danoPrata": 0.3,
+    "danoBronze": 0.7
+   },
+   "premio": {
+    "claves": 5200,
+    "ouro": 1200
+   },
+   "passe": {
+    "livre": true,
+    "custo": 1,
+    "resetHoras": 8
+   },
+   "baus": [
+    {
+     "raridade": "comum",
+     "peso": 22
+    },
+    {
+     "raridade": "raro",
+     "peso": 30
+    },
+    {
+     "raridade": "epico",
+     "peso": 24
+    },
+    {
+     "raridade": "lendario",
+     "peso": 16
+    },
+    {
+     "raridade": "mitico",
+     "peso": 8
+    }
+   ],
+   "nivelMinimo": 6,
+   "dificuldades": [
+    {
+     "id": "normal",
+     "nome": "Normal",
+     "poder": 1200,
+     "premio": 1.0,
+     "monstro": 1.0,
+     "grauBonus": 0
+    },
+    {
+     "id": "dificil",
+     "nome": "Difícil",
+     "poder": 2280,
+     "premio": 2.0,
+     "monstro": 1.7,
+     "grauBonus": 1
+    },
+    {
+     "id": "extremo",
+     "nome": "Extremo",
+     "poder": 3720,
+     "premio": 3.6,
+     "monstro": 2.6,
+     "grauBonus": 2
+    }
+   ]
+  }
+ ]
 }

@@ -120,9 +120,68 @@ for qid, q in sorted(quests.items()):
         elif t and t != 'talk' and not porCena and not (o.get('item') or o.get('npc')):
             erro('missão:'+qid, 'objetivo "%s" sem item/npc — o casamento nunca bate' % o.get('id'))
 
+
+# ── Voz sem corpo ─────────────────────────────────────────────────────────────
+# O dono jogou o rapto e viu: "nocth e vexor nao estao na cidade, somente o dialogo deles
+# acontece". Uma cena pode fazer QUALQUER nome falar e o motor nao reclama: a caixa aparece
+# com o nome escrito e ninguem em cena. Aqui todo falante precisa de corpo — ou e o
+# jogador, ou e NPC daquele mapa, ou a propria cena o invoca.
+FALANTES_LIVRES = {'personagem', 'akles', 'jogador', 'narrador', ''}
+HEROIS = {'wins': 'wins_no_grupo'}      # heroi anda com o grupo se a bandeira exigir
+
+def _n(x): return str(x or '').lower().strip()
+
+# Voz que NAO tem corpo de proposito — o Altar falando, a Guardia da Escala. Nao da para
+# adivinhar isso pelo nome, entao a cena DECLARA em `vozes: [...]`. Quem escreve diz "esta
+# aqui e assim mesmo", e o resto continua sendo cobrado.
+def vozes_declaradas(d):
+    return {_n(v) for v in (d.get('vozes') or [])}
+
+# Acompanhante atravessa os mapas com o jogador: onde ele esta, o companheiro esta.
+COMPANHEIROS = {_n(s.get('npc')) for d in cenas.values() for s in d['passos']
+                if s.get('cmd') == 'acompanhante' and s.get('npc')}
+
+# A cena que RECRUTA o heroi e onde ele aparece pela primeira vez: exigir a bandeira dela
+# mesma seria exigir que ele ja estivesse no grupo antes de entrar nele.
+RECRUTA = {_n(s.get('heroi')): cid for cid, d in cenas.items()
+           for s in d['passos'] if s.get('cmd') == 'recrutar'}
+
+for cid, d in sorted(cenas.items()):
+    mapa = d.get('mapa')
+    if not mapa: continue          # cena sem mapa acontece onde o jogador estiver
+    presentes = {_n(n.get('name')) for n in npcs if n.get('mapKey') == mapa}
+    invocados = {_n(s.get('tipo')) for s in d['passos'] if s.get('cmd') == 'monstro'}
+    req = d.get('requer') or {}
+    bands = req.get('bandeira')
+    bands = [] if bands is None else (bands if isinstance(bands, list) else [bands])
+    for s in d['passos']:
+        if s.get('cmd') != 'falar': continue
+        quem = _n(s.get('quem'))
+        if quem in FALANTES_LIVRES: continue
+        if any(quem in x or x in quem for x in presentes if x): continue
+        if any(quem in x or x in quem for x in invocados if x): continue
+        if quem in vozes_declaradas(d): continue
+        if any(quem in x or x in quem for x in COMPANHEIROS if x): continue
+        h = next((k for k in HEROIS if k in quem), None)
+        if h:
+            if RECRUTA.get(h) == cid: continue
+            if HEROIS[h] not in bands:
+                erro('cena:'+cid, '"%s" fala mas a cena nao exige a bandeira "%s" — '
+                     'ela pode nao estar no grupo' % (s.get('quem'), HEROIS[h]))
+            continue
+        erro('cena:'+cid, '"%s" fala e nao esta no mapa nem e invocado pela cena — voz sem corpo'
+             % s.get('quem'))
+
+# Monstro que a cena invoca e nao remove fica de pe no cenario depois dela.
+for cid, d in sorted(cenas.items()):
+    inv = [s for s in d['passos'] if s.get('cmd') == 'monstro']
+    if inv and not any(s.get('cmd') in ('limparMonstros', 'esperarMortos') for s in d['passos']):
+        aviso('cena:'+cid, '%d monstro(s) invocado(s) sem `limparMonstros` — ficam no cenario' % len(inv))
+
 erros = [p for p in problemas if p[0]=='ERRO']
 for nivel, cena, msg in problemas:
     print('%-6s %-22s %s' % (nivel, cena, msg))
 print('\n%d erro(s), %d aviso(s), %d cenas, %d missões'
       % (len(erros), len(problemas)-len(erros), len(cenas), len(quests)))
 sys.exit(1 if erros else 0)
+

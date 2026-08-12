@@ -307,5 +307,9 @@
     "tipo": "missao",
     "missao": "primeira_nota"
   },
-  "prioridade": 62
+  "prioridade": 62,
+  "vozes": [
+    "O Altar"
+  ],
+  "_vozes": "O Altar fala sozinho: e o lugar que responde, nao uma pessoa. Nao ha sprite e nao deve haver."
 }

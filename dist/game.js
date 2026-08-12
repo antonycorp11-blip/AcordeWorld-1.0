@@ -2052,11 +2052,24 @@ function updateAmbient(now) {
 }
 
 // Nearest NPC the player could talk to right now — drives both the E key and the prompt.
+function npcNaCena(n) {
+  if (!n) return false;
+  // No EDITOR tudo aparece: um NPC escondido por bandeira que sumisse da tela de edicao
+  // seria impossivel de reposicionar. A regra vale para quem joga.
+  if (!isPlayMode) return true;
+  if (n.oculto) return false;
+  const lista = v => v == null ? [] : (Array.isArray(v) ? v : [v]);
+  if (lista(n.sumirCom).some(temBandeira)) return false;
+  if (!lista(n.apareceCom).every(temBandeira)) return false;
+  return true;
+}
+
 function talkTarget() {
   if(!isPlayMode||playerLocked||dlg.state!==DLG_STATE.CLOSED)return null;
   let best=null,bestD=Infinity;
   for(const npc of npcData){
     if(npc.mapKey!==currentKey)continue;
+    if(!npcNaCena(npc))continue;
     if(!npc.dialogue||npc.dialogue==='none')continue;
     const d=Math.hypot(player.x-npc.x,player.y-npc.y);
     // Um raio 0 salvo por engano no editor deixava o NPC mudo para sempre.
@@ -6994,6 +7007,13 @@ function ecoProntoPerto() {
   return melhor;
 }
 
+// PARTITURA e a unica coisa que sobe atributo de heroi, e ela so vinha de bau e de fim de
+// dungeon. Com uma dungeon so no jogo, e no fim do capitulo, quem seguia a historia chegava
+// ao altar com os cinco atributos em ZERO — o personagem nao crescia jogando.
+// A captura de Eco e o lugar certo para a segunda fonte: acertar o tom de uma criatura E
+// treino, e e o que o jogo inteiro esta ensinando. Uma a cada quatro capturas.
+const CHANCE_PARTITURA_NA_CAPTURA = 0.25;
+
 // Quanto o Eco rende. Separado do ritual para que a animação só mostre o resultado.
 function colheitaDoEco(m, qualidade = 0) {
   const def = monsterDef(m);
@@ -7037,6 +7057,11 @@ function colheitaDoEco(m, qualidade = 0) {
     somar(drop.item, (drop.min ?? 1) + Math.floor(Math.random() * (((drop.max ?? 1) - (drop.min ?? 1)) + 1)));
   });
 
+  // Uma Partitura de vez em quando. Fica FORA do laco de drops de proposito: e uma por
+  // captura, nao uma por linha da tabela — dentro do laco ela dependia de o bicho ter
+  // fragmento na tabela, o que e verdade hoje e seria mentira no primeiro Eco diferente.
+  if (Math.random() < CHANCE_PARTITURA_NA_CAPTURA) somar('partitura', 1);
+
   return { itens, silenciado: !tinha, xp: def.xp ?? Math.max(6, Math.round((def.hp ?? 20) * 0.6)) };
 }
 
@@ -7068,6 +7093,13 @@ function receberDaCaptura(id, n) {
   if (id === 'fragmento_puro') progressoDeMissao('coletar', 'fragmento', n * VALOR_FRAGMENTO_PURO);
   else progressoDeMissao('coletar', id, n);
 }
+
+// PARTITURA e a unica coisa que sobe atributo de heroi, e ela so vinha de bau e de fim de
+// dungeon. Com uma dungeon so no jogo, e no fim do capitulo, quem seguia a historia chegava
+// ao altar com os cinco atributos em ZERO — o personagem nao crescia jogando.
+// A captura de Eco e o lugar certo para a segunda fonte: acertar o tom de uma criatura E
+// treino, e e o que o jogo inteiro esta ensinando. Uma a cada quatro capturas.
+
 
 // ── O acorde disperso ────────────────────────────────────────────────────────────
 // Ressoar não captura na hora: o Eco se parte em três ou quatro vozes soltas que saem
@@ -7234,7 +7266,11 @@ function soltarItem(item, m, now) {
 
 // Claves vêm de DUNGEON — baú e conclusão. Monstro solto no mundo não paga mais em clave,
 // senão o jogador junta moeda de poder rodando o mapa e a dungeon perde a razão de existir.
-function claveEhDeDungeon() { return corridaAtiva(); }
+// A clave caia SO dentro de corrida de dungeon. Como a unica dungeon do jogo era o fim do
+// capitulo, quem seguia a historia lutava o capitulo inteiro sem receber nada que o
+// deixasse mais forte. Agora cai sempre; fora de dungeon vale um terco, para a dungeon
+// continuar sendo o lugar onde se junta de verdade.
+const CLAVE_FORA_DE_DUNGEON = 1 / 3;
 
 function killMonster(m, now) {
   m.dead = true;
@@ -7263,8 +7299,9 @@ function killMonster(m, now) {
     ? (CRAFTABLE_TOOLS.find(t => t.id === idResson)?.tier || 1) - 1 : 0;
 
   tabela.forEach(drop => {
-    // Fora de dungeon a clave não cai.
-    if (drop.item === 'clave' && !claveEhDeDungeon()) return;
+    // Fora de dungeon a clave cai menos, mas cai: lutar em qualquer lugar tem de pagar
+    // alguma coisa, senao o mundo inteiro fora da dungeon e cenario.
+    if (drop.item === 'clave' && !corridaAtiva() && Math.random() > CLAVE_FORA_DE_DUNGEON) return;
     if (drop.chance != null && Math.random() > drop.chance) return;
     let n = (drop.min ?? 1) + Math.floor(Math.random() * (((drop.max ?? 1) - (drop.min ?? 1)) + 1));
     // O mesmo empurrão de 40% do outro caminho de drop: os dois têm que render igual,
@@ -9247,7 +9284,7 @@ function renderSceneOverlay(now) {
     // Os NPCs continuam na tela. O `return` daqui pulava o laço que os desenha, e
     // soltar os monstros fazia a cidade inteira ficar sem gente.
     npcData.forEach(npc => {
-      if (npc.mapKey !== mapKey) return;
+      if (npc.mapKey !== mapKey || !npcNaCena(npc)) return;
       (NPC_DRAW[npc.type] || DEFAULT_NPC_DRAW)(ctx, npc, now);
     });
     renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now); renderRotaDaProximaCamara(now); renderLugaresDeCena(now);
@@ -11761,7 +11798,7 @@ function marcadorDoNPC(npc) {
 
 function renderMarcadoresDeNPC(now) {
   npcData.forEach(npc => {
-    if (npc.mapKey !== currentKey || npc.oculto) return;
+    if (npc.mapKey !== currentKey || !npcNaCena(npc)) return;
     const m = marcadorDoNPC(npc);
     if (!m) return;
     const b = npcBounds(npc);
@@ -11838,6 +11875,13 @@ function iniciarCena(roteiro, aoTerminar) {
     monsters = monsters.filter(m => m.mapKey !== currentKey);
     currentScene = 'world';
   }
+  // As folhas dos monstros que ESTA cena vai invocar, pedidas agora e nao na hora de
+  // invocar: a folha e um JPEG de centenas de kB, e pedi-la no passo do `monstro` fazia os
+  // dois Dissonantes falarem as primeiras falas invisiveis enquanto a imagem baixava.
+  // Pedindo na abertura, o download corre junto com as falas de antes.
+  (roteiro.passos || []).forEach(p => {
+    if (p.cmd === 'monstro' && p.tipo) window.__carregarFolhaDeMonstro?.(p.tipo);
+  });
   if (!isPlayMode) togglePlay();
   proximoPasso();
 }
@@ -11947,6 +11991,10 @@ function executarPasso(p) {
         // O roteiro dá a posição desejada, mas quem manda é o chão pintado: se o
         // ponto cair numa copa de árvore, o monstro nasce no lugar andável mais perto.
         const alvo = pontoAndavelPerto(p.x ?? 512, p.y ?? 300);
+        // A FOLHA. As folhas sao pedidas por MAPA, na entrada: um monstro que so nasce no
+        // meio de uma cena nunca tinha a dele pedida. Ele existia, com vida e posicao, e
+        // era INVISIVEL — o Nocth e o Vexor chegavam a Acordelot como duas vozes sem corpo.
+        window.__carregarFolhaDeMonstro?.(p.tipo);
         monsters.push({
           id: p.id || `cena_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
           type: p.tipo, mapKey: currentKey,
@@ -12538,7 +12586,22 @@ function atualizarCaminhadas() {
         const lx = -py, ly = px;
         if (canMoveTo(ent.x + lx, ent.y + ly)) { ent.x += lx; ent.y += ly; }
         else if (canMoveTo(ent.x - lx, ent.y - ly)) { ent.x -= lx; ent.y -= ly; }
-        else { c.travado = (c.travado || 0) + 1; if (c.travado > 90) return false; }
+        else {
+          c.travado = (c.travado || 0) + 1;
+          // Preso de verdade. Antes de desistir, uma vez so: o proprio PE dele pode estar
+          // em chao bloqueado — foi o caso do Lucian, plantado no editor sobre um canto
+          // que a mascara nao aceita. Parado ali ele nao conseguia dar UM passo em direcao
+          // nenhuma, e a caminhada era descartada em silencio: a cena seguia e ele nunca
+          // atravessava a praca. Desencalhar custa um salto de poucos pixels e salva a
+          // encenacao inteira.
+          if (!c.resgatado && !canMoveTo(ent.x, ent.y)) {
+            c.resgatado = true;
+            const livre = pontoAndavelPerto(ent.x, ent.y);
+            ent.x = livre.x; ent.y = livre.y;
+            console.warn('[cena] %s estava em chao bloqueado — desencalhado para (%d,%d)',
+                         c.alvo?.name || 'jogador', Math.round(livre.x), Math.round(livre.y));
+          } else if (c.travado > 90) return false;
+        }
       }
     }
     if (c.tipo === 'jogador') {
@@ -13201,7 +13264,7 @@ function renderCicloDiaNoite(now, mapKey) {
 
     // Luz em volta de NPCs e pontos luminosos
     npcData.forEach(n => {
-      if (n.mapKey !== mapKey || n.oculto) return;
+      if (n.mapKey !== mapKey || !npcNaCena(n)) return;
       if (['forge_entrance', 'ponto_martelada', 'lago_sorteio', 'porta'].includes(n.type) || (n.name && /fogueira|tocha|luz|lago|forja/i.test(n.name))) {
         const gNpc = eCtx.createRadialGradient(n.x, n.y - 20, 5, n.x, n.y - 20, 100 + flicker * 0.8);
         gNpc.addColorStop(0, 'rgba(0, 0, 0, 0.95)');
@@ -13575,7 +13638,7 @@ function quadro(now){
     // not bleed through onto the shop floor.
     const outdoors=currentScene==='world' || currentScene==='farm';
     if(outdoors){
-      npcData.forEach(npc=>{if(npc.mapKey!==currentKey||npc.oculto)return;
+      npcData.forEach(npc=>{if(npc.mapKey!==currentKey||!npcNaCena(npc))return;
         if(currentScene==='farm')return;   // a fazenda nao tem placa, porta nem NPC de mundo
         (NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
       renderDrops(now);   // on the ground, under everyone
@@ -13744,7 +13807,7 @@ function quadro(now){
     // por quadro: com zoom as duas passadas saíam em posições diferentes e apareciam
     // dois personagens; sem zoom sobrepunham e escureciam as bordas transparentes.
     if (engineMode !== 'scene') {
-      npcData.forEach(npc=>{if(npc.mapKey!==mapKey)return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
+      npcData.forEach(npc=>{if(npc.mapKey!==mapKey||!npcNaCena(npc))return;(NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
     }
     renderObjetos(now, 'todos');   // sem isto o editor não mostrava o que você plantou
     // O personagem aparece no editor enquanto a caminhada estiver ligada — sem ele não

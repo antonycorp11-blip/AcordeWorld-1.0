@@ -87,6 +87,40 @@ for f in glob.glob(os.path.join(RAIZ, 'assets/cutscenes/*.json')):
         if p.get('cmd') == 'dar' and p.get('item') and p['item'] not in itens:
             A('item', '%s da "%s", que nao achei no catalogo' % (c['id'], p['item']))
 
+
+# ── NPC plantado em chao que nao anda ─────────────────────────────────────────
+# O Bardo Lucian estava sobre um canto que a mascara de estrada nao aceita. Parado ali ele
+# nao conseguia dar UM passo, entao o `andar` da cena do rapto era descartado em silencio e
+# ele nunca atravessava a praca para entregar o palito. O motor hoje desencalha sozinho,
+# mas quem esta em chao bloqueado tambem nao pode ser empurrado, nao segue o jogador e fica
+# preso em qualquer encenacao — e melhor mover no editor.
+# A regra e a do `isWalkable`: verde > 100 e alfa > 50 na mascara, com folga de 4px em cruz.
+try:
+    from PIL import Image
+    SEM_CORPO = {'porta', 'signpost', 'forge_entrance', 'lago_sorteio', 'ponto_martelada'}
+    mascaras = {}
+    def andavel(mapa, x, y):
+        if mapa not in mascaras:
+            cam = os.path.join(RAIZ, f'assets/cenarios/mascaras/acordelot_road_{mapa}_mask.png')
+            mascaras[mapa] = Image.open(cam).convert('RGBA').load() if os.path.exists(cam) else None
+        px = mascaras[mapa]
+        if px is None: return True          # mapa sem pintura: tudo anda
+        for dx, dy in ((0,0), (-4,0), (4,0), (0,-4), (0,4)):
+            try: p = px[int(x+dx), int(y+dy)]
+            except Exception: return False
+            if not (p[1] > 100 and p[3] > 50): return False
+        return True
+
+    npcs_j = json.load(open(os.path.join(RAIZ, 'assets/dados/npcs.json')))
+    npcs_j = npcs_j if isinstance(npcs_j, list) else npcs_j['npcs']
+    for n in npcs_j:
+        if n.get('type') in SEM_CORPO: continue
+        if not andavel(n.get('mapKey'), n.get('x', 0), n.get('y', 0)):
+            A('chao', '"%s" esta em chao bloqueado (%d,%d) — nao consegue andar em cena'
+              % (n.get('name'), n.get('x', 0), n.get('y', 0)))
+except ImportError:
+    pass
+
 for cat, msg in erros: print('ERRO   %-10s %s' % (cat, msg))
 for cat, msg in avisos: print('AVISO  %-10s %s' % (cat, msg))
 print('\n%d erro(s), %d aviso(s)' % (len(erros), len(avisos)))

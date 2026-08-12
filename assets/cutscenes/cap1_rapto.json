@@ -101,16 +101,16 @@
       "cmd": "monstro",
       "tipo": "vexor",
       "id": "cena_vexor",
-      "x": 300,
-      "y": 500,
+      "x": 600,
+      "y": 300,
       "persegue": false
     },
     {
       "cmd": "monstro",
       "tipo": "nocth",
       "id": "cena_nocth",
-      "x": 240,
-      "y": 500,
+      "x": 540,
+      "y": 300,
       "persegue": false
     },
     {
@@ -198,6 +198,20 @@
       "ms": 1200
     },
     {
+      "_": "── e quando o tempo volta, o lugar dele está vazio ──"
+    },
+    {
+      "cmd": "mostrar",
+      "npc": "Pipo",
+      "visivel": false
+    },
+    {
+      "_": "── e os dois se foram com ele: o tremor E a saída deles ──"
+    },
+    {
+      "cmd": "limparMonstros"
+    },
+    {
       "cmd": "voltarAoTempo"
     },
     {
@@ -225,6 +239,20 @@
     {
       "cmd": "esperar",
       "ms": 1400
+    },
+    {
+      "_": "── o Lucian atravessa a praça com o palito na mão ──"
+    },
+    {
+      "cmd": "andar",
+      "npc": "Lucian",
+      "para": "jogador",
+      "velocidade": 2.0,
+      "sumir": false
+    },
+    {
+      "cmd": "esperar",
+      "ms": 400
     },
     {
       "cmd": "falar",
