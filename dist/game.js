@@ -522,6 +522,7 @@ const stick = { active:false, x:0, y:0 };
 function doAction() {
   if (dlg.state===DLG_STATE.TYPING || dlg.state===DLG_STATE.WAITING) { advanceDlg(); return; }
   if (dlg.state===DLG_STATE.CHOOSING) return; // a choice has to be tapped
+  if (noAltar() && !FORJA.ativo) { abrirForjaDoAltar(); return; }
   if (noSelo()) { selarAMemoria(); return; }
   const bau = bauMaisPerto();
   if (bau) { abrirBau(bau); return; }
@@ -8460,6 +8461,7 @@ function actionAvailable() {
   if(shopOpen||inventoryOpen||charOpen)return null;
   if(capturaAtiva)return null;        // ritual em andamento: nada a fazer, só assistir
   if(ecoProntoPerto())return 'ressoar'; // Eco aberto ganha do ataque: bater nele não adianta
+  if(noAltar() && !FORJA.ativo) return 'forjar';
   if(noSelo())return 'selo';         // o desfecho do capítulo ganha de tudo
   if(bauMaisPerto())return 'bau';    // o baú é o prêmio da sala: ganha do golpe
   if(attackTarget())return 'attack'; // a monster in reach beats everything else
@@ -13432,7 +13434,7 @@ function quadro(now){
       updateAmbient(now);renderSpeech(now);renderFloaters(now);
       // Prompt over whatever the action button is currently pointing at — not just
       // NPCs. A door you can't see is a door that doesn't exist.
-      const ACT_PROMPT={sortear:'E  ·  Tentar a Sorte',ressoar:'E  ·  RESSOAR',talk:'E  ·  Falar',travel:'E  ·  Viajar',gather:'E  ·  Coletar',enterForge:'E  ·  Entrar',martelar:'E  ·  Martelar',entrarPorta:'E  ·  Entrar'};
+      const ACT_PROMPT={sortear:'E  ·  Tentar a Sorte',ressoar:'E  ·  RESSOAR',talk:'E  ·  Falar',travel:'E  ·  Viajar',gather:'E  ·  Coletar',forjar:'E  ·  Montar escala',enterForge:'E  ·  Entrar',martelar:'E  ·  Martelar',entrarPorta:'E  ·  Entrar'};
       const act=actionAvailable();
       const tgt = act==='talk' ? talkTarget()
                 : act==='travel' ? signpostTarget()
@@ -13518,6 +13520,7 @@ function quadro(now){
       renderGrito(now); atualizarSono(now);
       renderEstadosDeMonstro(now);
       renderFaroisDeBau(now);
+      renderAltarDaForja(now);
       renderTrocaDeHeroi(now); renderClarao(now);
     }
     else { renderSpeech(now); renderFloaters(now); }
@@ -18761,6 +18764,212 @@ function renderPlacaDaRota(now) {
   ctx.beginPath();
   ctx.moveTo(p.x, y + 14); ctx.lineTo(p.x - 9, y); ctx.lineTo(p.x + 9, y);
   ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+// ══ Altar do Forjador: montar a escala pisando no altar ═══════════════════════
+// Onze cristais no arco mais o CENTRO dão doze — e doze é o número de semitons de uma
+// oitava. É por isso que a nota final aparece no centro, acima do personagem: ela é a
+// oitava da tônica, a mesma nota de novo.
+//
+//   Dó [T] Ré [T] Mi [S] Fá [T] Sol [T] Lá [T] Si [S] Dó
+//    1   2,3  4,5   6    7,8   9,10  11,12
+//
+// Tom acende dois cristais, semitom acende um. A conta tem que fechar EXATAMENTE em 12:
+// é a regra que o jogador descobre com a mão, não lendo um texto.
+const FORJA = {
+  ativo: false, tonica: null, passos: [], semitons: 0, fechada: false, aviso: '', avisoAte: 0,
+};
+
+// Onde o altar fica no Salão do Forjador, e o raio em que pisar conta como "em cima".
+const ALTAR = { mapa: 'custom_1785776481744_650', x: 512, y: 300, raio: 70 };
+
+// Cor de cada nota. Sete naturais em cores próprias e as cinco alteradas puxando para o
+// tom vizinho: assim o arco acende contando uma história de cor, não um arco-íris solto.
+const COR_DA_NOTA = {
+  do: '#f87171', do_s: '#fb923c', re: '#fbbf24', re_s: '#a3e635', mi: '#4ade80',
+  fa: '#2dd4bf', fa_s: '#38bdf8', sol: '#60a5fa', sol_s: '#818cf8',
+  la: '#a78bfa', la_s: '#e879f9', si: '#f472b6',
+};
+const NOME_DA_NOTA = {
+  do: 'Dó', do_s: 'Dó♯', re: 'Ré', re_s: 'Ré♯', mi: 'Mi', fa: 'Fá', fa_s: 'Fá♯',
+  sol: 'Sol', sol_s: 'Sol♯', la: 'Lá', la_s: 'Lá♯', si: 'Si',
+};
+
+function noAltar() {
+  return currentScene === 'world' && currentKey === ALTAR.mapa
+      && Math.hypot(player.x - ALTAR.x, player.y - ALTAR.y) <= ALTAR.raio;
+}
+
+function notaEmSemitons(n) {
+  const i = CROMA.indexOf(FORJA.tonica);
+  return CROMA[(i + n) % 12];
+}
+
+function abrirForjaDoAltar() {
+  if (FORJA.ativo) return;
+  FORJA.ativo = true; FORJA.tonica = null; FORJA.passos = [];
+  FORJA.semitons = 0; FORJA.fechada = false;
+  playerLocked = true;
+  document.getElementById('forjaBarra')?.classList.remove('hidden');
+  montarBarraDaForja();
+}
+
+function fecharForjaDoAltar() {
+  FORJA.ativo = false; playerLocked = false;
+  document.getElementById('forjaBarra')?.classList.add('hidden');
+}
+
+function avisoDaForja(t) { FORJA.aviso = t; FORJA.avisoAte = performance.now() + 2600; }
+
+function escolherTonica(id) {
+  FORJA.tonica = id; FORJA.passos = []; FORJA.semitons = 0; FORJA.fechada = false;
+  playForgeHit?.();
+  montarBarraDaForja();
+}
+
+// O passo que o jogador dá. Tom vale 2, semitom vale 1, e passar de 12 é recusado —
+// a oitava não estica.
+function passoDaForja(tipo) {
+  if (!FORJA.tonica || FORJA.fechada) return;
+  const v = tipo === 'tom' ? 2 : 1;
+  if (FORJA.semitons + v > 12) {
+    avisoDaForja('Não cabe: passaria da oitava. Falta ' + (12 - FORJA.semitons) + ' semitom.');
+    return;
+  }
+  FORJA.semitons += v;
+  FORJA.passos.push(tipo);
+  playForgeHit?.();
+  if (FORJA.semitons === 12) fecharEscalaDaForja();
+  montarBarraDaForja();
+}
+
+function desfazerPassoDaForja() {
+  if (!FORJA.passos.length || FORJA.fechada) return;
+  FORJA.semitons -= (FORJA.passos.pop() === 'tom' ? 2 : 1);
+  montarBarraDaForja();
+}
+
+// Qual modo o caminho desenhou. Não é enfeite: é o nome do que o jogador acabou de
+// construir, e o jogo deve saber dizer.
+const CAMINHOS = {
+  'T,T,S,T,T,T,S': 'maior',      'T,S,T,T,S,T,T': 'menor',
+  'T,T,T,S,T,T,S': 'lídio',      'T,T,S,T,T,S,T': 'mixolídio',
+  'S,T,T,T,S,T,T': 'frígio',     'T,S,T,T,T,S,T': 'dórico',
+  'S,T,T,S,T,T,T': 'lócrio',
+};
+
+function fecharEscalaDaForja() {
+  FORJA.fechada = true;
+  const chave = FORJA.passos.map(p => p === 'tom' ? 'T' : 'S').join(',');
+  const modo = CAMINHOS[chave] || null;
+  const nome = (NOME_DA_NOTA[FORJA.tonica] || FORJA.tonica) + (modo ? ' ' + modo : '');
+  if (typeof escalasMontadas !== 'undefined') {
+    escalasMontadas.push({ tonica: FORJA.tonica, passos: FORJA.passos.slice(), modo, nome });
+  }
+  progressoDeMissao('montar', 'escala');
+  gainXp(120);
+  savePlayerData?.();
+  avisoDaForja(modo ? `Escala de ${nome} — fechada na oitava.`
+                    : `Caminho novo em ${NOME_DA_NOTA[FORJA.tonica]}. Fecha na oitava, mas não tem nome conhecido.`);
+}
+
+// ── A barra, irmã da barra da fazenda ─────────────────────────────────────────
+function montarBarraDaForja() {
+  const el = document.getElementById('forjaBarra');
+  if (!el) return;
+  if (!FORJA.tonica) {
+    el.innerHTML = '<span class="fj-rot">ESCOLHA A TÔNICA</span>' +
+      CROMA.map(id => `<button class="fj-nota" data-nota="${id}"
+        style="--c:${COR_DA_NOTA[id]}">${NOME_DA_NOTA[id]}</button>`).join('') +
+      '<button class="fj-x" data-fechar="1">✖</button>';
+  } else {
+    const falta = 12 - FORJA.semitons;
+    el.innerHTML =
+      `<span class="fj-rot">${NOME_DA_NOTA[FORJA.tonica]} · faltam ${falta} semitom(ns)</span>` +
+      (FORJA.fechada ? '' :
+        `<button class="fj-passo" data-passo="tom" ${falta < 2 ? 'disabled' : ''}>TOM</button>
+         <button class="fj-passo" data-passo="semitom">SEMITOM</button>
+         <button class="fj-passo fj-voltar" data-desfazer="1" ${FORJA.passos.length ? '' : 'disabled'}>↶</button>`) +
+      '<button class="fj-x" data-fechar="1">✖</button>';
+  }
+  el.querySelectorAll('[data-nota]').forEach(b => b.onclick = () => escolherTonica(b.dataset.nota));
+  el.querySelectorAll('[data-passo]').forEach(b => b.onclick = () => passoDaForja(b.dataset.passo));
+  el.querySelector('[data-desfazer]')?.addEventListener('click', desfazerPassoDaForja);
+  el.querySelector('[data-fechar]')?.addEventListener('click', fecharForjaDoAltar);
+}
+
+// ── Os cristais acendendo no arco ─────────────────────────────────────────────
+// Onze posições ao longo do arco do fundo. São coordenadas de CENA (o jogo desenha
+// dentro do zoom), medidas sobre a arte do Salão.
+const CRISTAIS = [
+  { x: 296, y: 196 }, { x: 344, y: 168 }, { x: 396, y: 148 }, { x: 452, y: 136 },
+  { x: 512, y: 132 }, { x: 572, y: 136 }, { x: 628, y: 148 }, { x: 680, y: 168 },
+  { x: 728, y: 196 }, { x: 770, y: 230 }, { x: 806, y: 270 },
+];
+
+function renderAltarDaForja(now) {
+  if (currentKey !== ALTAR.mapa) return;
+  const perto = noAltar();
+
+  // Fora da forja, só um convite discreto quando o jogador pisa no altar.
+  if (!FORJA.ativo) {
+    if (perto) {
+      const p = (Math.sin(now * 0.004) + 1) / 2;
+      ctx.save();
+      ctx.globalAlpha = 0.5 + p * 0.4;
+      ctx.font = 'bold 12px Outfit, sans-serif'; ctx.textAlign = 'center';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
+      ctx.strokeText('E — montar uma escala', ALTAR.x, ALTAR.y - 60);
+      ctx.fillStyle = '#fde68a'; ctx.fillText('E — montar uma escala', ALTAR.x, ALTAR.y - 60);
+      ctx.restore();
+    }
+    return;
+  }
+
+  ctx.save();
+  CRISTAIS.forEach((c, i) => {
+    const aceso = i < FORJA.semitons;
+    // A cor do cristal é a da nota que aquele semitom alcança.
+    const cor = aceso ? COR_DA_NOTA[notaEmSemitons(i + 1)] : 'rgba(120,130,150,0.35)';
+    const p = (Math.sin(now * 0.005 + i) + 1) / 2;
+    ctx.globalAlpha = aceso ? 0.85 + p * 0.15 : 0.5;
+    ctx.fillStyle = cor;
+    ctx.beginPath(); ctx.ellipse(c.x, c.y, 11, 17, 0, 0, Math.PI * 2); ctx.fill();
+    if (aceso) {
+      const g = ctx.createRadialGradient(c.x, c.y, 2, c.x, c.y, 34);
+      g.addColorStop(0, cor); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = 0.3 + p * 0.2; ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(c.x, c.y, 34, 0, Math.PI * 2); ctx.fill();
+    }
+  });
+
+  // A oitava: aparece no centro, acima do personagem, quando a conta fecha em doze.
+  if (FORJA.fechada) {
+    const p = (Math.sin(now * 0.003) + 1) / 2;
+    const cor = COR_DA_NOTA[FORJA.tonica];
+    const y = player.y - 110 - p * 6;
+    const g = ctx.createRadialGradient(player.x, y, 4, player.x, y, 64);
+    g.addColorStop(0, cor); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalAlpha = 0.55 + p * 0.25; ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(player.x, y, 64, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.font = 'bold 30px Cinzel, serif'; ctx.textAlign = 'center';
+    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(6,9,14,.92)';
+    ctx.strokeText(NOME_DA_NOTA[FORJA.tonica], player.x, y + 10);
+    ctx.fillStyle = cor; ctx.fillText(NOME_DA_NOTA[FORJA.tonica], player.x, y + 10);
+    ctx.font = '11px Outfit, sans-serif'; ctx.fillStyle = '#e9d5ff';
+    ctx.fillText('a oitava — a mesma nota, doze semitons acima', player.x, y + 32);
+  }
+
+  if (FORJA.aviso && now < FORJA.avisoAte) {
+    ctx.globalAlpha = 1;
+    ctx.font = 'bold 12px Outfit, sans-serif'; ctx.textAlign = 'center';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
+    ctx.strokeText(FORJA.aviso, SCREEN_W / 2, SCREEN_H - 96);
+    ctx.fillStyle = '#fde68a'; ctx.fillText(FORJA.aviso, SCREEN_W / 2, SCREEN_H - 96);
+  }
+  ctx.textAlign = 'left';
   ctx.restore();
 }
 

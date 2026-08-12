@@ -7639,3 +7639,32 @@ body.em-cena #questNotification { display: none !important; }
 .build-img { width: 64px; height: 64px; }
 .build-name { font-size: 10px; }
 .build-price { font-size: 9.5px; }
+
+/* ── Barra do Altar do Forjador ─────────────────────────────────────────────── */
+.forja-barra {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 14px; z-index: 63;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
+  max-width: 94vw; padding: 9px 12px;
+  background: rgba(14,10,20,.95); border: 1px solid #4c3a63; border-radius: 13px;
+  box-shadow: 0 8px 26px rgba(0,0,0,.55);
+}
+.forja-barra.hidden { display: none; }
+.fj-rot { font: 600 10px Outfit, sans-serif; letter-spacing: .12em; color: #a79bc2;
+          width: 100%; text-align: center; margin-bottom: 2px; }
+.fj-nota {
+  min-width: 42px; padding: 7px 6px; cursor: pointer;
+  background: #1d1729; border: 1px solid var(--c, #4c3a63); border-radius: 8px;
+  color: var(--c, #e9d5ff); font: 700 12px Outfit, sans-serif;
+}
+.fj-nota:hover { background: #2a2038; box-shadow: 0 0 0 1px var(--c) inset; }
+.fj-passo {
+  min-width: 88px; padding: 10px 12px; cursor: pointer;
+  background: linear-gradient(#2b2138, #1a1426); border: 1px solid #6d5a91;
+  border-radius: 9px; color: #fde68a; font: 700 12px Outfit, sans-serif;
+  letter-spacing: .08em;
+}
+.fj-passo:hover:not(:disabled) { border-color: #fbbf24; }
+.fj-passo:disabled { opacity: .35; cursor: not-allowed; }
+.fj-voltar { min-width: 44px; color: #c4b5fd; }
+.fj-x { background: #2a1414; border: 1px solid #7f1d1d; color: #fca5a5;
+        border-radius: 8px; padding: 8px 10px; cursor: pointer; }

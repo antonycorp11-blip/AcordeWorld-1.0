@@ -595,22 +595,6 @@
       "scale": 0.35
     },
     {
-      "id": "signpost_1785900478157_src",
-      "name": "🪧 Placa → 🏰 floesta inicial",
-      "type": "signpost",
-      "mapKey": "custom_1785900374897_630",
-      "x": 466,
-      "y": 14,
-      "targetMapKey": "custom_1785881037059_214",
-      "targetX": 484,
-      "targetY": 564,
-      "triggerRadius": 70,
-      "dialogue": "none",
-      "triggered": false,
-      "flipX": false,
-      "scale": 0.4
-    },
-    {
       "id": "signpost_1785900478157_dst",
       "name": "🪧 Placa → 🏰 Ancient_ruins_courtyard_hunting__202608042325",
       "type": "signpost",
@@ -841,6 +825,70 @@
       "triggered": false,
       "flipX": false,
       "scale": 0.30000000000000016
+    },
+    {
+      "id": "signpost_1786501810921_src",
+      "name": "🪧 Placa → 🏚️ Pátio das Ruínas",
+      "type": "signpost",
+      "mapKey": "custom_1786501580114_289",
+      "x": 580,
+      "y": 567,
+      "targetMapKey": "custom_1785900374897_630",
+      "targetX": 546,
+      "targetY": 11,
+      "triggerRadius": 70,
+      "dialogue": "none",
+      "triggered": false,
+      "flipX": false,
+      "scale": 0.30000000000000004
+    },
+    {
+      "id": "signpost_1786501810921_dst",
+      "name": "🪧 Placa → 🏰 forjador cristais apagados ",
+      "type": "signpost",
+      "mapKey": "custom_1785900374897_630",
+      "x": 546,
+      "y": 11,
+      "targetMapKey": "custom_1786501580114_289",
+      "targetX": 512,
+      "targetY": 300,
+      "triggerRadius": 70,
+      "dialogue": "none",
+      "triggered": false,
+      "flipX": false,
+      "scale": 0.3
+    },
+    {
+      "id": "signpost_1786501937184_src",
+      "name": "🪧 Placa → 🏘️ Vila do Caminho",
+      "type": "signpost",
+      "mapKey": "custom_1785900374897_630",
+      "x": 512,
+      "y": 300,
+      "targetMapKey": "custom_1785884200706_430",
+      "targetX": 532,
+      "targetY": 203,
+      "triggerRadius": 70,
+      "dialogue": "none",
+      "triggered": false,
+      "flipX": false,
+      "scale": 1
+    },
+    {
+      "id": "signpost_1786501937184_dst",
+      "name": "🪧 Placa → 🏚️ Pátio das Ruínas",
+      "type": "signpost",
+      "mapKey": "custom_1785884200706_430",
+      "x": 240,
+      "y": 165,
+      "targetMapKey": "custom_1785900374897_630",
+      "targetX": 512,
+      "targetY": 300,
+      "triggerRadius": 70,
+      "dialogue": "none",
+      "triggered": false,
+      "flipX": false,
+      "scale": 0.35
     }
   ]
 }
