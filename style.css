@@ -7706,3 +7706,5 @@ body.em-cena #questNotification { display: none !important; }
 .cp-sinergia b { display: block; font-size: 10px; color: #4ade80; letter-spacing: .05em; }
 .cp-sinergia small { font-size: 8.5px; color: #a79bc2; }
 .com-sinergia .cp-casas { box-shadow: 0 0 0 1px rgba(74,222,128,.5); border-radius: 10px; }
+.cp-selo { width: 30px; height: 30px; image-rendering: pixelated; display: block;
+           margin: 0 auto 1px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }

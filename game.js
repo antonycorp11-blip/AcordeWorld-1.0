@@ -21305,7 +21305,9 @@ function desenharPautaDaComposicao() {
     // O efeito fica escrito NO lugar: equipar as cegas e o que tornava esta tela inutil.
     const efeito = ef ? Object.entries(ef.attrs || {})
       .map(([k, v]) => `${v > 0 ? '+' : ''}${v} ${k}`).join(' · ') : 'fora das escalas equipadas';
+    const nota = (id || '').split(':')[0];
     return `<button class="cp-casa" data-slot="${i}" style="--c:${cor}">
+      <img class="cp-selo" src="assets/itens/acordes/${nota}.png" alt="">
       <b>${f ? f.cifra : id}</b>
       <span class="cp-grau">${f ? f.romano : '—'}</span>
       <small>${efeito}</small></button>`;
