@@ -5151,7 +5151,12 @@ function updateMonsters(now) {
     // é o que fazia a criatura parecer estátua. Só o dano é que respeita a trava.
     if (persegue && m.podePerseguir && playerHp > 0 && now >= (m.atacandoAte || 0) &&
         dist < (def.aggroRange ?? 160) && dist > (def.touchRange ?? 34) * 0.75) {
-      const sp = def.speed ?? 1;
+      // Lentidao / congelamento do Eco de La e do La♯, e o atordoamento do Si.
+      let sp = def.speed ?? 1;
+      const ag = performance.now();
+      if (m.atordoadoAte && ag < m.atordoadoAte) sp = 0;
+      else if (m.lentoAte && ag < m.lentoAte) sp *= (1 - (m.lentoFator || 0));
+      if (sp <= 0.001) return;
       const px = m.x + (dx / dist) * sp, py = m.y + (dy / dist) * sp;
       const ax = m.x, ay = m.y;
       if (canMoveTo(px, py)) { m.x = px; m.y = py; }
@@ -5775,7 +5780,9 @@ function recargaDeFeitico(ms) { return Math.round(ms * (1 - derivedStats().recar
 const FATOR_TOQUE = 0.78;   // manche entrega força cheia fácil demais
 
 function applyMovementStats() {
-  const m = (1 + derivedStats().moveSpeed / 100) * (usandoToque() ? FATOR_TOQUE : 1);
+  // O Impulso do Eco de Re entra aqui: e velocidade, e velocidade mora nesta conta.
+  const pressa = typeof efeitoDoPet === 'function' ? efeitoDoPet('pressa') : 0;
+  const m = (1 + derivedStats().moveSpeed / 100) * (usandoToque() ? FATOR_TOQUE : 1) * (1 + pressa);
   player.speed = BASE_SPEED * m;
   player.sprintSpeed = BASE_SPRINT * m;
 }
@@ -6970,6 +6977,18 @@ function atualizarBotaoDeAtaque(now) {
   _btnAtaque.classList.toggle('encadeando', now < comboAte);
 }
 
+// O dano do golpe com os efeitos do Eco somados. Fica numa funcao para os dois caminhos
+// de ataque usarem a MESMA conta — dois lugares calculando dano e a receita de eles
+// discordarem na primeira mudanca.
+function danoDoGolpe() {
+  let d = derivedStats().dmg;
+  const gume = efeitoDoPet('gume');
+  if (gume) d = Math.round(d * (1 + gume));
+  const dobro = efeitoDoPet('golpeDobrado');
+  if (dobro) { d = Math.round(d * dobro); efeitosDoPet.golpeDobrado = null; }  // uma vez so
+  return d;
+}
+
 function doAttack() {
   const now = performance.now();
   if (revelacaoAberta()) return;                         // painel de captura no comando
@@ -7486,6 +7505,14 @@ function killMonster(m, now) {
       });
     }
   });
+  // A Pedra de Evolucao e o unico item do laco que nao se consegue moendo: sai de chefe.
+  // E ela que faz a terceira forma do Eco ser um acontecimento e nao mais uma etapa.
+  if (ehChefe(m) && PETS && Math.random() < (PETS.pedra?.chanceNoChefe ?? 0.5)) {
+    playerInventory.pedra_eco = (playerInventory.pedra_eco || 0) + 1;
+    addFloater(m.x, m.y - 60, '💎 Pedra de Evolução', '#f0abfc');
+    showToast('💎 Pedra de Evolução — serve para o seu Eco mudar de forma.');
+    updateInventorySlotsUI?.();
+  }
   grantXp(def.xp ?? Math.max(6, Math.round((def.hp ?? 20) * 0.6)));
   if (def.pacifico) {
     // Não é uma morte: a clave presa se soltou e a criatura foi embora aliviada.
@@ -7526,6 +7553,18 @@ function damagePlayer(amount) {
     return;
   }
 
+  // Escudo do Eco de Dó: a tônica sustenta.
+  const escudo = efeitoDoPet('escudo');
+  if (escudo) amount = Math.max(1, Math.round(amount * (1 - escudo)));
+  // Espelho do Sol♯: devolve parte ao que estiver perto.
+  const espelho = efeitoDoPet('espelho');
+  if (espelho) {
+    const volta = Math.round(amount * espelho);
+    liveMonsters().forEach(m => {
+      if (Math.hypot(m.x - player.x, m.y - player.y) > 180) return;
+      m.hp -= volta; if (m.hp <= 0) killMonster(m, now);
+    });
+  }
   playerHp = Math.max(0, playerHp - amount);
   playerHurtUntil = now + 700;
   addFloater(player.x, player.y - player.height - 6, `-${amount}`, '#fecaca');
@@ -7849,6 +7888,7 @@ function reiniciarProgressoDeJogo() {
   // do capitulo ja nasciam liberadas.
   bandeiras = {};
   cenaAceita = null;
+  petsDoJogador = {}; petEquipado = {};
   level = 1; xp = 0; attrPoints = 0; skillPoints = 1;
   attrs = { ritmo: 0, afinacao: 0, folego: 0, dinamica: 0, memoria: 0 };
   learnedSkills = [];
@@ -7892,6 +7932,7 @@ function savePlayerData() {
       acompanhante: ACOMP.npc ? ACOMP.npc.id : null,
       fazendaExpansoes: expansoesCompradas(),
       cenaAceita,
+      petsDoJogador, petEquipado,
       niveisDeAcorde: nivelDoAcorde,
       itensPossuidos, equipado,
       acordesPossuidos, escalasEquipadas, acordesEquipados, funcaoPreferida,
@@ -7977,6 +8018,8 @@ function loadPlayerData() {
     // senão a busca acontece numa lista ainda vazia.
     if (typeof d.fazendaExpansoes === 'number') window.__fazendaExpansoes = d.fazendaExpansoes;
     cenaAceita = d.cenaAceita || null;
+    if (d.petsDoJogador) petsDoJogador = d.petsDoJogador;
+    if (d.petEquipado) petEquipado = d.petEquipado;
     if (d.acompanhante) window.__acompanhanteSalvo = d.acompanhante;
     if (typeof d.claves === 'number') claveCount = d.claves;
     if (Array.isArray(d.owned)) ownedItems = d.owned;
@@ -8033,6 +8076,7 @@ async function loadShopCatalog() {
   playerCoins = shopCatalog.coins_start ?? 300;
   carregarDungeons();
   carregarFazenda();
+  carregarPets();
   carregarTabelaDeAcordes();
   carregarEquipamentos();
   loadPlayerData(); // saved balance wins over the catalogue default
@@ -10605,7 +10649,11 @@ function bindCanvasEvents(){
       e.preventDefault();
       const t1 = e.touches[0], t2 = e.touches[1];
       tabletPinchDistInicial = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
-      tabletZoomInicial = mundoCam.zoom || 1;
+      // JOGANDO, a pinca tem de mexer no zoom do CENARIO. Ela mexia em `mundoCam.zoom`,
+      // que e a camera do editor de Mapa-Mundi: no celular, em jogo, o gesto nao fazia
+      // absolutamente nada — e o unico zoom que existia era o par de botoes da fazenda.
+      pincaNoCenario = personagemAndando() && engineMode !== 'worldmap';
+      tabletZoomInicial = pincaNoCenario ? zoomCenario : (mundoCam.zoom || 1);
       return;
     }
     e.preventDefault();initAudio();onPointerDown(track(getM(e)));
@@ -10617,14 +10665,23 @@ function bindCanvasEvents(){
       const t1 = e.touches[0], t2 = e.touches[1];
       const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
       const fator = dist / tabletPinchDistInicial;
-      mundoCam.zoom = Math.max(0.15, Math.min(4.0, tabletZoomInicial * fator));
+      if (pincaNoCenario) {
+        // `salvar: false` de proposito: o zoom do dedo e do momento, e gravar a cada
+        // milimetro de gesto escreveria no localStorage dezenas de vezes por segundo.
+        aplicarZoomCenario(tabletZoomInicial * fator, false);
+      } else {
+        mundoCam.zoom = Math.max(0.15, Math.min(4.0, tabletZoomInicial * fator));
+      }
       return;
     }
     e.preventDefault();onPointerMove(track(getM(e)));
   },{passive:false});
 
   window.addEventListener('touchend', e => {
-    if (e.touches.length < 2) tabletPinchDistInicial = 0;
+    if (e.touches.length < 2) {
+      if (tabletPinchDistInicial > 0 && pincaNoCenario) aplicarZoomCenario(zoomCenario, true);
+      tabletPinchDistInicial = 0; pincaNoCenario = false;
+    }
     onPointerUp();
   });
   window.addEventListener('touchcancel', e => {
@@ -12852,6 +12909,35 @@ function conferirCacaAoTrocarDeMapa() {
   if (mapaDaCacaNoturna && mapaDaCacaNoturna !== currentKey) limparCacaNoturna();
 }
 
+// Os Ecos SUSTENIDOS so existem de noite. Sao o premio de encarar a clareira escura — o
+// motivo de o jogador escolher a noite mesmo com os cacadores soltos. Mais vida, mais alma.
+function soltarEcosDaNoite() {
+  if (!PETS || !mapaTemEcos(currentKey) || corridaAtiva()) return;
+  const cfg = PETS.sustenidas || {};
+  const [a2, b2] = cfg.quantosPorNoite || [1, 3];
+  const n = a2 + Math.floor(Math.random() * (b2 - a2 + 1));
+  for (let i = 0; i < n; i++) {
+    const nota = NOTAS_SUSTENIDAS[Math.floor(Math.random() * NOTAS_SUSTENIDAS.length)];
+    const tipo = 'eco_' + nota;
+    const def = monsterDefs[tipo];
+    if (!def) continue;
+    window.__carregarFolhaDeMonstro?.(tipo);
+    const p = pontoAndavelPerto(70 + Math.random() * (SCREEN_W - 140),
+                                70 + Math.random() * (SCREEN_H - 140));
+    const vida = Math.round((def.hp ?? 40) * fatorDoEco());
+    monsters.push({
+      id: `noite_eco_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      type: tipo, mapKey: currentKey,
+      x: p.x, y: p.y, homeX: p.x, homeY: p.y,
+      hp: vida, maxHp: vida, escala: 0.8,
+      dead: false, respawnAt: 0, hurtUntil: 0, lastHit: 0, facing: 1,
+      phase: Math.random() * Math.PI * 2,
+      daNoite: true, persegue: false,
+    });
+  }
+  if (n) showToast(`♯ ${n} Eco(s) sustenido(s) na clareira. Só existem enquanto for noite.`);
+}
+
 function soltarCacaNoturna() {
   if (!mapaTemEcos(currentKey) || corridaAtiva()) return;
   if (mapaDaCacaNoturna === currentKey) return;
@@ -12890,6 +12976,7 @@ function soltarCacaNoturna() {
     anunciar('A NOITE CAIU', 2200);
     showToast(`🌑 Algo entrou na clareira. ${nasceram} presença(s) que não são Eco.`);
   }
+  soltarEcosDaNoite();
 }
 
 // Chamado todo quadro: é ele que faz a noite acontecer de verdade em vez de só escurecer.
@@ -17673,6 +17760,7 @@ function updateHotbarUI() {
 let mundoPropsSelecionados = []; // Array de props selecionados em lote
 let caixaSelecaoMultipla = null; // { x1, y1, x2, y2 } em coordenadas do mundo
 let tabletPinchDistInicial = 0;
+let pincaNoCenario = false;   // a pinca esta mexendo no cenario, e nao no Mapa-Mundi?
 let tabletZoomInicial = 1;
 
 function initModoTablet() {
@@ -18248,6 +18336,7 @@ function desenharFicha() {
         <span>Nível <b>${H.nivel}</b><small>/${tetoDoHeroi(id)}</small></span>
       </div>
       ${blocoDeNivelDoHeroi(id)}
+      ${blocoDoPetNaFicha(id)}
       <div class="fa-pontos${H.attrPoints ? ' tem' : ''}">
         ${H.attrPoints ? `${H.attrPoints} ponto${H.attrPoints > 1 ? 's' : ''} de atributo para distribuir`
                        : (skillPoints
@@ -18268,6 +18357,15 @@ function desenharFicha() {
     }));
     barras.querySelectorAll('.fa-nome').forEach(b2 =>
       b2.addEventListener('click', e => explicarAtributo(b2.dataset.explica, e)));
+    barras.querySelectorAll('[data-pet]').forEach(b2 =>
+      b2.addEventListener('click', () => {
+        // Tocar no que ja esta equipado desequipa: e o gesto que o jogador tenta.
+        equiparPet(id, petDoHeroi(id) === b2.dataset.pet ? null : b2.dataset.pet);
+        desenharFicha();
+      }));
+    barras.querySelector('[data-evoluir]')?.addEventListener('click', () => {
+      if (evoluirPet(barras.querySelector('[data-evoluir]').dataset.evoluir)) desenharFicha();
+    });
     barras.querySelectorAll('[data-partitura]').forEach(b2 =>
       b2.addEventListener('click', () => {
         if (usarPartitura(id, +b2.dataset.partitura)) desenharFicha();
@@ -22664,6 +22762,48 @@ function nivelQueLibera(posicao) { return NIVEL_DA_HABILIDADE[posicao] || 1; }
 
 // Bloco de nível do herói na ficha: barra de XP, botão de usar Partitura e a ascensão
 // quando ele bate no teto. É o "up manual" — o herói não sobe sozinho.
+// O Eco deste heroi, na ficha dele: qual esta equipado, o que ele faz, e o que falta para
+// a proxima forma. Sem isto o jogador ganhava o bicho e nao tinha onde escolher — o toast
+// dizia "equipe na Ficha" e na Ficha nao havia nada.
+function blocoDoPetNaFicha(heroi) {
+  const donos = Object.keys(petsDoJogador);
+  if (!donos.length) {
+    return `<div class="fa-pet vazio">
+      <span class="pet-rot">ECO DE COMPANHIA</span>
+      <small>Invoque um Eco na fazenda com Almas para ter o primeiro.</small></div>`;
+  }
+  const atual = petDoHeroi(heroi);
+  const h = atual ? habilidadeDoPet(atual) : null;
+  const f = atual ? fichaDoPet(atual) : null;
+  const forma = atual ? formaDoPet(atual) : null;
+  const falta = atual ? faltaParaEvoluir(atual) : null;
+  const prox = atual ? proximaFormaDoPet(atual) : null;
+
+  const chips = donos.map(n => {
+    const usadoPor = Object.entries(petEquipado).find(([hh, nn]) => nn === n && hh !== heroi);
+    return `<button class="pet-chip${n === atual ? ' ativo' : ''}" data-pet="${n}"
+              title="${(habilidadeDoPet(n) || {}).nome || n}${usadoPor ? ' — com ' + usadoPor[0] : ''}">
+      <img src="assets/itens/notas/${ARQ_DA_NOTA[n] || 'C'}.png" alt="">
+      <b>${NOME_DA_NOTA[n] || n}</b>
+      <small>Nv ${fichaDoPet(n).nivel} · F${fichaDoPet(n).forma}</small>
+    </button>`;
+  }).join('');
+
+  return `<div class="fa-pet">
+    <span class="pet-rot">ECO DE COMPANHIA</span>
+    <div class="pet-chips">${chips}</div>
+    ${atual ? `
+      <div class="pet-hab"><b>${h.ico} ${h.nome}</b><small>${h.desc}</small></div>
+      <div class="pet-forma">
+        <span>${forma.nome} · nível ${f.nivel}</span>
+        ${prox ? (falta.length
+            ? `<i class="pet-falta">para ${prox.nome}: ${falta.join(' · ')}</i>`
+            : `<button class="pet-evoluir" data-evoluir="${atual}">EVOLUIR PARA ${prox.nome.toUpperCase()}</button>`)
+          : '<i>forma final</i>'}
+      </div>` : '<small>Nenhum equipado — toque num Eco acima.</small>'}
+  </div>`;
+}
+
 function blocoDeNivelDoHeroi(id) {
   const h = fichaDoHeroi(id);
   const teto = tetoDoHeroi(id);
@@ -23602,6 +23742,9 @@ function alimentarEco(m, propId) {
   showToast(dobro ? `${def.name} reconheceu a própria nota — rendeu o dobro.`
                   : `${def.name} comeu. Comida da nota dele renderia mais.`);
   m.alimentadoEm = agoraNaFazenda();
+  // A comida tambem CRIA o bicho: e assim que o Eco da fazenda vira pet e cresce.
+  registrarPet(def.notaDoEco);
+  darXpAoPet(def.notaDoEco, (PETS?.regra?.xpPorRefeicao) || 12);
   salvarEcosDaFazenda();
   updateInventorySlotsUI();
   savePlayerData();
@@ -23613,9 +23756,249 @@ function alimentarEco(m, propId) {
 // nota; várias almas da MESMA nota fazem nascer um Eco na fazenda; o Eco come o que a
 // fazenda planta e devolve fragmento; o fragmento sobe acorde. Nada disso é moeda
 // genérica — para criar o Eco do Ré é preciso ter ido atrás do Eco do Ré.
+// As sete naturais mais as cinco sustenidas: doze Ecos, um por semitom da oitava.
+// As sustenidas so aparecem de noite — veja CACA_NOTURNA e soltarEcosDaNoite.
 const NOTAS_DE_ECO = ['do', 're', 'mi', 'fa', 'sol', 'la', 'si'];
+const NOTAS_SUSTENIDAS = ['do_s', 're_s', 'fa_s', 'sol_s', 'la_s'];
+const TODAS_AS_NOTAS_DE_ECO = [...NOTAS_DE_ECO, ...NOTAS_SUSTENIDAS];
 
 function almasDe(nota) { return playerInventory['alma_' + nota] || 0; }
+
+// ══ ECOS COMO PET ═════════════════════════════════════════════════════════════
+// O mesmo bicho que e recurso vira companheiro. UM por heroi, com uma habilidade que sai
+// da funcao da nota no campo harmonico — a tonica protege, a dominante estoura, a sensivel
+// pisca para longe. Quem sabe harmonia prevê o que o Eco faz antes de equipar.
+// Evolui em tres formas, e a fazenda e a casa disso: e la que ele come e cresce.
+let PETS = null;                  // regras, de assets/dados/pets.json
+let petsDoJogador = {};           // nota -> { nivel, xp, forma }
+let petEquipado = {};             // heroiId -> nota
+
+async function carregarPets() {
+  try { PETS = await (await fetch(`assets/dados/pets.json?t=${Date.now()}`)).json(); }
+  catch (e) { PETS = null; }
+}
+
+function fichaDoPet(nota) {
+  if (!petsDoJogador[nota]) petsDoJogador[nota] = { nivel: 1, xp: 0, forma: 1 };
+  return petsDoJogador[nota];
+}
+function temPet(nota) { return !!petsDoJogador[nota]; }
+function petDoHeroi(heroi) { return petEquipado[heroi || selectedHeroId] || null; }
+
+// O pet nasce quando o Eco e invocado na fazenda: e o mesmo bicho, agora com nome e ficha.
+function registrarPet(nota) {
+  const novo = !petsDoJogador[nota];
+  fichaDoPet(nota);
+  if (novo) {
+    // Primeiro Eco de um heroi entra equipado sozinho: descobrir que da para equipar
+    // depois de ja ter cinco no curral e descobrir tarde demais.
+    if (!petDoHeroi(selectedHeroId)) equiparPet(selectedHeroId, nota);
+    showToast(`✦ ${NOME_DA_NOTA[nota] || nota} agora e seu Eco. Equipe-o na Ficha.`);
+  }
+  savePlayerData();
+}
+
+function equiparPet(heroi, nota) {
+  if (nota && !temPet(nota)) { showToast('Voce ainda nao tem esse Eco.'); return false; }
+  // Um Eco nao serve dois herois ao mesmo tempo: se ja estiver com outro, troca de dono.
+  if (nota) Object.keys(petEquipado).forEach(h => {
+    if (h !== heroi && petEquipado[h] === nota) delete petEquipado[h];
+  });
+  if (nota) petEquipado[heroi] = nota; else delete petEquipado[heroi];
+  savePlayerData();
+  sincronizarBotaoDePet();
+  return true;
+}
+
+// ── A habilidade do Eco equipado ──────────────────────────────────────────────
+// Um botao so, do lado dos outros. O efeito sai da FUNCAO da nota, e a forma multiplica:
+// o Eco Pleno de Sol estoura 2,4x mais que o de forma 1.
+let petRecargaAte = 0;
+const efeitosDoPet = {};      // efeito -> ate quando vale
+
+function habilidadeDoPet(nota) { return (PETS?.habilidades || {})[nota] || null; }
+
+function petPronto() {
+  const n = petDoHeroi(); if (!n) return false;
+  return performance.now() >= petRecargaAte;
+}
+
+function usarHabilidadeDoPet() {
+  const nota = petDoHeroi();
+  if (!nota) { showToast('Nenhum Eco equipado. Escolha um na Ficha.'); return; }
+  const h = habilidadeDoPet(nota);
+  if (!h) return;
+  const agora = performance.now();
+  if (agora < petRecargaAte) {
+    showToast(`${h.nome} em recarga — ${Math.ceil((petRecargaAte - agora) / 1000)}s`);
+    return;
+  }
+  const forca = formaDoPet(nota).poder || 1;
+  petRecargaAte = agora + h.recarga;
+  aplicarEfeitoDoPet(h, forca, agora);
+  addFloater(player.x, player.y - 60, `${h.ico} ${h.nome}`, '#a7f3d0');
+  showToast(`${h.ico} ${h.nome}`);
+  sincronizarBotaoDePet();
+}
+
+function aplicarEfeitoDoPet(h, forca, agora) {
+  const ate = agora + (h.dur || 1000);
+  const val = (h.valor || 0) * forca;
+  switch (h.efeito) {
+    case 'escudo':   efeitosDoPet.escudo = { ate, val: Math.min(0.85, val) }; break;
+    case 'pressa':   efeitosDoPet.pressa = { ate, val }; break;
+    case 'gume':     efeitosDoPet.gume = { ate, val }; break;
+    case 'espelho':  efeitosDoPet.espelho = { ate, val }; break;
+    case 'golpeDobrado': efeitosDoPet.golpeDobrado = { ate, val }; break;
+    case 'cura': {
+      // Cura ao longo do tempo, em pulsos — cura instantanea some sem o jogador ver.
+      const total = playerMaxHp() * val, passos = 5;
+      for (let i = 1; i <= passos; i++) setTimeout(() => {
+        playerHp = Math.min(playerMaxHp(), playerHp + total / passos);
+        addFloater(player.x, player.y - 40, `+${Math.round(total / passos)}`, '#86efac');
+      }, (h.dur / passos) * i);
+      break;
+    }
+    case 'lentidao': case 'congelar':
+      liveMonsters().forEach(m => {
+        if (Math.hypot(m.x - player.x, m.y - player.y) > 320) return;
+        m.lentoAte = ate; m.lentoFator = h.efeito === 'congelar' ? 1 : Math.min(0.9, val);
+      });
+      break;
+    case 'puxao':
+      liveMonsters().forEach(m => {
+        const d = Math.hypot(m.x - player.x, m.y - player.y);
+        if (d > val || d < 1) return;
+        const p = pontoAndavelPerto(player.x + (m.x - player.x) * 0.25,
+                                    player.y + (m.y - player.y) * 0.25);
+        m.x = p.x; m.y = p.y;
+      });
+      break;
+    case 'estouro': {
+      const dano = Math.round(derivedStats().dmg * val);
+      liveMonsters().forEach(m => {
+        if (Math.hypot(m.x - player.x, m.y - player.y) > 200) return;
+        danificarMonstro?.(m, dano) ?? (m.hp -= dano);
+        if (m.hp <= 0) killMonster(m, agora);
+      });
+      break;
+    }
+    case 'queimar': {
+      const dano = Math.round(derivedStats().dmg * val);
+      for (let i = 1; i <= 5; i++) setTimeout(() => liveMonsters().forEach(m => {
+        if (Math.hypot(m.x - player.x, m.y - player.y) > 220) return;
+        m.hp -= dano; if (m.hp <= 0) killMonster(m, performance.now());
+      }), (h.dur / 5) * i);
+      break;
+    }
+    case 'piscar': {
+      const dir = player.direction === 'left' ? -1 : player.direction === 'right' ? 1 : 0;
+      const dy = player.direction === 'up' ? -1 : player.direction === 'down' ? 1 : 0;
+      const p = pontoAndavelPerto(player.x + dir * val, player.y + dy * val);
+      player.x = p.x; player.y = p.y;
+      liveMonsters().forEach(m => {
+        if (Math.hypot(m.x - player.x, m.y - player.y) < 260) m.atordoadoAte = ate;
+      });
+      break;
+    }
+  }
+}
+
+// Quanto o efeito ativo do pet altera uma conta. Chamado pelo combate.
+function efeitoDoPet(nome) {
+  // `efeitosDoPet` e um `const` declarado mais abaixo no arquivo. `applyMovementStats`
+  // roda no boot, ANTES dessa linha ser executada, e ler um const na zona morta temporal
+  // e um ReferenceError que derruba a abertura inteira. O try devolve zero e o jogo abre.
+  try {
+    const e = efeitosDoPet[nome];
+    if (!e || performance.now() > e.ate) return 0;
+    return e.val;
+  } catch (err) { return 0; }
+}
+
+document.getElementById('habPet')?.addEventListener('click', () => usarHabilidadeDoPet());
+window.addEventListener('keydown', e => {
+  if (e.repeat || !isPlayMode) return;
+  // Tecla E ja e a acao; T de "trazer o Eco" fica livre e cai perto do WASD na mao esquerda.
+  if (e.key.toLowerCase() === 't' && !dlg.aberto && !CUT.ativo) usarHabilidadeDoPet();
+});
+
+function sincronizarBotaoDePet() {
+  const b = document.getElementById('habPet');
+  if (!b) return;
+  const nota = petDoHeroi();
+  const h = nota ? habilidadeDoPet(nota) : null;
+  b.classList.toggle('hidden', !h);
+  if (!h) return;
+  b.title = `${h.nome} — ${h.desc}`;
+  const ico = b.querySelector('.hab-ico');
+  if (ico) ico.textContent = h.ico;
+  const resta = Math.max(0, petRecargaAte - performance.now());
+  const conta = document.getElementById('habContaPet');
+  if (conta) conta.textContent = resta > 0 ? Math.ceil(resta / 1000) : '';
+  b.classList.toggle('recarregando', resta > 0);
+}
+
+function xpDoNivelDoPet(n) { return Math.round(40 * Math.pow(1.28, n - 1)); }
+
+// Alimentar na fazenda sobe o pet. A comida ja existia e so dava fragmento.
+function darXpAoPet(nota, quanto) {
+  if (!temPet(nota)) return;
+  const f = fichaDoPet(nota);
+  f.xp += quanto;
+  let subiu = 0;
+  while (f.xp >= xpDoNivelDoPet(f.nivel)) { f.xp -= xpDoNivelDoPet(f.nivel); f.nivel++; subiu++; }
+  if (subiu) {
+    addFloater(player.x, player.y - 70, `✦ Eco de ${NOME_DA_NOTA[nota]} nivel ${f.nivel}`, '#a7f3d0');
+    revisarObjetivosDeProgresso();
+  }
+  savePlayerData();
+}
+
+function formaDoPet(nota) {
+  const f = fichaDoPet(nota);
+  return (PETS?.formas || []).find(x => x.forma === f.forma) || { forma: 1, escala: 1, poder: 1 };
+}
+function proximaFormaDoPet(nota) {
+  const f = fichaDoPet(nota);
+  return (PETS?.formas || []).find(x => x.forma === f.forma + 1) || null;
+}
+
+function faltaParaEvoluir(nota) {
+  const prox = proximaFormaDoPet(nota);
+  if (!prox) return null;
+  const f = fichaDoPet(nota);
+  const falta = [];
+  if (f.nivel < prox.nivelMin) falta.push(`nivel ${prox.nivelMin} (voce: ${f.nivel})`);
+  const c = prox.custo || {};
+  if (c.nota      && (notasPossuidas[nota] || 0) < c.nota)
+    falta.push(`${c.nota - (notasPossuidas[nota] || 0)}x nota ${NOME_DA_NOTA[nota]}`);
+  if (c.alma      && almasDe(nota) < c.alma)
+    falta.push(`${c.alma - almasDe(nota)}x Alma de ${NOME_DA_NOTA[nota]}`);
+  if (c.partitura && partituras() < c.partitura)
+    falta.push(`${c.partitura - partituras()}x Partitura`);
+  if (c.pedra_eco && (playerInventory.pedra_eco || 0) < c.pedra_eco)
+    falta.push(`${c.pedra_eco - (playerInventory.pedra_eco || 0)}x Pedra de Evolucao`);
+  return falta;
+}
+
+function evoluirPet(nota) {
+  const prox = proximaFormaDoPet(nota);
+  if (!prox) { showToast('Este Eco ja esta na forma final.'); return false; }
+  const falta = faltaParaEvoluir(nota);
+  if (falta.length) { showToast('Falta: ' + falta.join(' · ')); return false; }
+  const c = prox.custo || {};
+  if (c.nota)      notasPossuidas[nota] -= c.nota;
+  if (c.alma)      playerInventory['alma_' + nota] -= c.alma;
+  if (c.partitura) playerInventory.partitura -= c.partitura;
+  if (c.pedra_eco) playerInventory.pedra_eco -= c.pedra_eco;
+  fichaDoPet(nota).forma = prox.forma;
+  anunciar(`${prox.nome.toUpperCase()}`, 1800);
+  showToast(`✦ Eco de ${NOME_DA_NOTA[nota]} evoluiu para ${prox.nome}.`);
+  savePlayerData(); updateInventorySlotsUI?.();
+  sincronizarBotaoDePet();
+  return true;
+}
 function custoDaInvocacao() { return (FAZENDA && FAZENDA.ecos.almasParaInvocar) || 5; }
 
 function habitatTarget() {
@@ -23659,6 +24042,7 @@ function invocarEco(habitat, nota) {
     // volta a nascer se morrer — o jogador pagou almas por ele.
     habitat: habitat.id, daFazenda: true, persegue: false,
   });
+  registrarPet(nota);
   addFloater(alvo.x, alvo.y - 40, `✦ Eco do ${NOME_DA_NOTA[nota]}`, '#a7f3d0');
   showToast(`Um Eco do ${NOME_DA_NOTA[nota]} nasceu. Alimente-o com o que a fazenda dá.`);
   salvarEcosDaFazenda();

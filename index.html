@@ -976,6 +976,13 @@
                aceso fica no canto da tela e o brilho no personagem some no meio da luta. -->
           <div class="buffs" id="buffs"></div>
           <div class="roda-combate" id="rodaCombate">
+            <!-- A habilidade do ECO equipado. Fica na mesma fileira das do herói porque é do
+                 mesmo tipo de decisão: um botão, uma recarga, um efeito. Some quando não
+                 há Eco equipado. -->
+            <button class="btn-habilidade hab-pet hidden" id="habPet" title="Habilidade do Eco">
+              <span class="hab-ico">✦</span>
+              <span class="hab-conta" id="habContaPet"></span>
+            </button>
             <button class="btn-habilidade hab-1" id="habilidade1" disabled title="Habilidade 1">
               <span class="hab-ico">✦</span>
               <!-- Segundos que faltam. A barra de recarga sozinha não diz QUANTO falta, e

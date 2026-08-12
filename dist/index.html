@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=29b3ff1503">
+  <link rel="stylesheet" href="style.css?v=97fcb1da72">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -206,6 +206,13 @@
                aceso fica no canto da tela e o brilho no personagem some no meio da luta. -->
           <div class="buffs" id="buffs"></div>
           <div class="roda-combate" id="rodaCombate">
+            <!-- A habilidade do ECO equipado. Fica na mesma fileira das do herói porque é do
+                 mesmo tipo de decisão: um botão, uma recarga, um efeito. Some quando não
+                 há Eco equipado. -->
+            <button class="btn-habilidade hab-pet hidden" id="habPet" title="Habilidade do Eco">
+              <span class="hab-ico">✦</span>
+              <span class="hab-conta" id="habContaPet"></span>
+            </button>
             <button class="btn-habilidade hab-1" id="habilidade1" disabled title="Habilidade 1">
               <span class="hab-ico">✦</span>
               <!-- Segundos que faltam. A barra de recarga sozinha não diz QUANTO falta, e
@@ -1176,6 +1183,6 @@
 ">🔄 Enviar minhas ruas</button>
 
 <script src="config.js?v=20260807161410"></script>
-<script src="game.js?v=322345c9eb"></script>
+<script src="game.js?v=7393d62553"></script>
 </body>
 </html>

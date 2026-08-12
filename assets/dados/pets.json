@@ -1,0 +1,78 @@
+{
+  "_": "Ecos como PET. O mesmo bicho que é recurso vira companheiro: o jogador equipa UM por personagem, e cada um traz uma habilidade que combina com a função da nota dele. Evolui em três formas, e a fazenda é a casa disso — é lá que ele come, cresce e muda.",
+
+  "regra": {
+    "_": "Um por herói. Não é limitação técnica: é para a escolha doer. Com dois heróis o jogador tem dois Ecos em campo, o que dá mais um motivo para desenvolver o segundo personagem.",
+    "porHeroi": 1,
+    "xpPorRefeicao": 12,
+    "_xp": "Alimentar na fazenda é o que sobe o pet. A comida já existia e só dava fragmento; agora dá fragmento E experiência ao bicho."
+  },
+
+  "formas": [
+    { "forma": 1, "nome": "Eco", "escala": 1.00, "poder": 1.00, "nivelMin": 1 },
+    { "forma": 2, "nome": "Eco Maior", "escala": 1.18, "poder": 1.60, "nivelMin": 10,
+      "custo": { "nota": 2, "alma": 8, "partitura": 6, "pedra_eco": 1 } },
+    { "forma": 3, "nome": "Eco Pleno", "escala": 1.38, "poder": 2.40, "nivelMin": 25,
+      "custo": { "nota": 5, "alma": 20, "partitura": 18, "pedra_eco": 3 } }
+  ],
+
+  "_custo": "As quatro moedas de propósito, como na evolução de acorde: NOTA vem do Altar, ALMA da captura daquela nota, PARTITURA de dungeon e captura, e a PEDRA DE EVOLUÇÃO é o freio — rara, para a terceira forma ser um acontecimento e não uma etapa.",
+
+  "pedra": {
+    "id": "pedra_eco",
+    "nome": "Pedra de Evolução",
+    "_": "Cai de chefe de dungeon e do baú grande. Não se compra: é o único item do laço que o jogador não consegue moendo.",
+    "chanceNoChefe": 0.5,
+    "chanceNoBauGrande": 0.25
+  },
+
+  "habilidades": {
+    "_": "A habilidade sai da FUNÇÃO da nota no campo harmônico, igual ao temperamento do bicho. Quem sabe harmonia consegue prever o que o Eco faz antes de equipá-lo — é a teoria virando jogo de novo.",
+
+    "do":  { "nome": "Tônica",      "ico": "🛡️", "recarga": 22000,
+             "desc": "A nota que sustenta: reduz o dano recebido pela metade por 6 s.",
+             "efeito": "escudo", "valor": 0.5, "dur": 6000 },
+    "re":  { "nome": "Impulso",     "ico": "💨", "recarga": 18000,
+             "desc": "A supertônica não para: +45% de velocidade por 8 s.",
+             "efeito": "pressa", "valor": 0.45, "dur": 8000 },
+    "mi":  { "nome": "Terça Doce",  "ico": "✚", "recarga": 26000,
+             "desc": "A mediante colore e cura: devolve 30% da vida ao longo de 5 s.",
+             "efeito": "cura", "valor": 0.30, "dur": 5000 },
+    "fa":  { "nome": "Atração",     "ico": "🌀", "recarga": 24000,
+             "desc": "A subdominante puxa: arrasta os inimigos próximos para o centro.",
+             "efeito": "puxao", "valor": 220, "dur": 700 },
+    "sol": { "nome": "Dominante",   "ico": "⚡", "recarga": 20000,
+             "desc": "Pura tensão: estoura dano em área à sua volta.",
+             "efeito": "estouro", "valor": 2.2, "dur": 400 },
+    "la":  { "nome": "Lamento",     "ico": "🕸️", "recarga": 23000,
+             "desc": "A relativa menor pesa: lentifica os inimigos em 55% por 6 s.",
+             "efeito": "lentidao", "valor": 0.55, "dur": 6000 },
+    "si":  { "nome": "Sensível",    "ico": "✦", "recarga": 16000,
+             "desc": "A sensível não fica: pisca para longe e deixa um clarão que cega.",
+             "efeito": "piscar", "valor": 190, "dur": 1200 },
+
+    "do_s": { "nome": "Fio de Dó♯",  "ico": "🗡️", "recarga": 21000,
+              "desc": "Meio tom acima da tônica: seus golpes cortam 35% mais fundo por 8 s.",
+              "efeito": "gume", "valor": 0.35, "dur": 8000 },
+    "re_s": { "nome": "Ré♯ Partido", "ico": "💥", "recarga": 25000,
+              "desc": "O intervalo que não resolve: o próximo golpe acerta em dobro.",
+              "efeito": "golpeDobrado", "valor": 2.0, "dur": 9000 },
+    "fa_s": { "nome": "Trítono",     "ico": "🔥", "recarga": 30000,
+              "desc": "O intervalo do diabo: queima tudo à volta por 5 s.",
+              "efeito": "queimar", "valor": 0.9, "dur": 5000 },
+    "sol_s": { "nome": "Sol♯ Espelho", "ico": "🪞", "recarga": 28000,
+              "desc": "Devolve ao inimigo 40% do dano que você tomar por 7 s.",
+              "efeito": "espelho", "valor": 0.4, "dur": 7000 },
+    "la_s": { "nome": "Lá♯ Suspenso", "ico": "⏳", "recarga": 27000,
+              "desc": "Suspende a resolução: congela os inimigos no lugar por 2,5 s.",
+              "efeito": "congelar", "valor": 1, "dur": 2500 }
+  },
+
+  "sustenidas": {
+    "_": "Os cinco Ecos sustenidos só aparecem À NOITE. É o prêmio de encarar a clareira escura, e o motivo de o jogador escolher a noite mesmo com os caçadores soltos. A arte deles ainda não chegou: por enquanto usam a folha da natural vizinha, marcada como provisória.",
+    "notas": ["do_s", "re_s", "fa_s", "sol_s", "la_s"],
+    "quantosPorNoite": [1, 3],
+    "vidaExtra": 1.6,
+    "almaExtra": 1.5
+  }
+}
