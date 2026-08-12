@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=d0c5645bf6">
+  <link rel="stylesheet" href="style.css?v=f32374236e">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -445,6 +445,9 @@
               <p class="dg-passe"></p>
               <div class="dg-botoes">
                 <button class="dg-sair">Ainda não</button>
+                <!-- Só atravessar. O Pátio fica no caminho do Forjador, e sem esta saída
+                     a placa obrigava a fazer a dungeon para poder passar. -->
+                <button class="dg-passar">SÓ PASSAR</button>
                 <button class="dg-entrar">ENTRAR</button>
               </div>
             </div>
@@ -472,6 +475,10 @@
               <div class="dgf-itens"></div>
               <div class="dg-botoes">
                 <button class="dgf-sair">Sair</button>
+                <!-- FICAR: acabou a corrida e continua no cenário, livre para seguir
+                     viagem. "Sair" devolve ao mapa de origem, e era só isso que existia:
+                     quem estava de passagem para o Forjador voltava para trás. -->
+                <button class="dgf-ficar">FICAR AQUI</button>
                 <button class="dgf-repetir">REPETIR</button>
               </div>
             </div>
@@ -572,6 +579,7 @@
                 <button class="eq-voltar" id="equipVoltar" title="Voltar à visão geral">‹</button>
                 <h2 class="eq-titulo">EQUIPAMENTOS</h2>
                 <button class="eq-aba-geral" id="equipParaGeral">VISÃO GERAL</button>
+                <div class="ficha-herois eq-herois" id="equipHerois"></div>
                 <span class="eq-moedas" id="equipMoedas"></span>
                 <button class="eq-fechar" id="equipFechar">✕</button>
               </header>
@@ -633,6 +641,7 @@
                 <button class="ac-voltar" id="compVoltar">‹</button>
                 <span class="ac-selo">𝄞</span>
                 <h2 class="ac-titulo">COMPOSIÇÃO</h2>
+                <div class="ficha-herois comp-herois" id="compHerois"></div>
                 <button class="ac-fechar" id="compFechar">✕</button>
               </header>
               <div class="comp-corpo">
@@ -710,6 +719,9 @@
           </div>
 
           <!-- Missão atual, sempre visível no HUD -->
+          <!-- Reserva de som do cenário. Encostada na caixa de missão, do mesmo lado: é
+               onde o jogador já olha para saber o que fazer. Some onde não há Eco. -->
+          <div id="hudRessonancia" class="hr-caixa hidden"></div>
           <div id="hudMissao" class="hm-caixa hidden">
             <span class="hm-rot">MISSÃO</span>
             <b class="hm-nome" id="hmNome"></b>
@@ -1161,6 +1173,6 @@
 ">🔄 Enviar minhas ruas</button>
 
 <script src="config.js?v=20260807161410"></script>
-<script src="game.js?v=502cf8b144"></script>
+<script src="game.js?v=43296262a7"></script>
 </body>
 </html>

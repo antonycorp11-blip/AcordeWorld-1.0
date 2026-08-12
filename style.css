@@ -7835,3 +7835,38 @@ body.em-cena #questNotification { display: none !important; }
 .hm-linha.feito { color: #6b7c9c; text-decoration: line-through; opacity: .75; }
 .hm-linha.bloq  { color: #7c6a4a; }
 .hm-linha.agora { color: #f4e2b0; font-weight: 600; }
+/* "Só passar": atravessar o cenário da dungeon sem começar corrida. */
+.dg-passar { background: linear-gradient(#2b3550, #1a2033); border: 1px solid #6b8cc8;
+             color: #cbd9f5; font: 700 11px Outfit, sans-serif; letter-spacing: .1em;
+             padding: 9px 16px; border-radius: 8px; cursor: pointer; }
+.dg-passar:hover { border-color: #9dbcf0; }
+.dg-passar.hidden { display: none; }
+.dgf-ficar { background: linear-gradient(#2b3550, #1a2033); border: 1px solid #6b8cc8;
+             color: #cbd9f5; font: 700 11px Outfit, sans-serif; letter-spacing: .1em;
+             padding: 9px 16px; border-radius: 8px; cursor: pointer; }
+.dgf-ficar:hover { border-color: #9dbcf0; }
+/* Troca de personagem na tela de equipamento: os mesmos retratos da ficha. */
+.eq-herois { display: flex; gap: 6px; align-items: center; margin-right: auto; }
+.comp-herois { display: flex; gap: 6px; align-items: center; margin-left: 10px; }
+
+/* ── Ressonância do lugar, no HUD ─────────────────────────────────────────────
+   Era desenhada no canvas dentro da câmera: virava um ponto fixo do MAPA, e o jogador
+   tinha de andar até lá para ler. Aqui ela acompanha a tela. */
+/* Topo CENTRAL: a esquerda ja tem a barra de vida e, logo abaixo dela, a caixa de
+   missao — que e mais alta do que parece e engolia esta barra por tras. O centro do topo
+   e a unica faixa livre em todas as resolucoes, e e onde o olho ja passa. */
+.hr-caixa { position: absolute; left: 50%; transform: translateX(-50%); top: 12px; z-index: 31;
+            display: flex; align-items: center; gap: 8px;
+            padding: 5px 10px; border-radius: 999px;
+            background: rgba(6,12,22,.82); border: 1px solid rgba(125,211,252,.38);
+            box-shadow: 0 2px 10px rgba(0,0,0,.45); pointer-events: none; }
+.hr-caixa.hidden { display: none; }
+.hr-rot { font: 700 8.5px Outfit, sans-serif; letter-spacing: .16em; color: #7dd3fc; }
+.hr-barra { display: flex; gap: 2px; }
+.hr-barra i { width: 11px; height: 7px; border-radius: 2px; background: #16233a; }
+.hr-barra i.on { background: linear-gradient(180deg, #7dd3fc, #0ea5e9);
+                 box-shadow: 0 0 5px rgba(125,211,252,.6); }
+.hr-caixa.vazia { border-color: rgba(100,116,139,.4); }
+.hr-caixa.vazia .hr-rot { color: #94a3b8; }
+@media (max-height: 560px) { .hr-caixa { top: 8px; padding: 4px 8px; }
+                             .hr-barra i { width: 9px; height: 6px; } }

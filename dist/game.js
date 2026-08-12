@@ -4915,7 +4915,9 @@ async function loadMonsters() {
     const def = monsterDefs[s.type] || {};
     // Chefe multiplica a vida já no nascimento — a marca vive na instância salva.
     const f = (s.chefe !== undefined ? s.chefe : def.chefe) ? (s.chefeForca || 3) : 1;
-    const vida = Math.round((def.hp ?? 20) * f);
+    // Eco acompanha o poder da conta; o resto do bestiario continua na tabela.
+    const base = def.notaDoEco ? vidaDoEco(def) : (def.hp ?? 20);
+    const vida = Math.round(base * f);
     return {
       ...s,
       hp: vida, maxHp: vida,
@@ -5381,25 +5383,29 @@ function renderRitualDeCaptura(now) {
   ctx.restore();
 }
 
-// Medidor da reserva de som do cenário. Centralizado no alto: no canto direito ele
-// ficava por baixo dos botões de bolsa e atributos do HUD.
-function renderRessonancia(now) {
-  if (!isPlayMode || currentScene !== 'world' || !mapaTemEcos(currentKey)) return;
+// Medidor da reserva de som do cenário, no HUD de verdade.
+// Antes era desenhado no canvas DENTRO da transformação da câmera: aquelas coordenadas
+// eram um ponto do MAPA, não da tela. A barra ficava plantada num canto do cenário e o
+// jogador tinha de andar até ela para ver quanta ressonância restava — informação que
+// precisa estar sempre à vista, porque é ela que diz se vale a pena ressoar aqui.
+// Em HTML ela é imune ao zoom e à câmera, e some sozinha onde não há Eco.
+function renderRessonancia() {
+  const el = document.getElementById('hudRessonancia');
+  if (!el) return;
+  const mostrar = isPlayMode && currentScene === 'world' && mapaTemEcos(currentKey)
+                  && !CUT.ativo && !fichaAberta();
+  el.classList.toggle('hidden', !mostrar);
+  if (!mostrar) return;
   const r = ressonanciaDe(currentKey);
-  const W = 108, H = 8, x = Math.round((SCREEN_W - W) / 2), y = 14;
-  ctx.save();
-  ctx.font = 'bold 9px Outfit, sans-serif'; ctx.textAlign = 'center';
-  ctx.fillStyle = r.valor > 0 ? '#7dd3fc' : '#64748b';
-  ctx.fillText(r.valor > 0 ? 'RESSONÂNCIA DO LUGAR' : 'LUGAR EM SILÊNCIO', x + W / 2, y - 4);
-  ctx.fillStyle = 'rgba(6,9,14,0.8)';
-  ctx.fillRect(x - 1, y - 1, W + 2, H + 2);
-  for (let i = 0; i < RESSONANCIA_MAX; i++) {
-    const cw = W / RESSONANCIA_MAX;
-    ctx.fillStyle = i < r.valor ? '#38bdf8' : '#1e293b';
-    ctx.fillRect(x + i * cw + 1, y, cw - 2, H);
-  }
-  ctx.restore();
+  const assinatura = r.valor + '/' + RESSONANCIA_MAX;
+  if (el.dataset.sig === assinatura) return;      // só redesenha quando muda
+  el.dataset.sig = assinatura;
+  el.classList.toggle('vazia', r.valor <= 0);
+  el.innerHTML = `<span class="hr-rot">${r.valor > 0 ? 'RESSONÂNCIA' : 'EM SILÊNCIO'}</span>`
+    + `<span class="hr-barra">` + Array.from({ length: RESSONANCIA_MAX },
+        (_, i) => `<i class="${i < r.valor ? 'on' : ''}"></i>`).join('') + '</span>';
 }
+
 
 // A revelação: o que saiu do Eco, com nome e quantidade. É o fecho da captura e o
 // único momento em que o jogo para para dizer "isto é seu agora".
@@ -7130,6 +7136,27 @@ function ecoProntoPerto() {
 // treino, e e o que o jogo inteiro esta ensinando. Uma a cada quatro capturas.
 const CHANCE_PARTITURA_NA_CAPTURA = 0.25;
 
+// ── O Eco cresce junto com você ───────────────────────────────────────────────
+// Com 26 de vida fixa, no nivel 10 o jogador matava qualquer Eco num golpe: o ritual da
+// captura — que e o coracao do jogo — virava um clique. E como a criatura nao oferecia
+// resistencia, tambem nao havia motivo para melhorar o Ressonador.
+// A vida acompanha o PODER DA CONTA, e o rendimento acompanha a vida: Eco mais duro rende
+// mais fragmento, entao subir de poder nao torna a Clareira obsoleta — torna ela melhor.
+const PODER_BASE_DO_ECO = 400;     // poder em que o Eco vale a vida de tabela
+const ECO_VIDA_MAX = 6;            // teto de 6x, para nao virar parede
+
+function fatorDoEco() {
+  const p = poderDaConta();
+  if (p <= PODER_BASE_DO_ECO) return 1;
+  // Raiz para crescer devagar: dobrar o poder nao dobra a vida, senao a captura vira
+  // trabalho braçal em vez de ritual.
+  return Math.min(ECO_VIDA_MAX, Math.sqrt(p / PODER_BASE_DO_ECO));
+}
+
+function vidaDoEco(def) {
+  return Math.max(1, Math.round((def.hp ?? 20) * fatorDoEco()));
+}
+
 // Quanto o Eco rende. Separado do ritual para que a animação só mostre o resultado.
 function colheitaDoEco(m, qualidade = 0) {
   const def = monsterDef(m);
@@ -7150,6 +7177,9 @@ function colheitaDoEco(m, qualidade = 0) {
     if (drop.item === 'fragmento') {
       let n = (drop.min ?? 1) + Math.floor(Math.random() * (((drop.max ?? 1) - (drop.min ?? 1)) + 1));
       n += tier - 1;                                   // Ressonador melhor, mais som
+      // Eco mais duro rende mais: e o que impede a Clareira de virar obsoleta quando o
+      // jogador fica forte.
+      n = Math.round(n * fatorDoEco());
       // Um empurrão de 40%: com a nota custando 30 pontos, o ritmo antigo pedia moer
       // longe demais para uma nota só.
       n = Math.max(1, Math.round(n * 1.4));
@@ -7800,6 +7830,12 @@ function savePlayerData() {
       niveisDeAcorde: nivelDoAcorde,
       itensPossuidos, equipado,
       acordesPossuidos, escalasEquipadas, acordesEquipados, funcaoPreferida,
+      acordesPorHeroi: (() => { const m = { ...acordesPorHeroi };
+        if (window.__focoDeAcordes) m[window.__focoDeAcordes] = acordesEquipados.slice();
+        return m; })(),
+      escalasPorHeroi: (() => { const m = { ...escalasPorHeroi };
+        if (window.__focoDeAcordes) m[window.__focoDeAcordes] = escalasEquipadas.slice();
+        return m; })(),
       bandeiras, herois,
       toolQuality, notas: notasPossuidas, escalas: escalasMontadas, acordes: acordesObtidos,
       // Progresso de jogo: no celular não há servidor, então tudo vive aqui.
@@ -7894,6 +7930,15 @@ function loadPlayerData() {
     if (d.acordesPossuidos) acordesPossuidos = d.acordesPossuidos;
     if (Array.isArray(d.escalasEquipadas)) escalasEquipadas = d.escalasEquipadas;
     if (Array.isArray(d.acordesEquipados)) acordesEquipados = d.acordesEquipados;
+    if (d.acordesPorHeroi) acordesPorHeroi = d.acordesPorHeroi;
+    if (d.escalasPorHeroi) escalasPorHeroi = d.escalasPorHeroi;
+    // Save antigo tinha uma lista so: ela passa a ser a do heroi inicial, para ninguem
+    // abrir o jogo e achar que perdeu a build.
+    if (!Object.keys(acordesPorHeroi).length && acordesEquipados.length) {
+      acordesPorHeroi.achilles = acordesEquipados.slice();
+      escalasPorHeroi.achilles = escalasEquipadas.slice();
+    }
+    window.__focoDeAcordes = null;
     if (d.funcaoPreferida) funcaoPreferida = d.funcaoPreferida;
     if (d.bandeiras) bandeiras = d.bandeiras;
     if (d.herois) herois = d.herois;
@@ -12450,7 +12495,13 @@ function executarPasso(p) {
     case 'acompanhante':
       // `npc` engata alguém; sem `npc` (ou com dispensar:true) solta quem estiver junto.
       if (p.dispensar || !p.npc) dispensarAcompanhante();
-      else chamarAcompanhante(p.npc);
+      else {
+        const quem = chamarAcompanhante(p.npc);
+        // `modo: 'guia'` = ela não anda atrás, só espera na placa certa. Serve para quem
+        // está mostrando o caminho e não fazendo companhia.
+        ACOMP.modo = p.modo || 'segue';
+        if (quem && ACOMP.modo === 'guia') ACOMP.avisouPlaca = null;
+      }
       return false;
 
     case 'missao':
@@ -17797,11 +17848,18 @@ const HABILIDADE_CUSTO = { 2: 6000, 3: 12000 };
 let habilidadesAbertas = ['lamina', 'chuva'];
 // Aberta por NÍVEL DO PERSONAGEM. Antes custava clave, e virava questão de dinheiro; agora
 // é questão de ter treinado o herói, e a segunda e a suprema viram marcos de progressão.
-function habilidadeAberta(id) {
-  const lista = HABILIDADES[selectedHeroId] || [];
+// A pergunta precisa dizer DE QUEM. Sem o parametro ela olhava sempre o heroi ATIVO,
+// enquanto a ficha desenhava o heroi VISTO: a tela acendia a segunda habilidade lendo a
+// lista de um e o nivel de outro, e o botao do HUD — que pergunta certo — continuava
+// trancado. A habilidade "acendia e nao dava para usar".
+// Pior: quando o id nao existe na lista do ativo (visto = outro heroi), caia no
+// `habilidadesAbertas`, que nasce com ['lamina','chuva'] — e 'chuva' e a primeira da Wins.
+function habilidadeAberta(id, heroi) {
+  const quem = heroi || selectedHeroId;
+  const lista = HABILIDADES[quem] || [];
   const i = lista.findIndex(h => h.id === id);
   if (i < 0) return habilidadesAbertas.includes(id);
-  return nivelDoHeroi() >= nivelQueLibera(i + 1);
+  return nivelDoHeroi(quem) >= nivelQueLibera(i + 1);
 }
 // ── Banca de testes ───────────────────────────────────────────────────────────
 // As habilidades continuam TRANCADAS de propósito: o pedido foi testar o fluxo inteiro de
@@ -18066,7 +18124,7 @@ function desenharFicha() {
       </div>`;
 
     const col = document.createElement('div');
-    const aberta = habilidadeAberta(h.id);
+    const aberta = habilidadeAberta(h.id, id);   // `id` = heroi que a ficha mostra
     if (!aberta) linha.classList.add('trancada');
     const ids = aberta ? (h.passivas || []) : [];
     if (!aberta) {
@@ -18568,6 +18626,19 @@ function abrirPortao(d, viagem) {
   btn.disabled = !perm.ok;
   btn.onclick = () => entrarNaDungeon(d);
   el.querySelector('.dg-sair').onclick = () => fecharPortao();
+  // SÓ PASSAR: viaja sem começar corrida. O Pátio das Ruínas fica no caminho do Forjador,
+  // e como a placa que aponta para uma dungeon abre o portão em vez de viajar, atravessar
+  // a cidade obrigava a fazer a dungeon inteira. Cenário de dungeon continua sendo
+  // cenário: dá para lutar, e dá para só estar de passagem.
+  const passar = el.querySelector('.dg-passar');
+  if (passar) {
+    const v = portaoViagem;
+    passar.classList.toggle('hidden', !v);
+    passar.onclick = () => {
+      fecharPortao();
+      if (v) changeMapWithFade(v.mapa, v.x, v.y);
+    };
+  }
 
   el.classList.remove('hidden');
 }
@@ -18666,6 +18737,15 @@ function mostrarApuracao(r, c) {
       updateMapStatus();
       showToast('De volta à superfície.');
     }
+  };
+  // FICAR: encerra a corrida sem teleportar. O jogador continua onde esta, livre para
+  // atravessar para o proximo cenario — e o caso de quem so estava de passagem.
+  const ficar = el.querySelector('.dgf-ficar');
+  if (ficar) ficar.onclick = () => {
+    el.classList.add('hidden');
+    corrida = null;
+    mapaVigiado = currentKey;
+    showToast('Corrida encerrada. O caminho continua.');
   };
   el.classList.remove('hidden');
 }
@@ -19678,34 +19758,38 @@ function atualizarAcompanhante(now) {
     return;
   }
 
-  // ── Guiar, não só seguir ──────────────────────────────────────────────────────
-  // Quem conhece a mata é ele. Com uma rota traçada, o menino vai NA FRENTE até a placa
-  // do próximo salto e espera ali — é o "ele me mostra o caminho". Sem rota, volta a
-  // andar atrás, que é o certo quando não há para onde levar.
+  // ── Guiar: ESTAR na placa, não andar até ela ──────────────────────────────────
+  // A versão anterior fazia o guia atravessar o cenário a pé até a placa certa. Isso
+  // pedia busca de caminho que o motor não tem: ele desvia do obstáculo que está na
+  // frente e não sabe contornar um beco — e o guia encalhava atrás de uma casa enquanto
+  // o jogador esperava por uma indicação que nunca chegava.
+  //
+  // A ideia do dono é melhor e não precisa de nada disso: o guia simplesmente APARECE ao
+  // lado da placa certa e espera ali, com um balão. O jogador não precisa saber qual das
+  // placas usar — basta procurar quem está encostado numa. Não trava nunca, porque não
+  // anda.
   const salto = ROTA.destino ? proximoSaltoDaRota() : null;
   const placa = salto ? npcData.find(p2 => p2.mapKey === currentKey
                         && p2.type === 'signpost' && p2.targetMapKey === salto) : null;
   if (placa) {
-    const dpx = placa.x - n.x, dpy = placa.y - n.y;
-    const dp = Math.hypot(dpx, dpy);
-    if (dp > 34) {
-      // Só corre à frente se o jogador não ficou para trás demais: guia que abandona
-      // o guiado não guia ninguém.
-      if (Math.hypot(player.x - n.x, player.y - n.y) < 300) {
-        const vel = 2.0;
-        const px = (dpx / dp) * vel, py = (dpy / dp) * vel;
-        if (canMoveTo(n.x + px, n.y)) n.x += px;
-        if (canMoveTo(n.x, n.y + py)) n.y += py;
-        n.flipX = px < 0;
-      }
-    } else if (!ACOMP.avisouPlaca || ACOMP.avisouPlaca !== salto) {
+    if (ACOMP.avisouPlaca !== salto || Math.hypot(n.x - placa.x, n.y - placa.y) > 90) {
       ACOMP.avisouPlaca = salto;
-      say(n, 'É por aqui! Vem, eu te espero na placa.', 4200);
+      // Ao lado da placa, do lado em que o jogador está — para não ficar atrás dela.
+      const lado = player.x < placa.x ? -40 : 40;
+      const pos = pontoAndavelPerto(placa.x + lado, placa.y + 8);
+      n.x = pos.x; n.y = pos.y; n.mapKey = currentKey;
+      n.flipX = lado > 0;
+      say(n, falaDeGuia(n), 5200);
+    } else if (now >= ACOMP.proximaFala) {
+      ACOMP.proximaFala = now + 9000 + Math.random() * 5000;
+      say(n, falaDeGuia(n), 4200);
     }
-    if (now >= ACOMP.proximaFala) falaDeAcompanhante(now, 'andando');
     return;
   }
   ACOMP.avisouPlaca = null;
+  // Guia sem rota nao tem o que mostrar: fica onde esta em vez de sair correndo atras do
+  // jogador, que e trabalho de acompanhante e nao de quem esta indicando caminho.
+  if (ACOMP.modo === 'guia') return;
 
   const dx = player.x - n.x, dy = player.y - n.y;
   const d = Math.hypot(dx, dy);
@@ -19793,6 +19877,40 @@ const FALAS_UNICAS = [
   { id: 'medo', quando: 'monstro', apos: 0,
     texto: 'Se eu sumir, você vem me buscar? — Promete.' },
 ];
+
+// O balão de quem está esperando na placa. Cada um espera do jeito dele: o menino acha
+// graça de estar na frente, a Wins acha graça de você demorar. É a diferença entre uma
+// seta na tela e alguém te esperando.
+const FALAS_DE_GUIA = {
+  pipo: [
+    'É por AQUI! Eu cheguei primeiro.',
+    'Tô esperando. Já faz um tempo, viu.',
+    'Essa placa. Essa daqui. A que eu tô do lado.',
+    'Se você se perder de novo eu conto pro meu pai.',
+    'Aposto corrida até a próxima. — Já ganhei.',
+    'Eu podia ir sozinho, sabe. Mas aí você ficava com medo.',
+  ],
+  wins: [
+    'Por aqui. E não, não é a outra.',
+    'Eu espero. Tenho a tarde inteira.',
+    'Você anda como quem não sabe onde mora.',
+    'Esta placa. Estou encostada nela de propósito.',
+    'Quando quiser. Sem pressa. Nenhuma mesmo.',
+    'O Altar não vai a lugar nenhum. Você é que não chega.',
+  ],
+  padrao: [
+    'É por aqui.',
+    'Estou te esperando nesta placa.',
+    'Esta é a passagem certa.',
+  ],
+};
+
+function falaDeGuia(n) {
+  const nome = String(n.name || '').toLowerCase();
+  const chave = nome.includes('pipo') ? 'pipo' : nome.includes('wins') ? 'wins' : 'padrao';
+  const pool = FALAS_DE_GUIA[chave];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 function falaDeAcompanhante(now, contexto) {
   const n = ACOMP.npc;
@@ -20541,9 +20659,26 @@ function nomeDoCatalisador(heroi) {
 function desenharEquipamentos() {
   const el = document.getElementById('equipTela');
   if (!el || el.classList.contains('hidden')) return;
-  const heroi = selectedHeroId;
+  // O heroi que a FICHA esta mostrando, nao o que esta em campo: e o mesmo personagem que
+  // o jogador acabou de escolher nos retratos, e trocar la tem de valer aqui.
+  const heroi = fichaHeroiVisto || selectedHeroId;
   const def = HERO_DEFINITIONS[heroi] || {};
   const s = derivedStats();
+
+  // Os mesmos retratos da ficha, aqui: trocar de personagem e o gesto natural nesta tela
+  // e nao havia como fazer isso sem sair dela.
+  const troca = document.getElementById('equipHerois');
+  if (troca) {
+    troca.innerHTML = '';
+    Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado !== false).forEach(h => {
+      const b = document.createElement('button');
+      b.className = 'ficha-heroi-chip' + (h.id === heroi ? ' ativo' : '');
+      b.title = h.name;
+      b.innerHTML = `<img src="${(FICHA_HEROIS[h.id] || {}).retrato || h.face || ''}" alt="">`;
+      b.onclick = () => { fichaHeroiVisto = h.id; desenharEquipamentos(); };
+      troca.appendChild(b);
+    });
+  }
 
   document.getElementById('equipMoedas').innerHTML =
     `<b>${claveCount.toLocaleString('pt-BR')}</b> claves &nbsp;·&nbsp; <b>${playerCoins.toLocaleString('pt-BR')}</b> ouro`;
@@ -20664,7 +20799,7 @@ function abrirPopupDeItem(id, ev) {
   const agora = atributosDoItem(it, t);
   const prox = t < 6 ? atributosDoItem(it, t + 1) : null;
   const custo = t < 6 ? (EQUIP.custoDeTier || []).find(c => c.para === t + 1) : null;
-  const vestido = equipadoDoHeroi()[it.slot] === it.id;
+  const vestido = equipadoDoHeroi(fichaHeroiVisto || selectedHeroId)[it.slot] === it.id;
 
   const linhas = Object.entries(agora).map(([k, v]) => {
     const meta = EQUIP.atributos[k] || { nome: k, ico: '•', sufixo: '' };
@@ -20702,7 +20837,10 @@ function abrirPopupDeItem(id, ev) {
     </div>`;
 
   pop.querySelector('[data-acao="vestir"]').addEventListener('click', () => {
-    const eqh = equipado[selectedHeroId] = equipado[selectedHeroId] || {};
+    // No heroi que a tela esta MOSTRANDO. Usar o ativo aqui fazia o jogador trocar de
+    // personagem na ficha, ir em Equipamento e vestir a peca no outro sem perceber.
+    const quem = fichaHeroiVisto || selectedHeroId;
+    const eqh = equipado[quem] = equipado[quem] || {};
     if (vestido) delete eqh[it.slot]; else eqh[it.slot] = it.id;
     savePlayerData();
     desenharEquipamentos();
@@ -21655,7 +21793,38 @@ const EFEITO_DA_FUNCAO = {
 // ── estado do jogador ──
 let acordesPossuidos = {};    // idDoAcorde → quantidade
 let escalasEquipadas = [];    // até 3 tônicas: ['do','sol']
-let acordesEquipados = [];    // até 7 ids
+// ── Acordes POR HEROI ─────────────────────────────────────────────────────────
+// Eram globais: equipar um acorde no Akles equipava na Wins junto, e a tela de Composicao
+// nao tinha o que trocar. Como o poder da conta e a soma dos personagens, a build tem de
+// ser de cada um — senao investir num segundo heroi nao significa nada.
+//
+// O guardado (`acordesPossuidos`) continua sendo da CONTA: o acorde e um bem, e emprestar
+// entre os proprios herois e o esperado. O que e pessoal e o que esta EQUIPADO.
+let acordesPorHeroi = {};     // heroiId → [ids]
+let escalasPorHeroi = {};     // heroiId → [tonicas]
+let acordesEquipados = [];    // ate 9 ids — copia de trabalho do heroi em foco
+
+// Quem a tela de Composicao esta editando. Segue a ficha, para trocar num lugar valer no
+// outro.
+function heroiEmFoco() { return fichaHeroiVisto || selectedHeroId || 'achilles'; }
+
+// Guarda a copia de trabalho no dono dela e carrega a do proximo. Chamado ao trocar de
+// heroi e ao abrir a tela.
+function trocarFocoDeAcordes(novo) {
+  const antes = window.__focoDeAcordes;
+  if (antes) { acordesPorHeroi[antes] = acordesEquipados.slice();
+               escalasPorHeroi[antes] = escalasEquipadas.slice(); }
+  window.__focoDeAcordes = novo;
+  acordesEquipados = (acordesPorHeroi[novo] || []).slice();
+  escalasEquipadas = (escalasPorHeroi[novo] || []).slice();
+}
+
+// O que o HEROI EM CAMPO tem equipado — e o que o combate deve somar, independente de
+// qual ficha esta aberta.
+function acordesDoHeroiAtivo() {
+  return window.__focoDeAcordes === selectedHeroId
+    ? acordesEquipados : (acordesPorHeroi[selectedHeroId] || []);
+}
 let funcaoPreferida = {};     // idDoAcorde → tônica escolhida, quando cabe em mais de uma
 const MAX_ESCALAS_EQUIPADAS = 3;
 const MAX_ACORDES_EQUIPADOS = 9;   // tres compassos de tres: toda frase fecha
@@ -21754,7 +21923,9 @@ function subirAcorde(id) {
 
 function bonusDeAcordes() {
   const soma = {};
-  acordesEquipados.forEach(id => {
+  // Do heroi EM CAMPO. Se a ficha estiver aberta noutro personagem, a copia de trabalho e
+  // dele — e o combate nao pode usar a build de quem esta no banco.
+  acordesDoHeroiAtivo().forEach(id => {
     const f = funcaoAtivaDoAcorde(id);
     if (!f) return;                       // inerte: nenhuma escala equipada o contém
     const e = EFEITO_DA_FUNCAO[f.grau];
@@ -21932,6 +22103,7 @@ document.getElementById('acConfirmar')?.addEventListener('click', confirmarEscol
 
 // ── Tela de Composição ────────────────────────────────────────────────────────
 function abrirComposicao() {
+  trocarFocoDeAcordes(heroiEmFoco());
   document.getElementById('composicao')?.classList.remove('hidden');
   desenharComposicao();
 }
@@ -22024,6 +22196,23 @@ function desenharPautaDaComposicao() {
 function desenharComposicao() {
   const el = document.getElementById('composicao');
   if (!el || el.classList.contains('hidden')) return;
+
+  // ── de quem e esta build ──
+  // Sem os retratos aqui, trocar de personagem exigia sair, abrir a ficha, trocar e voltar
+  // — e como a build agora e de cada um, isso e o gesto mais comum da tela.
+  const troca = document.getElementById('compHerois');
+  if (troca) {
+    const foco = window.__focoDeAcordes || heroiEmFoco();
+    troca.innerHTML = '';
+    Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado !== false).forEach(h => {
+      const b = document.createElement('button');
+      b.className = 'ficha-heroi-chip' + (h.id === foco ? ' ativo' : '');
+      b.title = h.name;
+      b.innerHTML = `<img src="${(FICHA_HEROIS[h.id] || {}).retrato || h.face || ''}" alt="">`;
+      b.onclick = () => { fichaHeroiVisto = h.id; trocarFocoDeAcordes(h.id); desenharComposicao(); };
+      troca.appendChild(b);
+    });
+  }
 
   // ── escalas ──
   document.getElementById('compContaEscalas').textContent =
