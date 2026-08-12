@@ -31,6 +31,25 @@
       "texto": "Wins, do Caminho da Voz. Ela trabalha com ressonância há mais tempo que você tem de cidade."
     },
     {
+      "_": "── e ela aparece, e vem até você ──"
+    },
+    {
+      "cmd": "mostrar",
+      "npc": "Wins",
+      "visivel": true
+    },
+    {
+      "cmd": "andar",
+      "npc": "Wins",
+      "para": "jogador",
+      "velocidade": 2.2,
+      "sumir": false
+    },
+    {
+      "cmd": "esperar",
+      "ms": 300
+    },
+    {
       "cmd": "esperar",
       "ms": 800
     },

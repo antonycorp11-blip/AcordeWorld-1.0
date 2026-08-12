@@ -986,6 +986,51 @@
    "triggered": false,
    "flipX": false,
    "scale": 0.30000000000000016
+  },
+  {
+   "id": "npc_wins_1",
+   "name": "Wins",
+   "type": "wins",
+   "mapKey": "custom_1785869541494_557",
+   "x": 560,
+   "y": 300,
+   "triggerRadius": 80,
+   "dialogue": "none",
+   "triggered": false,
+   "scale": 1,
+   "flipX": false,
+   "apareceCom": "wins_no_grupo",
+   "_": "Praça Central — apresentação e o rapto"
+  },
+  {
+   "id": "npc_wins_2",
+   "name": "Wins",
+   "type": "wins",
+   "mapKey": "custom_1785900374897_630",
+   "x": 480,
+   "y": 330,
+   "triggerRadius": 80,
+   "dialogue": "none",
+   "triggered": false,
+   "scale": 1,
+   "flipX": false,
+   "apareceCom": "wins_no_grupo",
+   "_": "Pátio das Ruínas — patrulha e esquecimento"
+  },
+  {
+   "id": "npc_wins_3",
+   "name": "Wins",
+   "type": "wins",
+   "mapKey": "custom_1785976318486_785",
+   "x": 430,
+   "y": 300,
+   "triggerRadius": 80,
+   "dialogue": "none",
+   "triggered": false,
+   "scale": 1,
+   "flipX": false,
+   "apareceCom": "wins_no_grupo",
+   "_": "Arena do Selo — o fecho do capítulo"
   }
  ]
 }

@@ -660,6 +660,10 @@ const NPC_SPRITE_FILES = {
   elder:      'assets/personagens/npcs/npc_elder.jpg',
   merchant:   'assets/personagens/npcs/npc_merchant.jpg',
   villager:   'assets/personagens/npcs/npc_villager.jpg',
+  // A Wins e HEROI, e heroi do grupo nao tem corpo no mundo: so o retrato no canto. Nas
+  // cenas dela isso significava uma voz falando do nada. Este e o corpo dela como NPC,
+  // recortado do quadro de frente da folha de caminhada.
+  wins:       'assets/personagens/npcs/npc_wins.png',
 };
 const npcSprites = {}; // type -> { canvas, sx, sy, sw, sh }
 
@@ -1184,6 +1188,7 @@ const NPC_DRAW = {
   spot_stone: drawStoneSpot,
   bard: drawVillagerType, blacksmith: drawVillagerType, child: drawVillagerType,
   elder: drawVillagerType, merchant: drawVillagerType, villager: drawVillagerType,
+  wins: drawVillagerType,
 };
 const DEFAULT_NPC_DRAW = drawVillagerType;
 
@@ -2143,6 +2148,7 @@ function npcNaCena(n) {
   // seria impossivel de reposicionar. A regra vale para quem joga.
   if (!isPlayMode) return true;
   if (n.oculto) return false;
+  if (n.forcarVisivel) return true;      // a cena em curso manda mais que a bandeira
   const lista = v => v == null ? [] : (Array.isArray(v) ? v : [v]);
   if (lista(n.sumirCom).some(temBandeira)) return false;
   if (!lista(n.apareceCom).every(temBandeira)) return false;
@@ -12082,7 +12088,7 @@ function iniciarCena(roteiro, aoTerminar) {
   CUT.roteiro = roteiro; CUT.passo = 0; CUT.ativo = true; CUT.aguardando = null;
   CUT.sombras = []; CUT.notas = []; CUT.guia = null; CUT.caixa = null; CUT.legenda = null; CUT.caminhadas = [];
   player.oculto = false;
-  npcData.forEach(n => { n.oculto = false; });
+  npcData.forEach(n => { n.oculto = false; n.forcarVisivel = false; });
   CUT.fade = CUT.fadeAlvo = 0; CUT.tintaForca = CUT.tintaAlvo = 0;
   document.body.classList.add('em-cena');
   CUT.vinheta = CUT.vinhetaAlvo = 0;
@@ -12318,7 +12324,12 @@ function executarPasso(p) {
     case 'mostrar': {
       if (!p.npc || String(p.npc).toLowerCase() === 'jogador') { player.oculto = !p.visivel; return false; }
       const quem = npcPorNome(p.npc);
-      if (quem) quem.oculto = !p.visivel;
+      if (quem) {
+        quem.oculto = !p.visivel;
+        // Durante a cena, ela manda: a Wins e APRESENTADA antes de a bandeira que a torna
+        // visivel existir, e sem esta ponte ela seria apresentada invisivel.
+        quem.forcarVisivel = !!p.visivel;
+      }
       return false;
     }
 

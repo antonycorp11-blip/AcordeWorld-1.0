@@ -510,8 +510,8 @@
     {
      "id": "poder",
      "type": "poder",
-     "quantidade": 2500,
-     "text": "Chegue a 2.500 de Poder da Conta (soma de todos os heróis)",
+     "quantidade": 1200,
+     "text": "Chegue a 1.200 de Poder da Conta (soma de todos os heróis)",
      "completed": false
     }
    ],
