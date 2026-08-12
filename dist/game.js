@@ -523,7 +523,6 @@ function doAction() {
   if (dlg.state===DLG_STATE.TYPING || dlg.state===DLG_STATE.WAITING) { advanceDlg(); return; }
   if (dlg.state===DLG_STATE.CHOOSING) return; // a choice has to be tapped
   if (noAltar() && !FORJA.ativo) { abrirForjaDoAltar(); return; }
-  if (noSelo()) { selarAMemoria(); return; }
   const bau = bauMaisPerto();
   if (bau) { abrirBau(bau); return; }
   tryTalk();
@@ -1513,11 +1512,16 @@ function verificarMissoesConcluidas() {
     showToast(`🏆 Missão concluída: ${q.title}`);
     refreshQuestPanel();
     savePlayerData();
-    // Missão pode emendar direto numa cena — é o que fecha o conserto da ponte.
-    if (q.aoConcluir?.cena) {
-      const c = CUT.roteiros.find(r => r.id === q.aoConcluir.cena);
-      if (c) setTimeout(() => { if (!CUT.ativo) iniciarCena(c); }, 700);
-    }
+    // Missão pode emendar direto numa cena. Quem se anuncia é a CENA, com
+    // `gatilho: {tipo:'missao', missao:'...'}` — o `aoConcluir` da missão continua aceito
+    // para não quebrar dado antigo, mas o vocabulário novo é o do gatilho.
+    setTimeout(() => {
+      if (dispararCena('missao', { missao: q.id })) return;
+      if (q.aoConcluir?.cena) {
+        const c = CUT.roteiros.find(r => r.id === q.aoConcluir.cena);
+        if (c && !CUT.ativo && !cenaJaRodou(c)) iniciarCena(c);
+      }
+    }, 700);
   }
   atualizarRastreador();
 }
@@ -8007,11 +8011,9 @@ function selarEscala() {
   setTimeout(() => {
     // Na PRIMEIRA escala, a Guardiã explica o campo harmônico antes de o jogador escolher.
     // Depois disso ele já sabe, e a cena só atrapalharia.
-    const cena = primeira && CUT.roteiros.find(r => r.id === 'cap1_composicao');
-    if (cena && !CUT.jaRodou['cap1_composicao']) {
-      CUT.jaRodou['cap1_composicao'] = true;
-      iniciarCena(cena, () => abrirEscolhaDeAcordes(tonica));
-    } else abrirEscolhaDeAcordes(tonica);
+    if (!dispararCena('escala', { primeira }, () => abrirEscolhaDeAcordes(tonica))) {
+      abrirEscolhaDeAcordes(tonica);
+    }
   }, 2800);
 }
 
@@ -8527,7 +8529,6 @@ function actionAvailable() {
   if(capturaAtiva)return null;        // ritual em andamento: nada a fazer, só assistir
   if(ecoProntoPerto())return 'ressoar'; // Eco aberto ganha do ataque: bater nele não adianta
   if(noAltar() && !FORJA.ativo) return 'forjar';
-  if(noSelo())return 'selo';         // o desfecho do capítulo ganha de tudo
   if(bauMaisPerto())return 'bau';    // o baú é o prêmio da sala: ganha do golpe
   if(attackTarget())return 'attack'; // a monster in reach beats everything else
   const counter = atCounter();          // 'shop' inside the skin store, 'forge' in the smithy
@@ -8538,6 +8539,7 @@ function actionAvailable() {
   if(lagoTarget())return 'sortear';
   if(portaTarget())return 'entrarPorta';
   if(marteladaTarget())return 'martelar';
+  if(lugarDeCenaTarget())return 'cena';   // pisar num lugar de cena: mesma acao de falar
   if(talkTarget())return 'talk';
   // Signposts and gathering spots have no dialogue, so they'd never light the button
   // through talkTarget() — they need their own entry.
@@ -8622,6 +8624,7 @@ function changeMapWithFade(targetMapKey, targetX = 512, targetY = 300) {
 // the automatic proximity trigger, so a finished conversation stays reviewable.
 function tryTalk() {
   const act=actionAvailable();
+  if(act==='cena'){ const l=lugarDeCenaTarget(); if(l){ iniciarCena(l.cena); return; } }
   if(act==='ressoar'){ ressoar(); return; }
   if(act==='attack'){ doAttack(); return; }
   if(act==='invocar'){ const h = habitatTarget(); if (h) { abrirBarraDeInvocar(h); return; } }
@@ -9247,7 +9250,7 @@ function renderSceneOverlay(now) {
       if (npc.mapKey !== mapKey) return;
       (NPC_DRAW[npc.type] || DEFAULT_NPC_DRAW)(ctx, npc, now);
     });
-    renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now); renderRotaDaProximaCamara(now); renderSelo(now);
+    renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now); renderRotaDaProximaCamara(now); renderLugaresDeCena(now);
     return;
   }
 
@@ -10285,14 +10288,8 @@ function verificarGatilhosDaHistoria() {
   // único lugar em que ela faz sentido. Como gatilho solto ela disparava ao pisar na
   // vila, antes de a Mirela abrir a boca.
 
-  // O rapto: ao voltar à PRAÇA depois de ter forjado a primeira escala. A cena cobra o
-  // que o capítulo ensinou, então só faz sentido depois do Forjador.
-  if (!temBandeira('pipo_levado') && !CUT.jaRodou['cap1_rapto']
-      && currentKey === 'custom_1785869541494_557'
-      && escalasMontadas.length > 0) {
-    const r = CUT.roteiros.find(x => x.id === 'cap1_rapto');
-    if (r) { CUT.jaRodou['cap1_rapto'] = true; iniciarCena(r); return; }
-  }
+  // O rapto saiu daqui: virou `gatilho: mapa` com `requer: {escalasForjadas: 1}`, que é
+  // exatamente o que este `if` dizia. Cena não se dispara mais de dentro do motor.
 }
 
 function enterMobilePlay() {
@@ -11494,6 +11491,7 @@ function weMostrar(ativo) {
 // ============================================================
 const CUT = {
   roteiro: null, passo: 0, ativo: false,
+  encadear: null,          // cena que entra assim que esta terminar (`cmd: 'cena'`)
   aguardando: null,        // {tipo, ...} enquanto um passo não terminou
   fade: 0, fadeAlvo: 0, fadeVel: 0,
   tinta: null, tintaForca: 0, tintaAlvo: 0, tintaVel: 0,
@@ -11552,9 +11550,82 @@ function preencherMenuDeCenas() {
   sel.onchange = () => { try { localStorage.setItem('acordelot_inicio', sel.value); } catch (e) {} };
 }
 
+// ── UM SÓ VOCABULÁRIO DE GATILHO ─────────────────────────────────────────────
+// Antes havia quatro jeitos de uma cena começar, e o quarto era chamada solta dentro do
+// game.js: cinco cenas do capítulo nasciam de `if` espalhados pelo motor. Isso custava
+// duas coisas. Para quem escreve, uma cena nova podia precisar de código, e a ferramenta
+// não tinha como saber que ela existia. Para quem JOGA, era pior: o rapto e o selo
+// aconteciam sem nunca ter sido anunciados, e o jogador não tinha como saber que ali havia
+// alguma coisa. Agora todo gatilho se declara em dado, e os dois que dependem de uma AÇÃO
+// do jogador — falar com alguém e pisar num lugar — recebem o MESMO aviso na tela.
+//
+//   { tipo: 'falar',  npc: 'Antony' }                       conversar com alguém
+//   { tipo: 'mapa' }                                        entrar no cenário (usa `mapa`)
+//   { tipo: 'lugar',  x, y, raio, verbo: 'Selar' }          pisar num ponto do cenário
+//   { tipo: 'missao', missao: 'consertar_ponte' }            ao fechar a missão
+//   { tipo: 'abates', corrida: 'patio', fracao: 0.5 }        no meio da limpeza da dungeon
+//   { tipo: 'escala', primeira: true }                       ao fechar escala no altar
+//   { tipo: 'roteiro' }                                      só por `cmd: cena`
+const VERBO_DO_GATILHO = { falar: 'Falar', lugar: 'Ver' };
+
+function tipoDoGatilho(c) {
+  const t = c.gatilho?.tipo;
+  if (t) return t;
+  if (c.autoStart === false) return 'roteiro';
+  return c.mapa ? 'mapa' : 'roteiro';
+}
+
+// A pergunta única: que cena está esperando ESTE gatilho, agora, neste estado?
+// `ctx` traz o que o tipo precisa (npc, corrida, fração, primeira...).
+function cenaDoGatilho(tipo, ctx = {}) {
+  return CUT.roteiros.find(c => {
+    if (tipoDoGatilho(c) !== tipo) return false;
+    if (cenaJaRodou(c)) return false;
+    if (c.mapa && c.mapa !== currentKey && tipo !== 'missao') return false;
+    if (!condicoesDaCena(c)) return false;
+    const g = c.gatilho || {};
+    switch (tipo) {
+      case 'falar':
+        return !!ctx.nome && ctx.nome.includes(String(g.npc || '').toLowerCase());
+      case 'lugar':
+        // Chefe de pe fecha a sala: era regra do selo, e vale para qualquer lugar de cena.
+        if (liveMonsters().some(m => ehChefe(m))) return false;
+        return Math.hypot(player.x - (g.x ?? 0), player.y - (g.y ?? 0)) <= (g.raio ?? 70);
+      case 'missao':
+        return g.missao === ctx.missao;
+      case 'abates':
+        return g.corrida === ctx.corrida && (ctx.fracao ?? 0) >= (g.fracao ?? 0.5)
+               && (ctx.total ?? 0) > (g.minimo ?? 3) && (ctx.vivos ?? 0) > 0;
+      case 'escala':
+        return g.primeira ? !!ctx.primeira : true;
+      default:
+        return true;
+    }
+  }) || null;
+}
+
+// Dispara o que o gatilho encontrar, se houver. Devolve true se uma cena começou — é assim
+// que o motor sabe se deve deixar o resto do quadro seguir.
+function dispararCena(tipo, ctx = {}, aoTerminar = null) {
+  if (CUT.ativo) return false;
+  const c = cenaDoGatilho(tipo, ctx);
+  if (!c) return false;
+  iniciarCena(c, aoTerminar);
+  return true;
+}
+
 function cenaDoMapa(mapKey) {
-  return CUT.roteiros.find(c => c.mapa === mapKey && c.autoStart !== false
-                             && (c.gatilho?.tipo || 'mapa') === 'mapa') || null;
+  return CUT.roteiros.find(c => c.mapa === mapKey && tipoDoGatilho(c) === 'mapa') || null;
+}
+
+// Lugar de cena ao alcance: é o irmão do `talkTarget`, e é o que dá ao ponto no chão o
+// mesmo tratamento que um NPC já tinha.
+function lugarDeCenaTarget() {
+  if (!isPlayMode || playerLocked || CUT.ativo || currentScene !== 'world') return null;
+  const c = cenaDoGatilho('lugar');
+  if (!c) return null;
+  const g = c.gatilho;
+  return { cena: c, x: g.x, y: g.y, raio: g.raio ?? 70, verbo: g.verbo || VERBO_DO_GATILHO.lugar };
 }
 
 // Uma cena pode exigir estado do jogo para valer — é assim que a segunda conversa com
@@ -11566,10 +11637,18 @@ function condicoesDaCena(c) {
   if (r.missaoAtiva && !missaoAtiva(r.missaoAtiva)) return false;
   // Bandeira: é o que impede o jogador de pular uma conversa indo direto ao NPC
   // seguinte. `bandeira` exige; `semBandeira` proíbe.
-  if (r.bandeira && !temBandeira(r.bandeira)) return false;
-  if (r.semBandeira && temBandeira(r.semBandeira)) return false;
+  // Lista ou uma so: o selo precisa de DUAS bandeiras (o Pipo levado e a Wins no grupo),
+  // e com uma chave de texto so uma delas cabia — a segunda apagava a primeira.
+  const listar = v => v == null ? [] : (Array.isArray(v) ? v : [v]);
+  if (!listar(r.bandeira).every(temBandeira)) return false;
+  if (listar(r.semBandeira).some(temBandeira)) return false;
   if (r.notasCondensadas != null &&
       Object.values(notasPossuidas).filter(v => v > 0).length < r.notasCondensadas) return false;
+  // Escalas forjadas no altar: é o que separa "antes do Forjador" de "depois".
+  if (r.escalasForjadas != null && escalasMontadas.length < r.escalasForjadas) return false;
+  // Itens na mão. O selo exigia os dois palitos por código; agora a cena declara isso.
+  if (r.itens && !Object.entries(r.itens)
+        .every(([k, n]) => (playerInventory[k] || 0) >= n)) return false;
   if (r.objetivos) {
     const q = missaoAtiva(r.objetivos.missao);
     // Missão já concluída também satisfaz: o que importa é o jogador ter feito aquilo,
@@ -11583,12 +11662,7 @@ function condicoesDaCena(c) {
 // Cena presa a um NPC: falar com ele roda a cena em vez do diálogo comum.
 function cenaDoNPC(npc) {
   if (!npc) return null;
-  const nome = String(npc.name || '').toLowerCase();
-  return CUT.roteiros.find(c =>
-    c.gatilho?.tipo === 'falar' &&
-    nome.includes(String(c.gatilho.npc || '').toLowerCase()) &&
-    (!c.mapa || c.mapa === currentKey) &&
-    !cenaJaRodou(c) && condicoesDaCena(c)) || null;
+  return cenaDoGatilho('falar', { nome: String(npc.name || '').toLowerCase() });
 }
 
 async function carregarCena(id) {
@@ -11712,7 +11786,7 @@ function renderMarcadoresDeNPC(now) {
 // instante. Resolve "quem eu procuro agora?" sem tirar o controle do jogador.
 function apresentarQuemEsperaNoMapa(mapKey) {
   if (!isPlayMode || CUT.ativo) return;
-  const cena = CUT.roteiros.find(c => c.gatilho?.tipo === 'falar' && c.mapa === mapKey
+  const cena = CUT.roteiros.find(c => tipoDoGatilho(c) === 'falar' && c.mapa === mapKey
                                    && !cenaJaRodou(c) && condicoesDaCena(c));
   if (!cena) return;
   const alvo = npcData.find(n => n.mapKey === mapKey &&
@@ -11786,6 +11860,11 @@ function encerrarCena() {
   savePlayerData();
   const seguir = CUT.aoTerminar;
   CUT.aoTerminar = null;
+  // Encadeamento: a cena seguinte entra no mesmo fôlego, sem devolver o controle no meio.
+  // Vem antes do `aoTerminar` porque quem encadeia quer a corrente inteira antes do resto.
+  const proxima = CUT.encadear;
+  CUT.encadear = null;
+  if (proxima) { setTimeout(() => iniciarCena(proxima, seguir), 240); return; }
   if (seguir) setTimeout(seguir, 260);
 }
 
@@ -12172,6 +12251,28 @@ function executarPasso(p) {
       return false;
     }
 
+    // Uma cena chamando a próxima. O motor tinha 43 comandos e nenhum jeito de encadear,
+    // e foi por isso que o prólogo do capítulo ("A canção que ninguém termina") ficou
+    // escrito e nunca rodou: não havia como ele entregar a vez à Abertura.
+    case 'cena': {
+      const alvo = CUT.roteiros.find(r => r.id === p.id);
+      if (alvo && !cenaJaRodou(alvo)) CUT.encadear = alvo;
+      else if (!alvo) console.warn('[cena] roteiro inexistente:', p.id);
+      return false;
+    }
+
+    // O motor sabia `dar` e nao sabia tirar, e por isso o gasto dos dois palitos morava
+    // numa funcao exclusiva do selo. Com `consumir`, a cena declara o que ela cobra.
+    case 'consumir': {
+      const itens = p.itens || (p.item ? { [p.item]: p.qtd || 1 } : {});
+      Object.entries(itens).forEach(([k, n]) => {
+        playerInventory[k] = Math.max(0, (playerInventory[k] || 0) - n);
+        if (!playerInventory[k]) delete playerInventory[k];
+      });
+      updateInventorySlotsUI?.();
+      return false;
+    }
+
     case 'fim':
       encerrarCena();
       return true;
@@ -12258,8 +12359,13 @@ function atualizarCena(now) {
     }
   }
   else if (a.tipo === 'sorteio') {
-    // segue quando o jogador fechar a tela do sorteio
-    if (document.getElementById('sorteioOverlay')?.classList.contains('hidden')) {
+    // Segue quando o jogador fechar a tela do sorteio.
+    // O `!tela` não é zelo à toa: sem o elemento, o `?.` devolvia `undefined`, a condição
+    // nunca era verdadeira, e a cena ficava vinte segundos parada com o controle desligado
+    // até o cão de guarda acima resgatá-la. Vinte segundos olhando para uma tela morta é
+    // tempo suficiente para o jogador achar que o jogo travou e fechar a aba.
+    const tela = document.getElementById('sorteioOverlay');
+    if (!tela || tela.classList.contains('hidden')) {
       CUT.aguardando = null; proximoPasso();
     }
   }
@@ -13473,7 +13579,7 @@ function quadro(now){
         if(currentScene==='farm')return;   // a fazenda nao tem placa, porta nem NPC de mundo
         (NPC_DRAW[npc.type]||DEFAULT_NPC_DRAW)(ctx,npc,now);});
       renderDrops(now);   // on the ground, under everyone
-      renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now); renderRotaDaProximaCamara(now); renderSelo(now);
+      renderMonsters(now); renderInvocacoes(now); renderSubidaDeNivel(now); renderRotaDaProximaCamara(now); renderLugaresDeCena(now);
       renderObjetos(now, 'atras');   // pé acima do jogador: ele passa na frente
     }
     const L=getLayers(currentKey);
@@ -13518,7 +13624,7 @@ function quadro(now){
       updateAmbient(now);renderSpeech(now);renderFloaters(now);
       // Prompt over whatever the action button is currently pointing at — not just
       // NPCs. A door you can't see is a door that doesn't exist.
-      const ACT_PROMPT={sortear:'E  ·  Tentar a Sorte',ressoar:'E  ·  RESSOAR',talk:'E  ·  Falar',travel:'E  ·  Viajar',gather:'E  ·  Coletar',forjar:'E  ·  Montar escala',enterForge:'E  ·  Entrar',martelar:'E  ·  Martelar',entrarPorta:'E  ·  Entrar',invocar:'E  ·  Invocar Eco',alimentar:'E  ·  Alimentar'};
+      const ACT_PROMPT={sortear:'E  ·  Tentar a Sorte',ressoar:'E  ·  RESSOAR',talk:'E  ·  Falar',travel:'E  ·  Viajar',gather:'E  ·  Coletar',forjar:'E  ·  Montar escala',enterForge:'E  ·  Entrar',martelar:'E  ·  Martelar',entrarPorta:'E  ·  Entrar',invocar:'E  ·  Invocar Eco',alimentar:'E  ·  Alimentar',cena:'E  ·  Ver'};
       const act=actionAvailable();
       const tgt = act==='talk' ? talkTarget()
                 : act==='travel' ? signpostTarget()
@@ -13526,11 +13632,13 @@ function quadro(now){
                 : act==='entrarPorta' ? portaTarget()
                 : act==='martelar' ? marteladaTarget()
                 : act==='gather' ? (spotTarget() || propColetavelTarget())
+                : act==='cena' ? lugarDeCenaTarget()
                 : act==='invocar' ? habitatTarget()
                 : act==='alimentar' ? ecoDaFazendaTarget()
                 : act==='fazenda' ? plantaTarget()
                 : act==='enterForge' ? forgeDoorTarget() : null;
       // O rótulo da planta muda com o estado dela: um botão só, três respostas.
+      if (act==='cena' && tgt) ACT_PROMPT.cena = 'E  ·  ' + tgt.verbo;
       if (act==='fazenda' && tgt) {
         const a = acaoDaPlanta(tgt);
         ACT_PROMPT.fazenda = a==='colher' ? 'E  ·  Colher'
@@ -17860,12 +17968,10 @@ function iniciarCorrida(d) {
   if (sorteioDoPortao && sorteioDoPortao.dungeonId === d.id) corrida.grau = sorteioDoPortao.grau;
   else sortearGrauDaCorrida(d);
   prepararEstagio(d);
-  // Cena de chegada da dungeon, uma vez só por dungeon.
-  const cenaDaDg = { patio_das_ruinas: 'cap1_patio' }[d.id];
-  if (cenaDaDg && !CUT.jaRodou[cenaDaDg]) {
-    const r = CUT.roteiros.find(x => x.id === cenaDaDg);
-    if (r) setTimeout(() => iniciarCena(r), 400);
-  }
+  // Cena de chegada da dungeon: quem declara é o JSON, com `gatilho: {tipo:'dungeon'}`.
+  // O mapa de ids que vivia aqui furava o `condicoesDaCena` — era um segundo caminho para
+  // a mesma cena, e o requisito declarado não valia nada enquanto ele existisse.
+  setTimeout(() => dispararCena('dungeon', { dungeon: d.id }), 400);
   fecharPortao();
   anunciar(d.nome.toUpperCase(), 1600);
   return true;
@@ -17971,13 +18077,10 @@ function atualizarCorrida(now) {
   const vivos = monstrosDaDungeon(corrida.mapa).filter(m => !m.dead).length;
   corrida.abates = corrida.abatesAnteriores + (corrida.total - vivos);
 
-  // No meio da limpeza do Pátio, a Wins esquece por vinte segundos. Uma vez só no jogo
-  // inteiro: repetido viraria piada, e o susto é o ponto.
-  if (corrida.id === 'patio_das_ruinas' && !CUT.ativo && !CUT.jaRodou['cap1_esquecimento']
-      && corrida.total > 3 && vivos > 0 && corrida.abates >= Math.ceil(corrida.total / 2)) {
-    const r = CUT.roteiros.find(x => x.id === 'cap1_esquecimento');
-    if (r) { CUT.jaRodou['cap1_esquecimento'] = true; iniciarCena(r); }
-  }
+  // No meio da limpeza, a cena que o gatilho `abates` estiver esperando. Quem decide qual
+  // é, e com que fração de abates, é o JSON da cena — não este trecho.
+  dispararCena('abates', { corrida: corrida.id, total: corrida.total, vivos,
+                           fracao: corrida.total ? corrida.abates / corrida.total : 0 });
   if (vivos > 0) return;
 
   const d = dungeonDoMapa(corrida.mapa);
@@ -22186,8 +22289,6 @@ window.addEventListener('keydown', e => {
 // O Lucian achou UM palito na praça. O outro está no baú grande atrás do chefe. Selar os
 // dois é o que garante que Akles e Wins não vão esquecer o menino.
 
-function temPalito(n) { return (playerInventory['palito_' + n] || 0) > 0; }
-function palitosNaMao() { return (temPalito(1) ? 1 : 0) + (temPalito(2) ? 1 : 0); }
 
 // O baú grande da Arena entrega o segundo palito, uma vez só. É o único prêmio de baú do
 // jogo que não é sorteado: história não se sorteia.
@@ -22202,54 +22303,92 @@ function talvezDarOPalito(o) {
 }
 
 // O selo da Arena. Fica inerte até o jogador ter os dois palitos.
-const MAPA_DO_SELO = 'custom_1785976318486_785';
-const SELO = { x: 512, y: 292, raio: 70 };
+// O selo do Pipo virou uma cena de `gatilho: lugar` como qualquer outra: o ponto, o raio,
+// o verbo do botao e os dois palitos exigidos estao todos no cap1_selo.json. O que morava
+// aqui — MAPA_DO_SELO, SELO, seloDisponivel, noSelo, selarAMemoria — era um sistema
+// paralelo para uma cena so, e era o motivo de o jogador nao ter aviso nenhum nas outras.
 
-function seloDisponivel() {
-  return currentKey === MAPA_DO_SELO && temBandeira('pipo_levado')
-         && !temBandeira('pipo_selado') && palitosNaMao() === 2
-         && !liveMonsters().some(m => ehChefe(m));
-}
-function noSelo() {
-  return seloDisponivel() && Math.hypot(player.x - SELO.x, player.y - SELO.y) < SELO.raio;
+// ── O aviso de lugar de cena, um só para todos ────────────────────────────────
+// Este desenho era exclusivo do selo do Pipo, com o nome dele no código e a conta dos
+// palitos escrita à mão. Agora ele serve QUALQUER cena de `gatilho: lugar`: o mesmo anel,
+// a mesma pulsação, o mesmo texto. É o outro lado do vocabulário único — se toda cena se
+// anuncia do mesmo jeito no dado, ela tem de se anunciar do mesmo jeito na tela, senão o
+// jogador continua tendo de adivinhar onde as coisas acontecem.
+//
+// Tracejado e apagado: o lugar existe mas ainda não responde, e diz o que falta.
+// Cheio e pulsando: pode usar agora.
+function renderLugaresDeCena(now) {
+  if (!isPlayMode || CUT.ativo) return;
+  CUT.roteiros.forEach(c => {
+    if (tipoDoGatilho(c) !== 'lugar' || cenaJaRodou(c)) return;
+    if (c.mapa && c.mapa !== currentKey) return;
+    const g = c.gatilho, raio = g.raio ?? 70;
+    // Fora do alcance de vista o lugar não aparece: um anel permanente no chão de todo
+    // cenário viraria poluição, e o jogador aprenderia a ignorá-lo.
+    const dist = Math.hypot(player.x - g.x, player.y - g.y);
+    if (dist > raio + 220) return;
+
+    const falta = faltaDaCena(c);
+    const pronto = !falta;
+    const pulso = 0.5 + 0.5 * Math.sin(now * 0.003);
+    const cor = pronto ? '#ffe9ab' : '#64748b';
+    ctx.save();
+    ctx.globalAlpha = pronto ? 0.35 + pulso * 0.45 : 0.22;
+    ctx.strokeStyle = cor; ctx.lineWidth = pronto ? 3 : 2;
+    if (!pronto) ctx.setLineDash([7, 6]);
+    ctx.beginPath();
+    ctx.ellipse(g.x, g.y, raio + pulso * 8, raio * 0.45 + pulso * 4, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (dist < raio + 130) {
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 12px Outfit, sans-serif'; ctx.textAlign = 'center';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
+      const txt = pronto ? 'E — ' + (g.verbo || 'ver').toLowerCase() : falta;
+      ctx.strokeText(txt, g.x, g.y - 30);
+      ctx.fillStyle = cor; ctx.fillText(txt, g.x, g.y - 30);
+      ctx.textAlign = 'left';
+    }
+    ctx.restore();
+  });
 }
 
-function selarAMemoria() {
-  progressoDeMissao('selar', 'pipo');
-  if (!noSelo()) return;
-  marcarBandeira('pipo_selado');
-  delete playerInventory.palito_1; delete playerInventory.palito_2;
-  const r = CUT.roteiros.find(x => x.id === 'cap1_selo');
-  if (r) iniciarCena(r); else showToast('A memória do Pipo está selada.');
-}
-
-// Desenho do selo: um anel que pulsa quando dá para usar, e um aviso do que falta quando
-// não dá. Sem isso o jogador chega na sala e não sabe que ali tem alguma coisa.
-function renderSelo(now) {
-  if (currentKey !== MAPA_DO_SELO || !temBandeira('pipo_levado')) return;
-  if (temBandeira('pipo_selado')) return;
-  const pulso = 0.5 + 0.5 * Math.sin(now * 0.003);
-  const pronto = seloDisponivel();
-  const cor = pronto ? '#ffe9ab' : '#64748b';
-  ctx.save();
-  ctx.globalAlpha = pronto ? 0.35 + pulso * 0.45 : 0.22;
-  ctx.strokeStyle = cor; ctx.lineWidth = pronto ? 3 : 2;
-  if (!pronto) ctx.setLineDash([7, 6]);
-  ctx.beginPath();
-  ctx.ellipse(SELO.x, SELO.y, SELO.raio + pulso * 8, SELO.raio * 0.45 + pulso * 4, 0, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  if (Math.hypot(player.x - SELO.x, player.y - SELO.y) < 200) {
-    ctx.globalAlpha = 1;
-    ctx.font = 'bold 12px Outfit, sans-serif'; ctx.textAlign = 'center';
-    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
-    const txt = pronto ? 'E — selar a memória'
-      : liveMonsters().some(m => ehChefe(m)) ? 'o selo não responde enquanto o chefe respira'
-      : `faltam ${2 - palitosNaMao()} palito(s)`;
-    ctx.strokeText(txt, SELO.x, SELO.y - 30);
-    ctx.fillStyle = cor; ctx.fillText(txt, SELO.x, SELO.y - 30);
+// O que impede esta cena de acontecer, em palavras do jogador. É a mesma checagem do
+// `condicoesDaCena`, mas dizendo QUAL parte falhou — sem isso o anel tracejado seria um
+// enigma, e enigma sem pista é o que faz o jogador achar que o jogo travou.
+function faltaDaCena(c) {
+  const r = c.requer;
+  if (!r) return null;
+  if (r.itens) {
+    // Soma por NOME, não por chave: o selo pede `palito_1` e `palito_2`, que são o mesmo
+    // objeto na cabeça do jogador. Sair no primeiro que falta dizia "falta 1 palito" com a
+    // mão vazia, quando faltavam dois — e o jogador ia procurar um só.
+    const faltas = {};
+    Object.entries(r.itens).forEach(([k, n]) => {
+      const falta = n - (playerInventory[k] || 0);
+      if (falta > 0) {
+        const nome = (nomeDoItemColetado(k) || {}).nome || k;
+        faltas[nome] = (faltas[nome] || 0) + falta;
+      }
+    });
+    const lista = Object.entries(faltas);
+    if (lista.length) {
+      return lista.map(([nome, n]) => `${n} ${nome}`).join(' e ')
+        .replace(/^/, lista.reduce((s, [, n]) => s + n, 0) > 1 ? 'faltam ' : 'falta ');
+    }
   }
-  ctx.restore();
+  const lista = v => v == null ? [] : (Array.isArray(v) ? v : [v]);
+  if (!lista(r.bandeira).every(temBandeira)) return 'ainda não é a hora';
+  if (lista(r.semBandeira).some(temBandeira)) return 'já aconteceu';
+  if (r.missaoConcluida && !missaoConcluida(r.missaoConcluida)) return 'ainda não é a hora';
+  if (r.escalasForjadas != null && escalasMontadas.length < r.escalasForjadas)
+    return 'é preciso ter forjado uma escala';
+  if (r.notasCondensadas != null &&
+      Object.values(notasPossuidas).filter(v => v > 0).length < r.notasCondensadas)
+    return `faltam notas condensadas`;
+  // O chefe de pé fecha a sala inteira, e isso o jogador precisa ouvir com estas palavras.
+  if (liveMonsters().some(m => ehChefe(m))) return 'não responde enquanto o chefe respira';
+  return condicoesDaCena(c) ? null : 'ainda não é a hora';
 }
 
 // Grade de construção. O passo casa com o canteiro (32px), então peça de terreno

@@ -2,7 +2,7 @@
   "id": "cap1_selo",
   "nome": "Cap. 1 · Epílogo — O que não se esquece",
   "_": "O desfecho. Selar os dois palitos garante que Akles e Wins não vão esquecer o Pipo — e a porta do Silêncio racha um dedo. Termina com alguém, muito longe, parando de cantar.",
-  "autoStart": false,
+  "autoStart": true,
   "passos": [
     {
       "cmd": "controle",
@@ -200,6 +200,25 @@
       "ms": 2000
     },
     {
+      "_": "── o que selar custa e o que ele fecha, dito pela cena e nao por codigo ──"
+    },
+    {
+      "cmd": "consumir",
+      "itens": {
+        "palito_1": 1,
+        "palito_2": 1
+      }
+    },
+    {
+      "cmd": "bandeira",
+      "id": "pipo_selado"
+    },
+    {
+      "cmd": "objetivo",
+      "missao": "memoria_do_pipo",
+      "id": "selar"
+    },
+    {
       "cmd": "bandeira",
       "id": "capitulo_1_fim"
     },
@@ -218,5 +237,25 @@
     {
       "cmd": "fim"
     }
-  ]
+  ],
+  "mapa": "custom_1785976318486_785",
+  "gatilho": {
+    "tipo": "lugar",
+    "x": 512,
+    "y": 292,
+    "raio": 70,
+    "verbo": "Selar a memória"
+  },
+  "prioridade": 80,
+  "requer": {
+    "bandeira": [
+      "pipo_levado",
+      "wins_no_grupo"
+    ],
+    "semBandeira": "pipo_selado",
+    "itens": {
+      "palito_1": 1,
+      "palito_2": 1
+    }
+  }
 }

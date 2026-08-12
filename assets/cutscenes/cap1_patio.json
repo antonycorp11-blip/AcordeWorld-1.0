@@ -114,5 +114,8 @@
     {
       "cmd": "fim"
     }
-  ]
+  ],
+  "requer": {
+    "bandeira": "wins_no_grupo"
+  }
 }

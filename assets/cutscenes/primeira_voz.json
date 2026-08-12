@@ -1,7 +1,7 @@
 {
   "id": "primeira_voz",
   "nome": "Cena 11 — A Primeira Voz",
-  "autoStart": false,
+  "autoStart": true,
   "passos": [
     {
       "cmd": "controle",
@@ -302,5 +302,10 @@
     "mapa": "custom_1785869541494_557",
     "interior": "forjador"
   },
-  "mapa": "custom_1786501580114_289"
+  "mapa": "custom_1786501580114_289",
+  "gatilho": {
+    "tipo": "missao",
+    "missao": "primeira_nota"
+  },
+  "prioridade": 62
 }

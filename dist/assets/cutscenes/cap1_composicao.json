@@ -3,7 +3,7 @@
   "nome": "Cap. 1 · Cena 8b — O campo harmônico",
   "_": "A cena que ENSINA o sistema de acordes. Dispara depois de forjar a primeira escala, antes de o jogador escolher os três acordes. A Guardiã não explica atributo: explica função. O jogo traduz.",
   "mapa": "custom_1786501580114_289",
-  "autoStart": false,
+  "autoStart": true,
   "passos": [
     {
       "cmd": "controle",
@@ -148,5 +148,10 @@
     {
       "cmd": "fim"
     }
-  ]
+  ],
+  "gatilho": {
+    "tipo": "escala",
+    "primeira": true
+  },
+  "prioridade": 65
 }

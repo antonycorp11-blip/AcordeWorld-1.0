@@ -2,7 +2,7 @@
   "id": "ponte_pronta",
   "nome": "Cena 8 — A Ponte de Pé",
   "mapa": "custom_1785880661560_858",
-  "autoStart": false,
+  "autoStart": true,
   "passos": [
     {
       "cmd": "controle",
@@ -108,5 +108,10 @@
     "forjar": [
       "hammer_ferro"
     ]
-  }
+  },
+  "gatilho": {
+    "tipo": "missao",
+    "missao": "consertar_ponte"
+  },
+  "prioridade": 35
 }

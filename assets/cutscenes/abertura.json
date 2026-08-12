@@ -2,7 +2,7 @@
   "id": "abertura",
   "nome": "Abertura — O Despertar",
   "mapa": "custom_1785881037059_214",
-  "autoStart": true,
+  "autoStart": false,
   "passos": [
     {
       "_": "── Cena 1: Escuridão ──"
@@ -546,5 +546,9 @@
       "cmd": "fim"
     }
   ],
-  "_": "Ele fugiu do Reino do Silêncio e pagou com a memória. A cidade não o reconhece porque foi ESQUECIDO, do mesmo jeito que o Pipo será. O ouvido absoluto aparece aqui como acidente — ele acerta a nota sem saber como. Só faz sentido depois."
+  "_": "Ele fugiu do Reino do Silêncio e pagou com a memória. A cidade não o reconhece porque foi ESQUECIDO, do mesmo jeito que o Pipo será. O ouvido absoluto aparece aqui como acidente — ele acerta a nota sem saber como. Só faz sentido depois.",
+  "prioridade": 2,
+  "gatilho": {
+    "tipo": "roteiro"
+  }
 }

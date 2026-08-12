@@ -3,7 +3,7 @@
   "nome": "Cap. 1 · Cena 9 — Ninguém lembra do Pipo",
   "_": "O fim do capítulo. Não é um sequestro: é um apagamento. A cidade inteira esquece que o menino existiu, e só Akles e Wins lembram. Termina numa pergunta, não num vilão.",
   "mapa": "custom_1785869541494_557",
-  "autoStart": false,
+  "autoStart": true,
   "passos": [
     {
       "cmd": "controle",
@@ -390,5 +390,14 @@
     {
       "cmd": "fim"
     }
-  ]
+  ],
+  "gatilho": {
+    "tipo": "mapa"
+  },
+  "prioridade": 70,
+  "requer": {
+    "escalasForjadas": 1,
+    "semBandeira": "pipo_levado",
+    "bandeira": "wins_no_grupo"
+  }
 }

@@ -99,13 +99,25 @@ for (mapa, npc), lista in porGatilho.items():
     if len(semPrio) > 1:
         aviso('gatilho:'+npc, 'ordem decide entre %s — considere `prioridade`' % ', '.join(semPrio))
 
+# Objetivos que uma CENA fecha direto, por `cmd: objetivo`. Sao cumpriveis mesmo que nenhum
+# `progressoDeMissao` emita aquele tipo: quem os fecha e o roteiro. Sem esta leitura, o
+# objetivo de selar a memoria do Pipo — fechado pela cena do selo — era acusado de morto.
+fechadosPorCena = set()
+for cid, c in cenas.items():
+    for p in c.get('passos', []):
+        if p.get('cmd') == 'objetivo' and p.get('missao') and p.get('id'):
+            fechadosPorCena.add((p['missao'], p['id']))
+
 # Missões: todo objetivo tem que ser cumprível.
 for qid, q in sorted(quests.items()):
     for o in q['objectives']:
         t = o.get('type')
-        if not t: erro('missão:'+qid, 'objetivo "%s" sem type — nunca conclui' % o.get('id'))
-        elif t not in tipos_ok: erro('missão:'+qid, 'objetivo "%s" com type "%s" que nenhum código cumpre' % (o.get('id'), t))
-        elif t!='talk' and not (o.get('item') or o.get('npc')):
+        porCena = (qid, o.get('id')) in fechadosPorCena
+        if not t and not porCena:
+            erro('missão:'+qid, 'objetivo "%s" sem type — nunca conclui' % o.get('id'))
+        elif t and t not in tipos_ok and not porCena:
+            erro('missão:'+qid, 'objetivo "%s" com type "%s" que nenhum código cumpre e nenhuma cena fecha' % (o.get('id'), t))
+        elif t and t != 'talk' and not porCena and not (o.get('item') or o.get('npc')):
             erro('missão:'+qid, 'objetivo "%s" sem item/npc — o casamento nunca bate' % o.get('id'))
 
 erros = [p for p in problemas if p[0]=='ERRO']

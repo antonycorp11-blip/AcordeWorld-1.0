@@ -3,33 +3,123 @@
   "nome": "Cap. 1 · Cena 7b — Vinte segundos",
   "_": "Dispara no meio da corrida do Pátio. A Wins esquece por que vieram e lembra logo depois. É a única vez no capítulo em que o esquecimento não custa nada — e é justamente por isso que ele assusta.",
   "mapa": "custom_1785900374897_630",
-  "autoStart": false,
+  "autoStart": true,
   "passos": [
-    { "cmd": "controle", "ativo": false },
-    { "cmd": "som", "tipo": "desafinado" },
-    { "cmd": "tremer", "forca": 3, "ms": 400 },
-    { "cmd": "tingir", "cor": "#8a8a8a", "forca": 0.45, "ms": 300 },
-    { "cmd": "esperar", "ms": 700 },
-
-    { "cmd": "falar", "quem": "Wins", "texto": "Akles..." },
-    { "cmd": "falar", "quem": "Wins", "texto": "Por que a gente veio aqui mesmo?" },
-    { "cmd": "esperar", "ms": 900 },
-    { "cmd": "falar", "quem": "Akles", "texto": "A patrulha. O Sr. Antony mandou." },
-    { "cmd": "falar", "quem": "Wins", "texto": "Que patrulha?" },
-    { "cmd": "esperar", "ms": 1600 },
-
-    { "cmd": "falar", "quem": "Akles", "texto": "Wins." },
-    { "cmd": "esperar", "ms": 1400 },
-    { "cmd": "tingir", "cor": "#8a8a8a", "forca": 0, "ms": 1800 },
-    { "cmd": "falar", "quem": "Wins", "texto": "...a patrulha. Desculpa. A patrulha." },
-    { "cmd": "esperar", "ms": 800 },
-    { "cmd": "falar", "quem": "Wins", "texto": "Eu sabia. Há dez segundos eu sabia." },
-    { "cmd": "falar", "quem": "Akles", "texto": "Vamos embora depois disso aqui." },
-    { "cmd": "falar", "quem": "Wins", "texto": "Não. Vamos terminar." },
-    { "cmd": "esperar", "ms": 600 },
-    { "cmd": "falar", "quem": "Wins", "texto": "Se eu esquecer de novo, você me lembra." },
-
-    { "cmd": "controle", "ativo": true },
-    { "cmd": "fim" }
-  ]
+    {
+      "cmd": "controle",
+      "ativo": false
+    },
+    {
+      "cmd": "som",
+      "tipo": "desafinado"
+    },
+    {
+      "cmd": "tremer",
+      "forca": 3,
+      "ms": 400
+    },
+    {
+      "cmd": "tingir",
+      "cor": "#8a8a8a",
+      "forca": 0.45,
+      "ms": 300
+    },
+    {
+      "cmd": "esperar",
+      "ms": 700
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Akles..."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Por que a gente veio aqui mesmo?"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 900
+    },
+    {
+      "cmd": "falar",
+      "quem": "Akles",
+      "texto": "A patrulha. O Sr. Antony mandou."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Que patrulha?"
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Akles",
+      "texto": "Wins."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 1400
+    },
+    {
+      "cmd": "tingir",
+      "cor": "#8a8a8a",
+      "forca": 0,
+      "ms": 1800
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "...a patrulha. Desculpa. A patrulha."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 800
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Eu sabia. Há dez segundos eu sabia."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Akles",
+      "texto": "Vamos embora depois disso aqui."
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Não. Vamos terminar."
+    },
+    {
+      "cmd": "esperar",
+      "ms": 600
+    },
+    {
+      "cmd": "falar",
+      "quem": "Wins",
+      "texto": "Se eu esquecer de novo, você me lembra."
+    },
+    {
+      "cmd": "controle",
+      "ativo": true
+    },
+    {
+      "cmd": "fim"
+    }
+  ],
+  "gatilho": {
+    "tipo": "abates",
+    "corrida": "patio_das_ruinas",
+    "fracao": 0.5,
+    "minimo": 3
+  },
+  "prioridade": 75,
+  "requer": {
+    "bandeira": "wins_no_grupo"
+  }
 }

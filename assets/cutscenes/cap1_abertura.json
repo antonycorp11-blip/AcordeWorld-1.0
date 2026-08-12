@@ -2,7 +2,7 @@
   "id": "cap1_abertura",
   "nome": "Cap. 1 · Cena 0 — A canção que ninguém termina",
   "_": "Sessenta segundos antes de qualquer tutorial. Uma canção de ninar perdendo notas até a mulher não lembrar o resto. O jogador não entende o que viu — vai entender na Cena 9.",
-  "autoStart": false,
+  "autoStart": true,
   "passos": [
     {
       "cmd": "controle",
@@ -174,7 +174,16 @@
       "id": "viu_abertura"
     },
     {
+      "_": "── e o jogador acorda na floresta, sem saber nada disso ──"
+    },
+    {
+      "cmd": "cena",
+      "id": "abertura"
+    },
+    {
       "cmd": "fim"
     }
-  ]
+  ],
+  "mapa": "custom_1785881037059_214",
+  "prioridade": 1
 }
