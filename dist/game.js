@@ -4411,18 +4411,9 @@ async function loadObjetos() {
   propDefs = cfg.props || {};
   objetos = (cfg.objetos || []).map(o => ({ ...o, escala: o.escala || 1 }));
 
-  // No build publicado, restaura objetos da fazenda salvos pelo jogador.
-  if (IS_PLAY_BUILD) {
-    try {
-      const farmRaw = localStorage.getItem('acordelot_farm_v1');
-      if (farmRaw) {
-        const farmObjs = JSON.parse(farmRaw);
-        // Remove quaisquer farm objects que já vieram do JSON para evitar duplicatas
-        objetos = objetos.filter(o => o.mapKey !== 'farm');
-        objetos.push(...farmObjs.map(o => ({ ...o, escala: o.escala || 1 })));
-      }
-    } catch (e) {}
-  }
+  // No build publicado, restaura o que o jogador construiu na fazenda — inclusive o
+  // relógio de cada planta. Um caminho só, em `carregarObjetosDaFazenda`.
+  if (IS_PLAY_BUILD) carregarObjetosDaFazenda();
 
   // Carregar os 200 props do catálogo custava 14,5 MB e 200 recortes no fio principal —
   // e só 25 estão de fato plantados nos mapas. No celular isso é a diferença entre abrir
@@ -4568,8 +4559,14 @@ function renderObjetos(now, lado) {
         if (!v) return;                       // não saiu nesta corrida
         propId = v.prop; fantasma = v.fantasma;
       }
+      // Plantação: a arte é a do ESTÁGIO em que ela está, e o tamanho acompanha o
+      // crescimento. Sem isto uma semente recém-plantada aparecia do tamanho da planta
+      // pronta, e esperar cinco horas não mudava nada na tela.
+      const fase = faseDaCultura(o);
+      if (fase) propId = fase.prop;
       const spr = propSprites[propId];
-      const b = objetoBounds(o);
+      const b = fase ? objetoBounds({ ...o, prop: propId, escala: (o.escala || 1) * fase.escala })
+                     : objetoBounds(o);
       if (!spr) {
         // Sem arte ainda: no editor mostra a marca do lugar, no jogo não mostra nada.
         if (!isPlayMode) {
@@ -4605,6 +4602,10 @@ function renderObjetos(now, lado) {
       ctx.restore();
       if (ehBau(o) && !fantasma && corridaAtiva()) renderBrilhoDoBau(o, b, now);
       if (isPlayMode) renderSinalDeRecurso(o, b, agoraDoQuadro);
+      // Na fazenda, cada plantação diz em que pé está: barra de crescimento, gota quando
+      // secou, estrela quando está pronta. Sem isso a única forma de saber era chegar em
+      // cada uma e ler um aviso.
+      if (o.mapKey === 'farm' && currentScene === 'farm') renderEstadoDaPlanta(o, b, agoraDoQuadro);
 
       if (!isPlayMode) renderMarcaDoObjeto(o, b);
     });
@@ -8481,6 +8482,7 @@ function actionAvailable() {
   // through talkTarget() — they need their own entry.
   if(spotTarget())return 'gather';
   if(propColetavelTarget())return 'gather';
+  if(plantaTarget())return 'fazenda';   // regar/colher usam a mesma ação da coleta
   if(signpostTarget())return 'travel';
   if(forgeDoorTarget())return 'enterForge';
   if(onDoor())return 'enter';
@@ -8559,6 +8561,7 @@ function tryTalk() {
   const act=actionAvailable();
   if(act==='ressoar'){ ressoar(); return; }
   if(act==='attack'){ doAttack(); return; }
+  if(act==='fazenda'){ const p = plantaTarget(); if (p) { cuidarDaPlanta(p); return; } }
   if(act==='gather' && !spotTarget()){
     const alvo = propColetavelTarget();
     if (alvo) { coletarDoProp(alvo); return; }
@@ -10309,13 +10312,17 @@ function colocarObjeto(propId, x, y) {
   objetoSelecionado = o;
   mostrarInspetorDeObjeto(o);
   saveObjetos();
-  // No build publicado, saveObjetos() sai cedo — mas a fazenda precisa persistir.
-  // Salva os objetos da fazenda separadamente no localStorage.
-  if (IS_PLAY_BUILD && currentScene === 'farm') {
-    try {
-      const farmObjs = objetos.filter(ob => ob.mapKey === 'farm');
-      localStorage.setItem('acordelot_farm_v1', JSON.stringify(farmObjs));
-    } catch (e) {}
+  // `saveObjetos` sai na primeira linha no build de jogo, e com razão: ele grava o mundo
+  // AUTORAL. A fazenda tem save próprio, na chave do jogador.
+  if (currentScene === 'farm') {
+    // Plantar já deixa a terra molhada: exigir regar no mesmo segundo em que se planta é
+    // burocracia, e faz o primeiro contato com o sistema parecer defeito.
+    if (culturaDoProp(propId)) {
+      o.crescidoMs = 0;
+      o.regadaAte = agoraNaFazenda() + (FAZENDA ? FAZENDA.rega.minutosParaSecar : 20) * 60000;
+      o.ultimoTique = agoraNaFazenda();
+    }
+    salvarFazenda();
   }
 }
 
@@ -13445,7 +13452,14 @@ function quadro(now){
                 : act==='entrarPorta' ? portaTarget()
                 : act==='martelar' ? marteladaTarget()
                 : act==='gather' ? (spotTarget() || propColetavelTarget())
+                : act==='fazenda' ? plantaTarget()
                 : act==='enterForge' ? forgeDoorTarget() : null;
+      // O rótulo da planta muda com o estado dela: um botão só, três respostas.
+      if (act==='fazenda' && tgt) {
+        const a = acaoDaPlanta(tgt);
+        ACT_PROMPT.fazenda = a==='colher' ? 'E  ·  Colher'
+                           : a==='regar'  ? 'E  ·  Regar' : 'E  ·  Crescendo';
+      }
       if(tgt&&!speech.some(s=>s.npc===tgt)){
         // Prop não é NPC: a caixa dele vem de objetoBounds, senão o balão sai no meio do
         // tronco em vez de acima da copa.
@@ -17419,7 +17433,11 @@ function desenharFicha() {
   const H = fichaDoHeroi(id);
   const pts = document.getElementById('fichaPontos');
   if (pts) {
-    pts.innerHTML = `Conta <b>${level}</b> <em>·</em> <b>${skillPoints}</b> ponto${skillPoints === 1 ? '' : 's'}`
+    // "44 pontos" no topo e "Sem pontos" no bloco de atributos, na MESMA tela, é o que
+    // fazia parecer que o ponto ganho no nível havia desaparecido. São duas moedas
+    // diferentes; agora cada uma diz o próprio nome e onde se gasta.
+    pts.innerHTML = `Conta <b>${level}</b> <em>·</em> <b>${skillPoints}</b>`
+      + ` ponto${skillPoints === 1 ? '' : 's'} de habilidade`
       + ` <em>·</em> <b>${claveCount.toLocaleString('pt-BR')}</b> claves`;
     pts.classList.toggle('vazio', !skillPoints);
   }
@@ -17453,8 +17471,10 @@ function desenharFicha() {
       </div>
       ${blocoDeNivelDoHeroi(id)}
       <div class="fa-pontos${H.attrPoints ? ' tem' : ''}">
-        ${H.attrPoints ? `${H.attrPoints} ponto${H.attrPoints > 1 ? 's' : ''} para distribuir`
-                       : 'Sem pontos — suba o nível deste herói'}
+        ${H.attrPoints ? `${H.attrPoints} ponto${H.attrPoints > 1 ? 's' : ''} de atributo para distribuir`
+                       : (skillPoints
+                          ? `Atributo vem de Partitura, no bloco acima. Seus ${skillPoints} ponto${skillPoints > 1 ? 's' : ''} de habilidade são para as passivas, ao lado. →`
+                          : 'Atributo vem de Partitura — use o bloco acima.')}
       </div>` +
       Object.entries(ATTR_META).map(([k, info]) => `
         <div class="fa-linha">
@@ -18886,8 +18906,27 @@ function fecharEscalaDaForja() {
   }
   // Do campo harmonico nascem sete acordes, um sobre cada grau. Nao e premio avulso:
   // e consequencia direta da escala, e por isso acontece sozinho.
+  //
+  // Existem DOIS registros de acorde, e escrever no errado foi o bug que deixou o bau
+  // vazio: `acordesObtidos` e por GRAU e alimenta a tela antiga da bigorna;
+  // `acordesPossuidos` e por ID e e o que a Composicao le. A forja escrevia so no
+  // primeiro, entao o jogador fechava a escala e nao tinha acorde nenhum para equipar.
   const campo = camposDaEscala(FORJA.tonica);
-  campo.forEach(c => { acordesObtidos[c.grau] = (acordesObtidos[c.grau] || 0) + 1; });
+  campo.forEach(c => {
+    acordesObtidos[c.grau] = (acordesObtidos[c.grau] || 0) + 1;
+    acordesPossuidos[c.id] = (acordesPossuidos[c.id] || 0) + 1;
+  });
+  // A escala entra equipada, e os acordes dela tambem enquanto couber. Fechar a escala e
+  // abrir uma tela onde nada esta em uso parece que a forja nao fez nada.
+  if (!escalasEquipadas.includes(FORJA.tonica)
+      && escalasEquipadas.length < MAX_ESCALAS_EQUIPADAS) {
+    escalasEquipadas.push(FORJA.tonica);
+  }
+  campo.forEach(c => {
+    if (!acordesEquipados.includes(c.id) && acordesEquipados.length < MAX_ACORDES_EQUIPADOS) {
+      acordesEquipados.push(c.id);
+    }
+  });
   progressoDeMissao('montar', 'escala');
   gainXp(120);
   savePlayerData?.();
@@ -21012,6 +21051,18 @@ function idDoAcorde(semitom, qualidade) {
   return base + (qualidade === 'menor' ? 'm' : qualidade === 'dim' ? 'dim' : '');
 }
 
+// A NOTA RAIZ de um acorde, a partir do id dele. O id é a cifra ('Dm', 'Bdim') e os selos
+// em disco são por nota ('re.png'), então usar o id como nome de arquivo dava imagem
+// quebrada em toda casa da pauta. Aqui a volta é feita uma vez, na carga.
+const RAIZ_DO_ACORDE = (() => {
+  const m = {};
+  for (let s = 0; s < 12; s++) {
+    ['maior', 'menor', 'dim'].forEach(q => { m[idDoAcorde(s, q)] = CROMA[s]; });
+  }
+  return m;
+})();
+function raizDoAcorde(id) { return RAIZ_DO_ACORDE[id] || null; }
+
 // O campo harmônico maior. Graus, qualidades e funções são fixos — é o que faz o sistema
 // inteiro funcionar sem tabela por escala.
 const CAMPO_MAIOR = [
@@ -21376,18 +21427,20 @@ function cadenciaDoCompasso(indices) {
 function desenharPautaDaComposicao() {
   const el = document.getElementById('compPauta');
   if (!el) return;
+  // Cada lugar da pauta é UM bloco: a casa e o botão de subir dela, empilhados. Sem esse
+  // embrulho os dois viravam irmãos na mesma linha de flex, e o SUBIR aparecia AO LADO da
+  // casa, do tamanho dela — três casas e três botões alternados, ilegível.
   const casa = i => {
     const id = acordesEquipados[i];
-    if (!id) return `<button class="cp-casa vazia" data-slot="${i}"><i>+</i></button>`;
+    if (!id) return `<div class="cp-slot"><button class="cp-casa vazia" data-slot="${i}"><i>+</i></button></div>`;
     const f = funcaoAtivaDoAcorde(id);
     const ef = f ? EFEITO_DA_FUNCAO[f.grau] : null;
     const cor = ef ? ef.cor : '#64748b';
     // O efeito fica escrito NO lugar: equipar as cegas e o que tornava esta tela inutil.
-    const efeito = ef ? Object.entries(ef.attrs || {})
-      .map(([k, v]) => `${v > 0 ? '+' : ''}${v} ${k}`).join(' · ') : 'fora das escalas equipadas';
-    const nota = (id || '').split(':')[0];
-    return `<button class="cp-casa" data-slot="${i}" style="--c:${cor}">
-      <img class="cp-selo" src="assets/itens/acordes/${nota}.png" alt="">
+    const efeito = ef ? textoDosAtributos(ef.attrs || {}) : '<i>fora das escalas equipadas</i>';
+    const nota = raizDoAcorde(id);
+    return `<div class="cp-slot"><button class="cp-casa" data-slot="${i}" style="--c:${cor}">
+      ${nota ? `<img class="cp-selo" src="assets/itens/acordes/${nota}.png" alt="">` : ''}
       <b>${f ? f.cifra : id}</b>
       <span class="cp-grau">${f ? f.romano : '—'}</span>
       <small>${efeito}</small>
@@ -21396,13 +21449,13 @@ function desenharPautaDaComposicao() {
         // O custo fica NA casa. Menu de melhoria escondido atras de dois cliques e o que
         // faz o jogador nunca descobrir que da para subir.
         const c = custoDoProximoNivel(id);
-        if (!c) return '<div class="cp-max">máximo</div>';
+        if (!c) return '<div class="cp-max">máximo</div></div>';
         const pode = podePagarAcorde(c);
         const parte = (n, v, ico) => v ? `<i class="${ (n==='clave'?claveCount: n==='moeda'?playerCoins: n==='frag'?(playerInventory.fragmento||0):(notasPossuidas[c.notaId]||0)) >= v ? '' : 'falta'}">${ico}${v}</i>` : '';
         return `<button class="cp-subir${pode ? ' pode' : ''}" data-subir="${id}">
           <b>SUBIR</b>
           <span>${parte('clave', c.clave, '𝄞')}${parte('moeda', c.moeda, '⛃')}${parte('frag', c.fragmento, '✧')}${parte('nota', c.nota, '♪')}</span>
-        </button>`;
+        </button></div>`;
       })();
   };
   el.innerHTML = '<div class="cp-clave">𝄞</div>' + COMPASSOS.map((comp, ci) => {
@@ -22183,7 +22236,10 @@ function renderFantasmaDaFazenda(now) {
     ctx.font = 'bold 11px Outfit, sans-serif';
     ctx.textAlign = 'center';
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
-    const t = (podePagar ? '' : 'faltam ') + Math.abs((playerCoins || 0) - def.preco) * 0 + def.preco + ' ⛃';
+    // Era `Math.abs(...) * 0 + def.preco`, sobra de uma edição: o `* 0` anulava a conta e
+    // a etiqueta saía "faltam 0150 ⛃". Sem ouro, o número que importa é o que falta.
+    const t = podePagar ? `${def.preco} ⛃`
+                        : `faltam ${def.preco - (playerCoins || 0)} ⛃`;
     ctx.strokeText(t, x, y + 22);
     ctx.fillStyle = podePagar ? '#fde68a' : '#fca5a5';
     ctx.fillText(t, x, y + 22);
@@ -22216,13 +22272,81 @@ function culturaDoProp(propId) {
   return Object.values(FAZENDA.culturas).find(c => c.prop === propId) || null;
 }
 
+// ── O que o jogador construiu na fazenda é DELE, e tem de sobreviver ao recarregar ──
+// `saveObjetos` sai na primeira linha quando é build de jogo, e com razão: ele grava o
+// mundo AUTORAL, que o jogador não deve poder reescrever. Só que a fazenda também mora em
+// `objetos`, e por isso tudo o que se construía lá — pago com ouro — evaporava no
+// recarregamento. Aqui a fazenda tem o save dela, na chave do jogador, com o sufixo da
+// banca para testar não sujar a partida limpa.
+// A chave da fazenda leva o SUFIXO do save. Sem ele a banca de testes e a partida limpa
+// dividiam a MESMA fazenda: testar sujava a partida boa, que é exatamente o que o par de
+// links existe para evitar.
+const CHAVE_DA_FAZENDA = 'acordelot_farm_v1' + SUFIXO_DO_SAVE;
+
+function salvarFazenda() {
+  try {
+    const meus = objetos.filter(o => o.mapKey === 'farm').map(o => ({
+      id: o.id, prop: o.prop, mapKey: 'farm',
+      x: Math.round(o.x), y: Math.round(o.y),
+      escala: +(o.escala || 1).toFixed(2), flipX: !!o.flipX,
+      // Estado de planta. Sem ele a plantação volta como enfeite: no lugar, sem relógio.
+      crescidoMs: Math.round(o.crescidoMs || 0),
+      regadaAte: Math.round(o.regadaAte || 0),
+      ultimoTique: Math.round(o.ultimoTique || 0),
+    }));
+    localStorage.setItem(CHAVE_DA_FAZENDA, JSON.stringify(meus));
+  } catch (e) { /* cota cheia ou aba privada: perder a fazenda é melhor que travar o jogo */ }
+}
+
+function carregarObjetosDaFazenda() {
+  let lista = null;
+  try {
+    let cru = localStorage.getItem(CHAVE_DA_FAZENDA);
+    // A fazenda que já existe em disco foi gravada sem sufixo. Na partida limpa ela é
+    // adotada uma vez, para ninguém perder o que construiu antes desta correção.
+    if (!cru && !BANCA_DE_TESTES) cru = localStorage.getItem('acordelot_farm_v1');
+    lista = JSON.parse(cru || 'null');
+  } catch (e) { return; }
+  if (!Array.isArray(lista)) return;
+  objetos = objetos.filter(o => o.mapKey !== 'farm');
+  lista.forEach(s => {
+    if (!s || !propDefs[s.prop]) return;   // prop que saiu do catálogo não ressuscita
+    objetos.push({
+      id: s.id || 'fz_' + Math.random().toString(36).slice(2, 9),
+      prop: s.prop, mapKey: 'farm',
+      x: s.x, y: s.y, escala: s.escala || 1, flipX: !!s.flipX,
+      crescidoMs: s.crescidoMs || 0,
+      regadaAte: s.regadaAte || 0,
+      ultimoTique: s.ultimoTique || 0,
+    });
+  });
+  // O tempo passado com o jogo FECHADO conta, porque o relógio é o de parede: é aqui que
+  // o Abeto plantado antes de dormir aparece pronto.
+  const now = agoraNaFazenda();
+  objetos.forEach(o => { if (o.mapKey === 'farm') progressoDaPlanta(o, now); });
+}
+
+// O RELÓGIO DA FAZENDA é o de parede (`Date.now`), não `performance.now`.
+// `performance.now` conta desde que a ABA abriu: ele volta a zero a cada carregamento.
+// Com ele, o Abeto de doze horas — o que existe para ser plantado antes de dormir — nunca
+// crescia, porque o relógio contra o qual o prazo dele foi marcado reiniciava junto com a
+// página. Um sistema de fazenda cujo tempo não sobrevive ao recarregar não é sistema.
+function agoraNaFazenda() { return Date.now(); }
+
 // Quanto da vida da planta já passou, de 0 a 1. Só conta o tempo em que ela esteve
 // REGADA: o relógio de uma planta seca fica parado.
 function progressoDaPlanta(o, now) {
   const c = culturaDoProp(o.prop);
   if (!c) return 0;
-  if (o.regadaAte && now < o.regadaAte) {
-    o.crescidoMs = (o.crescidoMs || 0) + (now - (o.ultimoTique || now));
+  now = now || agoraNaFazenda();
+  // Conta até onde a água ALCANÇOU, não até agora. Regar e voltar três horas depois tem
+  // de render os vinte minutos que a água durou; a versão anterior comparava `now` com o
+  // prazo e, achando o prazo vencido, creditava zero — regar não fazia diferença nenhuma
+  // para quem não ficasse olhando a planta.
+  if (o.regadaAte) {
+    const ate = Math.min(now, o.regadaAte);
+    const de  = o.ultimoTique || ate;
+    if (ate > de) o.crescidoMs = (o.crescidoMs || 0) + (ate - de);
   }
   o.ultimoTique = now;
   return Math.max(0, Math.min(1, (o.crescidoMs || 0) / (c.minutos * 60000)));
@@ -22235,24 +22359,27 @@ function estagioDaPlanta(o, now) {
 }
 
 function plantaPronta(o, now) { return progressoDaPlanta(o, now) >= 1; }
-function plantaSeca(o, now)   { return !(o.regadaAte && now < o.regadaAte); }
+function plantaSeca(o, now)   { return !(o.regadaAte && (now || agoraNaFazenda()) < o.regadaAte); }
 
 function regar(o) {
   if (!FAZENDA || !culturaDoProp(o.prop)) return false;
-  const now = performance.now();
+  const now = agoraNaFazenda();
+  progressoDaPlanta(o, now);          // credita o que a água anterior ainda devia
   o.regadaAte = now + FAZENDA.rega.minutosParaSecar * 60000;
   o.ultimoTique = now;
   addFloater(o.x, o.y - 30, '💧', '#7dd3fc');
+  salvarFazenda();
   return true;
 }
 
 function colher(o) {
   const c = culturaDoProp(o.prop);
   if (!c) return false;
-  const now = performance.now();
+  const now = agoraNaFazenda();
   if (!plantaPronta(o, now)) {
     const falta = Math.ceil((1 - progressoDaPlanta(o, now)) * c.minutos);
-    showToast(`${c.nome}: faltam ~${falta} min` + (plantaSeca(o, now) ? ' — e está seca.' : ''));
+    showToast(`${c.nome}: faltam ~${textoDeEspera(falta * 60000)}`
+      + (plantaSeca(o, now) ? ' — e está seca. Regue para o relógio voltar a andar.' : ''));
     return false;
   }
   playerInventory[c.prop] = (playerInventory[c.prop] || 0) + c.rende;
@@ -22260,11 +22387,100 @@ function colher(o) {
   progressoDeMissao('coletar', c.prop, c.rende);
   gainXp(8 + Math.round(c.minutos / 6));
   // Perene volta ao penúltimo estágio; anual some e deixa o canteiro livre.
-  if (c.perene) { o.crescidoMs = c.minutos * 60000 * 0.55; }
+  if (c.perene) { o.crescidoMs = c.minutos * 60000 * 0.55; o.regadaAte = 0; o.ultimoTique = 0; }
   else objetos = objetos.filter(x => x !== o);
   updateInventorySlotsUI();
   savePlayerData();
+  salvarFazenda();
   return true;
+}
+
+// Em que fase a planta está para DESENHO: qual sprite e em que tamanho.
+// A folha de plantações saiu do recorte com as linhas irregulares — três culturas têm
+// quatro estágios de arte, outras têm duas, o trigo tem uma só. Então o estágio é escolhido
+// entre os sprites que a cultura REALMENTE tem, e o tamanho cobre o resto do caminho: uma
+// cultura de dois sprites cresce em arte no meio da vida e em tamanho o tempo todo.
+function faseDaCultura(o) {
+  const c = culturaDoProp(o.prop);
+  if (!c || !c.sprites || !c.sprites.length) return null;
+  const p = Math.max(0, Math.min(1, (o.crescidoMs || 0) / (c.minutos * 60000)));
+  const i = Math.min(c.sprites.length - 1, Math.floor(p * c.sprites.length));
+  // Quanto mais arte a cultura tem, menos o tamanho precisa trabalhar.
+  const piso = c.sprites.length >= 4 ? 0.82 : c.sprites.length >= 3 ? 0.72 : 0.58;
+  return { prop: c.sprites[i], escala: piso + (1 - piso) * p };
+}
+
+// ── O botão: é ele que faltava ────────────────────────────────────────────────
+// Regar e colher existiam escritos e ninguém os chamava — a fazenda inteira era código
+// morto, dava para construir e mais nada. Aqui elas entram na MESMA ação de sempre, a
+// que já colhe madeira e pedra: um botão, e o que ele faz depende do estado da planta.
+// Reaproveitar esse caminho é o que garante que funcione no dedo, no celular, deitado.
+function plantaTarget() {
+  if (currentScene !== 'farm' || playerLocked || propParaColocar) return null;
+  let melhor = null, menor = Infinity;
+  for (const o of objetos) {
+    if (o.mapKey !== 'farm' || !culturaDoProp(o.prop)) continue;
+    const d = Math.hypot(player.x - o.x, player.y - o.y);
+    if (d <= RAIO_DE_COLETA && d < menor) { melhor = o; menor = d; }
+  }
+  return melhor;
+}
+
+// O que o botão vai fazer nesta planta, em uma palavra. Serve ao rótulo e à ação, para as
+// duas nunca discordarem.
+function acaoDaPlanta(o) {
+  const now = agoraNaFazenda();
+  if (plantaPronta(o, now)) return 'colher';
+  if (plantaSeca(o, now)) return 'regar';
+  return 'esperar';
+}
+
+function cuidarDaPlanta(o) {
+  const c = culturaDoProp(o.prop);
+  if (!c) return;
+  const now = agoraNaFazenda();
+  switch (acaoDaPlanta(o)) {
+    case 'colher': colher(o); break;
+    case 'regar':  regar(o); showToast(`${c.nome} regada. O relógio volta a andar por ${FAZENDA ? FAZENDA.rega.minutosParaSecar : 20} min.`); break;
+    default: {
+      const falta = Math.ceil((1 - progressoDaPlanta(o, now)) * c.minutos);
+      const seca = Math.max(0, Math.ceil((o.regadaAte - now) / 60000));
+      showToast(`${c.nome}: faltam ~${textoDeEspera(falta * 60000)}. Água por ${seca} min.`);
+    }
+  }
+}
+
+// A barra em cima da planta: estágio, se está pronta e se secou. Sem isto o jogador não
+// tem como saber que aquela plantação está esperando água em vez de esperando tempo.
+function renderEstadoDaPlanta(o, b, agora) {
+  const c = culturaDoProp(o.prop);
+  if (!c) return;
+  const now = agoraNaFazenda();
+  const p = progressoDaPlanta(o, now);
+  const pronta = p >= 1, seca = plantaSeca(o, now);
+  const x = o.x, y = b.y - 8, L = 30;
+  ctx.save();
+  if (pronta) {
+    // Pronta não precisa de barra cheia: precisa de chamado. Sobe e desce para o olho achar.
+    const bob = Math.sin(agora * 0.005) * 2;
+    ctx.font = 'bold 13px Outfit, sans-serif'; ctx.textAlign = 'center';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
+    ctx.strokeText('✦', x, y + bob); ctx.fillStyle = '#fde68a';
+    ctx.fillText('✦', x, y + bob);
+  } else {
+    ctx.fillStyle = 'rgba(6,9,14,.75)';
+    ctx.fillRect(x - L / 2 - 1, y - 4, L + 2, 5);
+    ctx.fillStyle = seca ? '#a16207' : '#4ade80';
+    ctx.fillRect(x - L / 2, y - 3, L * p, 3);
+    if (seca) {
+      ctx.font = 'bold 10px Outfit, sans-serif'; ctx.textAlign = 'center';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
+      ctx.strokeText('💧', x, y - 7); ctx.fillStyle = '#7dd3fc';
+      ctx.fillText('💧', x, y - 7);
+    }
+  }
+  ctx.textAlign = 'left';
+  ctx.restore();
 }
 
 // Alimentar um Eco: ele devolve fragmento da nota DELE, e o dobro se a comida for da
@@ -22284,7 +22500,7 @@ function alimentarEco(m, propId) {
   addFloater(m.x, m.y - 46, `+${qtd} fragmento de ${def.notaDoEco.toUpperCase()}`, '#a7f3d0');
   showToast(dobro ? `${def.name} reconheceu a própria nota — rendeu o dobro.`
                   : `${def.name} comeu. Comida da nota dele renderia mais.`);
-  m.alimentadoEm = performance.now();
+  m.alimentadoEm = agoraNaFazenda();
   updateInventorySlotsUI();
   savePlayerData();
   return true;

@@ -5896,7 +5896,14 @@ body.jogando .party-hud { top: 46%; }
 .fc-valor  { font-size: 13px; font-weight: 700; color: #f2e3b6; }
 
 /* Barras segmentadas: dez blocos, acesos até o valor. */
-.ficha-barras { display: flex; flex-direction: column; gap: 6px; }
+/* O bloco dos atributos mede 285px e em paisagem de celular a coluna tem 290px NO TOTAL,
+   contando retrato e nível de poder: a última linha de atributo caía 111px abaixo da
+   borda da tela, e como o quadro é `overflow: hidden` e nenhum pai rolava, ela ficava
+   simplesmente inalcançável. É preciso um `min-height: 0` junto: sem ele o item de flex
+   se recusa a encolher abaixo do conteúdo e o `auto` nunca chega a rolar. */
+.ficha-barras { display: flex; flex-direction: column; gap: 6px;
+                overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch;
+                scrollbar-width: thin; padding-right: 2px; }
 .fb-linha { display: grid; grid-template-columns: 74px 1fr; align-items: center; gap: 8px; }
 .fb-nome { font-size: 9.5px; font-weight: 700; letter-spacing: .13em; color: #a9b4d4; }
 .fb-segs { display: flex; gap: 2px; }
@@ -6013,8 +6020,8 @@ body.jogando .party-hud { top: 46%; }
 
 /* Paisagem apertada de celular: encolhe tipografia e a coluna de passivas em vez de
    deixar o layout estourar para fora do quadro. */
-@media (max-height: 460px) {
-  .ficha-corpo { grid-template-columns: 108px minmax(140px, .9fr) minmax(250px, 1.6fr); gap: 8px; padding: 8px; }
+@media (max-height: 560px) {
+  .ficha-corpo { grid-template-columns: 108px minmax(150px, 1fr) minmax(230px, 1.5fr); gap: 8px; padding: 8px; }
   .ficha-nome { font-size: 18px; }
   .ficha-aba { padding: 6px 8px; font-size: 10px; }
   .ficha-hab { padding: 6px; grid-template-columns: 1fr 92px; }
@@ -6023,6 +6030,12 @@ body.jogando .party-hud { top: 46%; }
   .fh-pass { width: 36px; height: 36px; font-size: 13px; }
   .ficha-heroi-chip { width: 34px; height: 34px; }
   .fb-seg { height: 7px; }
+  /* O retrato tinha `flex: 1 1 auto` e comia a altura toda antes de os atributos
+     existirem. Em tela baixa ele cede o espaço: quem o jogador veio ver aqui é o número,
+     não o desenho — o desenho ele vê andando. */
+  .ficha-moldura { flex: 0 0 auto; height: 78px; min-height: 0; }
+  .ficha-poder { padding: 4px 8px; }
+  .fa-linha { gap: 5px; }
 }
 
 /* Duas moedas no topo da ficha: ponto de habilidade e claves. */
@@ -7238,12 +7251,31 @@ body.jogando .party-hud.calmo { opacity: .62; }
 }
 .comp-poder b { font-size: 18px; color: #ffe9ab; }
 
-@media (max-height: 460px) {
-  .comp-corpo { grid-template-columns: 1fr 1.4fr; gap: 7px; }
+/* No celular a grade de duas colunas dava 127px para a coluna da esquerda — e é nela que
+   ficam a pauta e o baú. Os acordes existiam, cabiam em um talo de tela e o "Guardados"
+   caía abaixo da dobra de uma coluna que ninguém percebia que rolava. Em tela de celular
+   (paisagem baixa ou retrato estreito) a tela vira UMA coluna só, com um scroll só, e a
+   ordem passa a ser a da decisão: que escala → onde encaixo → o que tenho guardado. */
+@media (max-height: 560px), (max-width: 900px) {
+  .comp-corpo { display: block; overflow-y: auto; -webkit-overflow-scrolling: touch;
+                margin-top: 6px; padding-right: 2px; }
+  .comp-col { overflow: visible; padding-right: 0; }
+  .comp-col + .comp-col { margin-top: 4px; padding-top: 6px;
+                          border-top: 1px solid rgba(169,126,44,.25); }
+  /* A pauta ganha a largura inteira: é o único jeito de os três compassos caberem. */
+  .comp-pauta { margin: 4px -2px; }
+  .cp-casa { width: 68px; min-height: 56px; }
+  .cp-compasso { padding: 0 5px; }
+  .cp-casas { gap: 4px; }
   .ac-campo { grid-template-columns: repeat(auto-fill, minmax(122px, 1fr)); }
   .ac-cifra { font-size: 16px; }
   .ac-desc { display: none; }
-  .comp-acorde { width: 44px; }
+}
+/* A lista de equipados repetia, em botão pequeno, o que a pauta já mostra em tamanho
+   grande e com efeito escrito. Duas vezes a mesma coisa em tela de celular é o que
+   empurrava o baú para fora da vista. */
+@media (max-height: 560px), (max-width: 900px) {
+  #compAcordes { display: none; }
 }
 
 /* Nível do herói na ficha: XP, Partitura e ascensão. */
@@ -7692,9 +7724,15 @@ body.em-cena #questNotification { display: none !important; }
                 to bottom, transparent 0 22px, rgba(251,191,36,.20) 22px 23px); }
 .cp-clave { font-size: 34px; color: #fbbf24; padding: 0 10px 0 4px; align-self: center; }
 .cp-compasso { display: flex; flex-direction: column; gap: 5px; padding: 0 8px; }
-.cp-casas { display: flex; gap: 6px; }
+/* `stretch` + `space-between` alinha os botões de SUBIR na base do compasso mesmo quando
+   uma casa é mais alta que a outra — o vii° tem três efeitos e empurrava o botão dele
+   para baixo, deixando a linha torta. */
+.cp-casas { display: flex; gap: 6px; align-items: stretch; }
+/* Um lugar da pauta: a casa e o botão de subir DELA, empilhados. */
+.cp-slot { display: flex; flex-direction: column; gap: 3px; width: 84px;
+           justify-content: space-between; }
 .cp-barra { width: 2px; background: rgba(251,191,36,.35); margin: 4px 2px; }
-.cp-casa { width: 84px; min-height: 62px; padding: 5px 4px; cursor: pointer;
+.cp-casa { width: 100%; min-height: 62px; padding: 5px 4px; cursor: pointer;
            background: #1d1729; border: 1px solid var(--c, #3b2d52); border-radius: 8px;
            color: #e9d5ff; display: flex; flex-direction: column; gap: 1px; text-align: center; }
 .cp-casa b { color: var(--c, #e9d5ff); font-size: 13px; }
@@ -7702,15 +7740,18 @@ body.em-cena #questNotification { display: none !important; }
 .cp-casa small { font-size: 8.5px; color: #cbbfe0; line-height: 1.2; }
 .cp-casa.vazia { border-style: dashed; opacity: .55; align-items: center; justify-content: center; }
 .cp-casa.vazia i { font-size: 20px; font-style: normal; color: #7c5cab; }
-.cp-sinergia { min-height: 26px; text-align: center; }
+/* A descrição da cadência é mais larga que o compasso e vazava por cima do compasso
+   vizinho, fazendo o texto de um parecer legenda do outro. */
+.cp-sinergia { min-height: 26px; text-align: center; overflow: hidden; }
 .cp-sinergia b { display: block; font-size: 10px; color: #4ade80; letter-spacing: .05em; }
-.cp-sinergia small { font-size: 8.5px; color: #a79bc2; }
+.cp-sinergia small { display: block; font-size: 8.5px; color: #a79bc2; line-height: 1.15;
+                     overflow: hidden; text-overflow: ellipsis; }
 .com-sinergia .cp-casas { box-shadow: 0 0 0 1px rgba(74,222,128,.5); border-radius: 10px; }
 .cp-selo { width: 30px; height: 30px; image-rendering: pixelated; display: block;
            margin: 0 auto 1px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
 .cp-nivel { font-size: 8px; color: #fbbf24; letter-spacing: .08em; }
 .cp-max { font-size: 8px; color: #4ade80; text-align: center; margin-top: 2px; }
-.cp-subir { width: 84px; margin-top: 3px; padding: 3px 2px; cursor: pointer;
+.cp-subir { width: 100%; padding: 3px 2px; cursor: pointer;
             background: #221a30; border: 1px solid #3b2d52; border-radius: 6px;
             color: #a79bc2; display: flex; flex-direction: column; gap: 1px; }
 .cp-subir.pode { border-color: #4ade80; color: #bbf7d0; }
@@ -7718,3 +7759,25 @@ body.em-cena #questNotification { display: none !important; }
 .cp-subir span { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; }
 .cp-subir i { font-style: normal; font-size: 8px; color: #cbbfe0; }
 .cp-subir i.falta { color: #fca5a5; }
+
+/* ── A pauta em tela de celular ────────────────────────────────────────────────
+   Nove casas de 84px não cabem em 812px de paisagem: a pauta rolava de lado e o jogador
+   via cinco acordes e não sabia que havia mais quatro. Aqui a casa encolhe para caber a
+   frase inteira de uma vez — ver os três compassos juntos é o ponto da tela.
+   Estas regras vêm DEPOIS das de cima de propósito: a versão anterior estava antes e
+   perdia para elas, então nada mudava no celular.                                      */
+@media (max-height: 560px), (max-width: 900px) {
+  .comp-pauta { padding: 7px 4px; margin-bottom: 5px;
+                background-image: repeating-linear-gradient(
+                  to bottom, transparent 0 19px, rgba(251,191,36,.20) 19px 20px); }
+  .cp-clave { font-size: 26px; padding: 0 5px 0 2px; }
+  .cp-compasso { padding: 0 4px; gap: 3px; }
+  .cp-casas { gap: 3px; }
+  .cp-slot { width: 66px; gap: 2px; }
+  .cp-casa { min-height: 52px; padding: 4px 2px; }
+  .cp-casa b { font-size: 12px; }
+  .cp-casa small { font-size: 8px; }
+  .cp-selo { width: 22px; height: 22px; }
+  .cp-sinergia { min-height: 20px; }
+  .cp-barra { margin: 2px 1px; }
+}
