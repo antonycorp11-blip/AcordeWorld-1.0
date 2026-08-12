@@ -4552,7 +4552,13 @@ body.mobile-play #gameCanvas {
    existe por um motivo: sem ela o fragmento entra na bolsa em silêncio e a captura
    não parece ter acontecido. Ancorada na área jogável, como o drawer. */
 .cap-reveal {
-  position: fixed; z-index: 60;
+  /* `inset: 0` e `pointer-events: auto` nao sao detalhe: este painel mora DENTRO do
+     #touchControls, que e `pointer-events: none` para nao roubar o toque do canvas. O
+     painel herdava isso — aparecia na tela, mostrava o que caiu, e o dedo atravessava
+     direto para o cenario. O botao Guardar funcionava; ninguem conseguia alcanca-lo, e
+     como o painel aberto tranca o ataque, o jogo ficava preso. Sem o `inset` ele tambem
+     nao cobria a tela: nascia colado no canto de cima. */
+  position: fixed; inset: 0; z-index: 60; pointer-events: auto;
   display: flex; align-items: center; justify-content: center;
   background: radial-gradient(circle at 50% 45%, rgba(12,20,32,.72), rgba(2,4,8,.92));
   animation: capFade .25s ease-out;
@@ -7803,3 +7809,22 @@ body.em-cena #questNotification { display: none !important; }
 .jr-larga { background: linear-gradient(#3a2b18, #241a0e); border-color: #a97e2c; color: #f4dfa4; }
 .jr-item.travada { opacity: .5; }
 .jr-item.feita .ms-cab b { color: #7c8bb0; }
+/* Arte de item que e PNG solto (fragmento, clave, tom) na tela da captura. */
+.cap-arte { display: block; width: 46px; height: 46px; object-fit: contain;
+            margin: 0 auto 4px; image-rendering: pixelated;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,.6)); }
+
+/* ── O que a missao paga ──────────────────────────────────────────────────────
+   Escrito onde o jogador decide se vai. Antes o pergaminho nao prometia nada e ele
+   aceitava no escuro. */
+.ms-premio { display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+             margin-top: 7px; padding-top: 6px;
+             border-top: 1px solid rgba(169,126,44,.28); }
+.ms-premio-rot { font-size: 8.5px; letter-spacing: .14em; text-transform: uppercase;
+                 color: #8b96bb; font-weight: 700; }
+.ms-premio i { font-style: normal; font-size: 10px; font-weight: 700; color: #f4e2b0;
+               padding: 2px 7px; border-radius: 999px;
+               background: rgba(60,46,16,.55); border: 1px solid rgba(169,126,44,.4); }
+.ms-premio.pago i { color: #8b96bb; background: rgba(30,36,54,.5);
+                    border-color: rgba(107,124,180,.3); }
+.jr-premio { border-top-color: rgba(107,140,200,.25); }

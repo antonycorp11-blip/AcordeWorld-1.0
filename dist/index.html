@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=bee786cb3a">
+  <link rel="stylesheet" href="style.css?v=8fcc3b26db">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -254,10 +254,8 @@
             </div>
           </div>
 
-          <!-- Botão Modo Fazenda -->
-          <button id="btnBuildMode" class="btn-build-mode hidden" title="Modo Fazenda (B)">
-            <span>🔨</span><small>FAZENDA</small>
-          </button>
+          <!-- O botão da Fazenda mora na fileira do HUD, com os outros. Ficava solto no
+               meio da tela, tapando o cenário e disputando espaço com o manche. -->
 
           <!-- Barra de Categorias da Fazenda -->
           <div id="farmToolbar" class="farm-toolbar hidden">
@@ -342,6 +340,9 @@
               </button>
               <button id="missoesBtn" class="icon-btn trancado" title="Missões (J)">
                 <span class="hud-emoji">📜</span>
+              </button>
+              <button id="btnBuildMode" class="icon-btn trancado hidden" title="Fazenda (B)">
+                <span class="hud-emoji">🔨</span>
               </button>
               <button id="somBtn" class="icon-btn" title="Trilha sonora">
                 <span class="hud-emoji">🎵</span>
@@ -1160,6 +1161,6 @@
 ">🔄 Enviar minhas ruas</button>
 
 <script src="config.js?v=20260807161410"></script>
-<script src="game.js?v=a3f1615b50"></script>
+<script src="game.js?v=75b9cac780"></script>
 </body>
 </html>

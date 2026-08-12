@@ -1505,10 +1505,7 @@ function verificarMissoesConcluidas() {
       updateInventorySlotsUI?.();
     }
     grantXp(q.xp ?? 60);
-    if (q.recompensa?.moedas) {
-      playerInventory.coins = (playerInventory.coins || 0) + q.recompensa.moedas;
-      updateInventorySlotsUI?.();
-    }
+    pagarRecompensa(q.recompensa);
     showToast(`🏆 Missão concluída: ${q.title}`);
     refreshQuestPanel();
     savePlayerData();
@@ -1546,9 +1543,31 @@ let _rastAssinatura = '', _rastRecolher = null;
 function atualizarRastreador() {
   const el = document.getElementById('questTracker');
   if (!el) return;
-  if (!isPlayMode || !activeQuests.length) { el.classList.add('hidden'); return; }
+  if (!isPlayMode) { el.classList.add('hidden'); return; }
+
+  // A CENA ACEITA ganha do resto: se o jogador acabou de aceitar seguir a historia, o que
+  // ele quer ler embaixo da barra de vida e para onde ir, e nao a missao de coleta que
+  // ficou aberta ha meia hora.
+  if (cenaAceita) {
+    const c = CUT.roteiros.find(x => x.id === cenaAceita);
+    if (c && !cenaJaRodou(c)) {
+      el.innerHTML = `<div class="qt-title">📖 ${c.nome || c.id}</div>`
+        + `<ul class="qt-objs"><li class="agora">☐ ${ondeAconteceACena(c)}</li></ul>`;
+      el.classList.remove('hidden');
+      el.onclick = () => { el.classList.toggle('recolhido'); clearTimeout(_rastRecolher); };
+      const a1 = el.innerHTML;
+      if (a1 !== _rastAssinatura) {
+        _rastAssinatura = a1; el.classList.remove('recolhido');
+        clearTimeout(_rastRecolher);
+        _rastRecolher = setTimeout(() => el.classList.add('recolhido'), 6000);
+      }
+      return;
+    }
+  }
+  if (!activeQuests.length) { el.classList.add('hidden'); return; }
 
   const q = missaoAtual() || activeQuests[0];
+  if (!q) { el.classList.add('hidden'); return; }
   let linhas_marcou = false;
   const linhas = q.objectives.map(o => {
     const bloqueado = !o.completed && !objetivoLiberado(q, o);
@@ -5327,6 +5346,13 @@ function mostrarRevelacaoDaCaptura(itens, silenciado, qualidade = 0) {
     casa.className = 'cap-item';
     const cv = miniCanvas(spriteDoItem(i.id), 46);
     if (cv) casa.appendChild(cv);
+    else if (info.arte) {
+      // Item cuja arte e um PNG solto, nao uma celula de folha — e o caso de todo
+      // fragmento. O painel so sabia desenhar folha, e por isso caia no emoji.
+      const img = document.createElement('img');
+      img.src = info.arte; img.alt = ''; img.className = 'cap-arte';
+      casa.appendChild(img);
+    }
     else { const e = document.createElement('span'); e.className = 'cap-emoji'; e.textContent = info.emoji || '✦'; casa.appendChild(e); }
     const nome = document.createElement('div');
     nome.className = 'cap-nome'; nome.style.color = info.cor || '#fde68a';
@@ -15684,6 +15710,34 @@ function infoDoItem(id) {
   }
   const t = CRAFTABLE_TOOLS.find(x => x.id === id);
   if (t) return { nome: t.name, tipo: 'Ferramenta · ' + t.rarity, cor: t.color, desc: t.desc, origem: 'Forjada na ferraria.' };
+  // FRAGMENTO e o que mais cai no jogo, e era o unico sem verbete: a tela da captura caia
+  // no `✦` generico justamente para o item que o jogador ve mais vezes. A arte ja existia
+  // em disco, uma por nota.
+  if (id.startsWith('frag_')) {
+    const n = notaPorId(id.slice(5));
+    return { nome: `Fragmento de ${n ? n.nome : id.slice(5)}`, tipo: 'Fragmento',
+             cor: n && !n.natural ? '#7dd3fc' : '#fde68a',
+             arte: caminhoFrag(id.slice(5)),
+             desc: 'Pedaço de som. Vários da mesma nota condensam numa nota inteira.',
+             origem: 'Cai de Eco capturado.' };
+  }
+  if (id === 'fragmento_puro') return { nome: 'Fragmento puro', tipo: 'Fragmento',
+    cor: '#a7f3d0', arte: 'assets/itens/fragmentos/tom.png',
+    desc: 'Vale três comuns na síntese.', origem: 'Sai de captura limpa.' };
+  if (id === 'tom' || id === 'semitom') return { nome: id === 'tom' ? 'Tom' : 'Semitom',
+    tipo: 'Intervalo', cor: '#c4b5fd', arte: `assets/itens/fragmentos/${id}.png`,
+    desc: 'Serve para montar escala no Altar.', origem: 'Cai em dungeon e captura.' };
+  if (id.startsWith('alma_')) {
+    const n = notaPorId(id.slice(5));
+    return { nome: `Alma de ${n ? n.nome : id.slice(5)}`, tipo: 'Alma de Eco',
+             cor: '#a7f3d0', emoji: '✦',
+             desc: 'Cinco da mesma nota invocam um Eco na fazenda.',
+             origem: 'Cai de Eco capturado.' };
+  }
+  if (id === 'clave') return { nome: 'Clave', tipo: 'Moeda', cor: '#fcd34d',
+    arte: 'assets/itens/clave_1.png', origem: 'Cai em combate.' };
+  if (id === 'partitura') return { nome: 'Partitura', tipo: 'Treino', cor: '#f4e2b0',
+    emoji: '🎼', desc: 'Sobe o nível do herói.', origem: 'Dungeon e captura de Eco.' };
   return null;
 }
 
@@ -22158,7 +22212,57 @@ function blocoDeNivelDoHeroi(id) {
 // missão que o jogador esquece. A tela cheia mostra as três categorias.
 let abaDeMissoes = 'jornada';
 
-function missaoAtual() { return activeQuests[0] || null; }
+// A missao que o jogador esta DE FATO fazendo. Era `activeQuests[0]` — a mais antiga que
+// ele aceitou, que quase nunca e a de agora. O rastreador embaixo da barra de vida ficava
+// preso numa missao velha enquanto ele trabalhava em outra, e passava a impressao de que
+// o jogo nao sabia onde ele estava.
+// Ordem de preferencia: a que tem objetivo LIBERADO e por fazer, a mais recente primeiro.
+// Missao cujos objetivos estao todos travados nao e a de agora: e a de depois.
+// O que uma missao paga. Antes so `moedas` era pago, entao so moeda podia ser prometida —
+// e o pergaminho nao tinha o que mostrar. Aqui entram as moedas de verdade do jogo.
+function pagarRecompensa(r) {
+  if (!r) return;
+  if (r.moedas)    playerInventory.coins = (playerInventory.coins || 0) + r.moedas;
+  if (r.claves)    claveCount += r.claves;
+  if (r.partitura) playerInventory.partitura = (playerInventory.partitura || 0) + r.partitura;
+  if (r.fragmento) {
+    // Fragmento cai por NOTA, como em todo o resto do jogo: po generico nao ensina nada.
+    for (let i = 0; i < r.fragmento; i++) {
+      const n = CROMATICA[Math.floor(Math.random() * CROMATICA.length)];
+      playerInventory['frag_' + n.id] = (playerInventory['frag_' + n.id] || 0) + 1;
+    }
+  }
+  if (r.passe) passesDeDungeon += r.passe;   // passe e um numero so, nao um por dungeon
+  if (r.itens) Object.entries(r.itens).forEach(([k, n]) => {
+    playerInventory[k] = (playerInventory[k] || 0) + n;
+  });
+  updateInventorySlotsUI?.();
+}
+
+// Recompensa em texto, para o pergaminho poder PROMETER o que o motor de fato paga.
+const ICONE_DA_RECOMPENSA = { xp: '✦', moedas: '⛃', claves: '𝄞', partitura: '🎼',
+                              fragmento: '✧', passe: '🎟️' };
+function textoDaRecompensa(q) {
+  const r = q.recompensa || {};
+  const partes = [];
+  if (q.xp) partes.push(`${ICONE_DA_RECOMPENSA.xp} ${q.xp} XP`);
+  if (r.moedas)    partes.push(`${ICONE_DA_RECOMPENSA.moedas} ${r.moedas}`);
+  if (r.claves)    partes.push(`${ICONE_DA_RECOMPENSA.claves} ${r.claves} claves`);
+  if (r.partitura) partes.push(`${ICONE_DA_RECOMPENSA.partitura} ${r.partitura} Partitura${r.partitura > 1 ? 's' : ''}`);
+  if (r.fragmento) partes.push(`${ICONE_DA_RECOMPENSA.fragmento} ${r.fragmento} fragmentos`);
+  if (r.passe) partes.push(`${ICONE_DA_RECOMPENSA.passe} ${r.passe} passe${r.passe > 1 ? 's' : ''} de dungeon`);
+  if (r.itens) Object.entries(r.itens).forEach(([k, n]) =>
+    partes.push(`${(infoDoItem(k) || {}).nome || k} ×${n}`));
+  return partes;
+}
+
+function missaoAtual() {
+  for (let i = activeQuests.length - 1; i >= 0; i--) {
+    const q = activeQuests[i];
+    if ((q.objectives || []).some(o => !o.completed && objetivoLiberado(q, o))) return q;
+  }
+  return activeQuests[activeQuests.length - 1] || null;
+}
 function objetivoAtual(q) {
   return (q && (q.objectives || []).find(o => !o.completed)) || null;
 }
@@ -22178,16 +22282,23 @@ let _hmAssinatura = '', _hmEsconder = null;
 function atualizarMissaoNoHud(forcar = false) {
   const cx = document.getElementById('hudMissao');
   if (!cx) return;
-  const q = missaoAtual();
-  const podeAparecer = !!q && personagemAndando() && !fichaAberta() && !CUT.ativo
+  // A CENA ACEITA ganha da missao: se o jogador acabou de aceitar seguir a historia, o que
+  // ele precisa ler aqui e para onde ir. Antes esta caixa mostrava `activeQuests[0]` — a
+  // missao mais VELHA que ele tinha aberto — e ficava dizendo uma coisa enquanto ele fazia
+  // outra. Era o "texto fixo que nao e a missao atual".
+  const cAceita = cenaAceita ? CUT.roteiros.find(x => x.id === cenaAceita) : null;
+  const q = (cAceita && !cenaJaRodou(cAceita)) ? null : missaoAtual();
+  const podeAparecer = !!(q || cAceita) && personagemAndando() && !fichaAberta() && !CUT.ativo
                   && document.getElementById('playerHud')
                   && !document.getElementById('playerHud').classList.contains('hidden');
   if (!podeAparecer) { cx.classList.add('hidden'); return; }
 
-  const o = objetivoAtual(q);
-  const nome = q.title || q.id;
-  const obj = o ? (o.text || '') + (o.quantidade ? ` (${o.progresso || 0}/${o.quantidade})` : '')
-                : 'Volte para entregar';
+  const o = q ? objetivoAtual(q) : null;
+  const nome = q ? (q.title || q.id) : ('📖 ' + (cAceita.nome || cAceita.id));
+  const obj = q
+    ? (o ? (o.text || '') + (o.quantidade ? ` (${o.progresso || 0}/${o.quantidade})` : '')
+         : 'Volte para entregar')
+    : ondeAconteceACena(cAceita);
   const assinatura = nome + '|' + obj;
 
   if (assinatura !== _hmAssinatura || forcar) {
@@ -22216,6 +22327,30 @@ function abrirMissoes() {
 }
 function fecharMissoes() { document.getElementById('telaMissoes')?.classList.add('hidden'); }
 
+// O que a missao paga, escrito onde o jogador decide se vai. Prometer o que o motor de
+// fato entrega e o minimo — antes o pergaminho nao dizia nada e ele aceitava no escuro.
+function premioEmHtml(q, jaFeita) {
+  const partes = textoDaRecompensa(q);
+  if (!partes.length) return '';
+  return `<div class="ms-premio${jaFeita ? ' pago' : ''}">
+    <span class="ms-premio-rot">${jaFeita ? 'Recebido' : 'Recompensa'}</span>
+    ${partes.map(t => `<i>${t}</i>`).join('')}</div>`;
+}
+
+// Na Jornada a cena mostra o premio da missao que ELA abre: e o que responde "vale a pena
+// aceitar agora?" sem obrigar a trocar de aba.
+function premioDaCenaEmHtml(c) {
+  const ids = (c.passos || []).filter(p => p.cmd === 'missao' && p.id).map(p => p.id);
+  const qs = ids.map(id => (questsData || []).find(q => q.id === id)).filter(Boolean);
+  if (!qs.length) return '';
+  return qs.map(q => {
+    const partes = textoDaRecompensa(q);
+    return `<div class="ms-premio jr-premio">
+      <span class="ms-premio-rot">Abre: ${q.title}</span>
+      ${partes.map(t => `<i>${t}</i>`).join('')}</div>`;
+  }).join('');
+}
+
 function desenharMissoes() {
   const cx = document.getElementById('msLista');
   if (!cx) return;
@@ -22242,6 +22377,7 @@ function desenharMissoes() {
         <p class="ms-desc">${feita ? 'Já aconteceu.'
           : pode ? ondeAconteceACena(c)
           : 'Ainda não é a hora — a história passa por aqui mais tarde.'}</p>
+        ${premioDaCenaEmHtml(c)}
         ${armada ? `<button class="jr-btn jr-larga" data-dispensar="1">DEIXAR PARA DEPOIS</button>`
           : pode ? `<button class="jr-btn" data-aceitar="${c.id}">ACEITAR</button>` : ''}
       </div>`;
@@ -22277,6 +22413,7 @@ function desenharMissoes() {
       <p class="ms-desc">${travada ? 'Ainda não disponível.' : (q.description || '')}</p>
       ${travada ? '' : objs.map(o => `<div class="ms-obj${o.completed ? ' ok' : ''}">
         ${o.completed ? '✓' : '○'} ${o.text || ''}</div>`).join('')}
+      ${premioEmHtml(q, feita)}
     </div>`;
   }).join('');
 }

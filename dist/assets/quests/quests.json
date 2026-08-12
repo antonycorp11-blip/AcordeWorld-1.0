@@ -73,6 +73,10 @@
       "y": 80
      }
     ]
+   },
+   "xp": 40,
+   "recompensa": {
+    "moedas": 30
    }
   },
   {
@@ -114,7 +118,8 @@
    "description": "O Ferreiro Dorn precisa de material para reconstruir a ponte na entrada da cidade.",
    "xp": 140,
    "recompensa": {
-    "moedas": 120
+    "moedas": 120,
+    "claves": 40
    },
    "objectives": [
     {
@@ -153,7 +158,8 @@
    "description": "Dorn ensina: ninguém conserta ponte sem ferramenta própria.",
    "xp": 120,
    "recompensa": {
-    "moedas": 80
+    "moedas": 80,
+    "claves": 35
    },
    "objectives": [
     {
@@ -179,7 +185,9 @@
    "description": "Dorn ensina, você bate. A ponte não vai se levantar sozinha.",
    "xp": 180,
    "recompensa": {
-    "moedas": 150
+    "moedas": 150,
+    "claves": 60,
+    "partitura": 2
    },
    "aoConcluir": {
     "cena": "ponte_pronta"
@@ -200,7 +208,9 @@
    "description": "Sem um Ressonador, todo Eco derrotado leva sua música embora.",
    "xp": 200,
    "recompensa": {
-    "moedas": 100
+    "moedas": 100,
+    "fragmento": 6,
+    "partitura": 2
    },
    "objectives": [
     {
@@ -237,7 +247,8 @@
    "description": "Fragmentos não tocam. É preciso condensá-los numa nota inteira.",
    "xp": 250,
    "recompensa": {
-    "moedas": 120
+    "moedas": 120,
+    "fragmento": 10
    },
    "objectives": [
     {
@@ -258,7 +269,9 @@
    "description": "Sete notas nas distâncias certas. T · T · S · T · T · T · S.",
    "xp": 400,
    "recompensa": {
-    "moedas": 250
+    "moedas": 250,
+    "claves": 120,
+    "partitura": 4
    },
    "objectives": [
     {
@@ -297,7 +310,12 @@
      "text": "Atravesse o Pátio das Ruínas e chegue ao Salão do Forjador"
     }
    ],
-   "path_waypoints": {}
+   "path_waypoints": {},
+   "recompensa": {
+    "claves": 80,
+    "passe": 1,
+    "partitura": 2
+   }
   },
   {
    "id": "memoria_do_pipo",
@@ -313,7 +331,11 @@
      "item": "pipo"
     }
    ],
-   "path_waypoints": {}
+   "path_waypoints": {},
+   "recompensa": {
+    "moedas": 90,
+    "partitura": 3
+   }
   },
   {
    "id": "atras_dos_dissonantes",
@@ -329,7 +351,13 @@
      "item": "custom_1786547045830_14"
     }
    ],
-   "path_waypoints": {}
+   "path_waypoints": {},
+   "recompensa": {
+    "moedas": 200,
+    "claves": 150,
+    "passe": 2,
+    "partitura": 5
+   }
   },
   {
    "id": "madeira_e_pedra",
@@ -362,7 +390,11 @@
      ]
     }
    ],
-   "path_waypoints": {}
+   "path_waypoints": {},
+   "recompensa": {
+    "moedas": 70,
+    "claves": 25
+   }
   }
  ]
 }
