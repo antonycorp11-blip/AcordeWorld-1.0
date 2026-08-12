@@ -7708,3 +7708,13 @@ body.em-cena #questNotification { display: none !important; }
 .com-sinergia .cp-casas { box-shadow: 0 0 0 1px rgba(74,222,128,.5); border-radius: 10px; }
 .cp-selo { width: 30px; height: 30px; image-rendering: pixelated; display: block;
            margin: 0 auto 1px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+.cp-nivel { font-size: 8px; color: #fbbf24; letter-spacing: .08em; }
+.cp-max { font-size: 8px; color: #4ade80; text-align: center; margin-top: 2px; }
+.cp-subir { width: 84px; margin-top: 3px; padding: 3px 2px; cursor: pointer;
+            background: #221a30; border: 1px solid #3b2d52; border-radius: 6px;
+            color: #a79bc2; display: flex; flex-direction: column; gap: 1px; }
+.cp-subir.pode { border-color: #4ade80; color: #bbf7d0; }
+.cp-subir b { font-size: 8.5px; letter-spacing: .1em; }
+.cp-subir span { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; }
+.cp-subir i { font-style: normal; font-size: 8px; color: #cbbfe0; }
+.cp-subir i.falta { color: #fca5a5; }

@@ -1,0 +1,22 @@
+{
+  "_": "Evolução de acorde. Cinco níveis; o nível 1 é o que nasce da escala. O custo mistura as quatro moedas de propósito: clave vem de combate, ouro de venda, fragmento da captura de Ecos e NOTA do altar. Assim subir um acorde obriga a passar por todos os sistemas do jogo, em vez de ser só acumular ouro.",
+
+  "niveis": [
+    { "nivel": 1, "multiplicador": 1.00, "custo": null },
+    { "nivel": 2, "multiplicador": 1.35,
+      "custo": { "clave": 40,  "moeda": 250,  "fragmento": 6,  "nota": 0 } },
+    { "nivel": 3, "multiplicador": 1.75,
+      "custo": { "clave": 110, "moeda": 700,  "fragmento": 14, "nota": 1 } },
+    { "nivel": 4, "multiplicador": 2.25,
+      "custo": { "clave": 260, "moeda": 1800, "fragmento": 30, "nota": 2 } },
+    { "nivel": 5, "multiplicador": 3.00,
+      "custo": { "clave": 600, "moeda": 4200, "fragmento": 60, "nota": 3 } }
+  ],
+
+  "peso_do_grau": {
+    "_": "Grau caro é grau que entrega mais. A dominante (5) e a sensível (7) custam acima da média porque dão dano e crítico; a tônica (1) é barata porque sustenta.",
+    "1": 0.85, "2": 0.95, "3": 1.00, "4": 0.95, "5": 1.20, "6": 1.05, "7": 1.15
+  },
+
+  "nota_exigida": "A nota que o acorde pede para subir é a TÔNICA dele — para melhorar o acorde de Sol, é preciso ter condensado a nota Sol. É a mesma lógica do fragmento da nota certa na captura."
+}

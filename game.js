@@ -7571,6 +7571,7 @@ function savePlayerData() {
       passesDeDungeon, dungeons: ultimaConclusaoDeDungeon,
       acompanhante: ACOMP.npc ? ACOMP.npc.id : null,
       fazendaExpansoes: expansoesCompradas(),
+      niveisDeAcorde: nivelDoAcorde,
       itensPossuidos, equipado,
       acordesPossuidos, escalasEquipadas, acordesEquipados, funcaoPreferida,
       bandeiras, herois,
@@ -7613,6 +7614,7 @@ function loadPlayerData() {
     if (d.notas) notasPossuidas = d.notas;
     if (Array.isArray(d.escalas)) escalasMontadas = d.escalas;
     if (d.acordes) acordesObtidos = d.acordes;
+    if (d.niveisDeAcorde) nivelDoAcorde = d.niveisDeAcorde;
     if (d.nome) playerName = d.nome;
     if (d.partyState) {
       if (Array.isArray(d.partyState.party)) partyState.party = d.partyState.party;
@@ -7690,6 +7692,7 @@ async function loadShopCatalog() {
   playerCoins = shopCatalog.coins_start ?? 300;
   carregarDungeons();
   carregarFazenda();
+  carregarTabelaDeAcordes();
   carregarEquipamentos();
   loadPlayerData(); // saved balance wins over the catalogue default
   aplicarHeroisRecrutados();
@@ -21084,6 +21087,80 @@ function funcaoAtivaDoAcorde(id) {
 
 // A soma de todos os acordes equipados que estão de fato funcionando. Alimenta
 // `derivedStats`, igual ao equipamento — então o número da tela é o número do combate.
+// ══ Evolução de acorde ════════════════════════════════════════════════════════
+// A tabela vive em assets/dados/acordes.json. O custo mistura as quatro moedas de
+// propósito: clave vem de combate, ouro de venda, fragmento da captura de Ecos e NOTA do
+// altar. Subir um acorde obriga a passar por todos os sistemas em vez de só acumular ouro.
+let TABELA_ACORDES = null;
+let nivelDoAcorde = {};          // id do acorde -> nível (1 a 5)
+
+async function carregarTabelaDeAcordes() {
+  try {
+    const r = await fetch(`assets/dados/acordes.json?t=${Date.now()}`);
+    TABELA_ACORDES = await r.json();
+  } catch (e) { TABELA_ACORDES = null; }
+}
+
+function nivelDe(id) { return Math.max(1, Math.min(5, nivelDoAcorde[id] || 1)); }
+
+function multiplicadorDoAcorde(id) {
+  if (!TABELA_ACORDES) return 1;
+  const n = TABELA_ACORDES.niveis.find(x => x.nivel === nivelDe(id));
+  return n ? n.multiplicador : 1;
+}
+
+// O que subir custa. Grau que entrega mais custa mais — a dominante não sai pelo preço
+// da tônica.
+function custoDoProximoNivel(id) {
+  if (!TABELA_ACORDES) return null;
+  const n = nivelDe(id);
+  if (n >= 5) return null;
+  const prox = TABELA_ACORDES.niveis.find(x => x.nivel === n + 1);
+  if (!prox || !prox.custo) return null;
+  const f = funcaoAtivaDoAcorde(id);
+  const peso = (f && TABELA_ACORDES.peso_do_grau[String(f.grau)]) || 1;
+  const c = {};
+  Object.entries(prox.custo).forEach(([k, v]) => { c[k] = Math.round(v * peso); });
+  // A nota exigida é a TÔNICA do próprio acorde: para subir o de Sol, é preciso ter Sol.
+  // O id do acorde é a CIFRA ('G'); a nota interna vem da raiz dele dentro da escala.
+  c.notaId = f ? CROMA[(semitomDaNota(f.tonica) + f.passos) % 12] : null;
+  return c;
+}
+
+function podePagarAcorde(c) {
+  if (!c) return false;
+  return claveCount >= (c.clave || 0)
+      && playerCoins >= (c.moeda || 0)
+      && (playerInventory.fragmento || 0) >= (c.fragmento || 0)
+      && (!c.nota || (notasPossuidas[c.notaId] || 0) >= c.nota);
+}
+
+function subirAcorde(id) {
+  const c = custoDoProximoNivel(id);
+  if (!c) { showToast('Este acorde já está no nível máximo.'); return false; }
+  if (!podePagarAcorde(c)) {
+    const falta = [];
+    if (claveCount < (c.clave || 0)) falta.push(`${c.clave - claveCount} clave`);
+    if (playerCoins < (c.moeda || 0)) falta.push(`${c.moeda - playerCoins} ouro`);
+    if ((playerInventory.fragmento || 0) < (c.fragmento || 0))
+      falta.push(`${c.fragmento - (playerInventory.fragmento || 0)} fragmento`);
+    if (c.nota && (notasPossuidas[c.notaId] || 0) < c.nota)
+      falta.push(`${c.nota - (notasPossuidas[c.notaId] || 0)} nota de ${NOME_DA_NOTA[c.notaId] || c.notaId}`);
+    showToast('Falta ' + falta.join(', ') + '.');
+    return false;
+  }
+  claveCount -= (c.clave || 0);
+  playerCoins -= (c.moeda || 0);
+  playerInventory.fragmento = (playerInventory.fragmento || 0) - (c.fragmento || 0);
+  if (c.nota) notasPossuidas[c.notaId] = (notasPossuidas[c.notaId] || 0) - c.nota;
+  nivelDoAcorde[id] = nivelDe(id) + 1;
+  playForgeHit?.();
+  showToast(`Acorde no nível ${nivelDe(id)} — efeito ${Math.round((multiplicadorDoAcorde(id) - 1) * 100)}% acima do base.`);
+  savePlayerData();
+  updateInventorySlotsUI?.();
+  return true;
+}
+
 function bonusDeAcordes() {
   const soma = {};
   acordesEquipados.forEach(id => {
@@ -21091,7 +21168,10 @@ function bonusDeAcordes() {
     if (!f) return;                       // inerte: nenhuma escala equipada o contém
     const e = EFEITO_DA_FUNCAO[f.grau];
     if (!e) return;
-    Object.entries(e.attrs).forEach(([k, v]) => { soma[k] = (soma[k] || 0) + v; });
+    const mult = multiplicadorDoAcorde(id);
+    Object.entries(e.attrs).forEach(([k, v]) => {
+      soma[k] = (soma[k] || 0) + Math.round(v * mult);
+    });
   });
   return soma;
 }
@@ -21310,7 +21390,20 @@ function desenharPautaDaComposicao() {
       <img class="cp-selo" src="assets/itens/acordes/${nota}.png" alt="">
       <b>${f ? f.cifra : id}</b>
       <span class="cp-grau">${f ? f.romano : '—'}</span>
-      <small>${efeito}</small></button>`;
+      <small>${efeito}</small>
+      <span class="cp-nivel">Nv ${nivelDe(id)}</span></button>` +
+      (() => {
+        // O custo fica NA casa. Menu de melhoria escondido atras de dois cliques e o que
+        // faz o jogador nunca descobrir que da para subir.
+        const c = custoDoProximoNivel(id);
+        if (!c) return '<div class="cp-max">máximo</div>';
+        const pode = podePagarAcorde(c);
+        const parte = (n, v, ico) => v ? `<i class="${ (n==='clave'?claveCount: n==='moeda'?playerCoins: n==='frag'?(playerInventory.fragmento||0):(notasPossuidas[c.notaId]||0)) >= v ? '' : 'falta'}">${ico}${v}</i>` : '';
+        return `<button class="cp-subir${pode ? ' pode' : ''}" data-subir="${id}">
+          <b>SUBIR</b>
+          <span>${parte('clave', c.clave, '𝄞')}${parte('moeda', c.moeda, '⛃')}${parte('frag', c.fragmento, '✧')}${parte('nota', c.nota, '♪')}</span>
+        </button>`;
+      })();
   };
   el.innerHTML = '<div class="cp-clave">𝄞</div>' + COMPASSOS.map((comp, ci) => {
     const cad = cadenciaDoCompasso(comp);
@@ -21322,6 +21415,10 @@ function desenharPautaDaComposicao() {
                              : '<small>sem sinergia — tente outra ordem</small>')}</div>
       </div><div class="cp-barra"></div>`;
   }).join('');
+  el.querySelectorAll('[data-subir]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    if (subirAcorde(b.dataset.subir)) desenharComposicao();
+  }));
   el.querySelectorAll('[data-slot]').forEach(b => b.addEventListener('click', () => {
     const i = +b.dataset.slot;
     if (acordesEquipados[i]) {
