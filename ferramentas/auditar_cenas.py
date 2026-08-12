@@ -27,6 +27,13 @@ indice = indice if isinstance(indice, list) else (indice.get('cenas') or indice.
 conhecidos = set(re.findall(r"case '([a-zA-Zç]+)':", motor))
 # Tipos de objetivo que algum código realmente cumpre.
 tipos_ok = set(re.findall(r"progressoDeMissao\('([a-z_]+)'", motor))
+# Objetivos de PROGRESSAO valem por LIMIAR ("chegue ao nivel 5"): nao sao eventos que o
+# `progressoDeMissao` emite, sao estados que passam a ser verdade. O motor os declara na
+# tabela LIMIAR, e e de la que a lista sai — assim criar um limiar novo no jogo nao exige
+# lembrar de vir editar esta ferramenta.
+_lim = re.search(r"const LIMIAR = \{(.*?)\n\};", motor, re.S)
+tipos_limiar = set(re.findall(r"^\s*(\w+):", _lim.group(1), re.M)) if _lim else set()
+tipos_ok |= tipos_limiar
 
 def npcs_do_mapa(m):
     return [ (n.get('name') or '').strip().lower() for n in npcs if n.get('mapKey')==m ]
@@ -117,7 +124,9 @@ for qid, q in sorted(quests.items()):
             erro('missão:'+qid, 'objetivo "%s" sem type — nunca conclui' % o.get('id'))
         elif t and t not in tipos_ok and not porCena:
             erro('missão:'+qid, 'objetivo "%s" com type "%s" que nenhum código cumpre e nenhuma cena fecha' % (o.get('id'), t))
-        elif t and t != 'talk' and not porCena and not (o.get('item') or o.get('npc')):
+        elif t in tipos_limiar and not o.get('quantidade'):
+            erro('missão:'+qid, 'objetivo "%s" e de limiar e nao tem `quantidade`' % o.get('id'))
+        elif t and t != 'talk' and t not in tipos_limiar and not porCena and not (o.get('item') or o.get('npc')):
             erro('missão:'+qid, 'objetivo "%s" sem item/npc — o casamento nunca bate' % o.get('id'))
 
 

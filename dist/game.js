@@ -1450,6 +1450,68 @@ function wrapText(ctx2, txt, x, y, maxW, lh) {
 // QUEST SYSTEM
 // ============================================================
 let activeQuests=[], completedQuests=[];
+// Objetivo que pede uma ACAO que o jogador JA FEZ, sem como refazer, e um beco.
+// Aconteceu com o Ressonador de Cobre: a missao mandava forjar, ele ja tinha um de testes
+// anteriores, a ferraria recusava ("voce ja possui"), nao havia como se desfazer da peca, e
+// forjar um de PRATA — melhor — tambem nao contava. Ficou preso sem saida nenhuma.
+//
+// A regra passa a ser a intencao, nao a cerimonia: se o jogador ja TEM o que a missao
+// pediria para ele conseguir, o objetivo nasce cumprido. E ferramenta de tier maior conta
+// pela menor — ser barrado por possuir algo MELHOR e o pior tipo de trava.
+// Objetivos de PROGRESSAO valem por limiar: "chegue ao nivel 5" nao e um evento que
+// acontece, e um estado que passa a ser verdade. Por isso vivem aqui, junto do "ja tenho",
+// e nao no `progressoDeMissao`, que conta eventos.
+const LIMIAR = {
+  nivel:     () => nivelDoHeroi(),
+  nivelConta:() => level,
+  poder:     () => poderDaConta(),
+  passivas:  () => Object.values(passivas || {}).filter(n => n > 1).length,
+  acordes:   () => (acordesEquipados || []).length,
+  escalas:   () => (escalasMontadas || []).length,
+  notas:     () => Object.values(notasPossuidas || {}).filter(v => v > 0).length,
+  herois:    () => Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado).length,
+};
+
+function objetivoJaSatisfeito(o) {
+  if (LIMIAR[o.type]) {
+    const v = LIMIAR[o.type]();
+    o.progresso = Math.min(o.quantidade || 1, v);
+    return v >= (o.quantidade || 1);
+  }
+  if (o.type === 'forjar') {
+    if ((playerInventory[o.item] || 0) > 0) return true;
+    const pedido = CRAFTABLE_TOOLS.find(t => t.id === o.item);
+    if (!pedido) return false;
+    return CRAFTABLE_TOOLS.some(t => t.category === pedido.category && t.tier >= pedido.tier
+                                  && (playerInventory[t.id] || 0) > 0);
+  }
+  if (o.type === 'coletar' && o.item) {
+    const tem = o.item === 'fragmento'
+      ? Object.entries(playerInventory).reduce((n, [k, v]) =>
+          n + (k.startsWith('frag_') ? v : 0), 0) + (playerInventory.fragmento || 0)
+      : (playerInventory[o.item] || 0);
+    return tem >= (o.quantidade || 1);
+  }
+  return false;
+}
+
+// Chamado sempre que algo que um limiar observa muda. Sem isto o objetivo "chegue ao
+// nivel 5" so seria conferido ao abrir a missao, e o jogador chegaria ao nivel 5 sem a
+// missao perceber.
+function revisarObjetivosDeProgresso() {
+  let mudou = false;
+  activeQuests.forEach(q => { if (conferirObjetivosJaCumpridos(q)) mudou = true; });
+  if (mudou) { atualizarRastreador(); atualizarMissaoNoHud(true); verificarMissoesConcluidas(); }
+}
+
+function conferirObjetivosJaCumpridos(q) {
+  let mudou = false;
+  (q.objectives || []).forEach(o => {
+    if (!o.completed && objetivoJaSatisfeito(o)) { o.completed = true; mudou = true; }
+  });
+  return mudou;
+}
+
 function unlockQuest(id) {
   const def=questsData.find(q=>q.id===id); if(!def||activeQuests.find(q=>q.id===id)) return;
   const q=JSON.parse(JSON.stringify(def)); activeQuests.push(q);
@@ -1458,7 +1520,11 @@ function unlockQuest(id) {
   pathGuide.waypoints=(q.path_waypoints?.[currentKey])||[];
   pathGuide.particles=[];
   q.objectives.forEach(o => { o.completed = false; o.progresso = 0; });
+  // DEPOIS do zeramento acima, nao antes: a linha que limpa a missao nova apagava a
+  // conferencia e o objetivo do Ressonador voltava a nascer por fazer.
+  conferirObjetivosJaCumpridos(q);
   showQuestNotif(q); refreshQuestPanel(); atualizarRastreador();
+  verificarMissoesConcluidas();
 }
 // ── Progresso de missão ──────────────────────────────────────────────────────────
 // Objetivos são declarados no quests.json e avançam por eventos do jogo: falar com um
@@ -5606,6 +5672,22 @@ const PESO_DO_PODER = {
 };
 const PODER_POR_NIVEL = 20;
 
+// O PODER DA CONTA: a soma do poder de cada heroi do elenco, nao um numero unico do
+// personagem ativo. E a leitura que o dono quer como numero central do jogo — a conta
+// cresce porque CADA personagem cresce, entao investir num segundo heroi soma em vez de
+// competir com o primeiro.
+function poderDaConta() {
+  const salvo = selectedHeroId;
+  let total = 0;
+  Object.keys(HERO_DEFINITIONS).forEach(id => {
+    if (!HERO_DEFINITIONS[id].desbloqueado && id !== 'achilles') return;
+    selectedHeroId = id;
+    try { total += nivelDePoder(); } catch (e) {}
+  });
+  selectedHeroId = salvo;
+  return Math.round(total);
+}
+
 function nivelDePoder() {
   const s = derivedStats();
   let p = level * PODER_POR_NIVEL;
@@ -5686,6 +5768,7 @@ function grantXp(amount) {
     applyMovementStats();
     playerHp = playerMaxHp();          // a level-up patches you up
     showToast(`Conta nível ${level}! +${gained} ponto de habilidade`);
+    revisarObjetivosDeProgresso();
     levelFlashUntil = performance.now() + SUBIDA_MS;
     anunciar(`NÍVEL ${level}`, 1600);
     document.getElementById('pointDot')?.classList.remove('hidden');
@@ -5698,6 +5781,7 @@ function spendAttr(key) {
   const h = fichaDoHeroi();
   if (h.attrPoints <= 0 || !(key in h.attrs)) return;
   h.attrs[key]++; h.attrPoints--;
+  revisarObjetivosDeProgresso();
   applyMovementStats();
   // Fôlego dá vida na hora: gastar um ponto e não ver a barra crescer parece que não fez
   // nada — o número só apareceria no próximo dano tomado.
@@ -7738,6 +7822,10 @@ function migrarMissaoSalva(q) {
     o.progresso = antigo.progresso || 0;
     if (o.quantidade && o.progresso >= o.quantidade) o.completed = true;
   });
+  // O save pode ter sido feito ANTES de o jogador conseguir a peca por outro caminho — foi
+  // o caso do Ressonador de Cobre, que ele ja tinha de testes antigos e a missao continuava
+  // exigindo forjar. Conferir na carga desbloqueia quem ja esta preso.
+  conferirObjetivosJaCumpridos(novo);
   return novo;
 }
 
@@ -8070,6 +8158,7 @@ function selarEscala() {
   escalasMontadas.push({ tonica: montagem.tonica, tipo: 'maior' });
   falaDoAltar('A ESCALA RESSOA. ELA ESTÁ INTEIRA.', 'ok');
   progressoDeMissao('montar', 'escala');
+  revisarObjetivosDeProgresso();
   // toca a escala inteira, degrau por degrau
   graus.concat([notaNaPosicao(montagem.iTonica)]).forEach((g, i) =>
     setTimeout(() => tocarNota(g.id, 0.8, 0.13), i * 260));
@@ -18031,6 +18120,7 @@ function subirPassiva(pid) {
   skillPoints -= 1;
   claveCount -= custo;
   passivas[pid] = n + 1;
+  revisarObjetivosDeProgresso();
   showToast(`${info ? info.nome : pid} → nível ${n + 1}  (−${custo.toLocaleString('pt-BR')} claves)`);
   savePlayerData();
   desenharFicha();
@@ -19353,6 +19443,7 @@ function fecharEscalaDaForja() {
     }
   });
   progressoDeMissao('montar', 'escala');
+  revisarObjetivosDeProgresso();
   gainXp(120);
   savePlayerData?.();
   avisoDaForja(modo ? `Escala de ${nome} — fechada na oitava.`
@@ -19557,6 +19648,10 @@ function restaurarAcompanhante() {
 
 function atualizarAcompanhante(now) {
   const n = ACOMP.npc;
+  // Companheiro que o estado do jogo escondeu (o Pipo depois de levado, por exemplo) para
+  // de acompanhar. Sem isto ele seguia o jogador INVISIVEL: o balao de fala saia do nada e
+  // o "vamos juntos" continuava valendo com alguem que a historia ja tirou de cena.
+  if (n && !npcNaCena(n)) { dispensarAcompanhante(); return; }
   // Nada de balão durante cena (a fala dele atropelava o diálogo) nem antes de o
   // passeio começar de verdade.
   if (!n || !personagemAndando() || CUT.ativo || preTelaAberta) return;
@@ -20246,8 +20341,12 @@ const LIBERACAO_DE_BOTOES = {
   // A ficha abre quando há o que gastar ou o que ver crescer.
   fichaBtn:   () => nivelDoHeroi() > 1 || attrPoints > 0 || level > 1,
   // Os forjadores só depois de existir matéria-prima na mão.
-  forjaBtn:   () => ['fragmento', 'fragmento_puro', 'tom', 'semitom']
-                      .some(k => (playerInventory[k] || 0) > 0),
+  // Fragmento e guardado POR NOTA (`frag_re`, `frag_do`...). Esta regra procurava a chave
+  // generica `fragmento`, que o jogo deixou de usar quando o fragmento ganhou cor: o
+  // jogador enchia a mochila e o botao dos forjadores continuava trancado.
+  forjaBtn:   () => Object.entries(playerInventory || {}).some(([k, q]) =>
+                      q > 0 && (k.startsWith('frag_') || k === 'fragmento'
+                                || k === 'fragmento_puro' || k === 'tom' || k === 'semitom')),
 };
 // Uma vez aberto, nunca mais fecha: gastar o último fragmento não pode sumir com a forja.
 const botoesJaAbertos = new Set();
@@ -22122,6 +22221,7 @@ function usarPartitura(id, quantas = 1) {
       h.xp -= xpDoNivelHeroi(h.nivel);
       h.nivel++;
       h.attrPoints += PONTOS_POR_NIVEL_HEROI;
+      revisarObjetivosDeProgresso();
       levelFlashUntil = performance.now() + SUBIDA_MS;
       anunciar(`NÍVEL ${h.nivel}`, 1400);
     }
@@ -22282,29 +22382,57 @@ let _hmAssinatura = '', _hmEsconder = null;
 function atualizarMissaoNoHud(forcar = false) {
   const cx = document.getElementById('hudMissao');
   if (!cx) return;
-  // A CENA ACEITA ganha da missao: se o jogador acabou de aceitar seguir a historia, o que
-  // ele precisa ler aqui e para onde ir. Antes esta caixa mostrava `activeQuests[0]` — a
-  // missao mais VELHA que ele tinha aberto — e ficava dizendo uma coisa enquanto ele fazia
-  // outra. Era o "texto fixo que nao e a missao atual".
-  const cAceita = cenaAceita ? CUT.roteiros.find(x => x.id === cenaAceita) : null;
-  const q = (cAceita && !cenaJaRodou(cAceita)) ? null : missaoAtual();
-  const podeAparecer = !!(q || cAceita) && personagemAndando() && !fichaAberta() && !CUT.ativo
-                  && document.getElementById('playerHud')
-                  && !document.getElementById('playerHud').classList.contains('hidden');
-  if (!podeAparecer) { cx.classList.add('hidden'); return; }
+  const visivel = personagemAndando() && !fichaAberta() && !CUT.ativo
+    && document.getElementById('playerHud')
+    && !document.getElementById('playerHud').classList.contains('hidden');
+  if (!visivel) { cx.classList.add('hidden'); return; }
 
-  const o = q ? objetivoAtual(q) : null;
-  const nome = q ? (q.title || q.id) : ('📖 ' + (cAceita.nome || cAceita.id));
-  const obj = q
-    ? (o ? (o.text || '') + (o.quantidade ? ` (${o.progresso || 0}/${o.quantidade})` : '')
-         : 'Volte para entregar')
-    : ondeAconteceACena(cAceita);
-  const assinatura = nome + '|' + obj;
+  // Esta caixa responde "e agora?", e tem QUATRO respostas possiveis. Antes so sabia dar
+  // uma — o primeiro objetivo da missao mais velha — e por isso mentia na maior parte do
+  // tempo. A ordem abaixo e a ordem da urgencia.
+  let rotulo, nome, linhas = [];
 
+  const c = cenaAceita ? CUT.roteiros.find(x => x.id === cenaAceita) : null;
+  const q = missaoAtual();
+
+  if (c && !cenaJaRodou(c)) {
+    // 1. Aceitou seguir a historia: o que importa e para onde ir.
+    rotulo = 'HISTÓRIA';
+    nome = c.nome || c.id;
+    linhas = [{ txt: ondeAconteceACena(c), estado: 'agora' }];
+  } else if (q) {
+    // 2. Missao em andamento: TODOS os objetivos, com o que ja foi e o que falta. Mostrar
+    //    so um deixava o jogador sem saber quantos passos ainda tinha pela frente.
+    rotulo = 'MISSÃO';
+    nome = q.title || q.id;
+    linhas = (q.objectives || []).map(o => {
+      const bloqueado = !o.completed && !objetivoLiberado(q, o);
+      const cont = o.quantidade ? ` (${o.progresso || 0}/${o.quantidade})` : '';
+      return { txt: (o.text || '') + cont,
+               estado: o.completed ? 'feito' : bloqueado ? 'bloq' : 'agora' };
+    });
+  } else if (cenasOferecidas().length) {
+    // 3. Sem missao, mas a historia tem a proxima esperando. O jogador precisa saber que
+    //    o proximo passo e ABRIR O PERGAMINHO — senao ele anda pelo mapa procurando um
+    //    gatilho que, de proposito, nao existe mais.
+    const prox = cenasOferecidas()[0];
+    rotulo = 'A HISTÓRIA ESPERA';
+    nome = prox.nome || prox.id;
+    linhas = [{ txt: 'Abra o pergaminho 📜 e aceite para continuar', estado: 'agora' }];
+  } else {
+    // 4. Nada pendente: some. Caixa vazia na tela e ruido.
+    cx.classList.add('hidden'); return;
+  }
+
+  const assinatura = rotulo + '|' + nome + '|' + linhas.map(l => l.estado + l.txt).join('~');
   if (assinatura !== _hmAssinatura || forcar) {
     _hmAssinatura = assinatura;
+    cx.querySelector('.hm-rot').textContent = rotulo;
     document.getElementById('hmNome').textContent = nome;
-    document.getElementById('hmObj').textContent = obj;
+    const alvo = document.getElementById('hmObj');
+    alvo.innerHTML = linhas.map(l =>
+      `<i class="hm-linha ${l.estado}">${l.estado === 'feito' ? '☑' : l.estado === 'bloq' ? '🔒' : '☐'} ${l.txt}</i>`
+    ).join('');
     cx.classList.remove('hidden');
     // Fica. No centro do topo ela era um adesivo no meio da cena; encostada na barra de
     // XP, no canto, ela é o lugar onde o jogador procura o objetivo — e sumir sozinha

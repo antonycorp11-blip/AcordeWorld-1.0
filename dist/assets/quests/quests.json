@@ -395,6 +395,147 @@
     "moedas": 70,
     "claves": 25
    }
+  },
+  {
+   "id": "treino_nivel_5",
+   "title": "Peso de Ferramenta",
+   "xp": 150,
+   "description": "Ferramenta leve mente pra você, disse o Dorn. Personagem fraco também.",
+   "recompensa": {
+    "claves": 90,
+    "partitura": 3
+   },
+   "objectives": [
+    {
+     "id": "nivel",
+     "type": "nivel",
+     "quantidade": 5,
+     "text": "Leve um herói ao nível 5 (use Partituras na Ficha)",
+     "completed": false
+    }
+   ],
+   "path_waypoints": {}
+  },
+  {
+   "id": "treino_passiva",
+   "title": "O Que Se Repete Fica",
+   "xp": 120,
+   "description": "Passiva é o que você faz sem pensar. Só se compra pensando.",
+   "recompensa": {
+    "claves": 60,
+    "moedas": 100
+   },
+   "objectives": [
+    {
+     "id": "passivas",
+     "type": "passivas",
+     "quantidade": 2,
+     "text": "Suba duas passivas na Ficha (custam ponto de habilidade e claves)",
+     "completed": false
+    }
+   ],
+   "path_waypoints": {}
+  },
+  {
+   "id": "treino_sintese",
+   "title": "Juntar o Que Está Solto",
+   "xp": 140,
+   "description": "Fragmento sozinho não toca nada. Sete deles viram uma nota.",
+   "recompensa": {
+    "fragmento": 10,
+    "moedas": 80
+   },
+   "objectives": [
+    {
+     "id": "notas",
+     "type": "notas",
+     "quantidade": 3,
+     "text": "Condense 3 notas diferentes no Forjador de Notas",
+     "completed": false
+    }
+   ],
+   "path_waypoints": {}
+  },
+  {
+   "id": "treino_escala",
+   "title": "A Oitava Fecha",
+   "xp": 260,
+   "description": "Doze semitons e você volta ao começo. É a regra mais velha da música.",
+   "recompensa": {
+    "claves": 140,
+    "partitura": 2
+   },
+   "objectives": [
+    {
+     "id": "escalas",
+     "type": "escalas",
+     "quantidade": 2,
+     "text": "Forje 2 escalas no Altar",
+     "completed": false
+    }
+   ],
+   "path_waypoints": {}
+  },
+  {
+   "id": "treino_acordes",
+   "title": "Três Compassos",
+   "xp": 300,
+   "description": "Um acorde é um efeito. Três em sequência são uma frase — e a frase é a build.",
+   "recompensa": {
+    "claves": 180,
+    "moedas": 200
+   },
+   "objectives": [
+    {
+     "id": "acordes",
+     "type": "acordes",
+     "quantidade": 6,
+     "text": "Equipe 6 acordes na Composição",
+     "completed": false
+    }
+   ],
+   "path_waypoints": {}
+  },
+  {
+   "id": "treino_poder",
+   "title": "O Número Que Importa",
+   "xp": 400,
+   "description": "O poder da conta é a soma dos seus personagens. Um herói forte é metade do caminho; dois é o caminho.",
+   "recompensa": {
+    "claves": 300,
+    "partitura": 5,
+    "passe": 2
+   },
+   "objectives": [
+    {
+     "id": "poder",
+     "type": "poder",
+     "quantidade": 2500,
+     "text": "Chegue a 2.500 de Poder da Conta (soma de todos os heróis)",
+     "completed": false
+    }
+   ],
+   "path_waypoints": {}
+  },
+  {
+   "id": "treino_grupo",
+   "title": "Ninguém Toca Sozinho",
+   "xp": 200,
+   "description": "Cada herói cresce por conta própria, e a conta soma os dois.",
+   "recompensa": {
+    "partitura": 4,
+    "claves": 120
+   },
+   "objectives": [
+    {
+     "id": "herois",
+     "type": "herois",
+     "quantidade": 2,
+     "text": "Tenha 2 heróis no grupo",
+     "completed": false
+    }
+   ],
+   "path_waypoints": {}
   }
  ]
 }

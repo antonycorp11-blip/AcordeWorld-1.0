@@ -7828,3 +7828,10 @@ body.em-cena #questNotification { display: none !important; }
 .ms-premio.pago i { color: #8b96bb; background: rgba(30,36,54,.5);
                     border-color: rgba(107,124,180,.3); }
 .jr-premio { border-top-color: rgba(107,140,200,.25); }
+
+/* A caixa de "e agora?" passou a listar TODOS os objetivos, e nao um so. */
+.hm-obj { display: flex; flex-direction: column; gap: 1px; }
+.hm-linha { display: block; font-style: normal; font-size: 10px; line-height: 1.35; }
+.hm-linha.feito { color: #6b7c9c; text-decoration: line-through; opacity: .75; }
+.hm-linha.bloq  { color: #7c6a4a; }
+.hm-linha.agora { color: #f4e2b0; font-weight: 600; }
