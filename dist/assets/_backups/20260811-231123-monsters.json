@@ -1405,25 +1405,7 @@
       "mapKey": "custom_1785900374897_630",
       "x": 739,
       "y": 213,
-      "escala": 0.40000000000000013,
-      "flipX": false
-    },
-    {
-      "id": "tambor_selvagem_1786504287433",
-      "type": "tambor_selvagem",
-      "mapKey": "custom_1785900374897_630",
-      "x": 797,
-      "y": 178,
-      "escala": 0.40000000000000013,
-      "flipX": false
-    },
-    {
-      "id": "tambor_selvagem_1786504287814",
-      "type": "tambor_selvagem",
-      "mapKey": "custom_1785900374897_630",
-      "x": 806,
-      "y": 236,
-      "escala": 0.40000000000000013,
+      "escala": 0.7000000000000001,
       "flipX": false
     }
   ]

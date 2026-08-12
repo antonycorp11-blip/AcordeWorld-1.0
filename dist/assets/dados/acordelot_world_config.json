@@ -150,7 +150,7 @@
     "custom_1785254196551_992": "🌑 Orla da Floresta Sombria",
     "custom_1785254692668_431": "🌿 Clareira dos Ecos",
     "notas_sagradas": "✦ Lugar das Notas Sagradas",
-    "custom_1785776481744_650": "🎼 Altar das Escalas (versão antiga)",
+    "custom_1785776481744_650": "🎼 Salão do Forjador de Escalas",
     "custom_1785779853928_252": "🎓 Academia de Música",
     "custom_1785869541494_557": "🏰 Praça Central de Acordelot",
     "custom_1785871568442_57": "🏛️ Centro de Acordelot",
@@ -163,8 +163,8 @@
     "custom_1785976286672_61": "⛏️ Cavernas da Clave II — Salão em Ruínas",
     "custom_1785976318486_785": "⛏️ Cavernas da Clave III — Arena do Selo",
     "custom_1786198430678_105": "🌾 Floresta de Coleta",
-    "custom_1786499037621_343": "🎼 Salão do Forjador (cópia solta)",
-    "custom_1786501580114_289": "🎼 Salão do Forjador de Escalas"
+    "custom_1786499037621_343": "🏰 bg_salao_forjador",
+    "custom_1786501580114_289": "🏰 forjador cristais apagados "
   },
   "startMap": "custom_1785881037059_214",
   "ambience": {},
@@ -182,6 +182,6 @@
     }
   },
   "heroiEscala": 0.5,
-  "zoomCenario": 1.8,
+  "zoomCenario": 1.6,
   "TEMPO_LIGADO": false
 }

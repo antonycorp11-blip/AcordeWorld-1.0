@@ -1021,6 +1021,24 @@
       "flipX": false
     },
     {
+      "id": "espectro_do_cello_1785903041361",
+      "type": "espectro_do_cello",
+      "mapKey": "custom_1785900374897_630",
+      "x": 247,
+      "y": 401,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
+      "id": "espectro_do_cello_1785903051193",
+      "type": "espectro_do_cello",
+      "mapKey": "custom_1785900374897_630",
+      "x": 291,
+      "y": 447,
+      "escala": 0.8,
+      "flipX": false
+    },
+    {
       "id": "aranha_da_pauta_1785982518833",
       "type": "aranha_da_pauta",
       "mapKey": "custom_1785967453140_198",
@@ -1379,51 +1397,6 @@
       "x": 685,
       "y": 169,
       "escala": 0.6000000000000001,
-      "flipX": false
-    },
-    {
-      "id": "colosso_grave_1786504247846",
-      "type": "colosso_grave",
-      "mapKey": "custom_1785900374897_630",
-      "x": 406,
-      "y": 176,
-      "escala": 1,
-      "flipX": false
-    },
-    {
-      "id": "colosso_grave_1786504254230",
-      "type": "colosso_grave",
-      "mapKey": "custom_1785900374897_630",
-      "x": 619,
-      "y": 173,
-      "escala": 1,
-      "flipX": false
-    },
-    {
-      "id": "tambor_selvagem_1786504280816",
-      "type": "tambor_selvagem",
-      "mapKey": "custom_1785900374897_630",
-      "x": 739,
-      "y": 213,
-      "escala": 0.40000000000000013,
-      "flipX": false
-    },
-    {
-      "id": "tambor_selvagem_1786504287433",
-      "type": "tambor_selvagem",
-      "mapKey": "custom_1785900374897_630",
-      "x": 797,
-      "y": 178,
-      "escala": 0.40000000000000013,
-      "flipX": false
-    },
-    {
-      "id": "tambor_selvagem_1786504287814",
-      "type": "tambor_selvagem",
-      "mapKey": "custom_1785900374897_630",
-      "x": 806,
-      "y": 236,
-      "escala": 0.40000000000000013,
       "flipX": false
     }
   ]

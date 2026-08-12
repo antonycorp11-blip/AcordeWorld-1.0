@@ -10299,7 +10299,7 @@ function colocarObjeto(propId, x, y) {
   
   const o = {
     id: `${propId}_${Date.now()}`, prop: propId,
-    mapKey: activeMapSelect?.value || currentKey,
+    mapKey: currentScene === 'farm' ? 'farm' : (activeMapSelect?.value || currentKey),
     x: Math.round(x), y: Math.round(y), escala: 1, flipX: false,
   };
   objetos.push(o);
@@ -18962,20 +18962,34 @@ function renderAltarDaForja(now) {
   }
 
   ctx.save();
+  ctx.imageSmoothingEnabled = false;
   CRISTAIS.forEach((c, i) => {
     const aceso = i < FORJA.semitons;
-    // A cor do cristal é a da nota que aquele semitom alcança.
-    const cor = aceso ? COR_DA_NOTA[notaEmSemitons(i + 1)] : 'rgba(120,130,150,0.35)';
-    const p = (Math.sin(now * 0.005 + i) + 1) / 2;
-    ctx.globalAlpha = aceso ? 0.85 + p * 0.15 : 0.5;
-    ctx.fillStyle = cor;
-    ctx.beginPath(); ctx.ellipse(c.x, c.y, 11, 17, 0, 0, Math.PI * 2); ctx.fill();
-    if (aceso) {
-      const g = ctx.createRadialGradient(c.x, c.y, 2, c.x, c.y, 34);
-      g.addColorStop(0, cor); g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.globalAlpha = 0.3 + p * 0.2; ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(c.x, c.y, 34, 0, Math.PI * 2); ctx.fill();
+    if (!aceso) return;                       // apagado nao desenha nada: a arte ja mostra
+    const cor = COR_DA_NOTA[notaEmSemitons(i + 1)];
+    const p = Math.floor(((Math.sin(now * 0.004 + i * 0.7) + 1) / 2) * 3);   // 4 degraus
+    // Halo em degraus, sem gradiente: losangos concentricos com alfa fixo.
+    for (let k = 3; k >= 1; k--) {
+      ctx.globalAlpha = 0.10 + k * 0.04 + p * 0.02;
+      ctx.fillStyle = cor;
+      const r = 9 + k * 7;
+      ctx.beginPath();
+      ctx.moveTo(c.x, c.y - r); ctx.lineTo(c.x + r * 0.62, c.y);
+      ctx.lineTo(c.x, c.y + r); ctx.lineTo(c.x - r * 0.62, c.y);
+      ctx.closePath(); ctx.fill();
     }
+    // O cristal: losango cheio com nucleo claro, aresta dura.
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = cor;
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y - 15); ctx.lineTo(c.x + 8, c.y);
+    ctx.lineTo(c.x, c.y + 15); ctx.lineTo(c.x - 8, c.y);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,' + (0.55 + p * 0.12) + ')';
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y - 7); ctx.lineTo(c.x + 3, c.y);
+    ctx.lineTo(c.x, c.y + 7); ctx.lineTo(c.x - 3, c.y);
+    ctx.closePath(); ctx.fill();
   });
 
   // A oitava: aparece no centro, acima do personagem, quando a conta fecha em doze.
@@ -18983,16 +18997,23 @@ function renderAltarDaForja(now) {
     const p = (Math.sin(now * 0.003) + 1) / 2;
     const cor = COR_DA_NOTA[FORJA.tonica];
     const y = player.y - 110 - p * 6;
-    const g = ctx.createRadialGradient(player.x, y, 4, player.x, y, 64);
-    g.addColorStop(0, cor); g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.globalAlpha = 0.55 + p * 0.25; ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(player.x, y, 64, 0, Math.PI * 2); ctx.fill();
+    // Raios em degraus, no lugar do gradiente: brilho de pixel art tem aresta.
+    ctx.fillStyle = cor;
+    for (let k = 4; k >= 1; k--) {
+      ctx.globalAlpha = 0.08 + k * 0.05;
+      const r = 14 + k * 11;
+      ctx.beginPath();
+      ctx.moveTo(player.x, y - r); ctx.lineTo(player.x + r * 0.55, y);
+      ctx.lineTo(player.x, y + r); ctx.lineTo(player.x - r * 0.55, y);
+      ctx.closePath(); ctx.fill();
+    }
+    // E a nota como SPRITE, nao como letra.
+    const im = spriteDaNota(FORJA.tonica);
+    if (im.complete) { ctx.globalAlpha = 1; ctx.drawImage(im, player.x - 22, y - 22, 44, 44); }
     ctx.globalAlpha = 1;
-    ctx.font = 'bold 30px Cinzel, serif'; ctx.textAlign = 'center';
-    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(6,9,14,.92)';
-    ctx.strokeText(NOME_DA_NOTA[FORJA.tonica], player.x, y + 10);
-    ctx.fillStyle = cor; ctx.fillText(NOME_DA_NOTA[FORJA.tonica], player.x, y + 10);
+    ctx.globalAlpha = 1; ctx.textAlign = 'center';
     ctx.font = '11px Outfit, sans-serif'; ctx.fillStyle = '#e9d5ff';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
     ctx.fillText('a oitava — a mesma nota, doze semitons acima', player.x, y + 32);
   }
 
@@ -21699,7 +21720,9 @@ function montarSeletorDeCena() {
   if (!box || !sel) return;
   if (!SELETOR_DE_CENA_LIGADO) { box.classList.add('hidden'); return; }
   box.classList.remove('hidden');
-  const guardado = (() => { try { return localStorage.getItem('acordelot_cena_teste') || ''; } catch (e) { return ''; } })();
+  // Sem memoria entre sessoes: sempre volta para 'jogar normalmente'.
+  const guardado = '';
+  try { localStorage.removeItem('acordelot_cena_teste'); } catch (e) {}
   const emOrdem = cenasEmOrdemDaHistoria();
   sel.innerHTML = '<option value="">— jogar normalmente —</option>' +
     emOrdem.map((c, i) => {
@@ -21714,7 +21737,7 @@ function montarSeletorDeCena() {
       return `<option value="${c.id}">${num}. ${nome}${fora}</option>`;
     }).join('');
   sel.value = guardado;
-  sel.onchange = () => { try { localStorage.setItem('acordelot_cena_teste', sel.value); } catch (e) {} };
+  sel.onchange = () => {};
 }
 
 // O que cada cena DEIXA para trás. Pular para a cena N aplica a soma de tudo que as

@@ -850,8 +850,8 @@
       "x": 546,
       "y": 11,
       "targetMapKey": "custom_1786501580114_289",
-      "targetX": 512,
-      "targetY": 300,
+      "targetX": 580,
+      "targetY": 567,
       "triggerRadius": 70,
       "dialogue": "none",
       "triggered": false,
@@ -863,8 +863,8 @@
       "name": "🪧 Placa → 🏘️ Vila do Caminho",
       "type": "signpost",
       "mapKey": "custom_1785900374897_630",
-      "x": 512,
-      "y": 300,
+      "x": 920,
+      "y": 265,
       "targetMapKey": "custom_1785884200706_430",
       "targetX": 532,
       "targetY": 203,
@@ -872,7 +872,7 @@
       "dialogue": "none",
       "triggered": false,
       "flipX": false,
-      "scale": 1
+      "scale": 0.30000000000000004
     },
     {
       "id": "signpost_1786501937184_dst",

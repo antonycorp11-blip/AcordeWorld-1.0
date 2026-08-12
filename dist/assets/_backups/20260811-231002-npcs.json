@@ -850,8 +850,8 @@
       "x": 546,
       "y": 11,
       "targetMapKey": "custom_1786501580114_289",
-      "targetX": 580,
-      "targetY": 567,
+      "targetX": 512,
+      "targetY": 300,
       "triggerRadius": 70,
       "dialogue": "none",
       "triggered": false,
@@ -872,7 +872,7 @@
       "dialogue": "none",
       "triggered": false,
       "flipX": false,
-      "scale": 0.30000000000000004
+      "scale": 0.45
     },
     {
       "id": "signpost_1786501937184_dst",

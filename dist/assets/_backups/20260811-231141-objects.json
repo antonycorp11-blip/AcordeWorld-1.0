@@ -4624,6 +4624,33 @@
       "y": 165,
       "escala": 0.4,
       "flipX": true
+    },
+    {
+      "id": "casa_nivel1_1786500349376",
+      "prop": "casa_nivel1",
+      "mapKey": "custom_1785881037059_214",
+      "x": 512,
+      "y": 128,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "casa_nivel1_1786500365837",
+      "prop": "casa_nivel1",
+      "mapKey": "custom_1785881037059_214",
+      "x": 288,
+      "y": 160,
+      "escala": 1,
+      "flipX": false
+    },
+    {
+      "id": "casa_nivel1_1786500493355",
+      "prop": "casa_nivel1",
+      "mapKey": "custom_1785881037059_214",
+      "x": 576,
+      "y": 288,
+      "escala": 1,
+      "flipX": false
     }
   ]
 }
