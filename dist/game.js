@@ -7567,6 +7567,7 @@ function savePlayerData() {
       passivas, habilidadesAbertas,
       passesDeDungeon, dungeons: ultimaConclusaoDeDungeon,
       acompanhante: ACOMP.npc ? ACOMP.npc.id : null,
+      fazendaExpansoes: expansoesCompradas(),
       itensPossuidos, equipado,
       acordesPossuidos, escalasEquipadas, acordesEquipados, funcaoPreferida,
       bandeiras, herois,
@@ -7638,6 +7639,7 @@ function loadPlayerData() {
     if (typeof d.coins === 'number') playerCoins = d.coins;
     // O acompanhante volta pelo id do NPC. Restaurado depois que os NPCs carregam,
     // senão a busca acontece numa lista ainda vazia.
+    if (typeof d.fazendaExpansoes === 'number') window.__fazendaExpansoes = d.fazendaExpansoes;
     if (d.acompanhante) window.__acompanhanteSalvo = d.acompanhante;
     if (typeof d.claves === 'number') claveCount = d.claves;
     if (Array.isArray(d.owned)) ownedItems = d.owned;
@@ -7684,6 +7686,7 @@ async function loadShopCatalog() {
   } catch (e) { return; }
   playerCoins = shopCatalog.coins_start ?? 300;
   carregarDungeons();
+  carregarFazenda();
   carregarEquipamentos();
   loadPlayerData(); // saved balance wins over the catalogue default
   aplicarHeroisRecrutados();
@@ -21652,6 +21655,122 @@ function renderSelo(now) {
     ctx.fillStyle = cor; ctx.fillText(txt, SELO.x, SELO.y - 30);
   }
   ctx.restore();
+}
+
+// ══ Fazendinha: crescimento, rega, Ecos e expansão ════════════════════════════
+// As regras vivem em assets/dados/fazenda.json para poderem ser ajustadas sem mexer em
+// código. Três decisões que valem explicar:
+//
+// 1. O tempo é de RELÓGIO REAL e a curva é logarítmica: 5 min no trigo, 12 h no abeto.
+//    O rápido ensina o laço, o lento trabalha enquanto o jogador está no capítulo.
+// 2. Sem rega a planta NÃO morre — ela para. Fazenda que mata plantação pune quem tem
+//    vida fora do jogo, e este jogo é de um dono de escola de música, não de fazendeiro.
+// 3. Eco come e devolve FRAGMENTO da nota dele; comida da nota certa rende o dobro. É o
+//    mesmo princípio do fragmento puro na captura, e é o que liga a fazenda às escalas.
+let FAZENDA = null;
+
+async function carregarFazenda() {
+  try {
+    const r = await fetch(`assets/dados/fazenda.json?t=${Date.now()}`);
+    FAZENDA = await r.json();
+  } catch (e) { FAZENDA = null; }
+}
+
+function culturaDoProp(propId) {
+  if (!FAZENDA) return null;
+  return Object.values(FAZENDA.culturas).find(c => c.prop === propId) || null;
+}
+
+// Quanto da vida da planta já passou, de 0 a 1. Só conta o tempo em que ela esteve
+// REGADA: o relógio de uma planta seca fica parado.
+function progressoDaPlanta(o, now) {
+  const c = culturaDoProp(o.prop);
+  if (!c) return 0;
+  if (o.regadaAte && now < o.regadaAte) {
+    o.crescidoMs = (o.crescidoMs || 0) + (now - (o.ultimoTique || now));
+  }
+  o.ultimoTique = now;
+  return Math.max(0, Math.min(1, (o.crescidoMs || 0) / (c.minutos * 60000)));
+}
+
+function estagioDaPlanta(o, now) {
+  const c = culturaDoProp(o.prop);
+  if (!c) return 0;
+  return Math.min(c.estagios - 1, Math.floor(progressoDaPlanta(o, now) * c.estagios));
+}
+
+function plantaPronta(o, now) { return progressoDaPlanta(o, now) >= 1; }
+function plantaSeca(o, now)   { return !(o.regadaAte && now < o.regadaAte); }
+
+function regar(o) {
+  if (!FAZENDA || !culturaDoProp(o.prop)) return false;
+  const now = performance.now();
+  o.regadaAte = now + FAZENDA.rega.minutosParaSecar * 60000;
+  o.ultimoTique = now;
+  addFloater(o.x, o.y - 30, '💧', '#7dd3fc');
+  return true;
+}
+
+function colher(o) {
+  const c = culturaDoProp(o.prop);
+  if (!c) return false;
+  const now = performance.now();
+  if (!plantaPronta(o, now)) {
+    const falta = Math.ceil((1 - progressoDaPlanta(o, now)) * c.minutos);
+    showToast(`${c.nome}: faltam ~${falta} min` + (plantaSeca(o, now) ? ' — e está seca.' : ''));
+    return false;
+  }
+  playerInventory[c.prop] = (playerInventory[c.prop] || 0) + c.rende;
+  addFloater(o.x, o.y - 40, `+${c.rende} ${c.nome}`, '#fbbf24');
+  progressoDeMissao('coletar', c.prop, c.rende);
+  gainXp(8 + Math.round(c.minutos / 6));
+  // Perene volta ao penúltimo estágio; anual some e deixa o canteiro livre.
+  if (c.perene) { o.crescidoMs = c.minutos * 60000 * 0.55; }
+  else objetos = objetos.filter(x => x !== o);
+  updateInventorySlotsUI();
+  savePlayerData();
+  return true;
+}
+
+// Alimentar um Eco: ele devolve fragmento da nota DELE, e o dobro se a comida for da
+// mesma nota. Sem comida certa ainda rende — só rende menos.
+function alimentarEco(m, propId) {
+  if (!FAZENDA) return false;
+  const def = monsterDef(m) || {};
+  if (!def.notaDoEco) return false;
+  const c = culturaDoProp(propId);
+  if (!c || (playerInventory[propId] || 0) < 1) return false;
+  playerInventory[propId]--;
+  const dobro = c.nota === def.notaDoEco;
+  const qtd = FAZENDA.ecos.fragmentosPorRefeicao * (dobro ? FAZENDA.ecos.bonusNotaCerta : 1);
+  const item = 'frag_' + def.notaDoEco;
+  playerInventory[item] = (playerInventory[item] || 0) + qtd;
+  progressoDeMissao('coletar', 'fragmento', qtd);
+  addFloater(m.x, m.y - 46, `+${qtd} fragmento de ${def.notaDoEco.toUpperCase()}`, '#a7f3d0');
+  showToast(dobro ? `${def.name} reconheceu a própria nota — rendeu o dobro.`
+                  : `${def.name} comeu. Comida da nota dele renderia mais.`);
+  m.alimentadoEm = performance.now();
+  updateInventorySlotsUI();
+  savePlayerData();
+  return true;
+}
+
+// ── Expansão da ilha ──────────────────────────────────────────────────────────
+function expansoesCompradas() { return (window.__fazendaExpansoes | 0); }
+function precoDaProximaExpansao() {
+  if (!FAZENDA) return null;
+  const i = expansoesCompradas();
+  return i < FAZENDA.ilha.precos.length ? FAZENDA.ilha.precos[i] : null;
+}
+function comprarExpansao() {
+  const preco = precoDaProximaExpansao();
+  if (preco == null) { showToast('A ilha já está no tamanho máximo.'); return false; }
+  if (playerCoins < preco) { showToast(`Faltam ${preco - playerCoins} de ouro.`); return false; }
+  playerCoins -= preco;
+  window.__fazendaExpansoes = expansoesCompradas() + 1;
+  showToast(`✦ Ilha expandida — +${FAZENDA.ilha.tilesPorExpansao} espaços`);
+  savePlayerData();
+  return true;
 }
 
 // ============================================================
