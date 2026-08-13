@@ -1,161 +1,170 @@
 {
-  "_": "Regras da fazendinha. Tempo em MINUTOS de relógio real. A curva é logarítmica de propósito: o jogador entra, planta o rápido, e o lento fica trabalhando enquanto ele joga o capítulo. Nada morre por falta de rega — só PARA de crescer. Fazenda que mata plantação pune quem tem vida.",
-  "rega": {
-    "_": "Cada estágio precisa de uma rega. Sem água a planta congela no estágio em que está, sem apodrecer. O regador tem carga; o poço enche de graça.",
-    "cargasDoRegador": 8,
-    "minutosParaSecar": 20,
-    "bonusRegaEmDia": 1.0,
-    "penalidadeSemAgua": 0.0
+ "_": "Regras da fazendinha. Tempo em MINUTOS de relógio real. A curva é logarítmica de propósito: o jogador entra, planta o rápido, e o lento fica trabalhando enquanto ele joga o capítulo. Nada morre por falta de rega — só PARA de crescer. Fazenda que mata plantação pune quem tem vida.",
+ "rega": {
+  "_": "Cada estágio precisa de uma rega. Sem água a planta congela no estágio em que está, sem apodrecer. O regador tem carga; o poço enche de graça.",
+  "cargasDoRegador": 8,
+  "minutosParaSecar": 20,
+  "bonusRegaEmDia": 1.0,
+  "penalidadeSemAgua": 0.0
+ },
+ "culturas": {
+  "trigo_seminima": {
+   "nome": "Trigo-semínima",
+   "prop": "semente_trigo",
+   "minutos": 5,
+   "estagios": 4,
+   "semente": 5,
+   "rende": 2,
+   "vende": 6,
+   "nota": "do",
+   "_": "O ciclo de entrada: cinco minutos. Serve para o jogador entender o laço inteiro antes de investir em algo lento.",
+   "sprites": [
+    "faz_trigo_01",
+    "faz_trigo_02",
+    "faz_trigo_03",
+    "faz_trigo_04"
+   ],
+   "_estagios": "Os estagios sao sprites da folha recortada, escolhidos a olho. Onde a cultura tem menos de quatro, o motor cobre o resto crescendo o sprite — o brote e a mesma arte menor."
   },
-  "culturas": {
-    "trigo_seminima": {
-      "nome": "Trigo-semínima",
-      "prop": "semente_trigo",
-      "minutos": 5,
-      "estagios": 4,
-      "semente": 5,
-      "rende": 2,
-      "vende": 6,
-      "nota": "do",
-      "_": "O ciclo de entrada: cinco minutos. Serve para o jogador entender o laço inteiro antes de investir em algo lento.",
-      "sprites": [
-        "faz_cult_03"
-      ],
-      "_estagios": "Os estagios sao sprites da folha recortada, escolhidos a olho. Onde a cultura tem menos de quatro, o motor cobre o resto crescendo o sprite — o brote e a mesma arte menor."
-    },
-    "erva_pausa": {
-      "nome": "Erva-pausa",
-      "prop": "erva_pausa",
-      "minutos": 12,
-      "estagios": 4,
-      "semente": 8,
-      "rende": 2,
-      "vende": 12,
-      "nota": "re",
-      "sprites": [
-        "faz_cult_06",
-        "faz_cult_07",
-        "faz_cult_08"
-      ]
-    },
-    "videira_ligadura": {
-      "nome": "Videira-ligadura",
-      "prop": "videira_ligadura",
-      "minutos": 25,
-      "estagios": 4,
-      "semente": 14,
-      "rende": 3,
-      "vende": 20,
-      "nota": "mi",
-      "sprites": [
-        "faz_cult_04",
-        "faz_cult_05"
-      ]
-    },
-    "cana_palheta": {
-      "nome": "Cana-palheta",
-      "prop": "cana_palheta",
-      "minutos": 45,
-      "estagios": 4,
-      "semente": 22,
-      "rende": 3,
-      "vende": 34,
-      "nota": "fa",
-      "_": "Material real de palheta. Também insumo de luteria, não só comida de Eco.",
-      "sprites": [
-        "faz_cult_01",
-        "faz_cult_02"
-      ]
-    },
-    "sino_flor": {
-      "nome": "Sino-flor",
-      "prop": "sino_flor",
-      "minutos": 90,
-      "estagios": 4,
-      "semente": 40,
-      "rende": 3,
-      "vende": 65,
-      "nota": "sol",
-      "sprites": [
-        "faz_cult_09",
-        "faz_cult_10"
-      ]
-    },
-    "breu": {
-      "nome": "Arbusto de Breu",
-      "prop": "breu",
-      "minutos": 180,
-      "estagios": 4,
-      "semente": 70,
-      "rende": 4,
-      "vende": 120,
-      "nota": "la",
-      "_": "Resina de arco. Colhe várias vezes sem replantar.",
-      "perene": true,
-      "sprites": [
-        "faz_cult_15",
-        "faz_cult_16",
-        "faz_cult_17",
-        "faz_cult_19"
-      ]
-    },
-    "cristal_diapasao": {
-      "nome": "Cristal-diapasão",
-      "prop": "cristal_diapasao",
-      "minutos": 360,
-      "estagios": 4,
-      "semente": 130,
-      "rende": 3,
-      "vende": 260,
-      "nota": "si",
-      "sprites": [
-        "faz_cult_12",
-        "faz_cult_11",
-        "faz_cult_13",
-        "faz_cult_14"
-      ]
-    },
-    "abeto_harmonico": {
-      "nome": "Abeto Harmônico",
-      "prop": "abeto_harmonico",
-      "minutos": 720,
-      "estagios": 4,
-      "semente": 240,
-      "rende": 2,
-      "vende": 520,
-      "nota": "do",
-      "_": "Tampo de instrumento. O de doze horas: planta antes de dormir.",
-      "perene": true,
-      "sprites": [
-        "faz_cult_21",
-        "faz_cult_22"
-      ]
-    }
+  "erva_pausa": {
+   "nome": "Erva-pausa",
+   "prop": "erva_pausa",
+   "minutos": 12,
+   "estagios": 4,
+   "semente": 8,
+   "rende": 2,
+   "vende": 12,
+   "nota": "re",
+   "sprites": [
+    "faz_cult_06",
+    "faz_cult_07",
+    "faz_cult_08"
+   ]
   },
-  "ecos": {
-    "_": "Eco é pet. Come o que a fazenda dá e devolve FRAGMENTO da nota dele. Comida da nota certa rende o dobro — é o mesmo princípio do fragmento puro na captura, e amarra a fazenda ao sistema de escalas em vez de deixá-la solta.",
-    "minutosParaFome": 30,
-    "fragmentosPorRefeicao": 2,
-    "bonusNotaCerta": 2,
-    "habitatCapacidade": 2,
-    "_alma": "A ALMA DE ECO MUSICAL e o que faz um Eco nascer na fazenda. Nao e uma so: cada nota tem a alma dela, e invocar exige VARIAS da mesma nota. Assim o jogador escolhe qual Eco quer criar indo cacar aquela nota, em vez de juntar po generico.",
-    "almasParaInvocar": 5,
-    "ecosPorHabitat": 2,
-    "_fome": "Era 240 (quatro horas). Quem limita o ritmo e a PLANTACAO, que leva de 5 min a 12 h para crescer; um relogio de fome por cima disso so fazia o jogador esperar duas vezes."
+  "videira_ligadura": {
+   "nome": "Videira-ligadura",
+   "prop": "videira_ligadura",
+   "minutos": 25,
+   "estagios": 4,
+   "semente": 14,
+   "rende": 3,
+   "vende": 20,
+   "nota": "mi",
+   "sprites": [
+    "faz_videira_01",
+    "faz_videira_02",
+    "faz_videira_03",
+    "faz_videira_04"
+   ]
   },
-  "ilha": {
-    "_": "Cresce comprando expansão, com preço subindo. O primeiro é barato de propósito: o jogador precisa sentir a ilha crescer uma vez para querer de novo.",
-    "tilesIniciais": 24,
-    "tilesPorExpansao": 12,
-    "precos": [
-      150,
-      400,
-      900,
-      1800,
-      3200,
-      5500,
-      9000
-    ],
-    "maxExpansoes": 7
+  "cana_palheta": {
+   "nome": "Cana-palheta",
+   "prop": "cana_palheta",
+   "minutos": 45,
+   "estagios": 4,
+   "semente": 22,
+   "rende": 3,
+   "vende": 34,
+   "nota": "fa",
+   "_": "Material real de palheta. Também insumo de luteria, não só comida de Eco.",
+   "sprites": [
+    "faz_cana_01",
+    "faz_cana_02",
+    "faz_cana_03",
+    "faz_cana_04"
+   ]
+  },
+  "sino_flor": {
+   "nome": "Sino-flor",
+   "prop": "sino_flor",
+   "minutos": 90,
+   "estagios": 4,
+   "semente": 40,
+   "rende": 3,
+   "vende": 65,
+   "nota": "sol",
+   "sprites": [
+    "faz_sino_01",
+    "faz_sino_02",
+    "faz_sino_03",
+    "faz_sino_04"
+   ]
+  },
+  "breu": {
+   "nome": "Arbusto de Breu",
+   "prop": "breu",
+   "minutos": 180,
+   "estagios": 4,
+   "semente": 70,
+   "rende": 4,
+   "vende": 120,
+   "nota": "la",
+   "_": "Resina de arco. Colhe várias vezes sem replantar.",
+   "perene": true,
+   "sprites": [
+    "faz_cult_15",
+    "faz_cult_16",
+    "faz_cult_17",
+    "faz_cult_19"
+   ]
+  },
+  "cristal_diapasao": {
+   "nome": "Cristal-diapasão",
+   "prop": "cristal_diapasao",
+   "minutos": 360,
+   "estagios": 4,
+   "semente": 130,
+   "rende": 3,
+   "vende": 260,
+   "nota": "si",
+   "sprites": [
+    "faz_cult_12",
+    "faz_cult_11",
+    "faz_cult_13",
+    "faz_cult_14"
+   ]
+  },
+  "abeto_harmonico": {
+   "nome": "Abeto Harmônico",
+   "prop": "abeto_harmonico",
+   "minutos": 720,
+   "estagios": 4,
+   "semente": 240,
+   "rende": 2,
+   "vende": 520,
+   "nota": "do",
+   "_": "Tampo de instrumento. O de doze horas: planta antes de dormir.",
+   "perene": true,
+   "sprites": [
+    "faz_cult_21",
+    "faz_cult_22"
+   ]
   }
+ },
+ "ecos": {
+  "_": "Eco é pet. Come o que a fazenda dá e devolve FRAGMENTO da nota dele. Comida da nota certa rende o dobro — é o mesmo princípio do fragmento puro na captura, e amarra a fazenda ao sistema de escalas em vez de deixá-la solta.",
+  "minutosParaFome": 30,
+  "fragmentosPorRefeicao": 2,
+  "bonusNotaCerta": 2,
+  "habitatCapacidade": 2,
+  "_alma": "A ALMA DE ECO MUSICAL e o que faz um Eco nascer na fazenda. Nao e uma so: cada nota tem a alma dela, e invocar exige VARIAS da mesma nota. Assim o jogador escolhe qual Eco quer criar indo cacar aquela nota, em vez de juntar po generico.",
+  "almasParaInvocar": 5,
+  "ecosPorHabitat": 2,
+  "_fome": "Era 240 (quatro horas). Quem limita o ritmo e a PLANTACAO, que leva de 5 min a 12 h para crescer; um relogio de fome por cima disso so fazia o jogador esperar duas vezes."
+ },
+ "ilha": {
+  "_": "Cresce comprando expansão, com preço subindo. O primeiro é barato de propósito: o jogador precisa sentir a ilha crescer uma vez para querer de novo.",
+  "tilesIniciais": 24,
+  "tilesPorExpansao": 12,
+  "precos": [
+   150,
+   400,
+   900,
+   1800,
+   3200,
+   5500,
+   9000
+  ],
+  "maxExpansoes": 7
+ }
 }

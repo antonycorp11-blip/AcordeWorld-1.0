@@ -5440,45 +5440,81 @@ function renderRessonancia() {
 
 // A revelação: o que saiu do Eco, com nome e quantidade. É o fecho da captura e o
 // único momento em que o jogo para para dizer "isto é seu agora".
-function mostrarRevelacaoDaCaptura(itens, silenciado, qualidade = 0) {
-  const ov = document.getElementById('capturaReveal');
-  const grade = document.getElementById('capturaItens');
-  if (!ov || !grade) {   // sem a tela, ao menos não engole o resultado
-    showToast('✦ ' + itens.map(i => `${infoDoItem(i.id)?.nome || i.id} ×${i.n}`).join(' · '));
-    return;
+// ── O QUE CAIU, sem parar o jogo ─────────────────────────────────────────────────
+// PADRÃO DO JOGO, a partir daqui: recompensa NUNCA abre tela. Ela escorre numa pilha de
+// linhas embaixo do rastreador de missão e some sozinha.
+//
+// A tela de "guardar" existia para mostrar o espólio da captura, mas ela chegava logo
+// depois do minijogo das vozes — o jogador acabava de fazer um gesto de precisão e era
+// premiado com mais um toque obrigatório, num modal que tapava o cenário. Duas telas
+// seguidas para uma coisa que cabe numa linha.
+const GANHO_MS = 5200;
+
+function mostrarGanhos(itens, aviso = null) {
+  let caixa = document.getElementById('ganhosPilha');
+  if (!caixa) {
+    caixa = document.createElement('div');
+    caixa.id = 'ganhosPilha'; caixa.className = 'ganhos-pilha';
+    (document.getElementById('questTracker')?.parentNode || document.body).appendChild(caixa);
   }
-  ajustarCaixaNoPalco('capturaReveal');
-  grade.innerHTML = '';
-  itens.forEach(i => {
+  // A pilha se apoia na caixa da missão em vez de num número fixo: ela muda de altura
+  // conforme os objetivos, e um `top` cravado cobria o texto em umas telas e flutuava
+  // longe dele em outras.
+  //
+  // São DUAS caixas possíveis, e é preciso olhar as duas: `hudMissao` mostra a missão
+  // em andamento ou o "A HISTÓRIA ESPERA", e `questTracker` é o rastreador antigo. Eu
+  // tinha ancorado só no segundo, e como quem estava na tela era o primeiro, a pilha caía
+  // no fallback de 78px — exatamente em cima do aviso da história.
+  const visivel = ['hudMissao', 'questTracker']
+    .map(id => document.getElementById(id))
+    .filter(el => el && !el.classList.contains('hidden'))
+    .sort((a, b) => (b.offsetTop + b.offsetHeight) - (a.offsetTop + a.offsetHeight))[0];
+  caixa.style.top = (visivel ? visivel.offsetTop + visivel.offsetHeight + 8 : 78) + 'px';
+
+  (itens || []).forEach((i, k) => {
     const info = infoDoItem(i.id) || {};
-    const casa = document.createElement('div');
-    casa.className = 'cap-item';
-    const cv = miniCanvas(spriteDoItem(i.id), 46);
-    if (cv) casa.appendChild(cv);
+    const linha = document.createElement('div');
+    linha.className = 'ganho-linha';
+    const cv = miniCanvas(spriteDoItem(i.id), 22);
+    if (cv) { cv.className = 'ganho-arte'; linha.appendChild(cv); }
     else if (info.arte) {
-      // Item cuja arte e um PNG solto, nao uma celula de folha — e o caso de todo
-      // fragmento. O painel so sabia desenhar folha, e por isso caia no emoji.
       const img = document.createElement('img');
-      img.src = info.arte; img.alt = ''; img.className = 'cap-arte';
-      casa.appendChild(img);
+      img.src = info.arte; img.alt = ''; img.className = 'ganho-arte';
+      linha.appendChild(img);
+    } else {
+      const e = document.createElement('span');
+      e.className = 'ganho-arte ganho-emoji'; e.textContent = info.emoji || '✦';
+      linha.appendChild(e);
     }
-    else { const e = document.createElement('span'); e.className = 'cap-emoji'; e.textContent = info.emoji || '✦'; casa.appendChild(e); }
-    const nome = document.createElement('div');
-    nome.className = 'cap-nome'; nome.style.color = info.cor || '#fde68a';
-    nome.textContent = `${info.nome || i.id} ×${i.n}`;
-    casa.appendChild(nome);
-    grade.appendChild(casa);
+    const txt = document.createElement('span');
+    txt.className = 'ganho-txt';
+    txt.style.color = info.cor || '#fde68a';
+    txt.textContent = `${info.nome || i.id} ×${i.n}`;
+    linha.appendChild(txt);
+    // Escalonado: as linhas entram uma a uma, senão três itens aparecem como um bloco só
+    // e o olho não lê nenhum.
+    setTimeout(() => caixa.appendChild(linha), k * 110);
+    setTimeout(() => linha.classList.add('saindo'), GANHO_MS + k * 110);
+    setTimeout(() => linha.remove(), GANHO_MS + 600 + k * 110);
   });
-  const aviso = document.getElementById('capturaAviso');
+
   if (aviso) {
-    aviso.textContent = silenciado
-      ? 'Este lugar está em silêncio: o Eco rendeu pouco. Procure outro cenário.'
-      : qualidade > 0.66 ? 'Acorde limpo — as vozes mal tiveram tempo de fugir.'
-      : qualidade > 0.3  ? 'Bom encontro. Junte-as mais rápido para tirar som puro.'
-      : 'As vozes vagaram bastante: o som veio embaçado.';
-    aviso.classList.toggle('alerta', !!silenciado);
+    const l = document.createElement('div');
+    l.className = 'ganho-linha ganho-aviso';
+    l.textContent = aviso;
+    caixa.appendChild(l);
+    setTimeout(() => l.classList.add('saindo'), GANHO_MS + 400);
+    setTimeout(() => l.remove(), GANHO_MS + 1000);
   }
-  ov.classList.remove('hidden');
+}
+
+function mostrarRevelacaoDaCaptura(itens, silenciado, qualidade = 0) {
+  // O espólio agora escorre embaixo da missão. Nada de tela.
+  mostrarGanhos(itens, silenciado
+    ? 'Lugar em silêncio: o Eco rendeu pouco.'
+    : qualidade > 0.66 ? 'Acorde limpo — as vozes mal tiveram tempo de fugir.'
+    : qualidade > 0.3  ? 'Bom encontro.'
+    : 'As vozes vagaram: o som veio embaçado.');
   playForgeDone();
 }
 
@@ -9903,6 +9939,12 @@ function onPointerDown(m){
     const alvo = propParaColocar;
     propParaColocar = null;
     document.getElementById('gameCanvas')?.classList.remove('cursor-crosshair');
+    if (projetoArmado) {
+      // Obra de habitat: cobra madeira e pedra e nasce como projeto, não como prop.
+      const nota = projetoArmado; projetoArmado = null;
+      plantarProjetoDeHabitat(nota, encaixarNaGrade(m.x), encaixarNaGrade(m.y));
+      return;
+    }
     colocarObjeto(alvo, encaixarNaGrade(m.x), encaixarNaGrade(m.y));
     return;
   }
@@ -14084,7 +14126,10 @@ function quadro(now){
       }
       // Grade só enquanto há ferramenta armada: construir sem grade é chute, e grade
       // permanente polui o cenário quando o jogador só quer olhar a fazenda.
-      if (propParaColocar) renderGradeDaFazenda();
+      // A grade aparece sempre que o toque VAI mexer na ilha: com prop na mão, com um
+      // projeto de habitat armado, e também no modo recolher — antes ela sumia justo aí,
+      // que é quando mais se precisa de referência para acertar a peça.
+      if (propParaColocar || projetoArmado || modoRecolher) renderGradeDaFazenda();
       // O ciclo de dia/noite será desenhado por cima depois
     } else if(currentScene==='world'||!isPlayMode){
       const vid = videoDoMapa(mapKey);
@@ -24290,6 +24335,10 @@ function limparFazenda() {
 // Comprar e recolher pelo mesmo preço não gera lucro, então não há o que explorar.
 let modoRecolher = false;
 
+// A nota do habitat escolhido, esperando o toque que decide o lugar. Enquanto está
+// armado, o fantasma e a grade da fazenda usam o prop dele.
+let projetoArmado = null;
+
 function alternarModoRecolher() {
   modoRecolher = !modoRecolher;
   if (modoRecolher) {
@@ -24552,9 +24601,15 @@ function abrirBarraDeProjeto() {
     + '<button class="fj-x" data-fechar="1">✖</button></div>';
   el.classList.remove('hidden');
   el.querySelectorAll('[data-projeto]').forEach(b => b.onclick = () => {
-    // Nasce a frente do jogador, para ele ver de imediato o que acabou de plantar.
-    const o = plantarProjetoDeHabitat(b.dataset.projeto, player.x + 40, player.y - 10);
-    if (o) el.classList.add('hidden');
+    // ARMA o projeto; não planta. Antes ele nascia na frente do jogador no mesmo toque —
+    // quem tinha o material não conseguia escolher ONDE, e o habitat aparecia num canto
+    // qualquer. Agora a nota vira fantasma na grade e o próximo toque decide o lugar.
+    projetoArmado = b.dataset.projeto;
+    propParaColocar = propDoHabitat(projetoArmado);   // reaproveita fantasma e grade
+    modoRecolher = false;
+    el.classList.add('hidden');
+    document.getElementById('gameCanvas')?.classList.add('cursor-crosshair');
+    showToast(`🔨 Habitat de ${NOME_DA_NOTA[projetoArmado]} — toque onde quer a obra`);
   });
   el.querySelector('[data-fechar]').onclick = () => el.classList.add('hidden');
 }
@@ -24638,6 +24693,39 @@ const PROP_DA_FERRAMENTA = {
 
 function propDaFerramenta(t) { return PROP_DA_FERRAMENTA[t] || t; }
 
+// Expandir a ilha. Mostra o preço ANTES, porque um botão que tira ouro sem avisar quanto
+// é o tipo de coisa que o jogador não perdoa. Saiu da barra e virou ação do menu.
+function expandirIlhaPerguntando() {
+  const preco = precoDaProximaExpansao();
+  if (preco == null) { showToast('A ilha já está no tamanho máximo.'); return; }
+  const tiles = (FAZENDA?.ilha?.tilesPorExpansao) || 12;
+  if (playerCoins < preco) {
+    showToast(`Expansão: ${preco} de ouro por +${tiles} espaços. Faltam ${preco - playerCoins}.`);
+    return;
+  }
+  if (window.confirm(`Expandir a ilha por ${preco} de ouro?\n+${tiles} espaços para construir.`))
+    comprarExpansao();
+}
+
+// ── A barra que sai da frente ────────────────────────────────────────────────────
+// Ela ficava permanente na base da tela, com onze botões, tapando justamente a faixa
+// onde se constrói. Agora encolhe sozinha depois de um tempo parada e vira uma aba
+// fininha no canto; um toque a traz de volta. Qualquer uso dela reinicia a contagem.
+const BARRA_DORME_MS = 4500;
+let _sonoDaBarra = null;
+
+function acordarBarraDaFazenda() {
+  const b = document.getElementById('farmToolbar');
+  if (!b) return;
+  b.classList.remove('dormindo');
+  clearTimeout(_sonoDaBarra);
+  _sonoDaBarra = setTimeout(() => {
+    // Não some no meio de uma escolha: com prop na mão ou obra armada, ela fica.
+    if (propParaColocar || projetoArmado || modoRecolher) { acordarBarraDaFazenda(); return; }
+    b.classList.add('dormindo');
+  }, BARRA_DORME_MS);
+}
+
 function initFazendaUI() {
   const btnBuildMode = document.getElementById('btnBuildMode');
   const farmToolbar = document.getElementById('farmToolbar');
@@ -24659,6 +24747,7 @@ function initFazendaUI() {
       aplicarZoomCenario(zoomDaFazenda, false);
       carregarPropsDaFazenda();
       farmToolbar.classList.remove('hidden');
+      acordarBarraDaFazenda();
       btnBuildMode.classList.add('hidden');
       document.getElementById('partyHud')?.classList.add('hidden');
       document.getElementById('mapaBtn')?.classList.add('hidden');
@@ -24680,6 +24769,7 @@ function initFazendaUI() {
       document.getElementById('mapaBtn')?.classList.remove('hidden');
       document.getElementById('statusMap')?.classList.remove('hidden');
       propParaColocar = null;
+      projetoArmado = null;
       modoRecolher = false;     // sair da fazenda com a mão armada deixava o modo ligado
       document.querySelectorAll('.farm-tool-cat').forEach(b => b.classList.remove('ativo'));
       const canvas = document.getElementById('gameCanvas');
@@ -24687,27 +24777,14 @@ function initFazendaUI() {
     });
   }
 
-  document.getElementById('farmRecolher')?.addEventListener('click', alternarModoRecolher);
-  document.getElementById('farmLimpar')?.addEventListener('click', limparFazenda);
-  document.getElementById('farmZoomIn')?.addEventListener('click', () => ajustarZoomDaFazenda(+0.2));
-  document.getElementById('farmZoomOut')?.addEventListener('click', () => ajustarZoomDaFazenda(-0.2));
-  // Expandir a ilha: a funcao existia e ninguem a chamava. Mostra o preco ANTES, porque
-  // um botao que tira ouro sem avisar quanto e o tipo de coisa que o jogador nao perdoa.
-  // Habitat nao se compra pronto na paleta: abre a barra de projeto, que pergunta a nota.
-  document.querySelector('#farmToolbar [data-cat="Habitats"]')
-    ?.addEventListener('click', e => { e.stopPropagation(); abrirBarraDeProjeto(); }, true);
-  document.getElementById('farmExpandir')?.addEventListener('click', () => {
-    const preco = precoDaProximaExpansao();
-    if (preco == null) { showToast('A ilha já está no tamanho máximo.'); return; }
-    const tiles = (FAZENDA?.ilha?.tilesPorExpansao) || 12;
-    if (playerCoins < preco) {
-      showToast(`Expansão: ${preco} de ouro por +${tiles} espaços. Faltam ${preco - playerCoins}.`);
-      return;
-    }
-    if (window.confirm(`Expandir a ilha por ${preco} de ouro?\n+${tiles} espaços para construir.`)) {
-      comprarExpansao();
-    }
+  document.getElementById('farmConstruir')?.addEventListener('click', () => {
+    window.buildMenuCategory = window.buildMenuCategory || 'Terreno';
+    openBuildMenu(); acordarBarraDaFazenda();
   });
+  document.getElementById('farmRecolher')?.addEventListener('click', () => {
+    alternarModoRecolher(); acordarBarraDaFazenda();
+  });
+  document.getElementById('farmAba')?.addEventListener('click', acordarBarraDaFazenda);
   // SÓ os botões que têm categoria. Recolher, expandir e os dois zooms compartilham a
   // classe `farm-tool-cat` mas não são categoria nenhuma — e caíam aqui, onde este
   // handler desarmava o que eles tinham acabado de armar e abria o menu de construção
@@ -24729,18 +24806,58 @@ function initFazendaUI() {
   });
 }
 
+// As categorias viraram ABAS dentro do menu. Elas ocupavam cinco botões na barra, que
+// ficava permanente na tela — cinco atalhos para um menu que já existe.
+const ABAS_DA_FAZENDA = [
+  { cat: 'Terreno',    ico: '🟫', rot: 'Terreno' },
+  { cat: 'Sementes',   ico: '🌱', rot: 'Sementes' },
+  { cat: 'Estruturas', ico: '🏡', rot: 'Estruturas' },
+  { cat: 'Habitats',   ico: '🎵', rot: 'Habitats' },
+  { cat: 'Decoração',  ico: '🪴', rot: 'Decoração' },
+];
+
 function openBuildMenu() {
   const overlay = document.getElementById('farmBuildOverlay');
   if (!overlay) return;
+  if (!ABAS_DA_FAZENDA.some(a => a.cat === window.buildMenuCategory))
+    window.buildMenuCategory = 'Terreno';
   overlay.classList.remove('hidden');
   document.getElementById('buildMenuCoins').textContent = playerCoins || 0;
-  document.getElementById('buildMenuTitle').textContent = "Construir: " + window.buildMenuCategory;
-  
+  document.getElementById('buildMenuTitle').textContent = 'Construir';
+
+  // Fita de abas + as duas ações que saíram da barra (limpar e expandir).
+  let abas = document.getElementById('buildAbas');
+  if (!abas) {
+    abas = document.createElement('div');
+    abas.id = 'buildAbas'; abas.className = 'build-abas';
+    const g = document.getElementById('buildGrid');
+    g.parentNode.insertBefore(abas, g);
+  }
+  abas.innerHTML = ABAS_DA_FAZENDA.map(a =>
+      `<button class="build-aba${a.cat === window.buildMenuCategory ? ' ativa' : ''}"
+               data-aba="${a.cat}"><span>${a.ico}</span><b>${a.rot}</b></button>`).join('')
+    + '<span class="build-abas-sep"></span>'
+    + '<button class="build-aba acao" data-acao="expandir" title="Expandir a ilha"><span>🧭</span><b>Expandir</b></button>'
+    + '<button class="build-aba acao perigo" data-acao="limpar" title="Recolher tudo"><span>🧹</span><b>Limpar</b></button>';
+  abas.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => {
+    window.buildMenuCategory = b.dataset.aba; openBuildMenu();
+  });
+  abas.querySelector('[data-acao="limpar"]').onclick = () => { closeBuildMenu(); limparFazenda(); };
+  abas.querySelector('[data-acao="expandir"]').onclick = () => { closeBuildMenu(); expandirIlhaPerguntando(); };
+
+  // Habitat não se compra pronto: a aba abre a escolha da nota, que arma o projeto.
+  if (window.buildMenuCategory === 'Habitats') {
+    document.getElementById('buildGrid').innerHTML = '';
+    closeBuildMenu();
+    abrirBarraDeProjeto();
+    return;
+  }
+
   const grid = document.getElementById('buildGrid');
   grid.innerHTML = '';
-  
+
   const items = Object.entries(propDefs).filter(([k,v]) => v.cat === 'Fazenda' && v.subcat === window.buildMenuCategory);
-  
+
   if (items.length === 0) {
     grid.innerHTML = '<div style="color:#aaa; text-align:center; padding:20px; grid-column:1/-1;">Nenhum item nesta categoria.</div>';
     return;

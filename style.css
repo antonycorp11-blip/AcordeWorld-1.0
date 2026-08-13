@@ -7931,3 +7931,95 @@ body.em-cena #questNotification { display: none !important; }
 /* O número do ciclo no próprio botão: o jogador vê que está no 2 de 3. */
 .hab-pet::after { content: attr(data-ciclo); position: absolute; bottom: 1px; right: 3px;
                   font: 700 7px Outfit, sans-serif; color: #a7f3d0; opacity: .8; }
+
+/* ══ O QUE CAIU ═══════════════════════════════════════════════════════════════
+   Padrão do jogo para recompensa: uma pilha de linhas embaixo do rastreador de
+   missão, que entra deslizando e some sozinha. Substitui a tela de "guardar", que
+   chegava logo depois do minijogo das vozes e cobrava mais um toque só para dizer
+   o que o jogador já tinha ganho. Mesma moldura escura com filete dourado do
+   rastreador, para ler como a mesma família. */
+.ganhos-pilha {
+  position: absolute; left: 12px; z-index: 41;
+  pointer-events: none;
+  display: flex; flex-direction: column; gap: 4px;
+  min-width: 208px; max-width: 300px;
+}
+.ganho-linha {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 9px;
+  background: linear-gradient(180deg, rgba(12,16,24,.92), rgba(6,9,14,.92));
+  border: 1px solid rgba(251,191,36,.35);
+  border-left: 3px solid #fbbf24;
+  border-radius: 7px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.4);
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px; font-weight: 600;
+  color: #fde68a;
+  animation: ganhoEntra .26s ease-out both;
+}
+.ganho-arte { width: 22px; height: 22px; image-rendering: pixelated; flex: 0 0 22px; }
+.ganho-emoji { font-size: 16px; line-height: 22px; text-align: center; }
+.ganho-txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ganho-aviso {
+  color: #cbd5e1; font-weight: 500; font-size: 11px;
+  border-left-color: #64748b;
+}
+.ganho-linha.saindo { animation: ganhoSai .55s ease-in both; }
+@keyframes ganhoEntra {
+  from { opacity: 0; transform: translateX(-14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes ganhoSai {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateX(-10px); }
+}
+
+/* ══ BARRA DA FAZENDA — 3 botões, e ela sai da frente ═════════════════════════
+   Eram onze botões permanentes na base da tela, tapando justamente a faixa onde se
+   constrói. Cinco eram atalhos de categoria para um menu que já existia; viraram
+   abas dentro dele. O que sobra: construir, recolher e sair. */
+.farm-toolbar { transition: transform .32s ease, opacity .32s ease; }
+.farm-toolbar.dormindo {
+  transform: translate(-50%, calc(100% - 18px));
+  opacity: .55;
+}
+.farm-toolbar.dormindo .farm-tool-cat { pointer-events: none; }
+.farm-aba {
+  display: none;
+  position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+  width: 62px; height: 18px; line-height: 16px;
+  border: 1px solid #7c5030; border-bottom: none;
+  border-radius: 9px 9px 0 0;
+  background: linear-gradient(180deg, #2b1f14, #1a1209);
+  color: #fde68a; font-size: 11px; cursor: pointer;
+}
+.farm-toolbar.dormindo .farm-aba { display: block; pointer-events: auto; }
+
+/* ══ ABAS DO MENU DE CONSTRUÇÃO ══════════════════════════════════════════════ */
+.build-abas {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px; margin-bottom: 8px;
+  overflow-x: auto; scrollbar-width: none;
+  border-bottom: 1px solid rgba(251,191,36,.22);
+}
+.build-abas::-webkit-scrollbar { display: none; }
+.build-aba {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  flex: 0 0 auto; min-width: 62px; padding: 6px 9px;
+  background: linear-gradient(180deg, rgba(24,18,32,.9), rgba(14,10,20,.9));
+  border: 1px solid #3b2d52; border-radius: 9px;
+  color: #cbd5e1; cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.build-aba span { font-size: 17px; line-height: 1; }
+.build-aba b { font-size: 9.5px; font-weight: 600; letter-spacing: .02em; }
+.build-aba:hover { border-color: #7c5cab; color: #e9d5ff; }
+.build-aba.ativa {
+  border-color: #fbbf24; color: #fde68a;
+  background: linear-gradient(180deg, #2f2416, #1e1710);
+  box-shadow: 0 0 0 1px rgba(251,191,36,.35) inset;
+}
+.build-abas-sep { flex: 1 1 auto; }
+.build-aba.acao { min-width: 58px; border-style: dashed; }
+.build-aba.acao.perigo { border-color: #7f1d1d; color: #fca5a5; }
+.build-aba.acao.perigo:hover { border-color: #b91c1c; }
