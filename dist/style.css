@@ -8064,3 +8064,101 @@ body.na-fazenda #partyHud { display: none; }
 }
 .hud-poder .hp-ico { font-size: 13px; opacity: .9; }
 .hud-poder b { font-size: 13px; font-weight: 800; letter-spacing: .02em; }
+
+/* ══ PAINEL DO HABITAT ════════════════════════════════════════════════════════
+   A ficha do Eco que mora na ilha: retrato grande, nível, o que alimentar e as
+   habilidades. Antes o habitat só respondia à invocação — depois disso o jogador
+   via o bicho andando e não tinha por onde saber nada sobre ele. */
+.pet-painel {
+  position: absolute; inset: 0; z-index: 70;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(6,9,14,.62);
+  font-family: 'Outfit', sans-serif;
+}
+.pet-painel.hidden { display: none; }
+.pp-caixa {
+  position: relative;
+  width: min(430px, 88%); max-height: 88%;
+  overflow-y: auto;
+  padding: 16px 16px 14px;
+  background: linear-gradient(180deg, rgba(24,18,32,.98), rgba(12,9,18,.98));
+  border: 1px solid rgba(251,191,36,.4);
+  border-radius: 14px;
+  box-shadow: 0 16px 44px rgba(0,0,0,.6);
+  color: #e2e8f0;
+}
+.pp-x {
+  position: absolute; top: 9px; right: 9px;
+  width: 28px; height: 28px;
+  background: #2a1414; border: 1px solid #7f1d1d; border-radius: 7px;
+  color: #fca5a5; cursor: pointer;
+}
+.pp-topo { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
+.pp-retrato {
+  flex: 0 0 96px; width: 96px; height: 96px;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 60%, rgba(167,243,208,.18), transparent 70%);
+  border: 1px solid #3b2d52; border-radius: 12px;
+  overflow: hidden;
+}
+/* A folha do Eco tem várias poses. O retrato mostra UM quadro: a grade vem do próprio
+   catálogo do monstro (cols x rows), então serve para qualquer Eco sem número mágico. */
+.pp-eco {
+  display: block; width: 100%; height: 100%;
+  image-rendering: pixelated;
+}
+.pp-id { flex: 1 1 auto; min-width: 0; }
+.pp-nome { display: block; font-size: 16px; font-weight: 800; color: #fde68a; }
+.pp-forma { font-size: 11px; color: #a78bfa; }
+.pp-nivel { margin-top: 6px; font-size: 12px; }
+.pp-xp {
+  display: block; height: 6px; margin: 4px 0 2px;
+  background: rgba(6,9,14,.8); border: 1px solid #3b2d52; border-radius: 999px;
+  overflow: hidden;
+}
+.pp-xp u { display: block; height: 100%; background: linear-gradient(90deg,#34d399,#a7f3d0); }
+.pp-nivel small { font-size: 10px; color: #94a3b8; }
+.pp-selo { display: inline-block; margin-top: 5px; font-size: 10.5px; color: #fca5a5; }
+.pp-selo.ok { color: #86efac; }
+.pp-secao { margin-top: 12px; }
+.pp-rot {
+  display: block; margin-bottom: 6px;
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; color: #94a3b8;
+}
+.pp-linha { display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; }
+.pp-linha::-webkit-scrollbar { display: none; }
+.pp-comida {
+  flex: 0 0 auto; width: 74px; padding: 7px 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: linear-gradient(180deg, rgba(24,18,32,.9), rgba(14,10,20,.9));
+  border: 1px solid #3b2d52; border-radius: 9px;
+  color: #cbd5e1; cursor: pointer;
+}
+.pp-comida img { width: 30px; height: 30px; object-fit: contain; image-rendering: pixelated; }
+.pp-comida b { font-size: 9px; font-weight: 600; text-align: center; line-height: 1.15; }
+.pp-comida small { font-size: 9.5px; color: #94a3b8; }
+.pp-comida.dobro { border-color: #fbbf24; }
+.pp-comida.dobro small { color: #fde68a; }
+.pp-comida:hover { border-color: #7c5cab; }
+.pp-hab {
+  display: flex; gap: 9px; align-items: flex-start;
+  padding: 7px 9px; margin-bottom: 5px;
+  background: rgba(14,10,20,.7);
+  border: 1px solid #3b2d52; border-left: 3px solid #a78bfa; border-radius: 8px;
+}
+.pp-hab-n {
+  flex: 0 0 20px; height: 20px; line-height: 20px; text-align: center;
+  background: #2f2416; border-radius: 5px; font-size: 11px; color: #fde68a;
+}
+.pp-hab b { display: block; font-size: 12px; color: #e9d5ff; }
+.pp-hab small { font-size: 10.5px; color: #94a3b8; }
+.pp-hab.trancada { opacity: .6; border-left-color: #64748b; }
+.pp-vazio { font-size: 11px; color: #94a3b8; }
+
+/* Na fazenda a zona do joystick encolhe.
+   Ela ocupa 46% x 72% da tela, ancorada embaixo à esquerda — no mundo isso é bom, porque
+   o polegar precisa de folga para correr. Na fazenda é o contrário: tudo que o jogador
+   constrói dentro dessa área deixa de responder ao toque, porque a zona come o evento
+   antes do canvas. Era esta a origem de "plantar exige muitos cliques" — metade da ilha
+   simplesmente não aceitava dedo. Continua sobrando espaço de sobra para andar. */
+body.na-fazenda .stick-zone { width: 26%; height: 42%; }

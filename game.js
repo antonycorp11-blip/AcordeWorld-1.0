@@ -9936,12 +9936,21 @@ function onPointerDown(m){
   if(engineMode==='mundo'){ mundoPointerDown(m); return; }
   if (isPlayMode && capturaAtiva) { pegarVoz(m.x, m.y); return; }
   if (isPlayMode && ecoProntoPerto()) { ressoar(); return; }
+  // A FAZENDA VEM ANTES DA CENA.
+  //
+  // `avancarCena()` estava acima de tudo isto, e uma cena que espera toque continua
+  // esperando enquanto o jogador constrói: ela engolia TODOS os toques dentro da fazenda.
+  // O sintoma é o pior possível — tocar no canteiro, no habitat, em qualquer coisa, e não
+  // acontecer nada, sem aviso nenhum. Dentro da fazenda o toque é da fazenda; a cena
+  // continua esperando o jogador lá fora, onde ela acontece.
+  if (currentScene !== 'farm') {
   if (avancarCena()) return;      // uma cena em curso consome o toque
   // An open dialogue owns the pointer whatever the editor mode is — otherwise the
   // editor branches below return early and taps never reach the choices.
   if(dlg.state===DLG_STATE.CHOOSING){ const i=choiceAt(m.telaX ?? m.x, m.telaY ?? m.y); if(i>=0)selectChoice(i); return; }
   if(dlg.state===DLG_STATE.TYPING||dlg.state===DLG_STATE.WAITING){ advanceDlg(); return; }
   if(dlg.state===DLG_STATE.NAME_INPUT) return;
+  }
 
   // Recolher vem antes de colocar: os dois se excluem, e quem armou a mão quer tirar.
   if (currentScene === 'farm' && modoRecolher) {
@@ -9954,6 +9963,10 @@ function onPointerDown(m){
   if (currentScene === 'farm' && !propParaColocar) {
     const c = canteiroEm(m.x, m.y);
     if (c) { abrirBarraDeSemente(c); return; }
+    // Habitat PRONTO abre a ficha do bicho. Em obra, o toque não faz nada aqui: quem
+    // martela é o botão de ação, que já tem o alcance e o ritmo certos.
+    const h = habitatSobOToque(m.x, m.y);
+    if (h && obraPronta(h)) { abrirPainelDoHabitat(h); return; }
   }
 
   // Lógica da Fazendinha: se tem ferramenta armada na tela da fazenda, clique no canvas planta/coloca
@@ -23845,6 +23858,11 @@ function plantaTarget() {
   let melhor = null, menor = Infinity;
   for (const o of objetos) {
     if (o.mapKey !== 'farm' || !culturaDoProp(o.prop)) continue;
+    // Planta que só está CRESCENDO não é alvo de nada. O botão dizia "E · Crescendo",
+    // que não é ação nenhuma — e o balão dele cobria os canteiros vizinhos, deixando o
+    // jogador sem conseguir tocar no que estava atrás. Alvo só quando há o que fazer:
+    // colher ou regar.
+    if (acaoDaPlanta(o) === 'esperar') continue;
     const d = Math.hypot(player.x - o.x, player.y - o.y);
     if (d <= RAIO_DE_COLETA && d < menor) { melhor = o; menor = d; }
   }
@@ -23892,17 +23910,29 @@ function renderEstadoDaPlanta(o, b, agora) {
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
     ctx.strokeText('✦', x, y + bob); ctx.fillStyle = '#fde68a';
     ctx.fillText('✦', x, y + bob);
-  } else {
-    ctx.fillStyle = 'rgba(6,9,14,.75)';
-    ctx.fillRect(x - L / 2 - 1, y - 4, L + 2, 5);
-    ctx.fillStyle = seca ? '#a16207' : '#4ade80';
-    ctx.fillRect(x - L / 2, y - 3, L * p, 3);
-    if (seca) {
-      ctx.font = 'bold 10px Outfit, sans-serif'; ctx.textAlign = 'center';
-      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
-      ctx.strokeText('💧', x, y - 7); ctx.fillStyle = '#7dd3fc';
-      ctx.fillText('💧', x, y - 7);
-    }
+  } else if (seca) {
+    // Seca é o único estado que EXIGE o jogador. Uma gota, sem barra.
+    ctx.font = 'bold 12px Outfit, sans-serif'; ctx.textAlign = 'center';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
+    ctx.strokeText('💧', x, y); ctx.fillStyle = '#7dd3fc';
+    ctx.fillText('💧', x, y);
+  } else if (Math.hypot(player.x - o.x, player.y - o.y) < 110) {
+    // CRESCENDO: nada de barra.
+    //
+    // A barra ficava acesa sobre cada canteiro da ilha inteira o tempo todo, e uma horta
+    // de vinte pés virava vinte tarjas verdes cobrindo justamente a arte que o jogador
+    // mandou desenhar. E ela dizia menos do que parecia: a planta JÁ conta a idade dela
+    // pelo tamanho e pelo desenho, que muda a cada estágio.
+    //
+    // Fica só o que a planta não sabe dizer sozinha — quanto falta — e só para quem
+    // chegou perto o bastante para se importar.
+    const falta = Math.ceil((1 - p) * c.minutos);
+    ctx.font = '600 10px Outfit, sans-serif'; ctx.textAlign = 'center';
+    ctx.globalAlpha = 0.85;
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
+    const t = textoDeEspera(falta * 60000);
+    ctx.strokeText(t, x, y); ctx.fillStyle = '#cbd5e1';
+    ctx.fillText(t, x, y);
   }
   ctx.textAlign = 'left';
   ctx.restore();
@@ -24341,9 +24371,132 @@ function marteladasParaOHabitat() {
 // responde à personalidade que o Eco já declara em monsters.json. Antes disto a obra
 // nascia com `faz_hab_01` fixo, então os sete habitats eram o mesmo desenho e a escolha
 // da nota não aparecia na tela.
+// O PISO da ilha, não a âncora dela.
+//
+// O Eco nascia em `habitat.y + 26`, que fica ABAIXO do ponto de apoio da ilha — ou seja,
+// na beirada de baixo, meio fora. O que se quer é o chão de dentro do anel: a ilha é
+// desenhada de `y - h*pe` para cima, então o miolo pisável fica por volta de 62% da
+// altura, contando do topo.
+function centroDoHabitat(o) {
+  const b = objetoBounds(o);
+  return { x: Math.round(b.x + b.w / 2), y: Math.round(b.y + b.h * 0.62) };
+}
+
 function propDoHabitat(nota) {
   const id = 'faz_hab_' + nota;
   return propDefs[id] ? id : 'faz_hab_01';   // volta ao antigo se a arte ainda não chegou
+}
+
+// ── O PAINEL DO HABITAT ──────────────────────────────────────────────────────────
+// Tocar no habitat abre a ficha do bicho que mora nele: o Eco grande, o nível, o que
+// falta para subir, e a habilidade que a próxima forma libera.
+//
+// Antes o toque no habitat só invocava, e depois disso ele não respondia mais a nada —
+// o jogador via o Eco andando na ilha e não tinha por onde saber o nível dele, quanto
+// faltava, nem o que ele sabia fazer. Tudo isso já existia no código; faltava a janela.
+// O habitat sob o dedo. Folga de meia célula pelo mesmo motivo do canteiro: mira de dedo
+// não é mira de mouse.
+function habitatSobOToque(x, y) {
+  const f = GRADE_FAZENDA / 2;
+  return objetos
+    .filter(o => o.mapKey === 'farm' && ehObraDeHabitat(o))
+    .sort((a, b) => b.y - a.y)
+    .find(o => {
+      const b = objetoBounds(o);
+      return x >= b.x - f && x <= b.x + b.w + f && y >= b.y - f && y <= b.y + b.h + f;
+    }) || null;
+}
+
+function ecoNoHabitat(h) {
+  return monsters.find(m => !m.dead && m.mapKey === 'farm' && m.habitat === h.id) || null;
+}
+
+function abrirPainelDoHabitat(h) {
+  const m = ecoNoHabitat(h);
+  if (!m) { abrirBarraDeInvocar(h); return; }      // habitat vazio continua sendo convite
+  const nota = (monsterDef(m) || {}).notaDoEco;
+  if (!nota) return;
+  const f = fichaDoPet(nota);
+  const forma = formaDoPet(nota);
+  const habs = habilidadesDoPet(nota);
+  const todas = (PETS?.habilidades || {})[nota] || [];
+  const proxima = todas.find(x => (x.forma || 1) > (f.forma || 1));
+  const falta = xpDoNivelDoPet(f.nivel) - f.xp;
+  const pronto = f.nivel >= nivelParaEquipar();
+
+  // A comida que serve, e o quanto ela rende — a da nota dele vale o dobro.
+  const comidas = Object.values(FAZENDA?.culturas || {})
+    .map(c => ({ c, tem: playerInventory[c.prop] || 0 }))
+    .filter(x => x.tem > 0);
+
+  let el = document.getElementById('petPainel');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'petPainel'; el.className = 'pet-painel hidden';
+    (document.getElementById('gameCanvas')?.parentNode || document.body).appendChild(el);
+  }
+  // O retrato é UM quadro da folha, não a folha. A arte do Eco é uma grade de poses
+  // (cols × rows); mostrar o arquivo inteiro punha quatro bichinhos dentro da moldura.
+  const dm = monsterDef(m) || {};
+  const cols = dm.cols || 1, rows = dm.rows || 1;
+  const arte = `assets/monsters/${'eco_' + nota}.png`;
+  const recorte = `background-image:url('${arte}');`
+    + `background-size:${cols * 100}% ${rows * 100}%;`
+    + `background-position:0% 0%;background-repeat:no-repeat;`;
+  el.innerHTML = `
+    <div class="pp-caixa">
+      <button class="pp-x" data-fechar="1">✖</button>
+      <div class="pp-topo">
+        <div class="pp-retrato"><i class="pp-eco" style="${recorte}"></i></div>
+        <div class="pp-id">
+          <b class="pp-nome">Eco de ${NOME_DA_NOTA[nota]}</b>
+          <span class="pp-forma">Forma ${f.forma || 1} de 3</span>
+          <div class="pp-nivel">
+            <span>Nível <b>${f.nivel}</b></span>
+            <i class="pp-xp"><u style="width:${Math.min(100, f.xp / xpDoNivelDoPet(f.nivel) * 100).toFixed(0)}%"></u></i>
+            <small>${f.xp} / ${xpDoNivelDoPet(f.nivel)} — faltam ${falta}</small>
+          </div>
+          <span class="pp-selo ${pronto ? 'ok' : ''}">${pronto
+            ? '✔ pode ser equipado na Ficha'
+            : `precisa do nível ${nivelParaEquipar()} para sair da fazenda`}</span>
+        </div>
+      </div>
+
+      <div class="pp-secao">
+        <span class="pp-rot">ALIMENTAR — sobe o nível</span>
+        <div class="pp-linha">${
+          comidas.length ? comidas.map(({ c, tem }) => {
+            const dobro = c.nota === nota;
+            return `<button class="pp-comida${dobro ? ' dobro' : ''}" data-comida="${c.prop}"
+                      title="${c.nome}${dobro ? ' — da nota dele, rende o dobro' : ''}">
+              <img src="${(propDefs[c.prop] || {}).sprite || ''}" alt="">
+              <b>${c.nome}</b><small>×${tem}${dobro ? ' ⭑' : ''}</small></button>`;
+          }).join('')
+          : '<span class="pp-vazio">Nada colhido ainda. Plante um canteiro e volte.</span>'
+        }</div>
+      </div>
+
+      <div class="pp-secao">
+        <span class="pp-rot">HABILIDADES</span>
+        ${habs.map((h, i) => `
+          <div class="pp-hab">
+            <span class="pp-hab-n">${i + 1}</span>
+            <div><b>${h.nome || 'Habilidade ' + (i + 1)}</b><small>${h.desc || ''}</small></div>
+          </div>`).join('')
+          || '<span class="pp-vazio">Nenhuma ainda.</span>'}
+        ${proxima ? `<div class="pp-hab trancada">
+            <span class="pp-hab-n">🔒</span>
+            <div><b>${proxima.nome || 'Próxima'}</b>
+                 <small>abre na forma ${proxima.forma} — evolua o Eco</small></div>
+          </div>` : ''}
+      </div>
+    </div>`;
+  el.classList.remove('hidden');
+  el.querySelector('[data-fechar]').onclick = () => el.classList.add('hidden');
+  el.onclick = e => { if (e.target === el) el.classList.add('hidden'); };
+  el.querySelectorAll('[data-comida]').forEach(b => b.onclick = () => {
+    if (alimentarEco(m, b.dataset.comida)) abrirPainelDoHabitat(h);   // redesenha com o nível novo
+  });
 }
 
 // ── Canteiro primeiro, semente depois ────────────────────────────────────────────
@@ -24352,17 +24505,24 @@ function propDoHabitat(nota) {
 // canteiro na grade, e depois toca nele para decidir o que vai ali dentro.
 function ehCanteiro(o) { return o && (o.prop === 'canteiro_terra'); }
 
+// O canteiro MAIS PRÓXIMO do toque, não o que contém o toque.
+//
+// O canteiro tem 32×26 na tela — do tamanho de uma célula, como o dono pediu. Exigir que
+// o dedo caia dentro desse retângulo é exigir mira de mouse: erra por três pixels e nada
+// acontece, e a impressão que fica é a de que plantar "não funciona". Pegar o mais perto
+// dentro de um raio confortável resolve sem aumentar a peça.
+const RAIO_DO_TOQUE_NA_FAZENDA = 46;
+
 function canteiroEm(x, y) {
-  return objetos
-    .filter(o => o.mapKey === 'farm' && ehCanteiro(o))
-    .sort((a, b) => b.y - a.y)
-    .find(o => {
-      const b = objetoBounds(o);
-      // Folga de meia célula: o canteiro é pequeno de propósito, e mira no dedo não é
-      // mira no mouse. Sem a folga o jogador toca "no canteiro" e não acontece nada.
-      const f = GRADE_FAZENDA / 2;
-      return x >= b.x - f && x <= b.x + b.w + f && y >= b.y - f && y <= b.y + b.h + f;
-    });
+  let melhor = null, menor = Infinity;
+  for (const o of objetos) {
+    if (o.mapKey !== 'farm' || !ehCanteiro(o)) continue;
+    const b = objetoBounds(o);
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    const d = Math.hypot(x - cx, y - cy);
+    if (d <= RAIO_DO_TOQUE_NA_FAZENDA && d < menor) { melhor = o; menor = d; }
+  }
+  return melhor;
 }
 
 // Já existe planta em cima deste canteiro?
@@ -24371,8 +24531,21 @@ function plantaNoCanteiro(c) {
     && Math.abs(o.x - c.x) < GRADE_FAZENDA && Math.abs(o.y - c.y) < GRADE_FAZENDA);
 }
 
+// A última semente escolhida fica na mão. Plantar exigia abrir o menu, escolher e
+// confirmar A CADA canteiro — oito canteiros eram vinte e quatro toques. Agora a primeira
+// escolha arma a semente e os canteiros seguintes recebem no toque, como quem semeia uma
+// fileira. Escolher outra troca; sair da fazenda ou tocar em RECOLHER desarma.
+let sementeArmada = null;
+
 function abrirBarraDeSemente(canteiro) {
   const jaTem = plantaNoCanteiro(canteiro);
+  // Com a semente na mão e o canteiro livre, planta direto: sem menu, sem confirmação.
+  if (!jaTem && sementeArmada && propDefs[sementeArmada]) {
+    const preco = propDefs[sementeArmada].preco || 0;
+    if (playerCoins < preco) { showToast(`Faltam ${preco - playerCoins} ⛃ para outra semente.`); return; }
+    colocarObjeto(sementeArmada, canteiro.x, canteiro.y);
+    return;
+  }
   if (jaTem) {
     // Canteiro ocupado: o toque colhe, e quando não está pronto o próprio `colher` diz
     // quanto falta. Dois gestos diferentes no mesmo lugar confundiriam mais que ajudar.
@@ -24400,8 +24573,10 @@ function abrirBarraDeSemente(canteiro) {
   el.classList.remove('hidden');
   el.querySelectorAll('[data-semente]').forEach(b => b.onclick = () => {
     // Nasce exatamente em cima do canteiro: é o canteiro que define o lugar, não o dedo.
-    colocarObjeto(b.dataset.semente, canteiro.x, canteiro.y);
+    sementeArmada = b.dataset.semente;
+    colocarObjeto(sementeArmada, canteiro.x, canteiro.y);
     el.classList.add('hidden');
+    showToast(`🌱 ${(propDefs[sementeArmada] || {}).nome || ''} na mão — toque nos outros canteiros`);
   });
   el.querySelector('[data-fechar]').onclick = () => el.classList.add('hidden');
 }
@@ -24443,6 +24618,7 @@ function alternarModoRecolher() {
   modoRecolher = !modoRecolher;
   if (modoRecolher) {
     propParaColocar = null;                       // recolher e plantar se excluem
+    sementeArmada = null;
   }
   document.querySelectorAll('.farm-tool-cat').forEach(b => b.classList.remove('ativo'));
   document.getElementById('farmRecolher')?.classList.toggle('ativo', modoRecolher);
@@ -24590,7 +24766,7 @@ function invocarEco(habitat, nota) {
   if (!def) { showToast('Este Eco ainda não existe no jogo.'); return false; }
   playerInventory['alma_' + nota] -= custo;
   if (custoFrag) playerInventory['frag_' + nota] -= custoFrag;
-  const alvo = pontoAndavelPerto(habitat.x + (Math.random() - 0.5) * 50, habitat.y + 26);
+  const alvo = pontoAndavelPerto(...Object.values(centroDoHabitat(habitat)));
   monsters.push({
     id: `fz_eco_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     type: tipo, mapKey: 'farm',
@@ -24943,6 +25119,7 @@ function initFazendaUI() {
       document.getElementById('statusMap')?.classList.remove('hidden');
       propParaColocar = null;
       projetoArmado = null;
+      sementeArmada = null;
       modoRecolher = false;     // sair da fazenda com a mão armada deixava o modo ligado
       document.querySelectorAll('.farm-tool-cat').forEach(b => b.classList.remove('ativo'));
       const canvas = document.getElementById('gameCanvas');
