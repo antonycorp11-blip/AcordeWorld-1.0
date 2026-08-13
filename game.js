@@ -15664,7 +15664,13 @@ setTimeout(()=>{
   loadingOverlay?.classList.add('hidden');
   // Pré-tela: só depois que tudo carregou, e só quando se vai de fato JOGAR. No editor
   // ela atrapalharia quem está montando cenário.
-  if (IS_PLAY_BUILD || wantsMobilePlay()) abrirPreTela();
+  //
+  // A PORTARIA vem antes dela: primeiro se decide de quem é a partida, só então a
+  // pré-tela mostra em quem você está e onde parou. Na ordem inversa o jogador escolhe o
+  // herói e o nível de uma partida que a conta pode substituir logo em seguida.
+  if (IS_PLAY_BUILD || wantsMobilePlay()) {
+    portariaDaConta().catch(() => {}).then(abrirPreTela);
+  }
 },1500);
 
 // ============================================================
@@ -25833,19 +25839,104 @@ function conciliarSaves() {
 }
 
 // ── Sessão guardada ───────────────────────────────────────────────────────────────
-async function restaurarSessao() {
-  // O botão de conta aparece SEMPRE, mesmo sem o serviço no ar: sem ele, quem abriu o
-  // jogo offline não teria por onde entrar depois que a rede voltasse.
-  atualizarBotaoDeConta();
-  if (!NUVEM.disponivel()) return;
-  try {
-    const sessao = await NUVEM.sessaoGuardada();
-    if (!sessao) { atualizarBotaoDeConta(); return; }
-    CONTA.sessao = sessao;
-    await carregarPerfil();
-    if (CONTA.perfil) conciliarSaves();
-  } catch (e) { /* offline: o jogo segue no localStorage */ }
-  atualizarBotaoDeConta();
+function restaurarSessao() {
+  // A PROMESSA fica guardada porque a portaria precisa dela. Sem isto a portaria abriria
+  // no mesmo instante em que a sessão guardada ainda está sendo lida, e quem já estava
+  // logado veria uma tela de login piscar antes de o jogo reconhecê-lo.
+  CONTA.pronta = (async () => {
+    // O botão de conta aparece SEMPRE, mesmo sem o serviço no ar: sem ele, quem abriu o
+    // jogo offline não teria por onde entrar depois que a rede voltasse.
+    atualizarBotaoDeConta();
+    if (!NUVEM.disponivel()) return;
+    try {
+      const sessao = await NUVEM.sessaoGuardada();
+      if (!sessao) { atualizarBotaoDeConta(); return; }
+      CONTA.sessao = sessao;
+      await carregarPerfil();
+      if (CONTA.perfil) conciliarSaves();
+    } catch (e) { /* offline: o jogo segue no localStorage */ }
+    atualizarBotaoDeConta();
+  })();
+  return CONTA.pronta;
+}
+
+// ══ PORTARIA ══════════════════════════════════════════════════════════════════════
+// A tela de conta ANTES de jogar, e não escondida atrás de um botão do HUD.
+//
+// A razão não é de arrumação, é de estrago. Entrando depois, o jogador já criou um save
+// neste aparelho; a conta pode ter outro; e alguém tem de perder. O `conciliarSaves`
+// resolve isso com uma pergunta de navegador — "OK usa o da conta, Cancelar mantém este"
+// —, que é a pior hora possível para fazer alguém escolher, porque a resposta errada
+// apaga uma tarde de jogo e não tem volta. Perguntando na PORTARIA, antes de existir save
+// desta sessão, o conflito quase nunca chega a nascer.
+//
+// Mas é PORTARIA, não muro. Ela só aparece quando adianta:
+//   · sem serviço de conta no ar (ou offline) ela nem abre — senão a primeira falha de
+//     rede tranca o jogador para fora do próprio jogo, que já roda inteiro no aparelho;
+//   · quem já tem sessão guardada passa direto, sem redigitar nada;
+//   · a banca de testes passa direto — é o caminho de teste do dono;
+//   · e "jogar sem conta" é lembrado, para não virar pedágio a cada abertura. O botão do
+//     HUD continua lá para entrar depois.
+const CHAVE_SEM_CONTA = 'acordelot_sem_conta';
+
+async function portariaDaConta() {
+  if (BANCA_DE_TESTES) return;
+  await CONTA.pronta;                       // a sessão guardada já foi lida?
+  if (!NUVEM.disponivel()) return;          // sem nuvem não há o que perguntar
+  if (logado()) return;                     // já entrou antes, neste aparelho
+  if (localStorage.getItem(CHAVE_SEM_CONTA)) return;
+
+  // Enquanto a portaria está de pé o mundo não pode andar sozinho. `preTelaAberta` já é
+  // a trava que segura gatilho de cena, cena de mapa e conversa de NPC — reusá-la evita
+  // uma segunda trava que teria de ser lembrada em todo lugar onde a primeira já é.
+  preTelaAberta = true;
+
+  const el = caixaDeTela('portariaTela', 'conta-tela portaria', false);
+  el.innerHTML = `
+    <div class="ct-caixa">
+      <h2>Acordelot</h2>
+      <p class="ct-sub">Com conta, seu progresso acompanha você de aparelho e a Arena
+         abre. Sem conta, o jogo é o mesmo — só fica guardado neste aparelho.</p>
+      <div class="ct-acoes ct-coluna">
+        <button class="ct-btn" data-entrar>Entrar</button>
+        <button class="ct-btn" data-criar>Criar conta</button>
+        <button class="ct-btn secundario" data-sem>Jogar sem conta</button>
+      </div>
+      <p class="ct-nota">Dá para entrar depois pelo botão de conta, no HUD. Só é mais
+         simples agora: entrando com o jogo já começado, um dos dois progressos —
+         o deste aparelho ou o da conta — tem de ser descartado.</p>
+    </div>`;
+  el.classList.remove('hidden');
+
+  await new Promise(pronto => {
+    const sair = () => { el.classList.add('hidden'); preTelaAberta = false; pronto(); };
+
+    el.querySelector('[data-sem]').onclick = () => {
+      localStorage.setItem(CHAVE_SEM_CONTA, '1');
+      sair();
+    };
+    // Entrar e criar reaproveitam a tela de conta que já existe, em vez de repetir os
+    // campos aqui: dois formulários com as mesmas regras divergem na primeira correção.
+    for (const [attr, modo] of [['data-entrar', 'entrar'], ['data-criar', 'criar']]) {
+      el.querySelector(`[${attr}]`).onclick = () => {
+        // A portaria NÃO some: só recolhe a caixa e continua servindo de fundo opaco.
+        // Escondendo-a por inteiro, a tela de conta — que é translúcida, porque nasceu
+        // para flutuar sobre uma partida em andamento — deixava ver o mundo, o HUD e o
+        // aviso de missão de uma partida que ainda não tinha começado.
+        el.classList.add('so-fundo');
+        abrirTelaDeConta(modo);
+        const conferir = setInterval(() => {
+          const tela = document.getElementById('contaTela');
+          if (tela && !tela.classList.contains('hidden')) return;   // ainda decidindo
+          clearInterval(conferir);
+          // Fechou sem entrar: a portaria volta, para a escolha não se perder no meio.
+          if (!logado()) { el.classList.remove('so-fundo'); return; }
+          localStorage.removeItem(CHAVE_SEM_CONTA);
+          sair();
+        }, 400);
+      };
+    }
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════════
@@ -26016,13 +26107,18 @@ async function registrarResultado(alvoId, venceu) {
 // já custou caro. Aqui os dois arquivos ficam intocados.
 // ══════════════════════════════════════════════════════════════════════════════════
 
-function caixaDeTela(id, classe) {
+// `fechaNoFundo` é falso só para a portaria. Tocar fora dela a esconderia sem resolver a
+// escolha, e a promessa que segura a abertura do jogo nunca terminaria: o jogador ficaria
+// olhando para o cenário parado, sem pré-tela e sem entender por quê. Para toda outra
+// tela, fechar tocando fora é o que se espera.
+function caixaDeTela(id, classe, fechaNoFundo = true) {
   let el = document.getElementById(id);
   if (!el) {
     el = document.createElement('div');
     el.id = id; el.className = classe + ' hidden';
     (document.getElementById('gameCanvas')?.parentNode || document.body).appendChild(el);
-    el.addEventListener('click', e => { if (e.target === el) el.classList.add('hidden'); });
+    if (fechaNoFundo)
+      el.addEventListener('click', e => { if (e.target === el) el.classList.add('hidden'); });
   }
   return el;
 }
@@ -26045,7 +26141,9 @@ function atualizarBotaoDeConta() {
   b.classList.toggle('logado', !!nome);
 }
 
-function abrirTelaDeConta() {
+// `modo` vem da portaria: quem tocou em "Criar conta" lá não deve chegar aqui numa tela
+// escrita "Entrar", com um aviso vermelho mandando tocar de novo no que acabou de tocar.
+function abrirTelaDeConta(modo) {
   const el = caixaDeTela('contaTela', 'conta-tela');
   const p = CONTA.perfil;
 
@@ -26103,12 +26201,12 @@ function abrirTelaDeConta() {
     </div>` : `
     <div class="ct-caixa">
       <button class="ct-x" data-fechar>✖</button>
-      <h2>Entrar</h2>
+      <h2>${modo === 'criar' ? 'Criar conta' : 'Entrar'}</h2>
       <p class="ct-sub">A conta leva seu progresso de aparelho e abre a Arena.
          Jogar sem conta continua funcionando.</p>
       <input class="ct-campo" id="ctEmail" type="email" placeholder="e-mail" autocomplete="email">
       <input class="ct-campo" id="ctSenha" type="password" placeholder="senha (6+)" autocomplete="current-password">
-      <input class="ct-campo hidden" id="ctNome" type="text" placeholder="nome no jogo (3 a 18 letras)" maxlength="18">
+      <input class="ct-campo ${modo === 'criar' ? '' : 'hidden'}" id="ctNome" type="text" placeholder="nome no jogo (3 a 18 letras)" maxlength="18">
       <div class="ct-erro hidden" id="ctErro"></div>
       <div class="ct-acoes">
         <button class="ct-btn" data-entrar>Entrar</button>

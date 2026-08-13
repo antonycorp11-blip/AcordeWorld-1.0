@@ -8343,3 +8343,17 @@ body.sem-rotulos-hud .hud-rot { display: none; }
 .ar-def-heroi b { display: block; font-size: 12.5px; color: #e9d5ff; }
 .ar-def-heroi small { display: block; font-size: 10px; color: #94a3b8; }
 .icon-btn.logado .hud-rot { color: #86efac; }
+
+/* ── Portaria ─────────────────────────────────────────────────────────────────
+   Opaca, ao contrário das outras telas de conta. Elas flutuam sobre o jogo em
+   andamento e o véu translúcido ajuda a lembrar disso; a portaria vem ANTES de
+   o jogo começar, e deixar o cenário aparecer atrás promete uma partida que
+   ainda não foi decidida de quem é. */
+/* z-index ABAIXO do 80 da `.conta-tela`: a portaria precisa ficar entre o jogo e a
+   tela de conta, para servir de fundo opaco enquanto o jogador digita. Acima dela,
+   cobriria justamente o formulário que ela mandou abrir. */
+.portaria { background: #0a0710; z-index: 78; }
+/* Caixa recolhida, fundo mantido — a portaria vira só a cortina. */
+.portaria.so-fundo .ct-caixa { display: none; }
+.ct-acoes.ct-coluna { flex-direction: column; gap: 8px; }
+.ct-acoes.ct-coluna .ct-btn { width: 100%; }
