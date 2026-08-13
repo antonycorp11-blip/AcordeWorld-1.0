@@ -22210,6 +22210,37 @@ function alternarTrilha() {
   showToast(TRILHA.ligada ? 'Trilha ligada' : 'Trilha desligada');
 }
 try { if (localStorage.getItem('acordelot_trilha') === '0') TRILHA.ligada = false; } catch (e) {}
+// ── Os nomes embaixo dos botões do HUD ───────────────────────────────────────────
+// O dono quer poder escondê-los. Ainda não existe tela de Ajustes do JOGADOR (a que
+// existe é a de zoom do editor), então a chave mora aqui, guardada, e o gesto é o toque
+// longo em qualquer botão do HUD — que no celular é o gesto de "me mostre as opções".
+// Quando a tela de Ajustes existir, é só chamar `alternarRotulosDoHud()`.
+const CHAVE_ROTULOS_HUD = 'acordelot_rotulos_hud';
+
+function aplicarRotulosDoHud() {
+  let esconder = false;
+  try { esconder = localStorage.getItem(CHAVE_ROTULOS_HUD) === 'off'; } catch (e) {}
+  document.body.classList.toggle('sem-rotulos-hud', esconder);
+  return esconder;
+}
+
+function alternarRotulosDoHud() {
+  const escondendoAgora = document.body.classList.contains('sem-rotulos-hud');
+  try { localStorage.setItem(CHAVE_ROTULOS_HUD, escondendoAgora ? 'on' : 'off'); } catch (e) {}
+  aplicarRotulosDoHud();
+  showToast(escondendoAgora ? 'Nomes dos botões: ligados' : 'Nomes dos botões: desligados');
+}
+
+aplicarRotulosDoHud();
+document.querySelectorAll('.icon-btn').forEach(b => {
+  let prazo = null;
+  const arma = () => { prazo = setTimeout(() => { prazo = null; alternarRotulosDoHud(); }, 550); };
+  const solta = () => { if (prazo) { clearTimeout(prazo); prazo = null; } };
+  b.addEventListener('pointerdown', arma);
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, solta));
+  b.addEventListener('contextmenu', e => { e.preventDefault(); alternarRotulosDoHud(); });
+});
+
 document.getElementById('somBtn')?.addEventListener('click', alternarTrilha);
 
 // ══ Composição — escalas, acordes e função harmônica ══════════════════════════

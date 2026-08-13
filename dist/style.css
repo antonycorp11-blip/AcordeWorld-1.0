@@ -8168,3 +8168,35 @@ body.na-fazenda .stick-zone { width: 26%; height: 42%; }
   width: 34px; height: 34px; object-fit: contain;
   image-rendering: pixelated;
 }
+
+/* ══ BOTÕES DO HUD: sprite no lugar do emoji ══════════════════════════════════
+   O TAMANHO fica como estava (38px) — o dono gosta dele; o que muda é a arte. A
+   moldura de metal já vem desenhada no sprite, então a borda e o fundo do botão
+   saem: duas molduras empilhadas engordavam o botão e sujavam o contorno.
+   O rótulo vive FORA da medalha, embaixo, e pode ser desligado nos ajustes. */
+.icon-btn:has(.hud-arte) {
+  border: none; background: none; box-shadow: none;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  width: 38px; height: 38px;
+  overflow: visible;
+}
+.icon-btn:has(.hud-arte):hover { transform: translateY(-1px); }
+.hud-arte {
+  width: 38px; height: 38px;
+  image-rendering: pixelated;
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.55));
+}
+.hud-rot {
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  margin-top: 1px;
+  font: 700 7.5px/1 'Outfit', sans-serif;
+  letter-spacing: .04em; text-transform: uppercase;
+  color: #fde68a; text-shadow: 0 1px 2px rgba(0,0,0,.9);
+  white-space: nowrap; pointer-events: none;
+}
+/* Ajuste do jogador: esconder os nomes. A medalha continua dizendo o que é. */
+body.sem-rotulos-hud .hud-rot { display: none; }
+/* Trancado continua legível como trancado, agora sem depender da borda. */
+.icon-btn.trancado:has(.hud-arte) .hud-arte { filter: grayscale(1) brightness(.55); }
+.icon-btn.trancado:has(.hud-arte) .hud-rot { color: #64748b; }

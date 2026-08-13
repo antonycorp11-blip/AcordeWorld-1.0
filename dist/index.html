@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=ea6663b9d3">
+  <link rel="stylesheet" href="style.css?v=1f0bc0377b">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -346,27 +346,33 @@
               <!-- Minimapa: a grade real do mundo, para escolher destino e acender
                    as placas do caminho. -->
               <button id="mapaBtn" class="icon-btn trancado" title="Mapa do Reino (M)">
-                <span class="hud-emoji">🗺️</span>
+                <img class="hud-arte" src="assets/ui/hud/mapa.png" alt="">
+                <span class="hud-rot">Mapa</span>
               </button>
               <button id="missoesBtn" class="icon-btn trancado" title="Missões (J)">
-                <span class="hud-emoji">📜</span>
+                <img class="hud-arte" src="assets/ui/hud/missoes.png" alt="">
+                <span class="hud-rot">Missões</span>
               </button>
               <button id="btnBuildMode" class="icon-btn" title="Fazenda (B)">
-                <span class="hud-emoji">🔨</span>
+                <img class="hud-arte" src="assets/ui/hud/fazenda.png" alt="">
+                <span class="hud-rot">Fazenda</span>
               </button>
-              <button id="somBtn" class="icon-btn" title="Trilha sonora">
-                <span class="hud-emoji">🎵</span>
+              <button id="somBtn" class="icon-btn" title="Música">
+                <img class="hud-arte" src="assets/ui/hud/musica.png" alt="">
+                <span class="hud-rot">Música</span>
               </button>
               <button id="forjaBtn" class="icon-btn trancado" title="Forjadores (F2 nota · F3 escala)">
-                <span class="hud-emoji">⚒️</span>
+                <img class="hud-arte" src="assets/ui/hud/sintese.png" alt="">
+                <span class="hud-rot">Síntese</span>
               </button>
               <button id="fichaBtn" class="icon-btn trancado ficha-btn" title="Ficha do Personagem (C)">
-                <span class="hud-emoji">🎭</span>
-                <span id="fichaDot" class="dot hidden"></span>
-                <span id="pointDot" class="dot hidden"></span>
+                <img class="hud-arte" src="assets/ui/hud/personagem.png" alt="">
+                <span class="hud-rot">Personagem</span>
+                <span id="fichaDot" class="dot hidden"></span><span id="pointDot" class="dot hidden"></span>
               </button>
               <button id="invBtn" class="icon-btn trancado inv-btn" title="Mochila / Inventário">
-                <span id="invEmoji" class="hud-emoji">🎒</span>
+                <img class="hud-arte" src="assets/ui/hud/bolsa.png" alt="">
+                <span class="hud-rot">Bolsa</span>
               </button>
             </div>
           </div>
@@ -1186,6 +1192,6 @@
 ">🔄 Enviar minhas ruas</button>
 
 <script src="config.js?v=20260807161410"></script>
-<script src="game.js?v=a1c5ab08c2"></script>
+<script src="game.js?v=ee7efa6ea0"></script>
 </body>
 </html>
