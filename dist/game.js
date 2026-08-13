@@ -25734,6 +25734,11 @@ async function apiPerfil(caminho, opcoes = {}) {
 }
 
 async function criarPerfil(nome) {
+  // A checagem mora aqui porque agora há DOIS caminhos até esta função: o cadastro
+  // direto e o "falta só o nome". Deixá-la só na tela significaria repeti-la — e um dia
+  // esquecê-la num dos dois.
+  if (!nome || nome.trim().length < 3) return { erro: 'O nome precisa de ao menos 3 letras.' };
+  if (nome.trim().length > 18) return { erro: 'O nome precisa ter no máximo 18 letras.' };
   const { erro } = await apiPerfil('perfis', {
     method: 'POST',
     headers: { 'Prefer': 'return=representation' },
@@ -26033,6 +26038,47 @@ function atualizarBotaoDeConta() {
 function abrirTelaDeConta() {
   const el = caixaDeTela('contaTela', 'conta-tela');
   const p = CONTA.perfil;
+
+  // TRÊS estados, não dois.
+  //
+  // O do meio existe por causa da confirmação de e-mail, que é o padrão do Supabase: o
+  // cadastro NÃO abre sessão, então o perfil não chega a ser criado. Quando o jogador
+  // confirma e entra, ele tem sessão e não tem perfil — e a tela, que só sabia "entrou"
+  // ou "não entrou", voltava a pedir e-mail e senha de quem acabou de digitar os dois.
+  // Parece defeito e faz desistir. Aqui ela pede só o que falta: o nome.
+  if (logado() && !p) {
+    el.innerHTML = `
+      <div class="ct-caixa">
+        <button class="ct-x" data-fechar>✖</button>
+        <h2>Falta só o nome</h2>
+        <p class="ct-sub">Sua conta está confirmada. Escolha como quer aparecer para os
+           outros jogadores — é este nome que vai na Arena e no ranking.</p>
+        <input class="ct-campo" id="ctNome" type="text" maxlength="18"
+               placeholder="nome no jogo (3 a 18 letras)">
+        <div class="ct-erro hidden" id="ctErro"></div>
+        <div class="ct-acoes">
+          <button class="ct-btn" data-perfil>Criar perfil</button>
+          <button class="ct-btn secundario" data-sair>Sair da conta</button>
+        </div>
+      </div>`;
+    el.classList.remove('hidden');
+    const erro = t => { const e = document.getElementById('ctErro');
+      if (e) { e.textContent = t; e.classList.toggle('hidden', !t); } };
+    el.querySelector('[data-fechar]').onclick = () => el.classList.add('hidden');
+    el.querySelector('[data-sair]').onclick = async () => {
+      await sairDaConta(); el.classList.add('hidden');
+    };
+    el.querySelector('[data-perfil]').onclick = async () => {
+      erro('');
+      const r = await criarPerfil(document.getElementById('ctNome').value.trim());
+      if (r.erro) return erro(r.erro);
+      // O save deste aparelho é o primeiro conteúdo da conta.
+      conciliarSaves();
+      el.classList.add('hidden'); abrirTelaDeConta();
+    };
+    return;
+  }
+
   el.innerHTML = p ? `
     <div class="ct-caixa">
       <button class="ct-x" data-fechar>✖</button>
