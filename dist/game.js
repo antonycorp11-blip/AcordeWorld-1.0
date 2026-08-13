@@ -18136,7 +18136,13 @@ function habilidadeAberta(id, heroi) {
   const quem = heroi || selectedHeroId;
   const lista = HABILIDADES[quem] || [];
   const i = lista.findIndex(h => h.id === id);
-  if (i < 0) return habilidadesAbertas.includes(id);
+  // Habilidade que NAO e deste heroi nao esta aberta para ele — esta nao e a arvore dele.
+  // Antes caia em `habilidadesAbertas`, uma lista global que nasce com ['lamina','chuva']:
+  // perguntar se o Akles tem a "chuva" (primeira da Wins) devolvia SIM. Nao chegava a
+  // aparecer no HUD porque a barra so lista as do heroi ativo, mas era uma resposta errada
+  // esperando alguem confiar nela — e foi exatamente assim que a ficha acendeu a segunda
+  // habilidade lendo a lista de um e o nivel de outro.
+  if (i < 0) return false;
   return nivelDoHeroi(quem) >= nivelQueLibera(i + 1);
 }
 // ── Banca de testes ───────────────────────────────────────────────────────────
