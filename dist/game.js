@@ -9889,6 +9889,13 @@ function onPointerDown(m){
     return;
   }
 
+  // Canteiro vazio pede semente; canteiro com planta pronta é colheita. Vem depois do
+  // recolher e antes de colocar: quem está com um prop na mão quer POR, não abrir menu.
+  if (currentScene === 'farm' && !propParaColocar) {
+    const c = canteiroEm(m.x, m.y);
+    if (c) { abrirBarraDeSemente(c); return; }
+  }
+
   // Lógica da Fazendinha: se tem ferramenta armada na tela da fazenda, clique no canvas planta/coloca
   if (currentScene === 'farm' && propParaColocar) {
     // UM por clique. Manter a ferramenta armada fazia o dedo escorregando encher a ilha
@@ -24194,6 +24201,87 @@ function propDoHabitat(nota) {
   return propDefs[id] ? id : 'faz_hab_01';   // volta ao antigo se a arte ainda não chegou
 }
 
+// ── Canteiro primeiro, semente depois ────────────────────────────────────────────
+// O jeito antigo era escolher a semente na prateleira e largar no chão: dava para plantar
+// no meio do nada, e a horta não tinha forma nenhuma. Agora vale o gesto da roça — abre o
+// canteiro na grade, e depois toca nele para decidir o que vai ali dentro.
+function ehCanteiro(o) { return o && (o.prop === 'canteiro_terra'); }
+
+function canteiroEm(x, y) {
+  return objetos
+    .filter(o => o.mapKey === 'farm' && ehCanteiro(o))
+    .sort((a, b) => b.y - a.y)
+    .find(o => {
+      const b = objetoBounds(o);
+      // Folga de meia célula: o canteiro é pequeno de propósito, e mira no dedo não é
+      // mira no mouse. Sem a folga o jogador toca "no canteiro" e não acontece nada.
+      const f = GRADE_FAZENDA / 2;
+      return x >= b.x - f && x <= b.x + b.w + f && y >= b.y - f && y <= b.y + b.h + f;
+    });
+}
+
+// Já existe planta em cima deste canteiro?
+function plantaNoCanteiro(c) {
+  return objetos.find(o => o.mapKey === 'farm' && culturaDoProp(o.prop)
+    && Math.abs(o.x - c.x) < GRADE_FAZENDA && Math.abs(o.y - c.y) < GRADE_FAZENDA);
+}
+
+function abrirBarraDeSemente(canteiro) {
+  const jaTem = plantaNoCanteiro(canteiro);
+  if (jaTem) {
+    // Canteiro ocupado: o toque colhe, e quando não está pronto o próprio `colher` diz
+    // quanto falta. Dois gestos diferentes no mesmo lugar confundiriam mais que ajudar.
+    colher(jaTem);
+    return;
+  }
+  let el = document.getElementById('sementeBarra');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'sementeBarra'; el.className = 'forja-barra';
+    const irma = document.getElementById('forjaBarra');
+    (irma && irma.parentNode ? irma.parentNode : document.body).appendChild(el);
+  }
+  const culturas = Object.values(FAZENDA.culturas);
+  el.innerHTML = '<span class="fj-rot">O QUE PLANTAR AQUI?</span><div class="fj-linha">'
+    + culturas.map(c => {
+        const def = propDefs[c.prop] || {};
+        const pode = playerCoins >= (def.preco || 0);
+        return `<button class="fj-nota${pode ? ' fj-ok' : ''}" data-semente="${c.prop}"
+                  ${pode ? '' : 'disabled'} title="${c.nome} — ${c.minutos} min">
+          <img class="fj-img" src="${def.sprite || ''}" alt="">
+          <b>${c.nome}</b><small>${def.preco || 0} ⛃</small></button>`;
+      }).join('')
+    + '<button class="fj-x" data-fechar="1">✖</button></div>';
+  el.classList.remove('hidden');
+  el.querySelectorAll('[data-semente]').forEach(b => b.onclick = () => {
+    // Nasce exatamente em cima do canteiro: é o canteiro que define o lugar, não o dedo.
+    colocarObjeto(b.dataset.semente, canteiro.x, canteiro.y);
+    el.classList.add('hidden');
+  });
+  el.querySelector('[data-fechar]').onclick = () => el.classList.add('hidden');
+}
+
+// Limpar a fazenda inteira. Existe porque a ilha de teste do dono ficou intransitável e
+// não havia como recomeçar sem apagar o save à mão. Devolve o ouro do que estava posto.
+function limparFazenda() {
+  const meus = objetos.filter(o => o.mapKey === 'farm');
+  if (!meus.length) { showToast('A fazenda já está vazia.'); return; }
+  const comEco = meus.filter(o => ehObraDeHabitat(o) && ecosNoHabitat(o) > 0);
+  if (!window.confirm(`Recolher TUDO da fazenda? ${meus.length} peça(s).`
+      + (comEco.length ? `\n${comEco.length} habitat(s) com Eco dentro ficam.` : ''))) return;
+  let ouro = 0;
+  const fica = [];
+  meus.forEach(o => {
+    if (ehObraDeHabitat(o) && ecosNoHabitat(o) > 0) { fica.push(o); return; }
+    ouro += (propDefs[o.prop] || {}).preco || 0;
+  });
+  objetos = objetos.filter(o => o.mapKey !== 'farm' || fica.includes(o));
+  playerCoins += ouro;
+  salvarFazenda(); savePlayerData(); updateInventorySlotsUI?.();
+  showToast(`🧹 Fazenda limpa — ${ouro} ⛃ devolvidos`
+    + (fica.length ? `, ${fica.length} habitat(s) com Eco mantido(s)` : ''));
+}
+
 // ── Recolher o que já foi colocado ───────────────────────────────────────────────
 // Faltava desfazer. Dava para encher a ilha e não havia gesto nenhum para tirar nada —
 // um toque errado numa casa de 150 de ouro ficava lá para sempre.
@@ -24600,6 +24688,7 @@ function initFazendaUI() {
   }
 
   document.getElementById('farmRecolher')?.addEventListener('click', alternarModoRecolher);
+  document.getElementById('farmLimpar')?.addEventListener('click', limparFazenda);
   document.getElementById('farmZoomIn')?.addEventListener('click', () => ajustarZoomDaFazenda(+0.2));
   document.getElementById('farmZoomOut')?.addEventListener('click', () => ajustarZoomDaFazenda(-0.2));
   // Expandir a ilha: a funcao existia e ninguem a chamava. Mostra o preco ANTES, porque
@@ -24619,7 +24708,12 @@ function initFazendaUI() {
       comprarExpansao();
     }
   });
-  document.querySelectorAll('.farm-tool-cat:not(.fechar)').forEach(btn => {
+  // SÓ os botões que têm categoria. Recolher, expandir e os dois zooms compartilham a
+  // classe `farm-tool-cat` mas não são categoria nenhuma — e caíam aqui, onde este
+  // handler desarmava o que eles tinham acabado de armar e abria o menu de construção
+  // com `buildMenuCategory` indefinido. Era por isso que tocar na mão não recolhia nada:
+  // o listener dela ligava o modo e este, logo depois, desligava.
+  document.querySelectorAll('.farm-tool-cat[data-cat]:not(.fechar)').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.farm-tool-cat').forEach(b => b.classList.remove('ativo'));
       btn.classList.add('ativo');
