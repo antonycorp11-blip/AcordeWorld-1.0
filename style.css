@@ -8259,3 +8259,6 @@ body.sem-rotulos-hud .hud-rot { display: none; }
 /* Trancado continua legível como trancado, agora sem depender da borda. */
 .icon-btn.trancado:has(.hud-arte) .hud-arte { filter: grayscale(1) brightness(.55); }
 .icon-btn.trancado:has(.hud-arte) .hud-rot { color: #64748b; }
+/* O botão da fazenda aceso enquanto ela está aberta: é ele que fecha. */
+.icon-btn.aberto .hud-arte { filter: drop-shadow(0 0 6px rgba(251,191,36,.9)) brightness(1.15); }
+.icon-btn.aberto .hud-rot { color: #fbbf24; }

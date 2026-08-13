@@ -7019,11 +7019,9 @@ function atualizarBotaoDeAtaque(now) {
   _btnAtaque.parentElement?.classList.toggle('calmo', calmo);
   document.getElementById('partyHud')?.classList.toggle('calmo', calmo);
 
-  // Ressoar aparece só quando há Eco aberto ao lado. Na FAZENDA este mesmo botão vira o
-  // "sair", e quem manda nele é `aplicarHudDaFazenda` — sem esta guarda, esta linha roda
-  // a cada quadro e apaga o botão de sair no quadro seguinte ao de entrar.
-  if (currentScene !== 'farm')
-    document.getElementById('botaoRessoar')?.classList.toggle('disponivel', acao === 'ressoar');
+  // Ressoar aparece só quando há Eco aberto ao lado — e na fazenda não há Eco selvagem,
+  // então ele simplesmente não aparece, sem precisar de caso especial.
+  document.getElementById('botaoRessoar')?.classList.toggle('disponivel', acao === 'ressoar');
 
   // Recarga e destaque dos três botões, lidos do catálogo do personagem em campo. Antes
   // isto era escrito à mão para a Lâmina e para a Sétima, com as constantes do Achilles
@@ -25299,14 +25297,11 @@ function aplicarHudDaFazenda(ligado) {
       if (typeof sincronizarBotoesDeHabilidade === 'function') sincronizarBotoesDeHabilidade();
     }
   });
-  const sair = document.getElementById('botaoRessoar');
-  if (sair) {
-    sair.classList.toggle('modo-fazenda', ligado);
-    sair.classList.toggle('disponivel', ligado);
-    sair.innerHTML = ligado ? '<span>✖</span><small>SAIR</small>'
-                            : '<span>✦</span><small>RESSOAR</small>';
-    sair.onclick = ligado ? () => document.getElementById('btnCloseFarm')?.click() : null;
-  }
+  // O RESSOAR fica sendo o Ressoar.
+  //
+  // Ele chegou a virar o "sair" da fazenda, e era ruim por dois motivos: sequestrava um
+  // botao de combate que o polegar ja conhece por outra coisa, e escondia a saida num
+  // canto que ninguem procura. Quem fecha a fazenda e o proprio botao do HUD que a abriu.
   document.body.classList.toggle('na-fazenda', ligado);
 }
 
@@ -25329,59 +25324,79 @@ function acordarBarraDaFazenda() {
   }, BARRA_DORME_MS);
 }
 
+function entrarNaFazenda() {
+  if (currentScene !== 'world') { showToast('🔨 Saia para o mapa antes de abrir a fazenda.'); return; }
+  sceneBeforeFarm = currentScene;
+  window.keyBeforeFarm = currentKey;
+  // A fazenda e um LUGAR, nao uma camada por cima do mapa anterior. Sem guardar e
+  // trocar a posicao, o jogador entrava parado na coordenada em que estava no mapa
+  // de fora — e voltava para o lugar errado depois.
+  window.posBeforeFarm = { x: player.x, y: player.y, dir: player.direction };
+  currentScene = 'farm';
+  currentKey = 'farm';
+  const pf = window.__posNaFazenda || { x: SCREEN_W / 2, y: SCREEN_H * 0.62 };
+  player.x = pf.x; player.y = pf.y; player.direction = 'down';
+  zoomAntesDaFazenda = zoomCenario;
+  aplicarZoomCenario(zoomDaFazenda, false);
+  carregarPropsDaFazenda();
+  carregarFazenda?.();
+  document.getElementById('farmToolbar')?.classList.add('hidden');
+  aplicarHudDaFazenda(true);
+  // O botao FICA, aceso: e ele que fecha.
+  document.getElementById('btnBuildMode')?.classList.add('aberto');
+  document.getElementById('partyHud')?.classList.add('hidden');
+  document.getElementById('mapaBtn')?.classList.add('hidden');
+  document.getElementById('statusMap')?.classList.add('hidden');
+}
+
+function sairDaFazenda() {
+  if (currentScene !== 'farm') return;
+  window.__posNaFazenda = { x: player.x, y: player.y };
+  salvarFazenda?.();
+  currentScene = sceneBeforeFarm === 'farm' ? 'world' : sceneBeforeFarm;
+  currentKey = window.keyBeforeFarm || startMap || currentKey;
+  const pv = window.posBeforeFarm;
+  if (pv) {
+    // `pousoSeguro` procura chao andavel perto: a fazenda nao tem colisao pintada, entao
+    // sem isto a volta podia cair dentro de parede no mapa do mundo.
+    const p = pousoSeguro(currentKey, pv.x, pv.y);
+    player.x = p.x; player.y = p.y; player.direction = pv.dir || 'down';
+  }
+  aplicarZoomCenario(zoomAntesDaFazenda ?? 1.6, false);
+  document.getElementById('farmToolbar')?.classList.add('hidden');
+  aplicarHudDaFazenda(false);
+  document.getElementById('btnBuildMode')?.classList.remove('aberto');
+  document.getElementById('partyHud')?.classList.remove('hidden');
+  document.getElementById('mapaBtn')?.classList.remove('hidden');
+  document.getElementById('statusMap')?.classList.remove('hidden');
+  document.getElementById('petPainel')?.classList.add('hidden');
+  propParaColocar = null;
+  projetoArmado = null;
+  sementeArmada = null;
+  modoRecolher = false;     // sair da fazenda com a mao armada deixava o modo ligado
+  document.querySelectorAll('.farm-tool-cat').forEach(b => b.classList.remove('ativo'));
+  document.getElementById('gameCanvas')?.classList.remove('cursor-crosshair');
+}
+
 function initFazendaUI() {
   const btnBuildMode = document.getElementById('btnBuildMode');
   const farmToolbar = document.getElementById('farmToolbar');
   const btnCloseFarm = document.getElementById('btnCloseFarm');
   
+  // O BOTAO DA FAZENDA E O INTERRUPTOR: o mesmo que abre, fecha.
+  //
+  // O sair morava no lugar do RESSOAR, e era ruim por dois motivos — sequestrava um botao
+  // de combate que o polegar ja conhece por outra coisa, e escondia a saida num canto que
+  // ninguem procura. Sair de um lugar se faz pela porta por onde se entrou.
   if (btnBuildMode) {
     btnBuildMode.addEventListener('click', () => {
-      sceneBeforeFarm = currentScene;
-      window.keyBeforeFarm = currentKey;
-      // A fazenda e um LUGAR, nao uma camada por cima do mapa anterior. Sem guardar e
-      // trocar a posicao, o jogador entrava parado na coordenada em que estava no mapa
-      // de fora — e voltava para o lugar errado depois.
-      window.posBeforeFarm = { x: player.x, y: player.y, dir: player.direction };
-      currentScene = 'farm';
-      currentKey = 'farm';
-      const pf = window.__posNaFazenda || { x: SCREEN_W / 2, y: SCREEN_H * 0.62 };
-      player.x = pf.x; player.y = pf.y; player.direction = 'down';
-      zoomAntesDaFazenda = zoomCenario;
-      aplicarZoomCenario(zoomDaFazenda, false);
-      carregarPropsDaFazenda();
-      // A barra flutuante nao aparece mais: quem vira fazenda e o HUD.
-      farmToolbar.classList.add('hidden');
-      aplicarHudDaFazenda(true);
-      btnBuildMode.classList.add('hidden');
-      document.getElementById('partyHud')?.classList.add('hidden');
-      document.getElementById('mapaBtn')?.classList.add('hidden');
-      document.getElementById('statusMap')?.classList.add('hidden');
+      if (currentScene === 'farm') sairDaFazenda(); else entrarNaFazenda();
     });
   }
   
-  if (btnCloseFarm) {
-    btnCloseFarm.addEventListener('click', () => {
-      window.__posNaFazenda = { x: player.x, y: player.y };
-      currentScene = sceneBeforeFarm;
-      currentKey = window.keyBeforeFarm || '0_0';
-      const pv = window.posBeforeFarm;
-      if (pv) { player.x = pv.x; player.y = pv.y; player.direction = pv.dir || 'down'; }
-      aplicarZoomCenario(zoomAntesDaFazenda ?? 1.6, false);
-      farmToolbar.classList.add('hidden');
-      aplicarHudDaFazenda(false);
-      btnBuildMode.classList.remove('hidden');
-      document.getElementById('partyHud')?.classList.remove('hidden');
-      document.getElementById('mapaBtn')?.classList.remove('hidden');
-      document.getElementById('statusMap')?.classList.remove('hidden');
-      propParaColocar = null;
-      projetoArmado = null;
-      sementeArmada = null;
-      modoRecolher = false;     // sair da fazenda com a mão armada deixava o modo ligado
-      document.querySelectorAll('.farm-tool-cat').forEach(b => b.classList.remove('ativo'));
-      const canvas = document.getElementById('gameCanvas');
-      if (canvas) canvas.classList.remove('cursor-crosshair');
-    });
-  }
+  // O ✖ da barra antiga continua ligado: a barra não aparece mais, mas o botão existe
+  // no HTML e outras partes o acionam por código.
+  if (btnCloseFarm) btnCloseFarm.addEventListener('click', sairDaFazenda);
 
   document.getElementById('farmConstruir')?.addEventListener('click', () => {
     window.buildMenuCategory = window.buildMenuCategory || 'Terreno';
