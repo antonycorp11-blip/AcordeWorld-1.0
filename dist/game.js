@@ -4701,6 +4701,8 @@ function renderObjetos(now, lado) {
       }
       if (fantasma) ctx.globalAlpha = 0.38;
       else if (o.esgotadoAte && agoraDoQuadro < o.esgotadoAte) ctx.globalAlpha = 0.55;
+      // Obra inacabada aparece esmaecida: e o sinal de que ainda nao da para usar.
+      else if (o.obra && !obraPronta(o)) ctx.globalAlpha = 0.45;
       if (o.flipX) {
         ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1);
         ctx.drawImage(spr.canvas, 0, 0, b.w, b.h);
@@ -4714,6 +4716,7 @@ function renderObjetos(now, lado) {
       // secou, estrela quando está pronta. Sem isso a única forma de saber era chegar em
       // cada uma e ler um aviso.
       if (o.mapKey === 'farm' && currentScene === 'farm') renderEstadoDaPlanta(o, b, agoraDoQuadro);
+      if (o.mapKey === 'farm' && currentScene === 'farm') renderObraDoHabitat(o, b, agoraDoQuadro);
 
       if (!isPlayMode) renderMarcaDoObjeto(o, b);
     });
@@ -8866,7 +8869,10 @@ function actionAvailable() {
   if(spotTarget())return 'gather';
   if(propColetavelTarget())return 'gather';
   if(ecoDaFazendaTarget())return 'alimentar';  // bicho de casa ganha do canteiro
-  if(habitatTarget())return 'invocar';
+  {
+    const hb = habitatTarget();
+    if (hb) return (ehObraDeHabitat(hb) && !obraPronta(hb)) ? 'obra' : 'invocar';
+  }
   if(plantaTarget())return 'fazenda';   // regar/colher usam a mesma ação da coleta
   if(signpostTarget())return 'travel';
   if(forgeDoorTarget())return 'enterForge';
@@ -8947,6 +8953,7 @@ function tryTalk() {
   if(act==='cena'){ const l=lugarDeCenaTarget(); if(l){ iniciarCena(l.cena); return; } }
   if(act==='ressoar'){ ressoar(); return; }
   if(act==='attack'){ doAttack(); return; }
+  if(act==='obra'){ const o = habitatTarget(); if (o) { martelarObra(o); return; } }
   if(act==='invocar'){ const h = habitatTarget(); if (h) { abrirBarraDeInvocar(h); return; } }
   if(act==='alimentar'){
     const m = ecoDaFazendaTarget();
@@ -14249,7 +14256,7 @@ function quadro(now){
       updateAmbient(now);renderSpeech(now);renderFloaters(now);
       // Prompt over whatever the action button is currently pointing at — not just
       // NPCs. A door you can't see is a door that doesn't exist.
-      const ACT_PROMPT={sortear:'E  ·  Tentar a Sorte',ressoar:'E  ·  RESSOAR',talk:'E  ·  Falar',travel:'E  ·  Viajar',gather:'E  ·  Coletar',forjar:'E  ·  Montar escala',enterForge:'E  ·  Entrar',martelar:'E  ·  Martelar',entrarPorta:'E  ·  Entrar',invocar:'E  ·  Invocar Eco',alimentar:'E  ·  Alimentar',cena:'E  ·  Ver'};
+      const ACT_PROMPT={sortear:'E  ·  Tentar a Sorte',ressoar:'E  ·  RESSOAR',talk:'E  ·  Falar',travel:'E  ·  Viajar',gather:'E  ·  Coletar',forjar:'E  ·  Montar escala',enterForge:'E  ·  Entrar',martelar:'E  ·  Martelar',entrarPorta:'E  ·  Entrar',invocar:'E  ·  Invocar Eco',alimentar:'E  ·  Alimentar',cena:'E  ·  Ver',obra:'E  ·  Martelar'};
       const act=actionAvailable();
       const tgt = act==='talk' ? talkTarget()
                 : act==='travel' ? signpostTarget()
@@ -14258,6 +14265,7 @@ function quadro(now){
                 : act==='martelar' ? marteladaTarget()
                 : act==='gather' ? (spotTarget() || propColetavelTarget())
                 : act==='cena' ? lugarDeCenaTarget()
+                : act==='obra' ? habitatTarget()
                 : act==='invocar' ? habitatTarget()
                 : act==='alimentar' ? ecoDaFazendaTarget()
                 : act==='fazenda' ? plantaTarget()
@@ -23548,6 +23556,8 @@ function salvarFazenda() {
       crescidoMs: Math.round(o.crescidoMs || 0),
       regadaAte: Math.round(o.regadaAte || 0),
       ultimoTique: Math.round(o.ultimoTique || 0),
+      nota: o.nota || null,
+      obra: o.obra ? { ...o.obra } : null,
     }));
     localStorage.setItem(CHAVE_DA_FAZENDA, JSON.stringify(meus));
   } catch (e) { /* cota cheia ou aba privada: perder a fazenda é melhor que travar o jogo */ }
@@ -23573,6 +23583,8 @@ function carregarObjetosDaFazenda() {
       crescidoMs: s.crescidoMs || 0,
       regadaAte: s.regadaAte || 0,
       ultimoTique: s.ultimoTique || 0,
+      nota: s.nota || null,
+      obra: s.obra || null,
     });
   });
   // O tempo passado com o jogo FECHADO conta, porque o relógio é o de parede: é aqui que
@@ -23758,7 +23770,7 @@ function alimentarEco(m, propId) {
   m.alimentadoEm = agoraNaFazenda();
   // A comida tambem CRIA o bicho: e assim que o Eco da fazenda vira pet e cresce.
   registrarPet(def.notaDoEco);
-  darXpAoPet(def.notaDoEco, (PETS?.regra?.xpPorRefeicao) || 12);
+  darXpAoPet(def.notaDoEco, xpDaRefeicao(c, def.notaDoEco));
   salvarEcosDaFazenda();
   updateInventorySlotsUI();
   savePlayerData();
@@ -23804,17 +23816,25 @@ function registrarPet(nota) {
   const novo = !petsDoJogador[nota];
   fichaDoPet(nota);
   if (novo) {
-    // Primeiro Eco de um heroi entra equipado sozinho: descobrir que da para equipar
-    // depois de ja ter cinco no curral e descobrir tarde demais.
-    if (!petDoHeroi(selectedHeroId)) equiparPet(selectedHeroId, nota);
-    showToast(`✦ ${NOME_DA_NOTA[nota] || nota} agora e seu Eco. Equipe-o na Ficha.`);
+    // Nao entra equipado: ele nasce nivel 1 e o teto para equipar e 5. O caminho e
+    // alimentar na fazenda ate ele estar pronto para ir junto.
+    showToast(`✦ ${NOME_DA_NOTA[nota] || nota} nasceu. Alimente-o até o nível ${nivelParaEquipar()} para levá-lo.`);
   }
   savePlayerData();
 }
 
+function nivelParaEquipar() { return (PETS?.regra?.nivelParaEquipar) ?? 5; }
+
 function equiparPet(heroi, nota) {
   petCiclo = 0;
   if (nota && !temPet(nota)) { showToast('Voce ainda nao tem esse Eco.'); return false; }
+  // O Eco recem-invocado fica na fazenda ate o nivel 5. E o que da funcao a alimentar:
+  // sem isso o jogador invocava e ja saia com ele, e a fazenda virava so uma tela de
+  // invocacao.
+  if (nota && fichaDoPet(nota).nivel < nivelParaEquipar()) {
+    showToast(`${NOME_DA_NOTA[nota]} precisa chegar ao nível ${nivelParaEquipar()} — alimente-o na fazenda.`);
+    return false;
+  }
   // Um Eco nao serve dois herois ao mesmo tempo: se ja estiver com outro, troca de dono.
   if (nota) Object.keys(petEquipado).forEach(h => {
     if (h !== heroi && petEquipado[h] === nota) delete petEquipado[h];
@@ -24023,7 +24043,21 @@ window.addEventListener('keydown', e => {
   if (e.key.toLowerCase() === 't' && !dlg.aberto && !CUT.ativo) usarHabilidadeDoPet();
 });
 
-function xpDoNivelDoPet(n) { return Math.round(40 * Math.pow(1.28, n - 1)); }
+// Curva LINEAR. Com a exponencial de antes (1,28^n) o nivel 20 pedia 15.412 de xp — 514
+// refeicoes, e a forma 2 era inalcancavel na pratica.
+function xpDoNivelDoPet(n) {
+  const c = PETS?.regra?.curva || { base: 30, passo: 14 };
+  return c.base + c.passo * (n - 1);
+}
+
+// Quanto uma refeicao vale. Vem do TEMPO da cultura: comida cara alimenta melhor. E o que
+// da sentido a plantar o Abeto de doze horas em vez de trigo para sempre.
+function xpDaRefeicao(cultura, notaDoEco) {
+  const r = PETS?.regra || {};
+  const base = (r.xpBase ?? 10) + (cultura.minutos || 5) * (r.xpPorMinutoDeCultivo ?? 0.5);
+  const dobro = cultura.nota === notaDoEco ? (r.bonusNotaCerta ?? 2) : 1;
+  return Math.round(base * dobro);
+}
 
 // Alimentar na fazenda sobe o pet. A comida ja existia e so dava fragmento.
 function darXpAoPet(nota, quanto) {
@@ -24034,6 +24068,11 @@ function darXpAoPet(nota, quanto) {
   while (f.xp >= xpDoNivelDoPet(f.nivel)) { f.xp -= xpDoNivelDoPet(f.nivel); f.nivel++; subiu++; }
   if (subiu) {
     addFloater(player.x, player.y - 70, `✦ Eco de ${NOME_DA_NOTA[nota]} nivel ${f.nivel}`, '#a7f3d0');
+    // O momento em que ele passa a poder sair da fazenda merece ser dito.
+    if (f.nivel >= nivelParaEquipar() && f.nivel - subiu < nivelParaEquipar()) {
+      anunciar(`${NOME_DA_NOTA[nota].toUpperCase()} PRONTO`, 1800);
+      showToast(`✦ Eco de ${NOME_DA_NOTA[nota]} chegou ao nível ${nivelParaEquipar()} — já pode ser equipado na Ficha.`);
+    }
     revisarObjetivosDeProgresso();
   }
   savePlayerData();
@@ -24085,13 +24124,122 @@ function evoluirPet(nota) {
 }
 function custoDaInvocacao() { return (FAZENDA && FAZENDA.ecos.almasParaInvocar) || 5; }
 
+// O desenho da obra: enquanto nao esta pronta, o habitat aparece esmaecido com um andaime
+// e o contador de marteladas. Sem isso o jogador planta o projeto e ve um habitat pronto —
+// e nao entende por que nao da para invocar nele.
+function renderObraDoHabitat(o, b, agora) {
+  if (!ehObraDeHabitat(o)) return;
+  const pronto = obraPronta(o);
+  const nota = o.nota;
+  ctx.save();
+  if (!pronto) {
+    // Andaime: quatro traves em volta do que esta sendo levantado.
+    ctx.globalAlpha = 0.85;
+    ctx.strokeStyle = '#a97e2c'; ctx.lineWidth = 2;
+    ctx.strokeRect(b.x - 3, b.y - 3, b.w + 6, b.h + 6);
+    ctx.beginPath();
+    ctx.moveTo(b.x - 3, b.y + b.h * 0.5); ctx.lineTo(b.x + b.w + 3, b.y + b.h * 0.5);
+    ctx.stroke();
+  }
+  // Contador ou o tempo de assentar.
+  const emCura = o.obra.marteladas >= o.obra.total && !pronto;
+  const txt = pronto ? `♪ ${NOME_DA_NOTA[nota] || ''}`
+    : emCura ? `assentando ${Math.ceil((o.obra.curaAte - agoraNaFazenda()) / 60000)} min`
+    : `🔨 ${o.obra.marteladas}/${o.obra.total}`;
+  ctx.globalAlpha = 1;
+  ctx.font = 'bold 10px Outfit, sans-serif'; ctx.textAlign = 'center';
+  ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,.9)';
+  ctx.strokeText(txt, o.x, b.y - 6);
+  ctx.fillStyle = pronto ? (COR_DA_NOTA[nota] || '#fde68a') : emCura ? '#94a3b8' : '#fbbf24';
+  ctx.fillText(txt, o.x, b.y - 6);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+
+// ══ A OBRA DO HABITAT ═════════════════════════════════════════════════════════
+// O habitat nao se compra pronto. O jogador PLANTA o projeto escolhendo a nota, entrega
+// madeira e pedra, e martela ate ficar de pe — o mesmo gesto da ponte, que ele ja aprendeu
+// no capitulo. Depois da ultima martelada a obra ainda assenta por alguns minutos.
+//
+// Cada habitat aceita SO a nota dele, como no Dragon City: e o que faz o jogador construir
+// varios em vez de um so, e o que da sentido a ir atras de uma nota especifica na clareira.
+
+function regrasDoHabitat() { return (PETS && PETS.habitat) || {
+  custo: { wood: 12, stone: 8 }, marteladasBase: 12, minutosDeCura: 3,
+  custoDaInvocacao: { alma: 5, fragmento: 10 } };
+}
+
+// Quantas marteladas ESTE jogador precisa. Martelo melhor e mais Dinamica derrubam o
+// numero: e o que faz a ferramenta forjada valer alguma coisa fora do combate.
+function marteladasParaOHabitat() {
+  const r = regrasDoHabitat();
+  const mart = equipped.hammer;
+  const q = mart ? (qualidadeDe(mart).bonusColeta || 0) : 0;
+  const forca = (attrsDoHeroi().dinamica || 0) * 0.03;
+  return Math.max(4, Math.round(r.marteladasBase * (1 - q - forca)));
+}
+
+function ehObraDeHabitat(o) { return !!(o && o.obra); }
+function obraPronta(o) {
+  return ehObraDeHabitat(o) && o.obra.marteladas >= o.obra.total
+      && agoraNaFazenda() >= (o.obra.curaAte || 0);
+}
+
+// Planta o projeto: escolhe a nota, cobra o material, e a obra comeca do zero.
+function plantarProjetoDeHabitat(nota, x, y) {
+  const r = regrasDoHabitat();
+  const falta = Object.entries(r.custo).filter(([k, n]) => (playerInventory[k] || 0) < n);
+  if (falta.length) {
+    showToast('Falta material: ' + falta.map(([k, n]) =>
+      `${n - (playerInventory[k] || 0)} de ${k === 'wood' ? 'madeira' : 'pedra'}`).join(' e '));
+    return null;
+  }
+  Object.entries(r.custo).forEach(([k, n]) => { playerInventory[k] -= n; });
+  const p = pontoAndavelPerto(encaixarNaGrade(x), encaixarNaGrade(y));
+  const o = {
+    id: `obra_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    prop: 'faz_hab_01', mapKey: 'farm', x: p.x, y: p.y, escala: 1, flipX: false,
+    nota,
+    obra: { marteladas: 0, total: marteladasParaOHabitat(), curaAte: 0 },
+  };
+  objetos.push(o);
+  salvarFazenda(); updateInventorySlotsUI?.();
+  showToast(`🔨 Projeto do habitat de ${NOME_DA_NOTA[nota]} plantado. Martele ${o.obra.total}x.`);
+  return o;
+}
+
+function martelarObra(o) {
+  if (!ehObraDeHabitat(o)) return;
+  const r = regrasDoHabitat();
+  if (o.obra.marteladas >= o.obra.total) {
+    const falta = Math.ceil(((o.obra.curaAte || 0) - agoraNaFazenda()) / 60000);
+    showToast(falta > 0 ? `A obra está assentando — ${falta} min.` : 'Habitat pronto.');
+    return;
+  }
+  const agora = performance.now();
+  if (agora - ultimaMartelada < 380) return;
+  ultimaMartelada = agora;
+  playerGatherUntil = agora + 420;
+  player.direction = o.x < player.x ? 'left' : 'right';
+  playForgeHit();
+  o.obra.marteladas++;
+  addFloater(o.x, o.y - 40, `🔨 ${o.obra.marteladas}/${o.obra.total}`, '#fde68a');
+  for (let i = 0; i < 4; i++)
+    addFloater(o.x + (Math.random() - 0.5) * 30, o.y - 8 - Math.random() * 12, '✦', '#fbbf24');
+  if (o.obra.marteladas >= o.obra.total) {
+    o.obra.curaAte = agoraNaFazenda() + (r.minutosDeCura || 3) * 60000;
+    showToast(`Estrutura de pé. Ela assenta em ${r.minutosDeCura || 3} min.`);
+  }
+  salvarFazenda();
+}
+
 function habitatTarget() {
   if (currentScene !== 'farm' || playerLocked || propParaColocar) return null;
   let melhor = null, menor = Infinity;
   for (const o of objetos) {
     if (o.mapKey !== 'farm') continue;
     const def = propDefs[o.prop] || {};
-    if (def.subcat !== 'Habitats') continue;
+    if (def.subcat !== 'Habitats' && !ehObraDeHabitat(o)) continue;
     const d = Math.hypot(player.x - o.x, player.y - o.y);
     if (d <= RAIO_DE_COLETA && d < menor) { melhor = o; menor = d; }
   }
@@ -24103,17 +24251,35 @@ function ecosNoHabitat(o) {
 }
 
 function invocarEco(habitat, nota) {
-  const custo = custoDaInvocacao();
-  if (almasDe(nota) < custo) {
-    showToast(`Faltam ${custo - almasDe(nota)} Almas de ${NOME_DA_NOTA[nota]}. Elas vêm de capturar o Eco dessa nota.`);
+  // Cada habitat aceita SO a nota dele. E o que faz o jogador construir varios em vez de
+  // um so, e o que da sentido a ir atras de uma nota especifica na clareira.
+  if (habitat.nota && habitat.nota !== nota) {
+    showToast(`Este habitat é de ${NOME_DA_NOTA[habitat.nota]}. Só aceita Ecos dessa nota.`);
     return false;
   }
+  if (!obraPronta(habitat) && ehObraDeHabitat(habitat)) {
+    showToast('O habitat ainda está em obra.'); return false;
+  }
+  const r = regrasDoHabitat();
+  const custoAlma = (r.custoDaInvocacao?.alma) ?? custoDaInvocacao();
+  const custoFrag = (r.custoDaInvocacao?.fragmento) ?? 0;
+  const temFrag = playerInventory['frag_' + nota] || 0;
+  if (almasDe(nota) < custoAlma) {
+    showToast(`Faltam ${custoAlma - almasDe(nota)} Almas de ${NOME_DA_NOTA[nota]}. Elas vêm de capturar o Eco dessa nota.`);
+    return false;
+  }
+  if (temFrag < custoFrag) {
+    showToast(`Faltam ${custoFrag - temFrag} fragmentos de ${NOME_DA_NOTA[nota]}.`);
+    return false;
+  }
+  const custo = custoAlma;
   const teto = (FAZENDA && FAZENDA.ecos.ecosPorHabitat) || 2;
   if (ecosNoHabitat(habitat) >= teto) { showToast(`Este habitat já abriga ${teto}.`); return false; }
   const tipo = 'eco_' + nota;
   const def = monsterDefs[tipo];
   if (!def) { showToast('Este Eco ainda não existe no jogo.'); return false; }
   playerInventory['alma_' + nota] -= custo;
+  if (custoFrag) playerInventory['frag_' + nota] -= custoFrag;
   const alvo = pontoAndavelPerto(habitat.x + (Math.random() - 0.5) * 50, habitat.y + 26);
   monsters.push({
     id: `fz_eco_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -24200,6 +24366,38 @@ function comidaParaOEco(m) {
 // A barra de invocar, irmã da barra da forja e da fazenda. Montada em JS de propósito:
 // o `dist/index.html` é mantido à mão e um painel novo em dois arquivos é uma chance a
 // mais de o jogo publicado sair sem ele.
+// A barra de PLANTAR PROJETO: escolher de que nota sera o habitat, e ver o material.
+// Vem antes de tudo na fazenda — sem habitat nao ha Eco, e sem escolher a nota o jogador
+// nao sabe o que esta construindo.
+function abrirBarraDeProjeto() {
+  let el = document.getElementById('projetoBarra');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'projetoBarra'; el.className = 'forja-barra';
+    const irma = document.getElementById('forjaBarra');
+    (irma && irma.parentNode ? irma.parentNode : document.body).appendChild(el);
+  }
+  const r = regrasDoHabitat();
+  const mad = playerInventory.wood || 0, ped = playerInventory.stone || 0;
+  const pode = mad >= r.custo.wood && ped >= r.custo.stone;
+  el.innerHTML = `<span class="fj-rot">HABITAT DE QUAL NOTA?`
+    + ` · 🪵 ${mad}/${r.custo.wood} · 🪨 ${ped}/${r.custo.stone}`
+    + ` · ${marteladasParaOHabitat()} marteladas</span><div class="fj-linha">`
+    + TODAS_AS_NOTAS_DE_ECO.map(n => `
+      <button class="fj-nota${pode ? ' fj-ok' : ''}" data-projeto="${n}" ${pode ? '' : 'disabled'}
+              title="Habitat de ${NOME_DA_NOTA[n]}">
+        <img class="fj-img" src="assets/itens/notas/${ARQ_DA_NOTA[n]}.png" alt="">
+        <b>${NOME_DA_NOTA[n]}</b></button>`).join('')
+    + '<button class="fj-x" data-fechar="1">✖</button></div>';
+  el.classList.remove('hidden');
+  el.querySelectorAll('[data-projeto]').forEach(b => b.onclick = () => {
+    // Nasce a frente do jogador, para ele ver de imediato o que acabou de plantar.
+    const o = plantarProjetoDeHabitat(b.dataset.projeto, player.x + 40, player.y - 10);
+    if (o) el.classList.add('hidden');
+  });
+  el.querySelector('[data-fechar]').onclick = () => el.classList.add('hidden');
+}
+
 function abrirBarraDeInvocar(habitat) {
   let el = document.getElementById('invocarBarra');
   if (!el) {
@@ -24213,14 +24411,24 @@ function abrirBarraDeInvocar(habitat) {
   }
   const custo = custoDaInvocacao();
   const teto = (FAZENDA && FAZENDA.ecos.ecosPorHabitat) || 2;
-  el.innerHTML = `<span class="fj-rot">INVOCAR ECO · ${custo} almas da mesma nota`
-    + ` · habitat ${ecosNoHabitat(habitat)}/${teto}</span><div class="fj-linha">`
-    + NOTAS_DE_ECO.map(n => {
-        const tem = almasDe(n), pode = tem >= custo;
+  const r = regrasDoHabitat();
+  const cFrag = r.custoDaInvocacao?.fragmento || 0;
+  // So a nota DESTE habitat. Mostrar as doze e depois recusar onze e fazer o jogador
+  // descobrir a regra errando.
+  const notas = habitat.nota ? [habitat.nota] : TODAS_AS_NOTAS_DE_ECO;
+  el.innerHTML = `<span class="fj-rot">`
+    + (habitat.nota ? `HABITAT DE ${NOME_DA_NOTA[habitat.nota].toUpperCase()}` : 'INVOCAR ECO')
+    + ` · ${custo} almas${cFrag ? ' + ' + cFrag + ' fragmentos' : ''}`
+    + ` · ${ecosNoHabitat(habitat)}/${teto}</span><div class="fj-linha">`
+    + notas.map(n => {
+        const tem = almasDe(n);
+        const frag = playerInventory['frag_' + n] || 0;
+        const pode = tem >= custo && frag >= cFrag;
         return `<button class="fj-nota${pode ? ' fj-ok' : ''}" data-invocar="${n}"
                         ${pode ? '' : 'disabled'} title="${NOME_DA_NOTA[n]}">
           <img class="fj-img" src="assets/itens/notas/${ARQ_DA_NOTA[n]}.png" alt="">
-          <b>${NOME_DA_NOTA[n]}</b><small>${tem}/${custo}</small></button>`;
+          <b>${NOME_DA_NOTA[n]}</b>
+          <small>✦${tem}/${custo}${cFrag ? ` ✧${frag}/${cFrag}` : ''}</small></button>`;
       }).join('')
     + '<button class="fj-x" data-fechar="1">✖</button></div>';
   el.classList.remove('hidden');
@@ -24321,6 +24529,9 @@ function initFazendaUI() {
   document.getElementById('farmZoomOut')?.addEventListener('click', () => ajustarZoomDaFazenda(-0.2));
   // Expandir a ilha: a funcao existia e ninguem a chamava. Mostra o preco ANTES, porque
   // um botao que tira ouro sem avisar quanto e o tipo de coisa que o jogador nao perdoa.
+  // Habitat nao se compra pronto na paleta: abre a barra de projeto, que pergunta a nota.
+  document.querySelector('#farmToolbar [data-cat="Habitats"]')
+    ?.addEventListener('click', e => { e.stopPropagation(); abrirBarraDeProjeto(); }, true);
   document.getElementById('farmExpandir')?.addEventListener('click', () => {
     const preco = precoDaProximaExpansao();
     if (preco == null) { showToast('A ilha já está no tamanho máximo.'); return; }

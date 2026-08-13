@@ -3,8 +3,18 @@
   "regra": {
     "_": "Um por herói. Não é limitação técnica: é para a escolha doer. Com dois heróis o jogador tem dois Ecos em campo, o que dá mais um motivo para desenvolver o segundo personagem.",
     "porHeroi": 1,
-    "xpPorRefeicao": 12,
-    "_xp": "Alimentar na fazenda é o que sobe o pet. A comida já existia e só dava fragmento; agora dá fragmento E experiência ao bicho."
+    "xpPorRefeicao": null,
+    "_xp": "O valor da refeicao vem do TEMPO da cultura: 10 + minutos/2, dobrado se a nota da comida for a do Eco. Um Trigo de 5 min da 12; um Abeto de 12 h da 370. E o que da sentido a plantar o lento — sem isso o jogador plantava trigo para sempre e o pet nunca subia.",
+    "nivelParaEquipar": 5,
+    "_equipar": "O Eco recem-invocado fica na fazenda ate o nivel 5. E o que da funcao a alimentar: sem isso o jogador invocava e ja saia com ele, e a fazenda virava so uma tela de invocacao.",
+    "xpBase": 10,
+    "xpPorMinutoDeCultivo": 0.5,
+    "bonusNotaCerta": 2,
+    "curva": {
+      "base": 30,
+      "passo": 14,
+      "_": "Linear, nao exponencial. Com 1.28^n o nivel 20 pedia 15.412 de xp — 514 refeicoes. Nao dava."
+    }
   },
   "formas": [
     {
@@ -19,7 +29,7 @@
       "nome": "Eco Maior",
       "escala": 1.18,
       "poder": 1.6,
-      "nivelMin": 10,
+      "nivelMin": 20,
       "custo": {
         "nota": 2,
         "alma": 8,
@@ -32,7 +42,7 @@
       "nome": "Eco Pleno",
       "escala": 1.38,
       "poder": 2.4,
-      "nivelMin": 25,
+      "nivelMin": 50,
       "custo": {
         "nota": 5,
         "alma": 20,
@@ -451,5 +461,21 @@
     ],
     "vidaExtra": 1.6,
     "almaExtra": 1.5
+  },
+  "habitat": {
+    "_": "O habitat nao se compra pronto: o jogador PLANTA o projeto, entrega madeira e pedra e martela ate ficar de pe. O numero de marteladas cai com a qualidade do martelo e com a Dinamica do heroi — e o mesmo gesto da ponte, que ele ja aprendeu no capitulo.",
+    "custo": {
+      "wood": 12,
+      "stone": 8
+    },
+    "marteladasBase": 12,
+    "minutosDeCura": 3,
+    "_cura": "Depois da ultima martelada a obra ainda assenta por alguns minutos. E o tempo que ele pediu.",
+    "umaNotaPorHabitat": true,
+    "_nota": "Cada habitat aceita SO a nota dele, como no Dragon City. A nota e escolhida ao plantar o projeto.",
+    "custoDaInvocacao": {
+      "alma": 5,
+      "fragmento": 10
+    }
   }
 }

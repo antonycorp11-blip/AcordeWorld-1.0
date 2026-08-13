@@ -134,13 +134,14 @@
   },
   "ecos": {
     "_": "Eco é pet. Come o que a fazenda dá e devolve FRAGMENTO da nota dele. Comida da nota certa rende o dobro — é o mesmo princípio do fragmento puro na captura, e amarra a fazenda ao sistema de escalas em vez de deixá-la solta.",
-    "minutosParaFome": 240,
+    "minutosParaFome": 30,
     "fragmentosPorRefeicao": 2,
     "bonusNotaCerta": 2,
     "habitatCapacidade": 2,
     "_alma": "A ALMA DE ECO MUSICAL e o que faz um Eco nascer na fazenda. Nao e uma so: cada nota tem a alma dela, e invocar exige VARIAS da mesma nota. Assim o jogador escolhe qual Eco quer criar indo cacar aquela nota, em vez de juntar po generico.",
     "almasParaInvocar": 5,
-    "ecosPorHabitat": 2
+    "ecosPorHabitat": 2,
+    "_fome": "Era 240 (quatro horas). Quem limita o ritmo e a PLANTACAO, que leva de 5 min a 12 h para crescer; um relogio de fome por cima disso so fazia o jogador esperar duas vezes."
   },
   "ilha": {
     "_": "Cresce comprando expansão, com preço subindo. O primeiro é barato de propósito: o jogador precisa sentir a ilha crescer uma vez para querer de novo.",
