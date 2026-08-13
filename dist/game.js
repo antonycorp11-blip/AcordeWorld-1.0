@@ -5073,7 +5073,10 @@ function atualizarRotina(m, def, now) {
     // Escolhe um ponto perto de casa. Se não achar chão livre, fica mais um tempo
     // parado — bicho encurralado não atravessa pedra.
     const homeX = m.homeX ?? m.x, homeY = m.homeY ?? m.y;
-    const raio = PASSEIO.raio * t.raio;
+    // O bicho de fazenda mora numa ILHA de ~140px de largura. Com o raio de passeio do
+    // mundo ele saía andando pelo gramado e o habitat ficava vazio — o dono via o Eco
+    // sempre fora da casa dele. Aqui o passeio cabe dentro do anel.
+    const raio = m.daFazenda ? 22 : PASSEIO.raio * t.raio;
     for (let tent = 0; tent < 8; tent++) {
       // É aqui que o temperamento vira jeito de andar. Sem rumo declarado, o passeio é o
       // sorteio de sempre; com rumo, o bicho tem intenção.
@@ -5782,10 +5785,26 @@ function comHeroi(id, fn) {
   try { return fn(); } finally { selectedHeroId = salvo; }
 }
 
+// Quem a CONTA tem de verdade.
+//
+// Isto olhava só a bandeira `desbloqueado` de HERO_DEFINITIONS, que é reconstruída no
+// boot a partir das bandeiras da história. Quem foi recrutado por outro caminho — ou
+// estava no grupo, ou já tinha ficha com nível e atributos — ficava de fora da soma, e o
+// poder da conta mostrava só o Akles. Foi o que o dono viu: 3k no Akles, 1.000 na Wins, e
+// o total dizendo 3.282. Agora conta quem EXISTE: desbloqueado, no grupo, ou com ficha.
+function elencoDaConta() {
+  const ids = new Set(['achilles']);
+  Object.keys(HERO_DEFINITIONS).forEach(id => {
+    if (HERO_DEFINITIONS[id].desbloqueado) ids.add(id);
+  });
+  (partyState?.party || []).forEach(id => { if (id && HERO_DEFINITIONS[id]) ids.add(id); });
+  Object.keys(herois || {}).forEach(id => { if (HERO_DEFINITIONS[id]) ids.add(id); });
+  return [...ids];
+}
+
 function poderDaConta() {
   let total = 0;
-  Object.keys(HERO_DEFINITIONS).forEach(id => {
-    if (!HERO_DEFINITIONS[id].desbloqueado && id !== 'achilles') return;
+  elencoDaConta().forEach(id => {
     try { total += comHeroi(id, nivelDePoder); } catch (e) {}
   });
   return Math.round(total);
@@ -5887,7 +5906,12 @@ function grantXp(amount) {
 }
 
 function spendAttr(key) {
-  const h = fichaDoHeroi();
+  // No herói QUE A TELA ESTÁ MOSTRANDO. Sem argumento, `fichaDoHeroi()` devolve a ficha
+  // de quem está EM CAMPO — então a tela mostrava os 27 pontos da Wins e o clique tentava
+  // gastar do Akles, que já tinha zero. A função saía pelo `return` e o botão parecia
+  // morto, sem dizer nada. É o mesmo defeito do poder: painel de um herói, ação de outro.
+  const quem = (typeof fichaHeroiVisto !== 'undefined' && fichaHeroiVisto) || selectedHeroId;
+  const h = fichaDoHeroi(quem);
   if (h.attrPoints <= 0 || !(key in h.attrs)) return;
   h.attrs[key]++; h.attrPoints--;
   revisarObjetivosDeProgresso();
@@ -9027,12 +9051,15 @@ function tryTalk() {
   if(act==='obra'){ const o = habitatTarget(); if (o) { martelarObra(o); return; } }
   if(act==='invocar'){ const h = habitatTarget(); if (h) { abrirBarraDeInvocar(h); return; } }
   if(act==='alimentar'){
+    // ABRE O PAINEL, não alimenta direto. O botão antigo exigia fome — e recusava com
+    // "não está com fome ainda", que para o jogador é o mesmo que estar quebrado. Agora
+    // a ficha do bicho é a porta: dentro dela se alimenta quando se quiser, se vê o nível
+    // e se evolui.
     const m = ecoDaFazendaTarget();
     if (m) {
-      const c = comidaParaOEco(m);
-      if (!c) showToast('Nada para dar. Colha algo na fazenda primeiro.');
-      else if (!ecoComFome(m)) showToast(`${monsterDef(m).name} não está com fome ainda.`);
-      else alimentarEco(m, c.prop);
+      const casa = objetos.find(o => o.mapKey === 'farm' && o.id === m.habitat);
+      if (casa) abrirPainelDoHabitat(casa);
+      else showToast('Este Eco não tem habitat.');
       return;
     }
   }
@@ -14373,7 +14400,7 @@ function quadro(now){
       updateAmbient(now);renderSpeech(now);renderFloaters(now);
       // Prompt over whatever the action button is currently pointing at — not just
       // NPCs. A door you can't see is a door that doesn't exist.
-      const ACT_PROMPT={sortear:'E  ·  Tentar a Sorte',ressoar:'E  ·  RESSOAR',talk:'E  ·  Falar',travel:'E  ·  Viajar',gather:'E  ·  Coletar',forjar:'E  ·  Montar escala',enterForge:'E  ·  Entrar',martelar:'E  ·  Martelar',entrarPorta:'E  ·  Entrar',invocar:'E  ·  Invocar Eco',alimentar:'E  ·  Alimentar',cena:'E  ·  Ver',obra:'E  ·  Martelar'};
+      const ACT_PROMPT={sortear:'E  ·  Tentar a Sorte',ressoar:'E  ·  RESSOAR',talk:'E  ·  Falar',travel:'E  ·  Viajar',gather:'E  ·  Coletar',forjar:'E  ·  Montar escala',enterForge:'E  ·  Entrar',martelar:'E  ·  Martelar',entrarPorta:'E  ·  Entrar',invocar:'E  ·  Invocar Eco',alimentar:'E  ·  Ver o Eco',cena:'E  ·  Ver',obra:'E  ·  Martelar'};
       const act=actionAvailable();
       const tgt = act==='talk' ? talkTarget()
                 : act==='travel' ? signpostTarget()
