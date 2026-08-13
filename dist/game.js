@@ -9883,6 +9883,12 @@ function onPointerDown(m){
   if(dlg.state===DLG_STATE.TYPING||dlg.state===DLG_STATE.WAITING){ advanceDlg(); return; }
   if(dlg.state===DLG_STATE.NAME_INPUT) return;
 
+  // Recolher vem antes de colocar: os dois se excluem, e quem armou a mão quer tirar.
+  if (currentScene === 'farm' && modoRecolher) {
+    recolherDaFazenda(m.x, m.y);
+    return;
+  }
+
   // Lógica da Fazendinha: se tem ferramenta armada na tela da fazenda, clique no canvas planta/coloca
   if (currentScene === 'farm' && propParaColocar) {
     // UM por clique. Manter a ferramenta armada fazia o dedo escorregando encher a ilha
@@ -24188,6 +24194,64 @@ function propDoHabitat(nota) {
   return propDefs[id] ? id : 'faz_hab_01';   // volta ao antigo se a arte ainda não chegou
 }
 
+// ── Recolher o que já foi colocado ───────────────────────────────────────────────
+// Faltava desfazer. Dava para encher a ilha e não havia gesto nenhum para tirar nada —
+// um toque errado numa casa de 150 de ouro ficava lá para sempre.
+//
+// Devolve o que foi pago: ouro do prop, ou a madeira e a pedra da obra do habitat.
+// Comprar e recolher pelo mesmo preço não gera lucro, então não há o que explorar.
+let modoRecolher = false;
+
+function alternarModoRecolher() {
+  modoRecolher = !modoRecolher;
+  if (modoRecolher) {
+    propParaColocar = null;                       // recolher e plantar se excluem
+  }
+  document.querySelectorAll('.farm-tool-cat').forEach(b => b.classList.remove('ativo'));
+  document.getElementById('farmRecolher')?.classList.toggle('ativo', modoRecolher);
+  document.getElementById('gameCanvas')?.classList.toggle('cursor-crosshair', modoRecolher);
+  showToast(modoRecolher ? '🖐️ Toque no que quiser recolher' : '✋ Recolher desligado');
+}
+
+function recolherDaFazenda(x, y) {
+  // De frente para trás: o que está desenhado por cima é o que sai.
+  const alvo = objetos
+    .filter(o => o.mapKey === 'farm')
+    .sort((a, b) => b.y - a.y)
+    .find(o => {
+      const b = objetoBounds(o);
+      return x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+    });
+  if (!alvo) { showToast('Nada aqui para recolher.'); return false; }
+
+  // Habitat com Eco dentro não sai: o bicho ficaria sem casa, e o jogador pagou almas
+  // por ele. Melhor recusar com o motivo do que deixar um pet órfão andando pela ilha.
+  if (ehObraDeHabitat(alvo) && ecosNoHabitat(alvo) > 0) {
+    showToast('Há um Eco morando aqui. Mova-o antes de recolher o habitat.');
+    return false;
+  }
+
+  const def = propDefs[alvo.prop] || {};
+  const devolvido = [];
+  if (ehObraDeHabitat(alvo)) {
+    Object.entries(regrasDoHabitat().custo || {}).forEach(([k, n]) => {
+      playerInventory[k] = (playerInventory[k] || 0) + n;
+      devolvido.push(`${n} de ${k === 'wood' ? 'madeira' : 'pedra'}`);
+    });
+  } else if (def.preco) {
+    playerCoins += def.preco;
+    devolvido.push(`${def.preco} ⛃`);
+  }
+
+  objetos = objetos.filter(o => o !== alvo);
+  salvarFazenda();
+  savePlayerData();
+  updateInventorySlotsUI?.();
+  showToast(`🖐️ ${def.nome || alvo.prop} recolhido`
+    + (devolvido.length ? ` — devolvido ${devolvido.join(' e ')}` : ''));
+  return true;
+}
+
 function ehObraDeHabitat(o) { return !!(o && o.obra); }
 function obraPronta(o) {
   return ehObraDeHabitat(o) && o.obra.marteladas >= o.obra.total
@@ -24528,12 +24592,14 @@ function initFazendaUI() {
       document.getElementById('mapaBtn')?.classList.remove('hidden');
       document.getElementById('statusMap')?.classList.remove('hidden');
       propParaColocar = null;
+      modoRecolher = false;     // sair da fazenda com a mão armada deixava o modo ligado
       document.querySelectorAll('.farm-tool-cat').forEach(b => b.classList.remove('ativo'));
       const canvas = document.getElementById('gameCanvas');
       if (canvas) canvas.classList.remove('cursor-crosshair');
     });
   }
 
+  document.getElementById('farmRecolher')?.addEventListener('click', alternarModoRecolher);
   document.getElementById('farmZoomIn')?.addEventListener('click', () => ajustarZoomDaFazenda(+0.2));
   document.getElementById('farmZoomOut')?.addEventListener('click', () => ajustarZoomDaFazenda(-0.2));
   // Expandir a ilha: a funcao existia e ninguem a chamava. Mostra o preco ANTES, porque
@@ -24557,6 +24623,7 @@ function initFazendaUI() {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.farm-tool-cat').forEach(b => b.classList.remove('ativo'));
       btn.classList.add('ativo');
+      modoRecolher = false;          // escolher o que colocar desarma a mão de recolher
       window.buildMenuCategory = btn.dataset.cat;
       openBuildMenu();
     });
