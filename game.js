@@ -25551,16 +25551,111 @@ function closeBuildMenu() {
 //    ele é apostar o progresso dele numa heurística.
 // ══════════════════════════════════════════════════════════════════════════════════
 
+// ── A NUVEM, ATRÁS DE UMA FACHADA ────────────────────────────────────────────────
+// Todo acesso a servidor de contas e de arena passa por `NUVEM`. Nenhuma outra parte do
+// jogo sabe QUAL serviço está do outro lado.
+//
+// Isso existe porque trocar de provedor é uma decisão de negócio, não de código: muda o
+// preço, muda o limite do plano gratuito, muda a região do servidor. Sem a fachada, essa
+// troca significaria reescrever conta, perfil, defesa, lista e ranking — e foi
+// exatamente o que o dono pediu logo depois de a primeira versão ficar pronta.
+//
+// Para trocar de serviço, escreve-se OUTRO objeto com estes mesmos oito métodos e
+// aponta-se `NUVEM` para ele. Nada mais no jogo muda.
+//
+//   disponivel()                     → dá para falar com o servidor agora?
+//   entrar(email, senha)             → { sessao } | { erro }
+//   criar(email, senha)              → { sessao } | { aviso } | { erro }
+//   sair()
+//   sessaoGuardada()                 → sessão restaurada do aparelho, ou null
+//   ler(recurso, consulta)           → { dados } | { erro, offline }
+//   gravar(recurso, corpo, modo)     → { dados } | { erro, offline }
+//   chamar(funcao, args)             → { dados } | { erro }   (batalha, ranking)
+//
+// A co-edição do EDITOR continua falando com o Supabase direto, por fora daqui: ela é
+// outra funcionalidade, com outra tabela e outro ciclo de vida, e arrastá-la para cá só
+// aumentaria o que precisa ser reescrito numa troca.
+
+const NUVEM_SUPABASE = {
+  _c: null,
+  cliente() {
+    if (this._c) return this._c;
+    if (!window.supabase) return null;
+    this._c = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true },
+    });
+    return this._c;
+  },
+  disponivel() { return !!this.cliente(); },
+
+  async entrar(email, senha) {
+    const c = this.cliente();
+    if (!c) return { erro: 'sem-biblioteca' };
+    const { data, error } = await c.auth.signInWithPassword({ email, password: senha });
+    if (error) return { erro: error.message };
+    return { sessao: data.session };
+  },
+  async criar(email, senha) {
+    const c = this.cliente();
+    if (!c) return { erro: 'sem-biblioteca' };
+    const { data, error } = await c.auth.signUp({ email, password: senha });
+    if (error) return { erro: error.message };
+    // Com confirmação de e-mail ligada, a sessão vem nula: a conta existe mas ainda não
+    // está aberta. Dizer isso é melhor do que deixar a tela parecer travada.
+    if (!data.session) return { aviso: 'confirme-o-email' };
+    return { sessao: data.session };
+  },
+  async sair() { await this.cliente()?.auth.signOut(); },
+  async sessaoGuardada() {
+    const c = this.cliente();
+    if (!c) return null;
+    try { return (await c.auth.getSession())?.data?.session || null; }
+    catch (e) { return null; }
+  },
+
+  // NUNCA joga exceção. `fetch` REJEITA quando a rede cai — não devolve status. Sem este
+  // `try`, qualquer chamada da Arena estourava a tela num celular com sinal ruim, que é a
+  // condição normal de quem joga no ônibus.
+  async _rest(caminho, opcoes = {}) {
+    const tok = CONTA.sessao?.access_token || SUPABASE_KEY;
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/${caminho}`, {
+        ...opcoes,
+        headers: {
+          'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${tok}`,
+          'Content-Type': 'application/json', ...(opcoes.headers || {}),
+        },
+      });
+      if (!r.ok) return { erro: `${r.status} ${await r.text()}` };
+      const txt = await r.text();
+      return { dados: txt ? JSON.parse(txt) : null };
+    } catch (e) {
+      return { erro: 'sem rede: ' + (e?.message || e), offline: true };
+    }
+  },
+  ler(recurso, consulta = '')  { return this._rest(recurso + (consulta ? '?' + consulta : '')); },
+  gravar(recurso, corpo, modo) {
+    return this._rest(recurso, {
+      method: modo?.metodo || 'POST',
+      headers: modo?.cabecalho || {},
+      body: JSON.stringify(corpo),
+    });
+  },
+  async chamar(funcao, args) {
+    const c = this.cliente();
+    if (!c) return { erro: 'sem-biblioteca' };
+    const { data, error } = await c.rpc(funcao, args);
+    if (error) return { erro: error.message };
+    return { dados: data };
+  },
+};
+
+// Quem está no ar hoje. Trocar de serviço = trocar esta linha.
+let NUVEM = NUVEM_SUPABASE;
+
 let CONTA = { sessao: null, perfil: null, cliente: null };
 
-function clienteSupabase() {
-  if (CONTA.cliente) return CONTA.cliente;
-  if (!window.supabase) return null;
-  CONTA.cliente = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true },
-  });
-  return CONTA.cliente;
-}
+function nuvemPronta() { return NUVEM.disponivel(); }
 
 function logado() { return !!CONTA.sessao; }
 function meuId()  { return CONTA.sessao?.user?.id || null; }
@@ -25575,33 +25670,26 @@ function saveAtualComoObjeto() {
 }
 
 async function entrarNaConta(email, senha) {
-  const c = clienteSupabase();
-  if (!c) return { erro: 'A biblioteca de contas não carregou. Verifique a conexão.' };
-  const { data, error } = await c.auth.signInWithPassword({ email, password: senha });
-  if (error) return { erro: traduzErroDeConta(error.message) };
-  CONTA.sessao = data.session;
+  const r = await NUVEM.entrar(email, senha);
+  if (r.erro) return { erro: traduzErroDeConta(r.erro) };
+  CONTA.sessao = r.sessao;
   await carregarPerfil();
   return {};
 }
 
 async function criarConta(email, senha, nome) {
-  const c = clienteSupabase();
-  if (!c) return { erro: 'A biblioteca de contas não carregou. Verifique a conexão.' };
   if (!nome || nome.trim().length < 3) return { erro: 'O nome precisa de ao menos 3 letras.' };
-  const { data, error } = await c.auth.signUp({ email, password: senha });
-  if (error) return { erro: traduzErroDeConta(error.message) };
-  // Com confirmação de e-mail ligada no projeto, `session` vem nula: a conta existe mas
-  // ainda não está aberta. Dizer isso é melhor do que deixar a tela parecer travada.
-  if (!data.session) return { aviso: 'Conta criada. Confirme o e-mail e entre.' };
-  CONTA.sessao = data.session;
-  const r = await criarPerfil(nome.trim());
-  if (r.erro) return r;
+  const r = await NUVEM.criar(email, senha);
+  if (r.erro) return { erro: traduzErroDeConta(r.erro) };
+  if (r.aviso === 'confirme-o-email') return { aviso: 'Conta criada. Confirme o e-mail e entre.' };
+  CONTA.sessao = r.sessao;
+  const p = await criarPerfil(nome.trim());
+  if (p.erro) return p;
   return {};
 }
 
 async function sairDaConta() {
-  const c = clienteSupabase();
-  await c?.auth.signOut();
+  await NUVEM.sair();
   CONTA.sessao = null; CONTA.perfil = null;
   showToast('Você saiu da conta. O jogo continua salvo neste aparelho.');
   atualizarBotaoDeConta();
@@ -25609,6 +25697,7 @@ async function sairDaConta() {
 
 function traduzErroDeConta(m) {
   const t = (m || '').toLowerCase();
+  if (t === 'sem-biblioteca') return 'O serviço de contas não carregou. Verifique a conexão.';
   if (t.includes('invalid login')) return 'E-mail ou senha não conferem.';
   if (t.includes('already registered')) return 'Este e-mail já tem conta. Tente entrar.';
   if (t.includes('password')) return 'A senha precisa de ao menos 6 caracteres.';
@@ -25617,28 +25706,13 @@ function traduzErroDeConta(m) {
 }
 
 // ── Perfil ────────────────────────────────────────────────────────────────────────
+// Atalho fino sobre a fachada, para o resto do módulo continuar lendo bem: `recurso` é
+// a tabela e o que vier depois do `?` é a consulta.
 async function apiPerfil(caminho, opcoes = {}) {
-  // NUNCA joga exceção. `fetch` REJEITA quando a rede cai, o DNS falha ou o navegador
-  // bloqueia — não devolve um status. Sem este `try`, qualquer chamada da Arena ou do
-  // perfil estourava a tela inteira num celular com sinal ruim, que é a condição normal
-  // de quem joga no ônibus. Erro de rede aqui é um resultado possível, não um acidente.
-  const tok = CONTA.sessao?.access_token || SUPABASE_KEY;
-  try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${caminho}`, {
-      ...opcoes,
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${tok}`,
-        'Content-Type': 'application/json',
-        ...(opcoes.headers || {}),
-      },
-    });
-    if (!r.ok) return { erro: `${r.status} ${await r.text()}` };
-    const txt = await r.text();
-    return { dados: txt ? JSON.parse(txt) : null };
-  } catch (e) {
-    return { erro: 'sem rede: ' + (e?.message || e), offline: true };
-  }
+  const [recurso, consulta = ''] = caminho.split('?');
+  if (!opcoes.method || opcoes.method === 'GET') return NUVEM.ler(recurso, consulta);
+  return NUVEM.gravar(caminho, JSON.parse(opcoes.body || '{}'),
+                      { metodo: opcoes.method, cabecalho: opcoes.headers });
 }
 
 async function criarPerfil(nome) {
@@ -25727,15 +25801,14 @@ function conciliarSaves() {
 
 // ── Sessão guardada ───────────────────────────────────────────────────────────────
 async function restaurarSessao() {
-  const c = clienteSupabase();
-  // O botão de conta aparece SEMPRE, mesmo sem a biblioteca: sem ele, quem está offline
-  // no primeiro carregamento não tem por onde entrar depois que a rede volta.
+  // O botão de conta aparece SEMPRE, mesmo sem o serviço no ar: sem ele, quem abriu o
+  // jogo offline não teria por onde entrar depois que a rede voltasse.
   atualizarBotaoDeConta();
-  if (!c) return;
+  if (!NUVEM.disponivel()) return;
   try {
-    const { data } = await c.auth.getSession();
-    if (!data?.session) { atualizarBotaoDeConta(); return; }
-    CONTA.sessao = data.session;
+    const sessao = await NUVEM.sessaoGuardada();
+    if (!sessao) { atualizarBotaoDeConta(); return; }
+    CONTA.sessao = sessao;
     await carregarPerfil();
     if (CONTA.perfil) conciliarSaves();
   } catch (e) { /* offline: o jogo segue no localStorage */ }
@@ -25890,11 +25963,10 @@ function defesaAPartirDoSave(save, poder) {
 }
 
 async function registrarResultado(alvoId, venceu) {
-  const c = clienteSupabase();
-  if (!c || !logado()) return null;
-  const { data, error } = await c.rpc('registrar_batalha', { alvo: alvoId, venceu });
-  if (error) { showToast(error.message || 'Não deu para registrar a batalha.'); return null; }
-  const r = (data || [])[0];
+  if (!logado()) return null;
+  const { dados, erro } = await NUVEM.chamar('registrar_batalha', { alvo: alvoId, venceu });
+  if (erro) { showToast(erro || 'Não deu para registrar a batalha.'); return null; }
+  const r = (dados || [])[0];
   if (r) {
     const sinal = r.trofeus_mov >= 0 ? '+' : '';
     showToast(`${venceu ? '🏆 Vitória' : '✖ Derrota'} — ${sinal}${r.trofeus_mov} troféus (${r.trofeus_agora})`);
