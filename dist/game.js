@@ -25576,12 +25576,30 @@ function closeBuildMenu() {
 // outra funcionalidade, com outra tabela e outro ciclo de vida, e arrastá-la para cá só
 // aumentaria o que precisa ser reescrito numa troca.
 
+// ── ONDE COLAR OS DADOS DO PROJETO NOVO ──────────────────────────────────────────
+//
+// Estas DUAS linhas são a única coisa que muda ao trocar de projeto Supabase.
+// No painel do projeto novo: Project Settings → API → copie "Project URL" e a chave
+// "anon public". Depois rode `sql/001_contas_e_arena.sql` lá, no SQL Editor.
+//
+// POR QUE ISTO É SEPARADO DO `SUPABASE_URL` LÁ DE CIMA. Aquele par serve à CO-EDIÇÃO DO
+// EDITOR, que grava na tabela `acordelot_worlds` do projeto antigo — onde o mundo
+// compartilhado do dono já existe. Trocar os dois juntos apontaria o editor para um
+// projeto vazio e o mundo pareceria ter sumido. Conta e Arena passam a viver no projeto
+// novo; o editor continua onde está. Quando quiser unificar, é só repetir aqui os
+// mesmos valores de lá — e mover a tabela.
+//
+// A chave `anon` é pública por natureza: ela aparece em qualquer site que use Supabase e,
+// sozinha, não abre nada. Quem protege são as políticas de RLS do arquivo SQL.
+const NUVEM_URL   = SUPABASE_URL;
+const NUVEM_CHAVE = SUPABASE_KEY;
+
 const NUVEM_SUPABASE = {
   _c: null,
   cliente() {
     if (this._c) return this._c;
     if (!window.supabase) return null;
-    this._c = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    this._c = window.supabase.createClient(NUVEM_URL, NUVEM_CHAVE, {
       auth: { persistSession: true, autoRefreshToken: true },
     });
     return this._c;
@@ -25617,12 +25635,12 @@ const NUVEM_SUPABASE = {
   // `try`, qualquer chamada da Arena estourava a tela num celular com sinal ruim, que é a
   // condição normal de quem joga no ônibus.
   async _rest(caminho, opcoes = {}) {
-    const tok = CONTA.sessao?.access_token || SUPABASE_KEY;
+    const tok = CONTA.sessao?.access_token || NUVEM_CHAVE;
     try {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/${caminho}`, {
+      const r = await fetch(`${NUVEM_URL}/rest/v1/${caminho}`, {
         ...opcoes,
         headers: {
-          'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${tok}`,
+          'apikey': NUVEM_CHAVE, 'Authorization': `Bearer ${tok}`,
           'Content-Type': 'application/json', ...(opcoes.headers || {}),
         },
       });
@@ -26259,3 +26277,49 @@ function atualizarBotaoDaArena() {
   }
   b.classList.toggle('hidden', !(logado() && podeEntrarNaArena()));
 }
+
+// ── "ESTÁ TUDO NO LUGAR?" ─────────────────────────────────────────────────────────
+// Trocar de projeto tem quatro passos, e três deles falham em silêncio: colar a URL,
+// colar a chave, rodar o SQL e confirmar o e-mail. Sem um diagnóstico, o sintoma de
+// qualquer um dos quatro é o mesmo — "não funciona" — e não há como saber qual.
+//
+// Digite `diagnosticoDaNuvem()` no console (ou toque cinco vezes no botão de conta).
+async function diagnosticoDaNuvem() {
+  const l = [];
+  const ok = (b, t) => l.push(`${b ? '✔' : '✖'} ${t}`);
+
+  ok(!!window.supabase, 'biblioteca carregou');
+  ok(/^https:\/\/.+\.supabase\.co$/.test(NUVEM_URL), `URL do projeto: ${NUVEM_URL}`);
+  ok((NUVEM_CHAVE || '').length > 100, 'chave anon preenchida');
+  // Não é erro usar o mesmo projeto do editor — é só uma informação que muda o que
+  // esperar. Marcar com ✖ o que não está errado ensina o leitor a ignorar os ✖.
+  l.push(`· ${NUVEM_URL === SUPABASE_URL
+    ? 'Conta e Arena usam o MESMO projeto do editor'
+    : 'Conta e Arena têm projeto próprio'}`);
+
+  // Cada tabela é perguntada de per si: assim o relatório diz QUAL faltou, em vez de
+  // um "erro" genérico que obriga a abrir o painel para descobrir.
+  for (const t of ['perfis', 'arena_defesas', 'arena_ranking', 'arena_batalhas', 'arena_lista']) {
+    const { erro, offline } = await NUVEM.ler(t, 'select=*&limit=1');
+    ok(!erro, `tabela ${t}` + (erro ? (offline ? ' — sem rede' : ' — ' + erro.slice(0, 60)) : ''));
+  }
+
+  l.push(logado() ? `· sessão aberta: ${CONTA.perfil?.nome || 'conta ainda sem perfil'}`
+                  : '· nenhuma sessão aberta (normal antes de entrar)');
+
+  const txt = l.join('\n');
+  console.log('%c DIAGNÓSTICO DA NUVEM ', 'background:#4c1d95;color:#fff', '\n' + txt);
+  showToast('Diagnóstico no console. ' + l.filter(x => x[0] === '✖').length + ' problema(s).');
+  return txt;
+}
+
+// Cinco toques no botão de conta abrem o diagnóstico — no celular não há console à mão.
+(function ligarDiagnosticoPorToque() {
+  let n = 0, prazo = null;
+  document.addEventListener('click', e => {
+    if (!e.target.closest?.('#contaBtn')) return;
+    n++; clearTimeout(prazo);
+    prazo = setTimeout(() => { n = 0; }, 1500);
+    if (n >= 5) { n = 0; diagnosticoDaNuvem().then(t => window.alert(t)); }
+  }, true);
+})();
