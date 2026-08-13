@@ -14360,6 +14360,7 @@ function quadro(now){
       // O Eco de fazenda vive EM CIMA da ilha; não existe ângulo em que a ilha deva
       // cobri-lo. Então ele sai numa passada própria, depois de tudo.
       if (currentScene === 'farm') renderEcosPorCima(now);
+      if (currentScene === 'farm') tagarelarEcosDaFazenda();
       if (currentScene === 'farm' && propParaColocar && typeof mouseCanvasX !== 'undefined') {
         renderGhostProp(propParaColocar, mouseCanvasX, mouseCanvasY);
       }
@@ -24054,6 +24055,8 @@ function alimentarEco(m, propId) {
   showToast(dobro ? `${def.name} reconheceu a própria nota — rendeu o dobro.`
                   : `${def.name} comeu. Comida da nota dele renderia mais.`);
   m.alimentadoEm = agoraNaFazenda();
+  falaDoEco(m, 'feliz');
+  m.proximaFala = _sorteiaProximaFala();
   // A comida tambem CRIA o bicho: e assim que o Eco da fazenda vira pet e cresce.
   registrarPet(def.notaDoEco);
   darXpAoPet(def.notaDoEco, xpDaRefeicao(c, def.notaDoEco));
@@ -24505,6 +24508,75 @@ function habitatSobOToque(x, y) {
     }) || null;
 }
 
+// ── O ECO FALA ───────────────────────────────────────────────────────────────────
+// Aleatório e imprevisível, a pedido do dono. Três coisas fazem isso funcionar em vez
+// de virar papagaio: o intervalo entre falas é sorteado numa faixa larga (não é um
+// relógio), a fala nunca repete a anterior, e o humor muda com o que está acontecendo
+// — recém-nascido, com fome, prestes a evoluir. Um bicho que diz a mesma coisa a cada
+// trinta segundos cansa em dois minutos.
+const FALAS_DO_ECO = {
+  geral: [
+    'plim?', '♪ ♫ ♪', 'ouviu isso?', 'a terra tá afinada hoje',
+    'eu sonhei que era uma orquestra', 'faz cosquinha o vento',
+    'shhh… tô compondo', 'você também escuta as pedras?',
+    'um dia eu chego no agudo', 'acho que sou bemol de manhã',
+    'tem eco aqui dentro de mim', 'quer ouvir minha nota favorita? é a minha',
+    'plim plim!', 'a grama sabe contar até quatro',
+  ],
+  fome: [
+    'tô com uma fominha…', 'aquele trigo tava bom, hein',
+    'meu estômago fez ré menor', 'só mais um pedacinho',
+    'comida da minha nota rende o dobro, só falando',
+  ],
+  feliz: [
+    'AAAH que delícia!', 'mais! mais!', 'me sinto uma sinfonia',
+    'agora sim eu ressoo', 'obrigado, chefe ♪',
+  ],
+  quaseLa: [
+    'tô sentindo uma coisa crescendo…', 'acho que vou virar outro',
+    'meu som tá ficando grande demais pra mim',
+  ],
+};
+const _ultimaFalaDoEco = {};
+
+function falaDoEco(m, humor) {
+  const lista = FALAS_DO_ECO[humor] || FALAS_DO_ECO.geral;
+  let t = lista[Math.floor(Math.random() * lista.length)];
+  // Nunca repete a de trás: repetição seguida é o que denuncia que é um sorteio.
+  if (lista.length > 1 && t === _ultimaFalaDoEco[m.id]) {
+    t = lista[(lista.indexOf(t) + 1 + Math.floor(Math.random() * (lista.length - 1))) % lista.length];
+  }
+  _ultimaFalaDoEco[m.id] = t;
+  addFloater(m.x, m.y - 44, t, humor === 'feliz' ? '#a7f3d0'
+                              : humor === 'fome' ? '#fcd34d' : '#e9d5ff');
+}
+
+// Quando o próximo vai falar. Faixa larga de propósito.
+function _sorteiaProximaFala() { return agoraNaFazenda() + 7000 + Math.random() * 16000; }
+
+function tagarelarEcosDaFazenda() {
+  if (currentScene !== 'farm') return;
+  const agora = agoraNaFazenda();
+  const vivos = monsters.filter(x => !x.dead && x.daFazenda && x.mapKey === 'farm');
+  if (!vivos.length) return;
+  vivos.forEach(x => {
+    if (!x.proximaFala) { x.proximaFala = _sorteiaProximaFala(); return; }
+    if (agora < x.proximaFala) return;
+    x.proximaFala = _sorteiaProximaFala();
+    // Só fala quem está na tela e não está longe demais do jogador: fala de bicho que
+    // ninguém vê é só ruído no quadro.
+    if (Math.hypot(player.x - x.x, player.y - x.y) > 260) return;
+    const nota = (monsterDef(x) || {}).notaDoEco;
+    const f = nota ? fichaDoPet(nota) : null;
+    const prox = nota ? proximaFormaDoPet(nota) : null;
+    const comFome = agora - (x.alimentadoEm || 0)
+                    > ((FAZENDA?.ecos?.minutosParaFome) || 30) * 60000;
+    const humor = comFome ? 'fome'
+      : (prox && f && f.nivel >= prox.nivelMin) ? 'quaseLa' : 'geral';
+    falaDoEco(x, humor);
+  });
+}
+
 function ecoNoHabitat(h) {
   return monsters.find(m => !m.dead && m.mapKey === 'farm' && m.habitat === h.id) || null;
 }
@@ -24516,15 +24588,55 @@ function abrirPainelDoHabitat(h) {
   if (!nota) return;
   const f = fichaDoPet(nota);
   const forma = formaDoPet(nota);
+  const prox = proximaFormaDoPet(nota);
   const habs = habilidadesDoPet(nota);
   const todas = (PETS?.habilidades || {})[nota] || [];
-  const proxima = todas.find(x => (x.forma || 1) > (f.forma || 1));
-  const falta = xpDoNivelDoPet(f.nivel) - f.xp;
   const pronto = f.nivel >= nivelParaEquipar();
+  const naturalNota = (notaPorId(nota) || {}).natural !== false;
 
-  // A comida que serve, e o quanto ela rende — a da nota dele vale o dobro.
+  // O retrato e UM quadro da folha, nao a folha: a arte do Eco e uma grade de poses.
+  const dm = monsterDef(m) || {};
+  const recorte = `background-image:url('assets/monsters/eco_${nota}.png');`
+    + `background-size:${(dm.cols || 1) * 100}% ${(dm.rows || 1) * 100}%;`
+    + `background-position:0% 0%;background-repeat:no-repeat;`;
+
+  // MATERIAIS: os da proxima FORMA, que o pets.json ja declara. O mockup do dono pedia
+  // uma coluna de materiais com quanto falta de cada — os nomes dele eram conceito, e os
+  // itens de verdade sao estes.
+  const c = (prox && prox.custo) || {};
+  const tenho = {
+    nota: notasPossuidas[nota] || 0,
+    alma: almasDe(nota),
+    partitura: partituras(),
+    pedra_eco: playerInventory.pedra_eco || 0,
+  };
+  const ROTULO_MAT = {
+    nota: `Nota ${NOME_DA_NOTA[nota]}`, alma: `Alma de ${NOME_DA_NOTA[nota]}`,
+    partitura: 'Partitura', pedra_eco: 'Pedra de Evolução',
+  };
+  const ARTE_MAT = {
+    nota: caminhoNota(nota), alma: caminhoFrag(nota),
+    partitura: null, pedra_eco: null,
+  };
+  const EMOJI_MAT = { partitura: '🎼', pedra_eco: '💠' };
+  const linhasMat = Object.entries(c).map(([k, q]) => {
+    const t = tenho[k] ?? 0, ok = t >= q;
+    const arte = ARTE_MAT[k]
+      ? `<img src="${ARTE_MAT[k]}" alt="">`
+      : `<span class="pp-mat-emoji">${EMOJI_MAT[k] || '✦'}</span>`;
+    return `<div class="pp-mat${ok ? ' ok' : ''}">
+      <div class="pp-mat-ico">${arte}</div>
+      <div class="pp-mat-txt"><b>${ROTULO_MAT[k] || k}</b>
+        <small><u>${t}</u> / ${q}</small></div></div>`;
+  }).join('');
+
+  const falta = prox ? (faltaParaEvoluir(nota) || []) : null;
+  const podeEvoluir = prox && falta && !falta.length;
+
+  // A comida ENTRA SEMPRE, tenha o Eco fome ou nao: ela e o que da XP, e esperar a fome
+  // so faria o jogador olhar para um botao desligado sem saber por que.
   const comidas = Object.values(FAZENDA?.culturas || {})
-    .map(c => ({ c, tem: playerInventory[c.prop] || 0 }))
+    .map(x => ({ c: x, tem: playerInventory[x.prop] || 0 }))
     .filter(x => x.tem > 0);
 
   let el = document.getElementById('petPainel');
@@ -24533,67 +24645,86 @@ function abrirPainelDoHabitat(h) {
     el.id = 'petPainel'; el.className = 'pet-painel hidden';
     (document.getElementById('gameCanvas')?.parentNode || document.body).appendChild(el);
   }
-  // O retrato é UM quadro da folha, não a folha. A arte do Eco é uma grade de poses
-  // (cols × rows); mostrar o arquivo inteiro punha quatro bichinhos dentro da moldura.
-  const dm = monsterDef(m) || {};
-  const cols = dm.cols || 1, rows = dm.rows || 1;
-  const arte = `assets/monsters/${'eco_' + nota}.png`;
-  const recorte = `background-image:url('${arte}');`
-    + `background-size:${cols * 100}% ${rows * 100}%;`
-    + `background-position:0% 0%;background-repeat:no-repeat;`;
   el.innerHTML = `
     <div class="pp-caixa">
       <button class="pp-x" data-fechar="1">✖</button>
-      <div class="pp-topo">
-        <div class="pp-retrato"><i class="pp-eco" style="${recorte}"></i></div>
-        <div class="pp-id">
-          <b class="pp-nome">Eco de ${NOME_DA_NOTA[nota]}</b>
-          <span class="pp-forma">Forma ${f.forma || 1} de 3</span>
-          <div class="pp-nivel">
-            <span>Nível <b>${f.nivel}</b></span>
-            <i class="pp-xp"><u style="width:${Math.min(100, f.xp / xpDoNivelDoPet(f.nivel) * 100).toFixed(0)}%"></u></i>
-            <small>${f.xp} / ${xpDoNivelDoPet(f.nivel)} — faltam ${falta}</small>
+
+      <div class="pp-corpo">
+        <!-- Coluna 1: o bicho -->
+        <div class="pp-col pp-vitrine">
+          <div class="pp-vit-titulo">ECO MUSICAL</div>
+          <div class="pp-vit-sub">Harmonias que ecoam pelo mundo.</div>
+          <div class="pp-palco"><i class="pp-eco" style="${recorte}"></i></div>
+          <div class="pp-atr">
+            <span class="pp-atr-rot">ATRIBUTO PRINCIPAL</span>
+            <div class="pp-atr-val"><b>FREQUÊNCIA</b><u>+${Math.round(10 * (forma.poder || 1))}</u></div>
           </div>
+        </div>
+
+        <!-- Coluna 2: identidade e habilidades -->
+        <div class="pp-col pp-meio">
+          <div class="pp-cabeca">
+            <b class="pp-nome">Eco de ${NOME_DA_NOTA[nota]}</b>
+            <span class="pp-raridade ${naturalNota ? '' : 'rara'}">${naturalNota ? 'COMUM' : 'RARA'}</span>
+          </div>
+          <div class="pp-nivel-linha">Nível <b>${f.nivel}</b>
+            <span>/ ${prox ? prox.nivelMin : f.nivel}</span></div>
+          <div class="pp-xp-linha">
+            <span class="pp-xp-rot">XP</span>
+            <i class="pp-xp"><u style="width:${Math.min(100, f.xp / xpDoNivelDoPet(f.nivel) * 100).toFixed(0)}%"></u></i>
+            <small>${f.xp} / ${xpDoNivelDoPet(f.nivel)}</small>
+          </div>
+          <p class="pp-lore">${(dm.lore || '').replace(/"/g, '&quot;')}</p>
           <span class="pp-selo ${pronto ? 'ok' : ''}">${pronto
             ? '✔ pode ser equipado na Ficha'
             : `precisa do nível ${nivelParaEquipar()} para sair da fazenda`}</span>
+
+          <div class="pp-rot">HABILIDADES</div>
+          ${todas.map((x, i) => {
+            const aberta = (x.forma || 1) <= (f.forma || 1);
+            return `<div class="pp-hab${aberta ? '' : ' trancada'}">
+              <span class="pp-hab-n">${aberta ? (x.ico || i + 1) : '🔒'}</span>
+              <div class="pp-hab-txt"><b>${x.nome || 'Habilidade ' + (i + 1)}</b>
+                <small>${aberta ? (x.desc || '') : `abre na forma ${x.forma}`}</small></div>
+              <span class="pp-hab-nivel">${aberta ? 'FORMA ' + (x.forma || 1) : ''}</span>
+            </div>`;
+          }).join('') || '<span class="pp-vazio">Nenhuma ainda.</span>'}
         </div>
-      </div>
 
-      <div class="pp-secao">
-        <span class="pp-rot">ALIMENTAR — sobe o nível</span>
-        <div class="pp-linha">${
-          comidas.length ? comidas.map(({ c, tem }) => {
-            const dobro = c.nota === nota;
-            return `<button class="pp-comida${dobro ? ' dobro' : ''}" data-comida="${c.prop}"
-                      title="${c.nome}${dobro ? ' — da nota dele, rende o dobro' : ''}">
-              <img src="${(propDefs[c.prop] || {}).sprite || ''}" alt="">
-              <b>${c.nome}</b><small>×${tem}${dobro ? ' ⭑' : ''}</small></button>`;
-          }).join('')
-          : '<span class="pp-vazio">Nada colhido ainda. Plante um canteiro e volte.</span>'
-        }</div>
-      </div>
+        <!-- Coluna 3: alimentar e evoluir -->
+        <div class="pp-col pp-direita">
+          <div class="pp-rot">ALIMENTAR — dá XP</div>
+          <div class="pp-comidas">${
+            comidas.length ? comidas.map(({ c: cu, tem }) => {
+              const dobro = cu.nota === nota;
+              return `<button class="pp-comida${dobro ? ' dobro' : ''}" data-comida="${cu.prop}"
+                        title="${cu.nome}${dobro ? ' — da nota dele, vale o dobro' : ''}">
+                <img src="${(propDefs[cu.prop] || {}).sprite || ''}" alt="">
+                <b>${cu.nome}</b><small>×${tem}${dobro ? ' ⭑' : ''}</small></button>`;
+            }).join('')
+            : '<span class="pp-vazio">Nada colhido ainda. Plante um canteiro e volte.</span>'
+          }</div>
 
-      <div class="pp-secao">
-        <span class="pp-rot">HABILIDADES</span>
-        ${habs.map((h, i) => `
-          <div class="pp-hab">
-            <span class="pp-hab-n">${i + 1}</span>
-            <div><b>${h.nome || 'Habilidade ' + (i + 1)}</b><small>${h.desc || ''}</small></div>
-          </div>`).join('')
-          || '<span class="pp-vazio">Nenhuma ainda.</span>'}
-        ${proxima ? `<div class="pp-hab trancada">
-            <span class="pp-hab-n">🔒</span>
-            <div><b>${proxima.nome || 'Próxima'}</b>
-                 <small>abre na forma ${proxima.forma} — evolua o Eco</small></div>
-          </div>` : ''}
+          ${prox ? `
+            <div class="pp-rot">MATERIAIS PARA ${prox.nome.toUpperCase()}</div>
+            <div class="pp-mats">${linhasMat || '<span class="pp-vazio">Sem custo.</span>'}</div>
+            <button class="pp-evoluir${podeEvoluir ? '' : ' travado'}" data-evoluir="1"
+              ${podeEvoluir ? '' : 'disabled'}>EVOLUIR</button>
+            <small class="pp-evo-dica">${podeEvoluir
+              ? 'Pronto para a próxima forma.'
+              : (falta && falta.length ? 'Falta: ' + falta.join(' · ') : '')}</small>`
+          : '<div class="pp-rot">FORMA FINAL</div><span class="pp-vazio">Ele já chegou onde podia chegar.</span>'}
+        </div>
       </div>
     </div>`;
   el.classList.remove('hidden');
   el.querySelector('[data-fechar]').onclick = () => el.classList.add('hidden');
   el.onclick = e => { if (e.target === el) el.classList.add('hidden'); };
   el.querySelectorAll('[data-comida]').forEach(b => b.onclick = () => {
-    if (alimentarEco(m, b.dataset.comida)) abrirPainelDoHabitat(h);   // redesenha com o nível novo
+    if (alimentarEco(m, b.dataset.comida)) abrirPainelDoHabitat(h);
+  });
+  el.querySelector('[data-evoluir]')?.addEventListener('click', () => {
+    if (evoluirPet(nota)) abrirPainelDoHabitat(h);
   });
 }
 
