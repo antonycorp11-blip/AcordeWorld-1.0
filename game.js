@@ -25594,7 +25594,7 @@ function closeBuildMenu() {
 // A chave nova do Supabase não se chama mais `anon`: chama-se **publishable**, e começa
 // com `sb_publishable_`. É a mesma função e a mesma natureza pública — só mudou o nome e o
 // formato. O `supabase-js@2` do CDN aceita as duas.
-const NUVEM_URL   = 'FALTA_A_PROJECT_URL';
+const NUVEM_URL   = 'https://wgbaelpmzjqplikkfqpf.supabase.co';
 const NUVEM_CHAVE = 'sb_publishable_rusGPhvWkJqxoYRc_lYvoA_c2cUsdHo';
 
 const NUVEM_SUPABASE = {
