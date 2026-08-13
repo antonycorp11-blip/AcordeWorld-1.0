@@ -5559,9 +5559,22 @@ function drawHealthBar(x, topY, w, ratio, colour) {
   ctx.restore();
 }
 
+// Os Ecos criados NA fazenda saem numa passada própria, por cima dos objetos — senão a
+// ilha do habitat os cobre. Ver `renderEcosPorCima`, logo abaixo.
+function ehEcoDeFazenda(m) { return currentScene === 'farm' && m.daFazenda; }
+
+function renderEcosPorCima(now) {
+  const guarda = _soEcosDaFazenda;
+  _soEcosDaFazenda = true;
+  try { renderMonsters(now); } finally { _soEcosDaFazenda = guarda; }
+}
+let _soEcosDaFazenda = false;
+
 function renderMonsters(now) {
   monsters.forEach(m => {
     if (m.dead || m.mapKey !== currentKey) return;
+    // Duas passadas: a normal pula o Eco de fazenda, e a de cima só desenha ele.
+    if (_soEcosDaFazenda !== ehEcoDeFazenda(m)) return;
     const golpes = monsterAtaque[m.type], quadros = monsterWalk[m.type];
     const def0 = monsterDef(m);
     const atacando = golpes && now < (m.atacandoAte || 0);
@@ -14309,6 +14322,16 @@ function quadro(now){
      renderHat(pW,pH);renderAura(now,pH);}
     if(outdoors){
       renderObjetos(now, 'frente');  // pé abaixo do jogador: cobre o personagem
+      // O ECO DA FAZENDA VEM POR CIMA DO HABITAT.
+      //
+      // A ordem do quadro é: objetos de trás → monstros → objetos da frente. Como o corte
+      // entre "trás" e "frente" é feito pela linha do JOGADOR e não pela de cada bicho, a
+      // ilha do habitat caía na leva da frente sempre que o jogador estava acima dela — e
+      // era desenhada DEPOIS do Eco, escondendo justamente o bicho que mora nela.
+      //
+      // O Eco de fazenda vive EM CIMA da ilha; não existe ângulo em que a ilha deva
+      // cobri-lo. Então ele sai numa passada própria, depois de tudo.
+      if (currentScene === 'farm') renderEcosPorCima(now);
       if (currentScene === 'farm' && propParaColocar && typeof mouseCanvasX !== 'undefined') {
         renderGhostProp(propParaColocar, mouseCanvasX, mouseCanvasY);
       }
@@ -16167,6 +16190,16 @@ function itensDaBolsa() {
   push('stone', playerInventory.stone || 0);
   push('potions', playerInventory.potions || 0);
   CROMATICA.forEach(n => push('nota_' + n.id, notasPossuidas[n.id] || 0));
+  // O FRAGMENTO POR NOTA e a COLHEITA faltavam nesta lista.
+  //
+  // Ela é escrita à mão, item por item, então tudo que o jogo passou a dar depois dela
+  // caiu num buraco: entrava em `playerInventory`, era contado pelas missões e pelas
+  // receitas, e simplesmente não aparecia na bolsa. O dono colheu e achou que a colheita
+  // tinha sumido — ela estava lá o tempo todo, invisível.
+  CROMATICA.forEach(n => push('frag_' + n.id, playerInventory['frag_' + n.id] || 0));
+  CROMATICA.forEach(n => push('alma_' + n.id, playerInventory['alma_' + n.id] || 0));
+  if (typeof FAZENDA !== 'undefined' && FAZENDA?.culturas)
+    Object.values(FAZENDA.culturas).forEach(c => push(c.prop, playerInventory[c.prop] || 0));
   CRAFTABLE_TOOLS.forEach(t => {
     if ((playerInventory[t.id] || 0) > 0 && !Object.values(equipped).includes(t.id))
       out.push({ id: t.id, qtd: 1, ferramenta: true });
@@ -16244,6 +16277,19 @@ function infoDoItem(id) {
     arte: 'assets/itens/clave_1.png', origem: 'Cai em combate.' };
   if (id === 'partitura') return { nome: 'Partitura', tipo: 'Treino', cor: '#f4e2b0',
     emoji: '🎼', desc: 'Sobe o nível do herói.', origem: 'Dungeon e captura de Eco.' };
+  // COLHEITA. Sem verbete ela aparecia como `✦` sem nome — quando aparecia. A arte é o
+  // último estágio da própria planta: é o desenho que o jogador viu amadurecer.
+  if (typeof FAZENDA !== 'undefined' && FAZENDA?.culturas) {
+    const c = Object.values(FAZENDA.culturas).find(x => x.prop === id);
+    if (c) {
+      const ultimo = (c.sprites || [])[(c.sprites || []).length - 1];
+      const n = notaPorId(c.nota);
+      return { nome: c.nome, tipo: 'Colheita', cor: '#86efac',
+               arte: ultimo ? (propDefs[ultimo] || {}).sprite : null, emoji: '🌾',
+               desc: `Alimento de Eco. Da nota ${n ? n.nome : c.nota} — o Eco dessa nota rende o dobro.`,
+               origem: 'Colhida na fazenda.' };
+    }
+  }
   return null;
 }
 

@@ -508,6 +508,12 @@
      "min": 1,
      "max": 1,
      "chance": 0.22
+    },
+    {
+     "item": "tom",
+     "min": 1,
+     "max": 1,
+     "chance": 0.55
     }
    ],
    "temperamento": "firme"
@@ -548,6 +554,12 @@
      "min": 1,
      "max": 1,
      "chance": 0.22
+    },
+    {
+     "item": "tom",
+     "min": 1,
+     "max": 1,
+     "chance": 0.55
     }
    ],
    "temperamento": "inquieto"
@@ -588,6 +600,12 @@
      "min": 1,
      "max": 1,
      "chance": 0.22
+    },
+    {
+     "item": "tom",
+     "min": 1,
+     "max": 1,
+     "chance": 0.55
     }
    ],
    "temperamento": "flutuante"
@@ -628,6 +646,12 @@
      "min": 1,
      "max": 1,
      "chance": 0.22
+    },
+    {
+     "item": "tom",
+     "min": 1,
+     "max": 1,
+     "chance": 0.55
     }
    ],
    "temperamento": "puxa"
@@ -668,6 +692,12 @@
      "min": 1,
      "max": 1,
      "chance": 0.22
+    },
+    {
+     "item": "tom",
+     "min": 1,
+     "max": 1,
+     "chance": 0.55
     }
    ],
    "temperamento": "agitado"
@@ -708,6 +738,12 @@
      "min": 1,
      "max": 1,
      "chance": 0.22
+    },
+    {
+     "item": "tom",
+     "min": 1,
+     "max": 1,
+     "chance": 0.55
     }
    ],
    "temperamento": "melancolico"
@@ -748,6 +784,12 @@
      "min": 1,
      "max": 1,
      "chance": 0.22
+    },
+    {
+     "item": "tom",
+     "min": 1,
+     "max": 1,
+     "chance": 0.55
     }
    ],
    "temperamento": "esquivo"
@@ -788,6 +830,12 @@
      "min": 1,
      "max": 1,
      "chance": 0.3
+    },
+    {
+     "item": "semitom",
+     "min": 1,
+     "max": 1,
+     "chance": 1.0
     }
    ],
    "temperamento": "firme",
@@ -831,6 +879,12 @@
      "min": 1,
      "max": 1,
      "chance": 0.3
+    },
+    {
+     "item": "semitom",
+     "min": 1,
+     "max": 1,
+     "chance": 1.0
     }
    ],
    "temperamento": "inquieto",
@@ -874,6 +928,12 @@
      "min": 1,
      "max": 1,
      "chance": 0.3
+    },
+    {
+     "item": "semitom",
+     "min": 1,
+     "max": 1,
+     "chance": 1.0
     }
    ],
    "temperamento": "puxa",
@@ -917,6 +977,12 @@
      "min": 1,
      "max": 1,
      "chance": 0.3
+    },
+    {
+     "item": "semitom",
+     "min": 1,
+     "max": 1,
+     "chance": 1.0
     }
    ],
    "temperamento": "agitado",
@@ -960,6 +1026,12 @@
      "min": 1,
      "max": 1,
      "chance": 0.3
+    },
+    {
+     "item": "semitom",
+     "min": 1,
+     "max": 1,
+     "chance": 1.0
     }
    ],
    "temperamento": "melancolico",
