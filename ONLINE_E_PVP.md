@@ -178,3 +178,61 @@ com o combate reescrito para o servidor mandar.
 
 Os quatro primeiros cabem no free. O quinto não cabe em free nenhum, de fornecedor nenhum,
 porque o custo dele é CPU ligada o tempo todo. Cinco dólares por mês, e o problema é outro.
+
+---
+
+# A Arena como destino, e não como placar
+
+Anotado da conversa, para não se perder: a Arena não é só "bater no save do outro". Ela
+é o lugar onde mora conteúdo que **não existe em nenhum outro canto do jogo**. É isso que
+faz o jogador voltar todo dia — placar sozinho cansa em uma semana.
+
+## Três tipos de adversário, não um
+
+**1. A sombra do jogador.** O que já está de pé: o save de outra conta, montado como
+defesa, brigando sozinho. Rende troféu e patente.
+
+**2. Monstro exclusivo da Arena.** Bicho que o mundo não tem e não vai ter. É por aqui que
+cai a **pedra de evolução dos Ecos** — e essa é a decisão que sustenta a Arena inteira: o
+jogador que quer evoluir o Eco não tem outro caminho. Dungeon dá Partitura, Clareira dá
+Alma, fazenda dá fragmento; **evolução só na Arena**.
+
+**3. Chefe de banner.** Os personagens novos que entram no gacha aparecem na Arena como
+chefe, sem dono, antes ou durante o banner. Serve a duas coisas ao mesmo tempo: o jogador
+**conhece** o personagem lutando contra ele — que é bem melhor propaganda que uma tela de
+banner — e leva ponto por enfrentá-lo, mesmo perdendo. Uma chance **pequena** de cair a
+moeda do banner. Pequena de verdade: se cair fácil, o banner morre; se nunca cair, o
+jogador para de tentar o chefe.
+
+## O que isso exige do banco
+
+Fora as quatro tabelas que já existem (`perfis`, `arena_defesas`, `arena_ranking`,
+`arena_batalhas`), entra:
+
+| tabela | para quê |
+|---|---|
+| `arena_chefes` | quem é o chefe da vez, de quando até quando, e a tabela de recompensa |
+| `arena_tentativas` | quantas vezes esta conta já bateu no chefe hoje — o teto mora no servidor |
+| `banner` | o banner corrente, as chances por raridade, quando abre e quando fecha |
+| `invocacoes` | histórico de puxada: o que saiu, quando, e o contador de pena (*pity*) |
+| `carteira` | a moeda de banner. **Fora do save em JSONB**, e escrita só por função |
+
+A regra de sempre: **nada que o jogador ganha pode ser escrito pelo cliente.** Moeda de
+banner e pedra de evolução seguem o mesmo caminho do troféu — uma função
+`security definer`, sorteio no servidor, RLS sem política de escrita. Se o sorteio rodar
+no navegador, a primeira pessoa a abrir o console tira o personagem cinco estrelas na
+primeira tentativa, e o banner deixa de valer qualquer coisa.
+
+O teto de tentativas também é do servidor, e pelo mesmo motivo do limite de 60 s que já
+está no `registrar_batalha`: sem teto, o chefe vira uma torneira de moeda.
+
+## Ordem que eu proponho
+
+1. Banco de pé e login funcionando (é onde estamos).
+2. Sombra do jogador — a Arena mínima, que já está quase inteira.
+3. Monstro exclusivo + pedra de evolução. **Aqui a Arena passa a ser necessária**, e é o
+   passo de maior retorno pelo tamanho: o sistema de evolução dos Ecos já existe escrito,
+   só falta a pedra ter de onde cair.
+4. Cenário mudando por patente.
+5. Chefe de banner e gacha — o maior dos cinco, e o único que mexe com dinheiro de
+   verdade se um dia a moeda for comprável. Vale entrar por último, com o resto assentado.
