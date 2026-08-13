@@ -8049,3 +8049,18 @@ body.em-cena #questNotification { display: none !important; }
 }
 /* Na fazenda o HUD de combate não tem o que dizer. */
 body.na-fazenda #partyHud { display: none; }
+
+/* ══ PODER DA CONTA no HUD ════════════════════════════════════════════════════
+   Ao lado da vida, somando TODOS os heróis. Investir num segundo personagem soma
+   aqui em vez de competir com o primeiro — e é este número que a porta da dungeon
+   compara com o poder recomendado de cada dificuldade. */
+.hud-poder {
+  display: flex; align-items: center; gap: 5px;
+  margin-left: 8px; padding: 3px 10px;
+  background: linear-gradient(180deg, rgba(43,31,20,.95), rgba(26,18,9,.95));
+  border: 1px solid #7c5030; border-radius: 999px;
+  font-family: 'Outfit', sans-serif;
+  color: #fde68a; white-space: nowrap;
+}
+.hud-poder .hp-ico { font-size: 13px; opacity: .9; }
+.hud-poder b { font-size: 13px; font-weight: 800; letter-spacing: .02em; }

@@ -74,7 +74,7 @@
      "nome": "Normal",
      "poder": 180,
      "premio": 1.0,
-     "monstro": 1.0,
+     "monstro": 1.45,
      "grauBonus": 0
     },
     {
@@ -82,7 +82,7 @@
      "nome": "Difícil",
      "poder": 420,
      "premio": 1.9,
-     "monstro": 1.6,
+     "monstro": 2.32,
      "grauBonus": 1
     }
    ]
@@ -152,7 +152,7 @@
      "nome": "Normal",
      "poder": 1200,
      "premio": 1.0,
-     "monstro": 1.0,
+     "monstro": 1.45,
      "grauBonus": 0
     },
     {
@@ -160,7 +160,7 @@
      "nome": "Difícil",
      "poder": 2280,
      "premio": 2.0,
-     "monstro": 1.7,
+     "monstro": 2.46,
      "grauBonus": 1
     },
     {
@@ -168,8 +168,24 @@
      "nome": "Extremo",
      "poder": 3720,
      "premio": 3.6,
-     "monstro": 2.6,
+     "monstro": 3.77,
      "grauBonus": 2
+    },
+    {
+     "id": "insano",
+     "nome": "Insano",
+     "poder": 7068,
+     "premio": 6.12,
+     "monstro": 5.66,
+     "grauBonus": 3
+    },
+    {
+     "id": "lendario",
+     "nome": "Lendário",
+     "poder": 12648,
+     "premio": 10.08,
+     "monstro": 8.29,
+     "grauBonus": 4
     }
    ]
   }

@@ -5782,7 +5782,11 @@ function poderDaConta() {
 
 function nivelDePoder() {
   const s = derivedStats();
-  let p = level * PODER_POR_NIVEL;
+  // O NÍVEL DO HERÓI, não o da conta. `derivedStats` já lê `nivelDoHeroi()`, e esta linha
+  // lia o `level` global: metade do número era do personagem e metade era da conta. Era
+  // por isso que subir o Akles fazia a Wins aparecer com o mesmo poder.
+  const nh = typeof nivelDoHeroi === 'function' ? nivelDoHeroi() : level;
+  let p = nh * PODER_POR_NIVEL;
   for (const [k, peso] of Object.entries(PESO_DO_PODER)) {
     const v = k === 'danoCritico' ? Math.max(0, s[k] - 50) : (s[k] || 0);
     p += v * peso;
@@ -18800,6 +18804,29 @@ function iniciarCorrida(d) {
   return true;
 }
 
+// A DUNGEON ACOMPANHA A CONTA, como o Eco já fazia.
+//
+// O relato do dono: "no nível mais difícil estou dando hit kill mesmo abaixo do poder
+// exigido; só o chefe é difícil". A causa é que a vida do monstro comum saía só do
+// multiplicador fixo da dificuldade (1,0 / 1,7 / 2,6) e nunca olhava para o quanto o
+// jogador cresceu. Um herói de 3.000 de poder entrava no Extremo, feito para 3.720, e
+// batia em bicho de tabela — o chefe escapava porque `forcaDeChefe` já o multiplicava.
+//
+// Agora o comum escala junto, pela razão entre o poder da CONTA e o poder recomendado da
+// dificuldade escolhida. A raiz segura o crescimento: dobrar o poder não dobra a vida,
+// senão a sala vira parede em vez de desafio. É a mesma forma do `fatorDoEco`, de
+// propósito — duas escadas diferentes para a mesma coisa confundiriam o ajuste.
+const DUNGEON_VIDA_MAX = 4;      // teto, para nunca virar esponja
+
+function fatorDaDungeon() {
+  const dif = dificuldadeDaCorrida();
+  const alvo = dif?.poder || 0;
+  if (!alvo) return 1;
+  const p = poderDaConta();
+  if (p <= alvo) return 1;       // abaixo do recomendado, a tabela vale como está
+  return Math.min(DUNGEON_VIDA_MAX, Math.sqrt(p / alvo));
+}
+
 // Põe de pé o estágio em que a corrida está: monstros repostos, baús sorteados de novo.
 // Repor é o que impede limpar a sala, sair e voltar para concluir de graça.
 function prepararEstagio(d) {
@@ -18808,7 +18835,8 @@ function prepararEstagio(d) {
   lista.forEach(m => {
     m.dead = false; m.respawnAt = 0;
     // A vida do chefe sai do GRAU da corrida — mesmo sorteio que define o baú.
-    m.maxHp = Math.round((monsterDef(m).hp ?? 20) * forcaDeChefe(m) * dificuldadeDaCorrida().monstro);
+    m.maxHp = Math.round((monsterDef(m).hp ?? 20) * forcaDeChefe(m)
+                         * dificuldadeDaCorrida().monstro * fatorDaDungeon());
     m.hp = m.maxHp;
     m.x = m.homeX; m.y = m.homeY;
     m.paralisadoAte = 0; m.dormindoAte = 0; m.hurtUntil = 0;
@@ -18978,7 +19006,7 @@ function abrirPortao(d, viagem) {
 
   el.querySelector('.dg-nome').textContent = d.nome;
   el.querySelector('.dg-sub').textContent = d.subtitulo || '';
-  const poderAgora = nivelDePoder();
+  const poderAgora = poderDaConta();   // a dungeon mede a CONTA, não só quem está em campo
   const dif = dificuldadeAtual(d);
   el.querySelector('.dg-nivel').textContent = `DUNGEON NÍVEL ${d.nivel || 1}`;
   // A exigência ganhou bloco próprio, com ✓ ou ✕ em cada requisito. Escondida numa linha
@@ -20918,9 +20946,23 @@ function atualizarBotoesLiberados() {
   }
 }
 
+// O poder da conta é recalculado percorrendo todo o elenco, e este HUD roda a cada
+// quadro: a conta inteira sessenta vezes por segundo seria desperdício puro. Guarda o
+// último valor e só refaz quando algo que ENTRA nele mudou.
+let _poderCache = { chave: null, valor: 0 };
+
+function poderDaContaEmCache() {
+  const chave = `${level}|${selectedHeroId}|${JSON.stringify(equipado)}|`
+    + `${JSON.stringify(itensPossuidos)}|${JSON.stringify(herois)}|${learnedSkills.length}`;
+  if (chave !== _poderCache.chave) _poderCache = { chave, valor: poderDaConta() };
+  return _poderCache.valor;
+}
+
 function atualizarNumerosDoHud() {
   atualizarBotoesLiberados();
   sincronizarHabilidadesSePreciso();
+  const pn = document.getElementById('hudPoderNum');
+  if (pn) pn.textContent = poderDaContaEmCache().toLocaleString('pt-BR');
   if (coinCount) coinCount.textContent = playerCoins;
   if (claveCountEl) claveCountEl.textContent = `${claveCount}`;
   if (lvlNum) lvlNum.textContent = level;
