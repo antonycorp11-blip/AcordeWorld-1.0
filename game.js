@@ -6967,8 +6967,11 @@ function atualizarBotaoDeAtaque(now) {
   _btnAtaque.parentElement?.classList.toggle('calmo', calmo);
   document.getElementById('partyHud')?.classList.toggle('calmo', calmo);
 
-  // Ressoar aparece só quando há Eco aberto ao lado.
-  document.getElementById('botaoRessoar')?.classList.toggle('disponivel', acao === 'ressoar');
+  // Ressoar aparece só quando há Eco aberto ao lado. Na FAZENDA este mesmo botão vira o
+  // "sair", e quem manda nele é `aplicarHudDaFazenda` — sem esta guarda, esta linha roda
+  // a cada quadro e apaga o botão de sair no quadro seguinte ao de entrar.
+  if (currentScene !== 'farm')
+    document.getElementById('botaoRessoar')?.classList.toggle('disponivel', acao === 'ressoar');
 
   // Recarga e destaque dos três botões, lidos do catálogo do personagem em campo. Antes
   // isto era escrito à mão para a Lâmina e para a Sétima, com as constantes do Achilles
@@ -6977,6 +6980,10 @@ function atualizarBotaoDeAtaque(now) {
   ['habilidade1','habilidade2','habilidade3'].forEach((id, i) => {
     const b = document.getElementById(id);
     if (!b) return;
+    // Na fazenda estes três botões são Construir, Recolher e Regar. A recarga de combate
+    // não tem nada a dizer sobre eles: sem esta saída, ela os pinta de "recarregando" e
+    // escreve um contador de segundos por cima do ícone da enxada.
+    if (currentScene === 'farm') return;
     const h = listaHab[i];
     const conta = document.getElementById('habConta' + (i + 1));
     if (!h) {
@@ -14603,6 +14610,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (!b) return;
     b.addEventListener('pointerdown', e => {
       e.preventDefault(); initAudio();
+      // Na fazenda estes botões são Construir, Recolher e Regar, e quem responde é o
+      // `onclick` posto por `aplicarHudDaFazenda`. Este ouvinte NÃO é substituído por
+      // aquele — os dois disparam — então tocar em "Construir" também lançava a Espada
+      // de Dó Maior no meio da horta.
+      if (currentScene === 'farm') return;
       const hab = habilidadesDoHeroi()[i];
       if (habilidadeUsavel(hab)) hab.usar();
       else if (hab) showToast(`${hab.nome} ainda está trancada — abra na ficha.`);
@@ -24707,6 +24719,77 @@ function expandirIlhaPerguntando() {
     comprarExpansao();
 }
 
+// ── O HUD VIRA A FAZENDA ─────────────────────────────────────────────────────────
+// Ideia do dono, e é melhor que a barra flutuante que eu tinha feito: em vez de somar
+// mais controles à tela, os que já existem MUDAM DE OFÍCIO ao entrar na fazenda. O
+// polegar não precisa aprender lugar novo — ele já sabe onde ficam as três habilidades,
+// o ataque e o ressoar.
+//
+//   habilidade 1  →  Construir      (abre o menu com as abas)
+//   habilidade 2  →  Recolher       (a mão)
+//   habilidade 3  →  Regar
+//   ataque        →  a ação do lugar — martelar a obra, plantar, colher, invocar.
+//                    Este nem precisa mudar: ele JÁ é contextual, e a fazenda já emite
+//                    'obra' e 'invocar'. Só o rótulo troca.
+//   ressoar       →  Sair da fazenda
+//
+// A barra flutuante deixa de existir. Era uma tira permanente por cima justamente da
+// faixa onde se constrói.
+const HUD_DA_FAZENDA = [
+  // Pergaminho e não chave: um rolo lê como planta de obra, uma chave não diz nada sobre
+  // construir. A folha que o dono mandou não tem martelo — quando tiver, é trocar aqui.
+  { id: 'habilidade1', ico: 'assets/icons/fazenda/pergaminho.png', txt: 'CONSTRUIR',
+    acao: () => { window.buildMenuCategory = window.buildMenuCategory || 'Terreno'; openBuildMenu(); } },
+  { id: 'habilidade2', ico: 'assets/icons/fazenda/saco.png',   txt: 'RECOLHER',
+    acao: () => alternarModoRecolher() },
+  { id: 'habilidade3', ico: 'assets/icons/fazenda/gota.png',   txt: 'REGAR',
+    acao: () => regarPerto() },
+];
+
+// Rega o canteiro mais próximo. Existia `regar(o)` e ninguém o chamava de um botão —
+// a rega só acontecia por acidente, no toque que plantava.
+function regarPerto() {
+  const alvo = objetos
+    .filter(o => o.mapKey === 'farm' && culturaDoProp(o.prop))
+    .map(o => ({ o, d: Math.hypot(o.x - player.x, o.y - player.y) }))
+    .filter(x => x.d < 90)
+    .sort((a, b) => a.d - b.d)[0];
+  if (!alvo) { showToast('Chegue perto de uma planta para regar.'); return; }
+  regar(alvo.o);
+}
+
+function aplicarHudDaFazenda(ligado) {
+  HUD_DA_FAZENDA.forEach(b => {
+    const el = document.getElementById(b.id);
+    if (!el) return;
+    const ico = el.querySelector('.hab-ico');
+    if (ligado) {
+      if (!el.dataset.hudOriginal) el.dataset.hudOriginal = ico ? ico.innerHTML : '';
+      if (ico) ico.innerHTML = `<img class="hab-img" src="${b.ico}" alt="">`;
+      el.title = b.txt;
+      el.disabled = false;
+      el.classList.add('modo-fazenda');
+      el.onclick = b.acao;
+    } else {
+      if (ico && el.dataset.hudOriginal !== undefined) ico.innerHTML = el.dataset.hudOriginal;
+      el.classList.remove('modo-fazenda');
+      el.onclick = null;
+      // A recarga volta a mandar em quem habilita: devolver `disabled` na mão deixaria
+      // uma habilidade em recarga parecendo pronta.
+      if (typeof sincronizarBotoesDeHabilidade === 'function') sincronizarBotoesDeHabilidade();
+    }
+  });
+  const sair = document.getElementById('botaoRessoar');
+  if (sair) {
+    sair.classList.toggle('modo-fazenda', ligado);
+    sair.classList.toggle('disponivel', ligado);
+    sair.innerHTML = ligado ? '<span>✖</span><small>SAIR</small>'
+                            : '<span>✦</span><small>RESSOAR</small>';
+    sair.onclick = ligado ? () => document.getElementById('btnCloseFarm')?.click() : null;
+  }
+  document.body.classList.toggle('na-fazenda', ligado);
+}
+
 // ── A barra que sai da frente ────────────────────────────────────────────────────
 // Ela ficava permanente na base da tela, com onze botões, tapando justamente a faixa
 // onde se constrói. Agora encolhe sozinha depois de um tempo parada e vira uma aba
@@ -24746,8 +24829,9 @@ function initFazendaUI() {
       zoomAntesDaFazenda = zoomCenario;
       aplicarZoomCenario(zoomDaFazenda, false);
       carregarPropsDaFazenda();
-      farmToolbar.classList.remove('hidden');
-      acordarBarraDaFazenda();
+      // A barra flutuante nao aparece mais: quem vira fazenda e o HUD.
+      farmToolbar.classList.add('hidden');
+      aplicarHudDaFazenda(true);
       btnBuildMode.classList.add('hidden');
       document.getElementById('partyHud')?.classList.add('hidden');
       document.getElementById('mapaBtn')?.classList.add('hidden');
@@ -24764,6 +24848,7 @@ function initFazendaUI() {
       if (pv) { player.x = pv.x; player.y = pv.y; player.direction = pv.dir || 'down'; }
       aplicarZoomCenario(zoomAntesDaFazenda ?? 1.6, false);
       farmToolbar.classList.add('hidden');
+      aplicarHudDaFazenda(false);
       btnBuildMode.classList.remove('hidden');
       document.getElementById('partyHud')?.classList.remove('hidden');
       document.getElementById('mapaBtn')?.classList.remove('hidden');

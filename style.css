@@ -8023,3 +8023,29 @@ body.em-cena #questNotification { display: none !important; }
 .build-aba.acao { min-width: 58px; border-style: dashed; }
 .build-aba.acao.perigo { border-color: #7f1d1d; color: #fca5a5; }
 .build-aba.acao.perigo:hover { border-color: #b91c1c; }
+
+/* ══ O HUD VIRA A FAZENDA ═════════════════════════════════════════════════════
+   Ideia do dono: em vez de somar uma barra flutuante à tela, os controles que já
+   existem mudam de ofício ao entrar na fazenda. As três habilidades viram
+   Construir, Recolher e Regar; o ataque, que já é contextual, vira martelar e
+   invocar; e o Ressoar vira Sair. A barra flutuante deixou de existir. */
+.btn-habilidade.modo-fazenda,
+.btn-ressoar.modo-fazenda {
+  border-color: #7c5030;
+  background: linear-gradient(180deg, #2b1f14, #1a1209);
+  opacity: 1;
+}
+.btn-habilidade.modo-fazenda { filter: none; }
+.btn-habilidade.modo-fazenda .hab-conta { display: none !important; }
+.btn-habilidade.modo-fazenda.armado {
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 2px rgba(251,191,36,.45) inset;
+}
+.hab-img {
+  width: 26px; height: 26px;
+  image-rendering: pixelated;
+  display: block; margin: 0 auto;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.6));
+}
+/* Na fazenda o HUD de combate não tem o que dizer. */
+body.na-fazenda #partyHud { display: none; }
