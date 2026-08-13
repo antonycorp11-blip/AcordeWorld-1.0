@@ -20763,6 +20763,10 @@ const LIBERACAO_DE_BOTOES = {
                       .some(([k, q]) => q > 0 && k !== 'espada_teclado') || ownedItems.length > 0,
   // A ficha abre quando há o que gastar ou o que ver crescer.
   fichaBtn:   () => nivelDoHeroi() > 1 || attrPoints > 0 || level > 1,
+  // TEMPORARIO, a pedido: a fazenda fica sempre a mao enquanto ela esta sendo construida
+  // e testada. Quando estiver pronta, isto vira a bandeira da cena que a apresenta ao
+  // jogador — hoje ela aparece antes de a historia dizer que existe.
+  btnBuildMode: () => true,
   // Os forjadores só depois de existir matéria-prima na mão.
   // Fragmento e guardado POR NOTA (`frag_re`, `frag_do`...). Esta regra procurava a chave
   // generica `fragmento`, que o jogo deixou de usar quando o fragmento ganhou cor: o
@@ -22779,7 +22783,6 @@ function blocoDoPetNaFicha(heroi) {
       <small>Invoque um Eco na fazenda com Almas para ter o primeiro.</small></div>`;
   }
   const atual = petDoHeroi(heroi);
-  const h = atual ? habilidadeDoPet(atual) : null;
   const f = atual ? fichaDoPet(atual) : null;
   const forma = atual ? formaDoPet(atual) : null;
   const falta = atual ? faltaParaEvoluir(atual) : null;
@@ -22788,7 +22791,7 @@ function blocoDoPetNaFicha(heroi) {
   const chips = donos.map(n => {
     const usadoPor = Object.entries(petEquipado).find(([hh, nn]) => nn === n && hh !== heroi);
     return `<button class="pet-chip${n === atual ? ' ativo' : ''}" data-pet="${n}"
-              title="${(habilidadeDoPet(n) || {}).nome || n}${usadoPor ? ' — com ' + usadoPor[0] : ''}">
+              title="${(habilidadesDoPet(n)[0] || {}).nome || n}${usadoPor ? ' — com ' + usadoPor[0] : ''}">
       <img src="assets/itens/notas/${ARQ_DA_NOTA[n] || 'C'}.png" alt="">
       <b>${NOME_DA_NOTA[n] || n}</b>
       <small>Nv ${fichaDoPet(n).nivel} · F${fichaDoPet(n).forma}</small>
@@ -22799,7 +22802,12 @@ function blocoDoPetNaFicha(heroi) {
     <span class="pet-rot">ECO DE COMPANHIA</span>
     <div class="pet-chips">${chips}</div>
     ${atual ? `
-      <div class="pet-hab"><b>${h.ico} ${h.nome}</b><small>${h.desc}</small></div>
+      <div class="pet-habs">${((PETS?.habilidades || {})[atual] || []).map((x, k) => {
+        const aberta = (x.forma || 1) <= fichaDoPet(atual).forma;
+        return `<div class="pet-hab${aberta ? '' : ' trancada'}">
+          <b>${aberta ? x.ico : '🔒'} ${x.nome}<i>${k + 1}º toque</i></b>
+          <small>${aberta ? x.desc : 'Abre na forma ' + x.forma}</small></div>`;
+      }).join('')}</div>
       <div class="pet-forma">
         <span>${forma.nome} · nível ${f.nivel}</span>
         ${prox ? (falta.length
@@ -23805,6 +23813,7 @@ function registrarPet(nota) {
 }
 
 function equiparPet(heroi, nota) {
+  petCiclo = 0;
   if (nota && !temPet(nota)) { showToast('Voce ainda nao tem esse Eco.'); return false; }
   // Um Eco nao serve dois herois ao mesmo tempo: se ja estiver com outro, troca de dono.
   if (nota) Object.keys(petEquipado).forEach(h => {
@@ -23816,95 +23825,163 @@ function equiparPet(heroi, nota) {
   return true;
 }
 
-// ── A habilidade do Eco equipado ──────────────────────────────────────────────
-// Um botao so, do lado dos outros. O efeito sai da FUNCAO da nota, e a forma multiplica:
-// o Eco Pleno de Sol estoura 2,4x mais que o de forma 1.
-let petRecargaAte = 0;
-const efeitosDoPet = {};      // efeito -> ate quando vale
+// ── As habilidades do Eco equipado ────────────────────────────────────────────
+// TRES por Eco, e o botao CICLA: primeiro toque usa a primeira, segundo a segunda,
+// terceiro a suprema, e volta ao comeco. Cada uma com a propria recarga.
+// A segunda abre na forma 2 e a suprema na forma 3 — e o que faz evoluir valer a pena:
+// nao e so um numero maior, e um botao novo na mao.
+const petRecargas = {};       // "nota|indice" -> ate quando
+let petCiclo = 0;             // posicao no ciclo do heroi em campo
+const efeitosDoPet = {};      // efeito -> { ate, val }
 
-function habilidadeDoPet(nota) { return (PETS?.habilidades || {})[nota] || null; }
+// So as que a FORMA atual liberou.
+function habilidadesDoPet(nota) {
+  const todas = (PETS?.habilidades || {})[nota];
+  if (!Array.isArray(todas)) return [];
+  const forma = fichaDoPet(nota).forma || 1;
+  return todas.filter(h => (h.forma || 1) <= forma);
+}
 
-function petPronto() {
-  const n = petDoHeroi(); if (!n) return false;
-  return performance.now() >= petRecargaAte;
+// A que o proximo toque vai usar. O botao MOSTRA esta, para nao haver surpresa.
+function habilidadeDaVez(nota) {
+  const lista = habilidadesDoPet(nota || petDoHeroi());
+  if (!lista.length) return null;
+  return lista[petCiclo % lista.length];
+}
+
+function recargaDaHabilidade(nota, h) {
+  const lista = habilidadesDoPet(nota);
+  const i = lista.indexOf(h);
+  return Math.max(0, (petRecargas[`${nota}|${i}`] || 0) - performance.now());
 }
 
 function usarHabilidadeDoPet() {
   const nota = petDoHeroi();
   if (!nota) { showToast('Nenhum Eco equipado. Escolha um na Ficha.'); return; }
-  const h = habilidadeDoPet(nota);
-  if (!h) return;
-  const agora = performance.now();
-  if (agora < petRecargaAte) {
-    showToast(`${h.nome} em recarga — ${Math.ceil((petRecargaAte - agora) / 1000)}s`);
+  const lista = habilidadesDoPet(nota);
+  if (!lista.length) return;
+  const i = petCiclo % lista.length;
+  const h = lista[i];
+  const resta = recargaDaHabilidade(nota, h);
+  if (resta > 0) {
+    // NAO avanca o ciclo: se avancasse, "o terceiro toque e a suprema" deixaria de ser
+    // verdade toda vez que uma estivesse em recarga, e o jogador nunca aprenderia a ordem.
+    showToast(`${h.ico} ${h.nome} — ${Math.ceil(resta / 1000)}s`);
     return;
   }
   const forca = formaDoPet(nota).poder || 1;
-  petRecargaAte = agora + h.recarga;
-  aplicarEfeitoDoPet(h, forca, agora);
+  petRecargas[`${nota}|${i}`] = performance.now() + h.recarga;
+  aplicarEfeitoDoPet(h, forca, performance.now());
   addFloater(player.x, player.y - 60, `${h.ico} ${h.nome}`, '#a7f3d0');
   showToast(`${h.ico} ${h.nome}`);
+  petCiclo = (petCiclo + 1) % lista.length;
   sincronizarBotaoDePet();
 }
 
+// Os efeitos, reduzidos a um punhado de primitivas. Vinte e quatro nomes diferentes
+// implementados um a um seriam vinte e quatro lugares para divergir; aqui cada nome diz
+// QUAL primitiva usa e com que forca.
+const PRIMITIVA_DO_EFEITO = {
+  // defesa
+  escudo: ['escudo', 1], invulneravel: ['escudo', 99],
+  espelho: ['espelho', 1], refletirTudo: ['espelho', 1], espelhoTotal: ['espelho', 1],
+  enfraquecer: ['fraqueza', 1],
+  // movimento e golpe
+  pressa: ['pressa', 1], rajada: ['pressa', 1], atravessar: ['fantasma', 1],
+  gume: ['gume', 1], critico: ['critico', 1], golpeDobrado: ['golpeDobrado', 1],
+  golpeExtra: ['golpeDobrado', 1], perseguir: ['alcance', 1], execucao: ['execucao', 1],
+  sangrar: ['gume', 1],
+  // cura
+  cura: ['cura', 1], regenerar: ['cura', 1], curaTotal: ['cura', 1],
+  // controle
+  lentidao: ['lentidao', 1], lentidaoArea: ['lentidao', 1], parar: ['congelar', 1],
+  congelar: ['congelar', 1], enraizar: ['congelar', 1], medo: ['medo', 1],
+  provocar: ['provocar', 1],
+  // dano
+  estouro: ['estouro', 1], estouroMaior: ['estouro', 1], rupturaTotal: ['estouro', 1],
+  ondaChoque: ['estouro', 1], queimar: ['queimar', 1], incendio: ['queimar', 1],
+  // posicao
+  puxao: ['puxao', 1], buracoNegro: ['puxao', 1],
+  piscar: ['piscar', 1], piscarMultiplo: ['piscar', 1],
+};
+
 function aplicarEfeitoDoPet(h, forca, agora) {
+  const [prim] = PRIMITIVA_DO_EFEITO[h.efeito] || [h.efeito, 1];
   const ate = agora + (h.dur || 1000);
   const val = (h.valor || 0) * forca;
-  switch (h.efeito) {
-    case 'escudo':   efeitosDoPet.escudo = { ate, val: Math.min(0.85, val) }; break;
-    case 'pressa':   efeitosDoPet.pressa = { ate, val }; break;
-    case 'gume':     efeitosDoPet.gume = { ate, val }; break;
+  const perto = (m, r) => Math.hypot(m.x - player.x, m.y - player.y) <= r;
+
+  switch (prim) {
+    case 'escudo':   efeitosDoPet.escudo = { ate, val: Math.min(0.99, val) }; break;
     case 'espelho':  efeitosDoPet.espelho = { ate, val }; break;
+    case 'fraqueza': efeitosDoPet.fraqueza = { ate, val }; break;
+    case 'pressa':   efeitosDoPet.pressa = { ate, val }; applyMovementStats(); break;
+    case 'fantasma': efeitosDoPet.fantasma = { ate, val: 1 }; break;
+    case 'gume':     efeitosDoPet.gume = { ate, val }; break;
+    case 'critico':  efeitosDoPet.critico = { ate, val }; break;
+    case 'alcance':  efeitosDoPet.alcance = { ate, val }; break;
+    case 'execucao': efeitosDoPet.execucao = { ate, val }; break;
     case 'golpeDobrado': efeitosDoPet.golpeDobrado = { ate, val }; break;
     case 'cura': {
-      // Cura ao longo do tempo, em pulsos — cura instantanea some sem o jogador ver.
-      const total = playerMaxHp() * val, passos = 5;
-      for (let i = 1; i <= passos; i++) setTimeout(() => {
+      const total = playerMaxHp() * Math.min(1, val), passos = 5;
+      for (let k = 1; k <= passos; k++) setTimeout(() => {
         playerHp = Math.min(playerMaxHp(), playerHp + total / passos);
         addFloater(player.x, player.y - 40, `+${Math.round(total / passos)}`, '#86efac');
-      }, (h.dur / passos) * i);
+      }, ((h.dur || 1000) / passos) * k);
       break;
     }
     case 'lentidao': case 'congelar':
-      liveMonsters().forEach(m => {
-        if (Math.hypot(m.x - player.x, m.y - player.y) > 320) return;
-        m.lentoAte = ate; m.lentoFator = h.efeito === 'congelar' ? 1 : Math.min(0.9, val);
-      });
+      liveMonsters().forEach(m => { if (!perto(m, 340)) return;
+        m.lentoAte = ate; m.lentoFator = prim === 'congelar' ? 1 : Math.min(0.95, val); });
+      break;
+    case 'medo':
+      liveMonsters().forEach(m => { if (!perto(m, 340)) return; m.medoAte = ate; });
+      break;
+    case 'provocar':
+      liveMonsters().forEach(m => { if (!perto(m, val || 300)) return; m.provocadoAte = ate; });
       break;
     case 'puxao':
       liveMonsters().forEach(m => {
         const d = Math.hypot(m.x - player.x, m.y - player.y);
         if (d > val || d < 1) return;
-        const p = pontoAndavelPerto(player.x + (m.x - player.x) * 0.25,
-                                    player.y + (m.y - player.y) * 0.25);
+        const p = pontoAndavelPerto(player.x + (m.x - player.x) * 0.22,
+                                    player.y + (m.y - player.y) * 0.22);
         m.x = p.x; m.y = p.y;
+        if (h.efeito === 'buracoNegro') { m.lentoAte = ate; m.lentoFator = 1; }
       });
       break;
     case 'estouro': {
       const dano = Math.round(derivedStats().dmg * val);
-      liveMonsters().forEach(m => {
-        if (Math.hypot(m.x - player.x, m.y - player.y) > 200) return;
-        danificarMonstro?.(m, dano) ?? (m.hp -= dano);
-        if (m.hp <= 0) killMonster(m, agora);
-      });
+      const raio = h.efeito === 'rupturaTotal' ? 9999 : h.efeito === 'estouroMaior' ? 320 : 200;
+      liveMonsters().forEach(m => { if (!perto(m, raio)) return;
+        m.hp -= dano; addFloater(m.x, m.y - 30, `-${dano}`, '#fca5a5');
+        if (m.hp <= 0) killMonster(m, agora); });
       break;
     }
     case 'queimar': {
-      const dano = Math.round(derivedStats().dmg * val);
-      for (let i = 1; i <= 5; i++) setTimeout(() => liveMonsters().forEach(m => {
-        if (Math.hypot(m.x - player.x, m.y - player.y) > 220) return;
-        m.hp -= dano; if (m.hp <= 0) killMonster(m, performance.now());
-      }), (h.dur / 5) * i);
+      const dano = Math.round(derivedStats().dmg * val * 0.4);
+      const passos = 5;
+      for (let k = 1; k <= passos; k++) setTimeout(() => liveMonsters().forEach(m => {
+        if (!perto(m, 230)) return; m.hp -= dano;
+        if (m.hp <= 0) killMonster(m, performance.now());
+      }), ((h.dur || 5000) / passos) * k);
       break;
     }
     case 'piscar': {
-      const dir = player.direction === 'left' ? -1 : player.direction === 'right' ? 1 : 0;
-      const dy = player.direction === 'up' ? -1 : player.direction === 'down' ? 1 : 0;
-      const p = pontoAndavelPerto(player.x + dir * val, player.y + dy * val);
-      player.x = p.x; player.y = p.y;
-      liveMonsters().forEach(m => {
-        if (Math.hypot(m.x - player.x, m.y - player.y) < 260) m.atordoadoAte = ate;
-      });
+      const vezes = h.efeito === 'piscarMultiplo' ? 3 : 1;
+      for (let k = 0; k < vezes; k++) setTimeout(() => {
+        const dx = player.direction === 'left' ? -1 : player.direction === 'right' ? 1 : 0;
+        const dy = player.direction === 'up' ? -1 : player.direction === 'down' ? 1 : 0;
+        const p = pontoAndavelPerto(player.x + dx * (val || 190), player.y + dy * (val || 190));
+        // Corta quem ficou no caminho: piscar atravessando o inimigo tem de doer nele.
+        if (vezes > 1) liveMonsters().forEach(m => {
+          if (!perto(m, 120)) return;
+          const d = Math.round(derivedStats().dmg * 1.2);
+          m.hp -= d; if (m.hp <= 0) killMonster(m, performance.now());
+        });
+        player.x = p.x; player.y = p.y;
+        liveMonsters().forEach(m => { if (perto(m, 260)) m.atordoadoAte = ate; });
+      }, k * 260);
       break;
     }
   }
@@ -23912,9 +23989,8 @@ function aplicarEfeitoDoPet(h, forca, agora) {
 
 // Quanto o efeito ativo do pet altera uma conta. Chamado pelo combate.
 function efeitoDoPet(nome) {
-  // `efeitosDoPet` e um `const` declarado mais abaixo no arquivo. `applyMovementStats`
-  // roda no boot, ANTES dessa linha ser executada, e ler um const na zona morta temporal
-  // e um ReferenceError que derruba a abertura inteira. O try devolve zero e o jogo abre.
+  // `efeitosDoPet` e um `const` declarado neste mesmo bloco, e `applyMovementStats` roda
+  // no boot antes dele existir: ler na zona morta temporal derrubaria a abertura.
   try {
     const e = efeitosDoPet[nome];
     if (!e || performance.now() > e.ate) return 0;
@@ -23922,28 +23998,30 @@ function efeitoDoPet(nome) {
   } catch (err) { return 0; }
 }
 
-document.getElementById('habPet')?.addEventListener('click', () => usarHabilidadeDoPet());
-window.addEventListener('keydown', e => {
-  if (e.repeat || !isPlayMode) return;
-  // Tecla E ja e a acao; T de "trazer o Eco" fica livre e cai perto do WASD na mao esquerda.
-  if (e.key.toLowerCase() === 't' && !dlg.aberto && !CUT.ativo) usarHabilidadeDoPet();
-});
-
 function sincronizarBotaoDePet() {
   const b = document.getElementById('habPet');
   if (!b) return;
   const nota = petDoHeroi();
-  const h = nota ? habilidadeDoPet(nota) : null;
-  b.classList.toggle('hidden', !h);
-  if (!h) return;
-  b.title = `${h.nome} — ${h.desc}`;
+  const lista = nota ? habilidadesDoPet(nota) : [];
+  b.classList.toggle('hidden', !lista.length);
+  if (!lista.length) return;
+  const h = habilidadeDaVez(nota);
+  const resta = recargaDaHabilidade(nota, h);
+  // O botao mostra a PROXIMA do ciclo, com o numero dela: o jogador ve o que vai sair.
+  b.title = `${h.nome} — ${h.desc}  (${(petCiclo % lista.length) + 1}/${lista.length})`;
   const ico = b.querySelector('.hab-ico');
   if (ico) ico.textContent = h.ico;
-  const resta = Math.max(0, petRecargaAte - performance.now());
   const conta = document.getElementById('habContaPet');
   if (conta) conta.textContent = resta > 0 ? Math.ceil(resta / 1000) : '';
   b.classList.toggle('recarregando', resta > 0);
+  b.dataset.ciclo = `${(petCiclo % lista.length) + 1}/${lista.length}`;
 }
+
+document.getElementById('habPet')?.addEventListener('click', () => usarHabilidadeDoPet());
+window.addEventListener('keydown', e => {
+  if (e.repeat || !isPlayMode) return;
+  if (e.key.toLowerCase() === 't' && !dlg.aberto && !CUT.ativo) usarHabilidadeDoPet();
+});
 
 function xpDoNivelDoPet(n) { return Math.round(40 * Math.pow(1.28, n - 1)); }
 
@@ -24241,6 +24319,20 @@ function initFazendaUI() {
 
   document.getElementById('farmZoomIn')?.addEventListener('click', () => ajustarZoomDaFazenda(+0.2));
   document.getElementById('farmZoomOut')?.addEventListener('click', () => ajustarZoomDaFazenda(-0.2));
+  // Expandir a ilha: a funcao existia e ninguem a chamava. Mostra o preco ANTES, porque
+  // um botao que tira ouro sem avisar quanto e o tipo de coisa que o jogador nao perdoa.
+  document.getElementById('farmExpandir')?.addEventListener('click', () => {
+    const preco = precoDaProximaExpansao();
+    if (preco == null) { showToast('A ilha já está no tamanho máximo.'); return; }
+    const tiles = (FAZENDA?.ilha?.tilesPorExpansao) || 12;
+    if (playerCoins < preco) {
+      showToast(`Expansão: ${preco} de ouro por +${tiles} espaços. Faltam ${preco - playerCoins}.`);
+      return;
+    }
+    if (window.confirm(`Expandir a ilha por ${preco} de ouro?\n+${tiles} espaços para construir.`)) {
+      comprarExpansao();
+    }
+  });
   document.querySelectorAll('.farm-tool-cat:not(.fechar)').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.farm-tool-cat').forEach(b => b.classList.remove('ativo'));

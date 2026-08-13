@@ -1,23 +1,47 @@
 {
   "_": "Ecos como PET. O mesmo bicho que é recurso vira companheiro: o jogador equipa UM por personagem, e cada um traz uma habilidade que combina com a função da nota dele. Evolui em três formas, e a fazenda é a casa disso — é lá que ele come, cresce e muda.",
-
   "regra": {
     "_": "Um por herói. Não é limitação técnica: é para a escolha doer. Com dois heróis o jogador tem dois Ecos em campo, o que dá mais um motivo para desenvolver o segundo personagem.",
     "porHeroi": 1,
     "xpPorRefeicao": 12,
     "_xp": "Alimentar na fazenda é o que sobe o pet. A comida já existia e só dava fragmento; agora dá fragmento E experiência ao bicho."
   },
-
   "formas": [
-    { "forma": 1, "nome": "Eco", "escala": 1.00, "poder": 1.00, "nivelMin": 1 },
-    { "forma": 2, "nome": "Eco Maior", "escala": 1.18, "poder": 1.60, "nivelMin": 10,
-      "custo": { "nota": 2, "alma": 8, "partitura": 6, "pedra_eco": 1 } },
-    { "forma": 3, "nome": "Eco Pleno", "escala": 1.38, "poder": 2.40, "nivelMin": 25,
-      "custo": { "nota": 5, "alma": 20, "partitura": 18, "pedra_eco": 3 } }
+    {
+      "forma": 1,
+      "nome": "Eco",
+      "escala": 1.0,
+      "poder": 1.0,
+      "nivelMin": 1
+    },
+    {
+      "forma": 2,
+      "nome": "Eco Maior",
+      "escala": 1.18,
+      "poder": 1.6,
+      "nivelMin": 10,
+      "custo": {
+        "nota": 2,
+        "alma": 8,
+        "partitura": 6,
+        "pedra_eco": 1
+      }
+    },
+    {
+      "forma": 3,
+      "nome": "Eco Pleno",
+      "escala": 1.38,
+      "poder": 2.4,
+      "nivelMin": 25,
+      "custo": {
+        "nota": 5,
+        "alma": 20,
+        "partitura": 18,
+        "pedra_eco": 3
+      }
+    }
   ],
-
   "_custo": "As quatro moedas de propósito, como na evolução de acorde: NOTA vem do Altar, ALMA da captura daquela nota, PARTITURA de dungeon e captura, e a PEDRA DE EVOLUÇÃO é o freio — rara, para a terceira forma ser um acontecimento e não uma etapa.",
-
   "pedra": {
     "id": "pedra_eco",
     "nome": "Pedra de Evolução",
@@ -25,53 +49,406 @@
     "chanceNoChefe": 0.5,
     "chanceNoBauGrande": 0.25
   },
-
   "habilidades": {
-    "_": "A habilidade sai da FUNÇÃO da nota no campo harmônico, igual ao temperamento do bicho. Quem sabe harmonia consegue prever o que o Eco faz antes de equipá-lo — é a teoria virando jogo de novo.",
-
-    "do":  { "nome": "Tônica",      "ico": "🛡️", "recarga": 22000,
-             "desc": "A nota que sustenta: reduz o dano recebido pela metade por 6 s.",
-             "efeito": "escudo", "valor": 0.5, "dur": 6000 },
-    "re":  { "nome": "Impulso",     "ico": "💨", "recarga": 18000,
-             "desc": "A supertônica não para: +45% de velocidade por 8 s.",
-             "efeito": "pressa", "valor": 0.45, "dur": 8000 },
-    "mi":  { "nome": "Terça Doce",  "ico": "✚", "recarga": 26000,
-             "desc": "A mediante colore e cura: devolve 30% da vida ao longo de 5 s.",
-             "efeito": "cura", "valor": 0.30, "dur": 5000 },
-    "fa":  { "nome": "Atração",     "ico": "🌀", "recarga": 24000,
-             "desc": "A subdominante puxa: arrasta os inimigos próximos para o centro.",
-             "efeito": "puxao", "valor": 220, "dur": 700 },
-    "sol": { "nome": "Dominante",   "ico": "⚡", "recarga": 20000,
-             "desc": "Pura tensão: estoura dano em área à sua volta.",
-             "efeito": "estouro", "valor": 2.2, "dur": 400 },
-    "la":  { "nome": "Lamento",     "ico": "🕸️", "recarga": 23000,
-             "desc": "A relativa menor pesa: lentifica os inimigos em 55% por 6 s.",
-             "efeito": "lentidao", "valor": 0.55, "dur": 6000 },
-    "si":  { "nome": "Sensível",    "ico": "✦", "recarga": 16000,
-             "desc": "A sensível não fica: pisca para longe e deixa um clarão que cega.",
-             "efeito": "piscar", "valor": 190, "dur": 1200 },
-
-    "do_s": { "nome": "Fio de Dó♯",  "ico": "🗡️", "recarga": 21000,
-              "desc": "Meio tom acima da tônica: seus golpes cortam 35% mais fundo por 8 s.",
-              "efeito": "gume", "valor": 0.35, "dur": 8000 },
-    "re_s": { "nome": "Ré♯ Partido", "ico": "💥", "recarga": 25000,
-              "desc": "O intervalo que não resolve: o próximo golpe acerta em dobro.",
-              "efeito": "golpeDobrado", "valor": 2.0, "dur": 9000 },
-    "fa_s": { "nome": "Trítono",     "ico": "🔥", "recarga": 30000,
-              "desc": "O intervalo do diabo: queima tudo à volta por 5 s.",
-              "efeito": "queimar", "valor": 0.9, "dur": 5000 },
-    "sol_s": { "nome": "Sol♯ Espelho", "ico": "🪞", "recarga": 28000,
-              "desc": "Devolve ao inimigo 40% do dano que você tomar por 7 s.",
-              "efeito": "espelho", "valor": 0.4, "dur": 7000 },
-    "la_s": { "nome": "Lá♯ Suspenso", "ico": "⏳", "recarga": 27000,
-              "desc": "Suspende a resolução: congela os inimigos no lugar por 2,5 s.",
-              "efeito": "congelar", "valor": 1, "dur": 2500 }
+    "_": "Tres por Eco, e o botao CICLA: primeiro toque usa a primeira, segundo a segunda, terceiro a suprema, e volta. Cada uma com a propria recarga. A segunda abre na forma 2 e a suprema na forma 3 — e o que faz evoluir valer a pena: nao e so um numero maior, e um botao novo na mao.",
+    "do": [
+      {
+        "nome": "Tônica",
+        "ico": "🛡️",
+        "recarga": 22000,
+        "desc": "A nota que sustenta: reduz o dano recebido pela metade por 6 s.",
+        "efeito": "escudo",
+        "valor": 0.5,
+        "dur": 6000,
+        "forma": 1
+      },
+      {
+        "nome": "Baixo Fundamental",
+        "ico": "🗿",
+        "recarga": 30000,
+        "efeito": "provocar",
+        "valor": 300,
+        "dur": 5000,
+        "desc": "A tônica chama para si: puxa a atenção de tudo por perto e aguenta.",
+        "forma": 2
+      },
+      {
+        "nome": "Acorde de Tônica",
+        "ico": "🏛️",
+        "recarga": 70000,
+        "efeito": "invulneravel",
+        "valor": 1,
+        "dur": 4000,
+        "desc": "SUPREMA · A resolução absoluta: imune a dano por 4 s.",
+        "forma": 3
+      }
+    ],
+    "re": [
+      {
+        "nome": "Impulso",
+        "ico": "💨",
+        "recarga": 18000,
+        "desc": "A supertônica não para: +45% de velocidade por 8 s.",
+        "efeito": "pressa",
+        "valor": 0.45,
+        "dur": 8000,
+        "forma": 1
+      },
+      {
+        "nome": "Passagem",
+        "ico": "👣",
+        "recarga": 26000,
+        "efeito": "atravessar",
+        "valor": 1,
+        "dur": 4000,
+        "desc": "A supertônica não é destino, é caminho: você atravessa inimigos por 4 s.",
+        "forma": 2
+      },
+      {
+        "nome": "Ré em Fuga",
+        "ico": "🌪️",
+        "recarga": 65000,
+        "efeito": "rajada",
+        "valor": 3,
+        "dur": 6000,
+        "desc": "SUPREMA · Velocidade e ataque dobrados por 6 s.",
+        "forma": 3
+      }
+    ],
+    "mi": [
+      {
+        "nome": "Terça Doce",
+        "ico": "✚",
+        "recarga": 26000,
+        "desc": "A mediante colore e cura: devolve 30% da vida ao longo de 5 s.",
+        "efeito": "cura",
+        "valor": 0.3,
+        "dur": 5000,
+        "forma": 1
+      },
+      {
+        "nome": "Harmônico",
+        "ico": "🌿",
+        "recarga": 34000,
+        "efeito": "regenerar",
+        "valor": 0.06,
+        "dur": 12000,
+        "desc": "A mediante sustenta: cura 6% da vida a cada 2 s por 12 s.",
+        "forma": 2
+      },
+      {
+        "nome": "Terça Maior",
+        "ico": "💚",
+        "recarga": 75000,
+        "efeito": "curaTotal",
+        "valor": 1,
+        "dur": 1000,
+        "desc": "SUPREMA · Enche a vida e limpa tudo o que estava te atrapalhando.",
+        "forma": 3
+      }
+    ],
+    "fa": [
+      {
+        "nome": "Atração",
+        "ico": "🌀",
+        "recarga": 24000,
+        "desc": "A subdominante puxa: arrasta os inimigos próximos para o centro.",
+        "efeito": "puxao",
+        "valor": 220,
+        "dur": 700,
+        "forma": 1
+      },
+      {
+        "nome": "Peso da Quarta",
+        "ico": "⚓",
+        "recarga": 32000,
+        "efeito": "enraizar",
+        "valor": 1,
+        "dur": 3500,
+        "desc": "A subdominante prende: os inimigos puxados não saem do lugar por 3,5 s.",
+        "forma": 2
+      },
+      {
+        "nome": "Subdominante Plena",
+        "ico": "🕳️",
+        "recarga": 72000,
+        "efeito": "buracoNegro",
+        "valor": 400,
+        "dur": 3000,
+        "desc": "SUPREMA · Puxa tudo para um ponto e segura por 3 s.",
+        "forma": 3
+      }
+    ],
+    "sol": [
+      {
+        "nome": "Dominante",
+        "ico": "⚡",
+        "recarga": 20000,
+        "desc": "Pura tensão: estoura dano em área à sua volta.",
+        "efeito": "estouro",
+        "valor": 2.2,
+        "dur": 400,
+        "forma": 1
+      },
+      {
+        "nome": "Cadência",
+        "ico": "🎯",
+        "recarga": 28000,
+        "efeito": "critico",
+        "valor": 0.6,
+        "dur": 8000,
+        "desc": "A dominante resolve: +60% de chance de crítico por 8 s.",
+        "forma": 2
+      },
+      {
+        "nome": "Dominante Plena",
+        "ico": "🌟",
+        "recarga": 68000,
+        "efeito": "estouroMaior",
+        "valor": 6,
+        "dur": 600,
+        "desc": "SUPREMA · Um estouro que limpa a tela à sua volta.",
+        "forma": 3
+      }
+    ],
+    "la": [
+      {
+        "nome": "Lamento",
+        "ico": "🕸️",
+        "recarga": 23000,
+        "desc": "A relativa menor pesa: lentifica os inimigos em 55% por 6 s.",
+        "efeito": "lentidao",
+        "valor": 0.55,
+        "dur": 6000,
+        "forma": 1
+      },
+      {
+        "nome": "Menor Natural",
+        "ico": "🌑",
+        "recarga": 31000,
+        "efeito": "enfraquecer",
+        "valor": 0.35,
+        "dur": 9000,
+        "desc": "A relativa menor esvazia: inimigos por perto dão 35% menos dano.",
+        "forma": 2
+      },
+      {
+        "nome": "Lamento Pleno",
+        "ico": "👻",
+        "recarga": 74000,
+        "efeito": "medo",
+        "valor": 1,
+        "dur": 5000,
+        "desc": "SUPREMA · Os inimigos fogem de você por 5 s.",
+        "forma": 3
+      }
+    ],
+    "si": [
+      {
+        "nome": "Sensível",
+        "ico": "✦",
+        "recarga": 16000,
+        "desc": "A sensível não fica: pisca para longe e deixa um clarão que cega.",
+        "efeito": "piscar",
+        "valor": 190,
+        "dur": 1200,
+        "forma": 1
+      },
+      {
+        "nome": "Resolução",
+        "ico": "⤴️",
+        "recarga": 29000,
+        "efeito": "perseguir",
+        "valor": 1.5,
+        "dur": 6000,
+        "desc": "A sensível puxa para a tônica: seus golpes acertam de mais longe por 6 s.",
+        "forma": 2
+      },
+      {
+        "nome": "Sensível Plena",
+        "ico": "💫",
+        "recarga": 66000,
+        "efeito": "piscarMultiplo",
+        "valor": 3,
+        "dur": 5000,
+        "desc": "SUPREMA · Três piscadas em sequência, cada uma cortando quem ficar no meio.",
+        "forma": 3
+      }
+    ],
+    "do_s": [
+      {
+        "nome": "Fio de Dó♯",
+        "ico": "🗡️",
+        "recarga": 21000,
+        "desc": "Meio tom acima da tônica: seus golpes cortam 35% mais fundo por 8 s.",
+        "efeito": "gume",
+        "valor": 0.35,
+        "dur": 8000,
+        "forma": 1
+      },
+      {
+        "nome": "Lâmina Dupla",
+        "ico": "⚔️",
+        "recarga": 33000,
+        "efeito": "golpeExtra",
+        "valor": 1,
+        "dur": 10000,
+        "desc": "Cada golpe bate duas vezes por 10 s.",
+        "forma": 2
+      },
+      {
+        "nome": "Fio Absoluto",
+        "ico": "🗡️",
+        "recarga": 78000,
+        "efeito": "execucao",
+        "valor": 0.25,
+        "dur": 6000,
+        "desc": "SUPREMA · Inimigos abaixo de 25% de vida morrem ao serem tocados.",
+        "forma": 3
+      }
+    ],
+    "re_s": [
+      {
+        "nome": "Ré♯ Partido",
+        "ico": "💥",
+        "recarga": 25000,
+        "desc": "O intervalo que não resolve: o próximo golpe acerta em dobro.",
+        "efeito": "golpeDobrado",
+        "valor": 2.0,
+        "dur": 9000,
+        "forma": 1
+      },
+      {
+        "nome": "Dissonância",
+        "ico": "🌊",
+        "recarga": 36000,
+        "efeito": "ondaChoque",
+        "valor": 1.6,
+        "dur": 500,
+        "desc": "Solta uma onda que empurra e machuca tudo à volta.",
+        "forma": 2
+      },
+      {
+        "nome": "Ruptura",
+        "ico": "💢",
+        "recarga": 80000,
+        "efeito": "rupturaTotal",
+        "valor": 4,
+        "dur": 800,
+        "desc": "SUPREMA · Quebra o compasso: dano enorme em toda a tela.",
+        "forma": 3
+      }
+    ],
+    "fa_s": [
+      {
+        "nome": "Trítono",
+        "ico": "🔥",
+        "recarga": 30000,
+        "desc": "O intervalo do diabo: queima tudo à volta por 5 s.",
+        "efeito": "queimar",
+        "valor": 0.9,
+        "dur": 5000,
+        "forma": 1
+      },
+      {
+        "nome": "Meio Diabo",
+        "ico": "🩸",
+        "recarga": 35000,
+        "efeito": "sangrar",
+        "valor": 0.5,
+        "dur": 8000,
+        "desc": "Marca os inimigos: eles sangram enquanto você bate neles.",
+        "forma": 2
+      },
+      {
+        "nome": "Trítono Pleno",
+        "ico": "🔥",
+        "recarga": 82000,
+        "efeito": "incendio",
+        "valor": 2,
+        "dur": 10000,
+        "desc": "SUPREMA · O chão pega fogo à sua volta por 10 s.",
+        "forma": 3
+      }
+    ],
+    "sol_s": [
+      {
+        "nome": "Sol♯ Espelho",
+        "ico": "🪞",
+        "recarga": 28000,
+        "desc": "Devolve ao inimigo 40% do dano que você tomar por 7 s.",
+        "efeito": "espelho",
+        "valor": 0.4,
+        "dur": 7000,
+        "forma": 1
+      },
+      {
+        "nome": "Reflexo Duplo",
+        "ico": "🔷",
+        "recarga": 38000,
+        "efeito": "refletirTudo",
+        "valor": 1,
+        "dur": 4000,
+        "desc": "Por 4 s, todo dano recebido volta inteiro para quem bateu.",
+        "forma": 2
+      },
+      {
+        "nome": "Espelho Pleno",
+        "ico": "🪞",
+        "recarga": 76000,
+        "efeito": "espelhoTotal",
+        "valor": 2,
+        "dur": 6000,
+        "desc": "SUPREMA · Devolve o DOBRO de todo dano recebido por 6 s.",
+        "forma": 3
+      }
+    ],
+    "la_s": [
+      {
+        "nome": "Lá♯ Suspenso",
+        "ico": "⏳",
+        "recarga": 27000,
+        "desc": "Suspende a resolução: congela os inimigos no lugar por 2,5 s.",
+        "efeito": "congelar",
+        "valor": 1,
+        "dur": 2500,
+        "forma": 1
+      },
+      {
+        "nome": "Compasso Suspenso",
+        "ico": "🕰️",
+        "recarga": 40000,
+        "efeito": "lentidaoArea",
+        "valor": 0.7,
+        "dur": 8000,
+        "desc": "O tempo arrasta: tudo à volta fica 70% mais lento por 8 s.",
+        "forma": 2
+      },
+      {
+        "nome": "Fermata",
+        "ico": "⏸️",
+        "recarga": 85000,
+        "efeito": "parar",
+        "valor": 1,
+        "dur": 3500,
+        "desc": "SUPREMA · O tempo para. Tudo congela por 3,5 s, menos você.",
+        "forma": 3
+      }
+    ]
   },
-
   "sustenidas": {
     "_": "Os cinco Ecos sustenidos só aparecem À NOITE. É o prêmio de encarar a clareira escura, e o motivo de o jogador escolher a noite mesmo com os caçadores soltos. A arte deles ainda não chegou: por enquanto usam a folha da natural vizinha, marcada como provisória.",
-    "notas": ["do_s", "re_s", "fa_s", "sol_s", "la_s"],
-    "quantosPorNoite": [1, 3],
+    "notas": [
+      "do_s",
+      "re_s",
+      "fa_s",
+      "sol_s",
+      "la_s"
+    ],
+    "quantosPorNoite": [
+      1,
+      3
+    ],
     "vidaExtra": 1.6,
     "almaExtra": 1.5
   }

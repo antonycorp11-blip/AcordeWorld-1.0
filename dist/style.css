@@ -7921,3 +7921,13 @@ body.em-cena #questNotification { display: none !important; }
 .pet-evoluir { margin-top: 4px; padding: 5px 10px; cursor: pointer; font: 700 9.5px Outfit, sans-serif;
               letter-spacing: .1em; border-radius: 6px; color: #052e16;
               background: linear-gradient(#6ee7b7, #34d399); border: 1px solid #a7f3d0; }
+/* As três habilidades do Eco na ficha, com a ordem do ciclo e a trancada à vista. */
+.pet-habs { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+.pet-hab b { display: flex; align-items: baseline; gap: 6px; font-size: 10.5px; color: #a7f3d0; }
+.pet-hab b i { font-style: normal; font-size: 8px; letter-spacing: .1em; color: #6b7c9c; }
+.pet-hab small { display: block; line-height: 1.25; font-size: 9px; }
+.pet-hab.trancada { opacity: .5; }
+.pet-hab.trancada b { color: #7c8bb0; }
+/* O número do ciclo no próprio botão: o jogador vê que está no 2 de 3. */
+.hab-pet::after { content: attr(data-ciclo); position: absolute; bottom: 1px; right: 3px;
+                  font: 700 7px Outfit, sans-serif; color: #a7f3d0; opacity: .8; }

@@ -1041,6 +1041,9 @@
             <button class="farm-tool-cat" data-cat="Estruturas" title="Casas e construções">🏡</button>
             <button class="farm-tool-cat" data-cat="Habitats" title="Habitats dos Ecos">🎵</button>
             <button class="farm-tool-cat" data-cat="Decoração" title="Decoração">🪵</button>
+            <!-- Comprar expansão da ilha. A função existia escrita e ninguém a chamava:
+                 a ilha nunca crescia, e o preço em `fazenda.json` era letra morta. -->
+            <button class="farm-tool-cat" id="farmExpandir" title="Expandir a ilha">🧭</button>
             <button class="farm-tool-cat" id="farmZoomOut" title="Afastar">➖</button>
             <button class="farm-tool-cat" id="farmZoomIn" title="Aproximar">➕</button>
             <button class="farm-tool-cat fechar" id="btnCloseFarm" title="Sair do Modo Fazenda">✖</button>
@@ -1118,7 +1121,7 @@
               <button id="missoesBtn" class="icon-btn trancado" title="Missões (J)">
                 <span class="hud-emoji">📜</span>
               </button>
-              <button id="btnBuildMode" class="icon-btn trancado hidden" title="Fazenda (B)">
+              <button id="btnBuildMode" class="icon-btn" title="Fazenda (B)">
                 <span class="hud-emoji">🔨</span>
               </button>
               <button id="somBtn" class="icon-btn" title="Trilha sonora">

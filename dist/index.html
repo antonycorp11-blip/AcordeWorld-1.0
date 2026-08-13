@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=97fcb1da72">
+  <link rel="stylesheet" href="style.css?v=cd52e17d4a">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -271,6 +271,9 @@
             <button class="farm-tool-cat" data-cat="Estruturas" title="Casas e construções">🏡</button>
             <button class="farm-tool-cat" data-cat="Habitats" title="Habitats dos Ecos">🎵</button>
             <button class="farm-tool-cat" data-cat="Decoração" title="Decoração">🪵</button>
+            <!-- Comprar expansão da ilha. A função existia escrita e ninguém a chamava:
+                 a ilha nunca crescia, e o preço em `fazenda.json` era letra morta. -->
+            <button class="farm-tool-cat" id="farmExpandir" title="Expandir a ilha">🧭</button>
             <button class="farm-tool-cat" id="farmZoomOut" title="Afastar">➖</button>
             <button class="farm-tool-cat" id="farmZoomIn" title="Aproximar">➕</button>
             <button class="farm-tool-cat fechar" id="btnCloseFarm" title="Sair do Modo Fazenda">✖</button>
@@ -348,7 +351,7 @@
               <button id="missoesBtn" class="icon-btn trancado" title="Missões (J)">
                 <span class="hud-emoji">📜</span>
               </button>
-              <button id="btnBuildMode" class="icon-btn trancado hidden" title="Fazenda (B)">
+              <button id="btnBuildMode" class="icon-btn" title="Fazenda (B)">
                 <span class="hud-emoji">🔨</span>
               </button>
               <button id="somBtn" class="icon-btn" title="Trilha sonora">
@@ -1183,6 +1186,6 @@
 ">🔄 Enviar minhas ruas</button>
 
 <script src="config.js?v=20260807161410"></script>
-<script src="game.js?v=f3c8aac3d6"></script>
+<script src="game.js?v=5cbfb5e6ae"></script>
 </body>
 </html>
