@@ -8051,6 +8051,8 @@ function savePlayerData() {
       quando: Date.now(),
     }));
   } catch (e) {}
+  // A nuvem recebe cópia, com folga: esta função roda a cada 8 s e a cada ação de menu.
+  if (typeof agendarEnvioDoSave === 'function') agendarEnvioDoSave();
 }
 // Casa a missão salva com a definição de hoje: a REGRA vem do quests.json (tipo, alvo,
 // quantidade, texto), o PROGRESSO vem do save. Assim corrigir uma missão conserta também
@@ -8176,6 +8178,9 @@ async function loadShopCatalog() {
   carregarTabelaDeAcordes();
   carregarEquipamentos();
   loadPlayerData(); // saved balance wins over the catalogue default
+  // Conta: restaura a sessao guardada e concilia o save. DEPOIS do loadPlayerData, para
+  // haver um save local com que comparar antes de decidir qual dos dois vale.
+  if (typeof restaurarSessao === 'function') restaurarSessao();
   aplicarHeroisRecrutados();
   limparHeroisTrancadosDoGrupo();
   abastecerBancaDeTestes();
@@ -14386,6 +14391,7 @@ function quadro(now){
       // cobri-lo. Então ele sai numa passada própria, depois de tudo.
       if (currentScene === 'farm') renderEcosPorCima(now);
       if (currentScene === 'farm') tagarelarEcosDaFazenda();
+      acompanharArena();
       if (currentScene === 'farm' && propParaColocar && typeof mouseCanvasX !== 'undefined') {
         renderGhostProp(propParaColocar, mouseCanvasX, mouseCanvasY);
       }
@@ -21050,6 +21056,9 @@ function atualizarNumerosDoHud() {
   sincronizarHabilidadesSePreciso();
   const pn = document.getElementById('hudPoderNum');
   if (pn) pn.textContent = poderDaContaEmCache().toLocaleString('pt-BR');
+  if (typeof atualizarBotaoDaArena === 'function') atualizarBotaoDaArena();
+  if (typeof atualizarBotaoDeConta === 'function' && !document.getElementById('contaBtn'))
+    atualizarBotaoDeConta();
   if (coinCount) coinCount.textContent = playerCoins;
   if (claveCountEl) claveCountEl.textContent = `${claveCount}`;
   if (lvlNum) lvlNum.textContent = level;
@@ -25517,4 +25526,664 @@ function closeBuildMenu() {
   if (!propParaColocar) {
      document.querySelectorAll('.farm-tool-cat').forEach(b => b.classList.remove('ativo'));
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════════
+// CONTAS — login por e-mail e senha, e o save na nuvem
+//
+// Por que Supabase Auth e não um login próprio: o projeto já carrega a biblioteca (ela
+// serve a co-edição do editor) e já tem URL e chave configuradas. Escrever autenticação
+// à mão significaria guardar senha, e senha guardada errado é o tipo de erro que não se
+// descobre até o dia em que já é tarde.
+//
+// TRÊS REGRAS QUE VALEM PARA TUDO AQUI:
+//
+// 1. LOGIN É OPCIONAL. O jogo continua inteiro sem conta, no localStorage, como sempre
+//    foi. A conta serve para levar o save de aparelho e para entrar na Arena. Obrigar
+//    login quebraria até o teste do dono, que joga em guia anônima.
+//
+// 2. O LOCAL É O QUE MANDA ENQUANTO SE JOGA. A nuvem recebe cópia; ela não fica
+//    mandando estado de volta no meio da partida. Save que muda sozinho durante o jogo
+//    é a origem de "meu item sumiu".
+//
+// 3. NA DÚVIDA, PERGUNTA. Se a nuvem e o aparelho divergiram (jogou nos dois), o jogo
+//    não escolhe sozinho: mostra as duas datas e deixa o jogador decidir. Escolher por
+//    ele é apostar o progresso dele numa heurística.
+// ══════════════════════════════════════════════════════════════════════════════════
+
+let CONTA = { sessao: null, perfil: null, cliente: null };
+
+function clienteSupabase() {
+  if (CONTA.cliente) return CONTA.cliente;
+  if (!window.supabase) return null;
+  CONTA.cliente = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true },
+  });
+  return CONTA.cliente;
+}
+
+function logado() { return !!CONTA.sessao; }
+function meuId()  { return CONTA.sessao?.user?.id || null; }
+
+// O save inteiro, do jeito que ele já vai para o localStorage. Reaproveita a função que
+// existe em vez de manter uma segunda lista de campos — duas listas sempre divergem, e a
+// que fica para trás é a que perde o item novo.
+function saveAtualComoObjeto() {
+  savePlayerData();
+  try { return JSON.parse(localStorage.getItem(SAVE_KEY) || '{}'); }
+  catch (e) { return {}; }
+}
+
+async function entrarNaConta(email, senha) {
+  const c = clienteSupabase();
+  if (!c) return { erro: 'A biblioteca de contas não carregou. Verifique a conexão.' };
+  const { data, error } = await c.auth.signInWithPassword({ email, password: senha });
+  if (error) return { erro: traduzErroDeConta(error.message) };
+  CONTA.sessao = data.session;
+  await carregarPerfil();
+  return {};
+}
+
+async function criarConta(email, senha, nome) {
+  const c = clienteSupabase();
+  if (!c) return { erro: 'A biblioteca de contas não carregou. Verifique a conexão.' };
+  if (!nome || nome.trim().length < 3) return { erro: 'O nome precisa de ao menos 3 letras.' };
+  const { data, error } = await c.auth.signUp({ email, password: senha });
+  if (error) return { erro: traduzErroDeConta(error.message) };
+  // Com confirmação de e-mail ligada no projeto, `session` vem nula: a conta existe mas
+  // ainda não está aberta. Dizer isso é melhor do que deixar a tela parecer travada.
+  if (!data.session) return { aviso: 'Conta criada. Confirme o e-mail e entre.' };
+  CONTA.sessao = data.session;
+  const r = await criarPerfil(nome.trim());
+  if (r.erro) return r;
+  return {};
+}
+
+async function sairDaConta() {
+  const c = clienteSupabase();
+  await c?.auth.signOut();
+  CONTA.sessao = null; CONTA.perfil = null;
+  showToast('Você saiu da conta. O jogo continua salvo neste aparelho.');
+  atualizarBotaoDeConta();
+}
+
+function traduzErroDeConta(m) {
+  const t = (m || '').toLowerCase();
+  if (t.includes('invalid login')) return 'E-mail ou senha não conferem.';
+  if (t.includes('already registered')) return 'Este e-mail já tem conta. Tente entrar.';
+  if (t.includes('password')) return 'A senha precisa de ao menos 6 caracteres.';
+  if (t.includes('email')) return 'E-mail inválido.';
+  return m || 'Não deu para completar. Tente de novo.';
+}
+
+// ── Perfil ────────────────────────────────────────────────────────────────────────
+async function apiPerfil(caminho, opcoes = {}) {
+  // NUNCA joga exceção. `fetch` REJEITA quando a rede cai, o DNS falha ou o navegador
+  // bloqueia — não devolve um status. Sem este `try`, qualquer chamada da Arena ou do
+  // perfil estourava a tela inteira num celular com sinal ruim, que é a condição normal
+  // de quem joga no ônibus. Erro de rede aqui é um resultado possível, não um acidente.
+  const tok = CONTA.sessao?.access_token || SUPABASE_KEY;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${caminho}`, {
+      ...opcoes,
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${tok}`,
+        'Content-Type': 'application/json',
+        ...(opcoes.headers || {}),
+      },
+    });
+    if (!r.ok) return { erro: `${r.status} ${await r.text()}` };
+    const txt = await r.text();
+    return { dados: txt ? JSON.parse(txt) : null };
+  } catch (e) {
+    return { erro: 'sem rede: ' + (e?.message || e), offline: true };
+  }
+}
+
+async function criarPerfil(nome) {
+  const { erro } = await apiPerfil('perfis', {
+    method: 'POST',
+    headers: { 'Prefer': 'return=representation' },
+    body: JSON.stringify({ id: meuId(), nome, save: saveAtualComoObjeto(),
+                           poder: poderDaConta() }),
+  });
+  if (erro) {
+    if (erro.includes('duplicate') || erro.includes('unique'))
+      return { erro: 'Esse nome já está em uso. Escolha outro.' };
+    return { erro: 'Não deu para criar o perfil: ' + erro };
+  }
+  await carregarPerfil();
+  return {};
+}
+
+async function carregarPerfil() {
+  if (!meuId()) return null;
+  const { dados } = await apiPerfil(`perfis?id=eq.${meuId()}&select=*`);
+  CONTA.perfil = (dados || [])[0] || null;
+  atualizarBotaoDeConta();
+  return CONTA.perfil;
+}
+
+// ── Sincronização ─────────────────────────────────────────────────────────────────
+// Sobe com folga: `savePlayerData` roda a cada 8 segundos e a cada ação de menu. Mandar
+// tudo isso para a rede seria desperdício e, no celular, bateria.
+let _prazoDeEnvio = null;
+const ENVIO_MS = 20000;
+
+function agendarEnvioDoSave() {
+  if (!logado() || !CONTA.perfil) return;
+  clearTimeout(_prazoDeEnvio);
+  _prazoDeEnvio = setTimeout(enviarSave, ENVIO_MS);
+}
+
+async function enviarSave() {
+  if (!logado() || !CONTA.perfil) return;
+  clearTimeout(_prazoDeEnvio);
+  const { erro } = await apiPerfil(`perfis?id=eq.${meuId()}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ save: saveAtualComoObjeto(), poder: poderDaConta(),
+                           atualizado_em: new Date().toISOString() }),
+  });
+  if (erro) console.warn('[conta] não subiu:', erro);
+}
+
+// Aplica um save vindo da nuvem. É o mesmo caminho do carregamento normal: grava na
+// chave local e recarrega — em vez de espalhar dezenas de atribuições aqui, que seria
+// mais uma lista de campos para divergir.
+function aplicarSaveDaNuvem(save) {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    loadPlayerData();
+    atualizarRastreador?.(); updateHotbarUI?.(); updateInventorySlotsUI?.();
+    showToast('☁️ Progresso da conta carregado.');
+  } catch (e) { showToast('Não deu para aplicar o save da nuvem.'); }
+}
+
+// Local e nuvem divergiram? Mostra as duas datas e deixa o jogador escolher.
+function conciliarSaves() {
+  const nuvem = CONTA.perfil?.save;
+  if (!nuvem || !Object.keys(nuvem).length) { enviarSave(); return; }
+  let local = null;
+  try { local = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) {}
+  const tLocal = local?.quando || 0;
+  const tNuvem = nuvem.quando || 0;
+
+  if (!local || !tLocal) { aplicarSaveDaNuvem(nuvem); return; }
+  if (Math.abs(tLocal - tNuvem) < 60000) {
+    // Praticamente o mesmo momento: o mais novo ganha, sem incomodar ninguém.
+    if (tNuvem > tLocal) aplicarSaveDaNuvem(nuvem); else enviarSave();
+    return;
+  }
+  const quando = t => t ? new Date(t).toLocaleString('pt-BR') : 'desconhecido';
+  const usarNuvem = window.confirm(
+    'Este aparelho e a conta têm progressos diferentes.\n\n'
+    + `Neste aparelho: ${quando(tLocal)}\n`
+    + `Na conta:       ${quando(tNuvem)}\n\n`
+    + 'OK usa o da CONTA (o deste aparelho é substituído).\n'
+    + 'Cancelar mantém o deste aparelho e o envia para a conta.');
+  if (usarNuvem) aplicarSaveDaNuvem(nuvem); else enviarSave();
+}
+
+// ── Sessão guardada ───────────────────────────────────────────────────────────────
+async function restaurarSessao() {
+  const c = clienteSupabase();
+  // O botão de conta aparece SEMPRE, mesmo sem a biblioteca: sem ele, quem está offline
+  // no primeiro carregamento não tem por onde entrar depois que a rede volta.
+  atualizarBotaoDeConta();
+  if (!c) return;
+  try {
+    const { data } = await c.auth.getSession();
+    if (!data?.session) { atualizarBotaoDeConta(); return; }
+    CONTA.sessao = data.session;
+    await carregarPerfil();
+    if (CONTA.perfil) conciliarSaves();
+  } catch (e) { /* offline: o jogo segue no localStorage */ }
+  atualizarBotaoDeConta();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════════
+// ARENA — PvP ASSÍNCRONO
+//
+// O adversário nunca está online. O que se enfrenta é a DEFESA que ele deixou montada:
+// heróis, Ecos, acordes e equipamentos, guardados no banco. Na hora do desafio o jogo
+// reconstrói aquilo e um script conduz — o desafiante joga em tempo real contra uma
+//configuração congelada.
+//
+// TRÊS DECISÕES QUE MOLDAM O RESTO:
+//
+// 1. TODO MUNDO JÁ ESTÁ NA ARENA. Ninguém precisa se inscrever. Ao passar do nível de
+//    entrada, o jogador vira alvo com o que ele usa — a defesa padrão é o próprio time.
+//    Exigir configuração antes de participar deixaria a arena vazia no primeiro mês, que
+//    é justamente quando ela precisa parecer viva.
+//
+// 2. DEIXAR O HERÓI NA DEFESA NÃO O TIRA DO JOGO. A defesa é uma FOTOGRAFIA, não um
+//    empréstimo. O jogador continua usando os mesmos personagens na campanha.
+//
+// 3. O TROFÉU É CONTADO NO BANCO, nunca aqui. O cliente diz apenas "venci" ou "perdi"
+//    para `registrar_batalha`; quem calcula, valida e grava é o Postgres. Se a conta
+//    morasse no navegador, o ranking valeria o que vale um número que o adversário
+//    digita.
+// ══════════════════════════════════════════════════════════════════════════════════
+
+const ARENA_NIVEL_DE_ENTRADA = 8;
+
+// As patentes. O cenário da batalha muda com a patente — é o que faz subir parecer
+// subir, em vez de só trocar um número.
+const PATENTES = [
+  { id: 'palco',     nome: 'Palco de Rua',      min: 0,    cor: '#94a3b8', mapa: null },
+  { id: 'taverna',   nome: 'Taverna',           min: 200,  cor: '#a16207', mapa: null },
+  { id: 'coreto',    nome: 'Coreto',            min: 500,  cor: '#0891b2', mapa: null },
+  { id: 'teatro',    nome: 'Teatro',            min: 900,  cor: '#7c3aed', mapa: null },
+  { id: 'catedral',  nome: 'Catedral',          min: 1400, cor: '#c8a24a', mapa: null },
+  { id: 'sinfonia',  nome: 'Grande Sinfonia',   min: 2000, cor: '#f43f5e', mapa: null },
+];
+
+function patenteDe(trofeus) {
+  let p = PATENTES[0];
+  PATENTES.forEach(x => { if ((trofeus || 0) >= x.min) p = x; });
+  return p;
+}
+
+function proximaPatente(trofeus) {
+  return PATENTES.find(x => x.min > (trofeus || 0)) || null;
+}
+
+function podeEntrarNaArena() {
+  return (typeof level !== 'undefined' ? level : 1) >= ARENA_NIVEL_DE_ENTRADA;
+}
+
+// ── A DEFESA ──────────────────────────────────────────────────────────────────────
+// "Do jeito que eu uso": a fotografia do time atual. É o padrão de quem nunca abriu a
+// tela de configuração — e, para a maioria, será o único que vão usar.
+function defesaDoJeitoQueUso() {
+  const ids = (typeof elencoDaConta === 'function' ? elencoDaConta() : ['achilles'])
+    .filter(id => HERO_DEFINITIONS[id]);
+  return {
+    v: 1,
+    herois: ids.map(id => {
+      const f = fichaDoHeroi(id);
+      return {
+        id,
+        nivel: f.nivel,
+        attrs: { ...f.attrs },
+        poder: comHeroi(id, nivelDePoder),
+        equipado: { ...(equipado[id] || {}) },
+        pet: (typeof petEquipado !== 'undefined' ? petEquipado[id] : null) || null,
+      };
+    }),
+    // Os tiers valem para todos os itens da conta; a defesa guarda uma cópia para que
+    // subir de tier DEPOIS não mude retroativamente uma defesa já enfrentada.
+    tiers: Object.fromEntries(Object.entries(itensPossuidos || {})
+      .map(([k, v]) => [k, v.tier || 1])),
+    pets: Object.fromEntries(Object.entries(petsDoJogador || {})
+      .map(([k, v]) => [k, { nivel: v.nivel, forma: v.forma }])),
+    acordes: (typeof acordesEquipados !== 'undefined' ? acordesEquipados : []).slice(),
+    poder: poderDaConta(),
+  };
+}
+
+async function salvarDefesa(config) {
+  if (!logado()) { showToast('Entre na conta para montar defesa.'); return false; }
+  const c = config || defesaDoJeitoQueUso();
+  const { erro } = await apiPerfil('arena_defesas', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates' },
+    body: JSON.stringify({ perfil_id: meuId(), config: c, poder: c.poder || 0,
+                           atualizado_em: new Date().toISOString() }),
+  });
+  if (erro) { showToast('Não deu para salvar a defesa.'); console.warn(erro); return false; }
+  showToast('🛡️ Defesa salva. Ela luta por você enquanto estiver offline.');
+  return true;
+}
+
+// ── A LISTA ───────────────────────────────────────────────────────────────────────
+async function listarAdversarios() {
+  const { dados, erro, offline } = await apiPerfil(
+    'arena_lista?select=*&order=trofeus.desc&limit=50');
+  if (erro) {
+    console.warn('[arena]', erro);
+    // Devolve a razão junto: lista vazia por falta de rede e lista vazia por não haver
+    // ninguém são coisas diferentes, e o jogador merece saber qual das duas é.
+    return Object.assign([], { falhou: true, offline });
+  }
+  return (dados || []).filter(x => x.id !== meuId());
+}
+
+async function meuRanking() {
+  if (!logado()) return null;
+  const { dados } = await apiPerfil(`arena_lista?id=eq.${meuId()}&select=*`);
+  return (dados || [])[0] || null;
+}
+
+// ── O DESAFIO ─────────────────────────────────────────────────────────────────────
+// Busca a defesa do alvo. Sem defesa montada, monta uma a partir do save público dele —
+// é o que garante que TODO jogador seja desafiável desde o primeiro dia.
+async function defesaDe(perfilId) {
+  const { dados } = await apiPerfil(
+    `arena_defesas?perfil_id=eq.${perfilId}&select=config`);
+  const c = (dados || [])[0]?.config;
+  if (c && c.herois?.length) return c;
+  const { dados: p } = await apiPerfil(`perfis?id=eq.${perfilId}&select=save,poder,nome`);
+  const save = (p || [])[0]?.save || {};
+  return defesaAPartirDoSave(save, (p || [])[0]?.poder || 0);
+}
+
+function defesaAPartirDoSave(save, poder) {
+  const fichas = save.herois || {};
+  const ids = Object.keys(fichas).filter(id => HERO_DEFINITIONS[id]);
+  return {
+    v: 1, automatica: true, poder,
+    herois: (ids.length ? ids : ['achilles']).map(id => ({
+      id,
+      nivel: fichas[id]?.nivel || 1,
+      attrs: fichas[id]?.attrs || {},
+      poder: Math.round(poder / Math.max(1, ids.length || 1)),
+      equipado: (save.equipado || {})[id] || {},
+      pet: (save.petEquipado || {})[id] || null,
+    })),
+    tiers: Object.fromEntries(Object.entries(save.itensPossuidos || {})
+      .map(([k, v]) => [k, v.tier || 1])),
+    pets: save.petsDoJogador || {},
+    acordes: save.acordesEquipados || [],
+  };
+}
+
+async function registrarResultado(alvoId, venceu) {
+  const c = clienteSupabase();
+  if (!c || !logado()) return null;
+  const { data, error } = await c.rpc('registrar_batalha', { alvo: alvoId, venceu });
+  if (error) { showToast(error.message || 'Não deu para registrar a batalha.'); return null; }
+  const r = (data || [])[0];
+  if (r) {
+    const sinal = r.trofeus_mov >= 0 ? '+' : '';
+    showToast(`${venceu ? '🏆 Vitória' : '✖ Derrota'} — ${sinal}${r.trofeus_mov} troféus (${r.trofeus_agora})`);
+  }
+  return r;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════════
+// TELAS DE CONTA E ARENA
+//
+// Ambas são montadas em JavaScript, não escritas no HTML. Motivo prático: o `index.html`
+// e o `dist/index.html` são mantidos à mão, em dobro — e cada bloco novo escrito lá é uma
+// chance a mais de os dois divergirem. É a armadilha que o CLAUDE.md registra como a que
+// já custou caro. Aqui os dois arquivos ficam intocados.
+// ══════════════════════════════════════════════════════════════════════════════════
+
+function caixaDeTela(id, classe) {
+  let el = document.getElementById(id);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = id; el.className = classe + ' hidden';
+    (document.getElementById('gameCanvas')?.parentNode || document.body).appendChild(el);
+    el.addEventListener('click', e => { if (e.target === el) el.classList.add('hidden'); });
+  }
+  return el;
+}
+
+// ── Botão de conta, junto dos outros do HUD ───────────────────────────────────────
+function atualizarBotaoDeConta() {
+  let b = document.getElementById('contaBtn');
+  if (!b) {
+    const barra = document.querySelector('.hud-right') || document.getElementById('playerHud');
+    if (!barra) return;
+    b = document.createElement('button');
+    b.id = 'contaBtn'; b.className = 'icon-btn';
+    b.title = 'Conta';
+    b.addEventListener('click', abrirTelaDeConta);
+    barra.appendChild(b);
+  }
+  const nome = CONTA.perfil?.nome;
+  b.innerHTML = `<span class="hud-emoji">${nome ? '☁️' : '👤'}</span>`
+              + `<span class="hud-rot">${nome ? nome.slice(0, 9) : 'Entrar'}</span>`;
+  b.classList.toggle('logado', !!nome);
+}
+
+function abrirTelaDeConta() {
+  const el = caixaDeTela('contaTela', 'conta-tela');
+  const p = CONTA.perfil;
+  el.innerHTML = p ? `
+    <div class="ct-caixa">
+      <button class="ct-x" data-fechar>✖</button>
+      <h2>${p.nome}</h2>
+      <p class="ct-sub">Poder da conta <b>${(p.poder || 0).toLocaleString('pt-BR')}</b></p>
+      <p class="ct-nota">O progresso deste aparelho sobe para a conta sozinho. Entre com
+         o mesmo e-mail em outro aparelho para continuar de onde parou.</p>
+      <div class="ct-acoes">
+        <button class="ct-btn" data-enviar>Salvar na conta agora</button>
+        <button class="ct-btn secundario" data-sair>Sair da conta</button>
+      </div>
+    </div>` : `
+    <div class="ct-caixa">
+      <button class="ct-x" data-fechar>✖</button>
+      <h2>Entrar</h2>
+      <p class="ct-sub">A conta leva seu progresso de aparelho e abre a Arena.
+         Jogar sem conta continua funcionando.</p>
+      <input class="ct-campo" id="ctEmail" type="email" placeholder="e-mail" autocomplete="email">
+      <input class="ct-campo" id="ctSenha" type="password" placeholder="senha (6+)" autocomplete="current-password">
+      <input class="ct-campo hidden" id="ctNome" type="text" placeholder="nome no jogo (3 a 18 letras)" maxlength="18">
+      <div class="ct-erro hidden" id="ctErro"></div>
+      <div class="ct-acoes">
+        <button class="ct-btn" data-entrar>Entrar</button>
+        <button class="ct-btn secundario" data-criar>Criar conta</button>
+      </div>
+    </div>`;
+  el.classList.remove('hidden');
+  el.querySelector('[data-fechar]').onclick = () => el.classList.add('hidden');
+  el.querySelector('[data-sair]')?.addEventListener('click', async () => {
+    await sairDaConta(); el.classList.add('hidden');
+  });
+  el.querySelector('[data-enviar]')?.addEventListener('click', async () => {
+    await enviarSave(); showToast('☁️ Progresso salvo na conta.');
+  });
+
+  const erro = t => {
+    const e = document.getElementById('ctErro');
+    if (e) { e.textContent = t; e.classList.toggle('hidden', !t); }
+  };
+  el.querySelector('[data-entrar]')?.addEventListener('click', async () => {
+    erro('');
+    const r = await entrarNaConta(document.getElementById('ctEmail').value.trim(),
+                                  document.getElementById('ctSenha').value);
+    if (r.erro) return erro(r.erro);
+    if (CONTA.perfil) conciliarSaves();
+    el.classList.add('hidden'); abrirTelaDeConta();
+  });
+  el.querySelector('[data-criar]')?.addEventListener('click', async () => {
+    erro('');
+    const campoNome = document.getElementById('ctNome');
+    // O nome só é pedido no segundo toque: quem já tem conta não deve topar com um
+    // campo que não usa.
+    if (campoNome.classList.contains('hidden')) {
+      campoNome.classList.remove('hidden'); campoNome.focus();
+      erro('Escolha um nome e toque em Criar conta de novo.');
+      return;
+    }
+    const r = await criarConta(document.getElementById('ctEmail').value.trim(),
+                               document.getElementById('ctSenha').value,
+                               campoNome.value);
+    if (r.erro) return erro(r.erro);
+    if (r.aviso) return erro(r.aviso);
+    el.classList.add('hidden'); abrirTelaDeConta();
+  });
+}
+
+// ── A ARENA ───────────────────────────────────────────────────────────────────────
+async function abrirArena() {
+  if (!logado()) {
+    showToast('Entre na conta para disputar a Arena.');
+    abrirTelaDeConta(); return;
+  }
+  if (!podeEntrarNaArena()) {
+    showToast(`A Arena abre no nível ${ARENA_NIVEL_DE_ENTRADA}.`); return;
+  }
+  const el = caixaDeTela('arenaTela', 'arena-tela');
+  el.innerHTML = '<div class="ar-caixa"><p class="ar-carregando">Procurando adversários…</p></div>';
+  el.classList.remove('hidden');
+
+  const [meu, lista] = await Promise.all([meuRanking(), listarAdversarios()]);
+  const trof = meu?.trofeus || 0;
+  const pat = patenteDe(trof), prox = proximaPatente(trof);
+
+  el.innerHTML = `
+    <div class="ar-caixa">
+      <button class="ar-x" data-fechar>✖</button>
+      <div class="ar-topo">
+        <div class="ar-patente" style="--c:${pat.cor}">
+          <b>${pat.nome}</b>
+          <span>${trof} troféus${prox ? ` · faltam ${prox.min - trof} para ${prox.nome}` : ' · topo'}</span>
+        </div>
+        <button class="ar-btn" data-defesa>🛡️ Minha defesa</button>
+      </div>
+      <div class="ar-lista">${
+        lista.falhou ? '<p class="ar-vazio">Não deu para falar com o servidor da Arena. '
+                     + 'Verifique a conexão e tente de novo.</p>'
+        : lista.length ? lista.map(a => {
+          const p = patenteDe(a.trofeus);
+          return `<div class="ar-linha">
+            <div class="ar-quem">
+              <b>${a.nome}</b>
+              <small style="color:${p.cor}">${p.nome} · ${a.trofeus} 🏆</small>
+            </div>
+            <div class="ar-poder">${(a.poder_defesa || 0).toLocaleString('pt-BR')}<small>poder</small></div>
+            <button class="ar-btn desafiar" data-desafiar="${a.id}" data-nome="${a.nome}">DESAFIAR</button>
+          </div>`;
+        }).join('')
+        : '<p class="ar-vazio">Ninguém mais na arena ainda. Chame alguém para jogar.</p>'
+      }</div>
+    </div>`;
+  el.querySelector('[data-fechar]').onclick = () => el.classList.add('hidden');
+  el.querySelector('[data-defesa]').onclick = abrirTelaDeDefesa;
+  el.querySelectorAll('[data-desafiar]').forEach(b => b.onclick = () =>
+    iniciarDesafio(b.dataset.desafiar, b.dataset.nome));
+}
+
+function abrirTelaDeDefesa() {
+  const el = caixaDeTela('defesaTela', 'conta-tela');
+  const d = defesaDoJeitoQueUso();
+  el.innerHTML = `
+    <div class="ct-caixa">
+      <button class="ct-x" data-fechar>✖</button>
+      <h2>Minha defesa</h2>
+      <p class="ct-sub">É ela que luta enquanto você está offline. Deixar um herói aqui
+         <b>não</b> o tira do jogo — a defesa é uma fotografia.</p>
+      <div class="ar-defesa">${d.herois.map(h => `
+        <div class="ar-def-heroi">
+          <b>${(HERO_DEFINITIONS[h.id] || {}).name || h.id}</b>
+          <small>nível ${h.nivel} · poder ${h.poder.toLocaleString('pt-BR')}</small>
+          <small>${h.pet ? 'Eco de ' + (NOME_DA_NOTA[h.pet] || h.pet) : 'sem Eco'}</small>
+        </div>`).join('')}</div>
+      <p class="ct-nota">Poder total da defesa: <b>${(d.poder || 0).toLocaleString('pt-BR')}</b></p>
+      <div class="ct-acoes">
+        <button class="ct-btn" data-usar>Usar do jeito que eu jogo</button>
+      </div>
+    </div>`;
+  el.classList.remove('hidden');
+  el.querySelector('[data-fechar]').onclick = () => el.classList.add('hidden');
+  el.querySelector('[data-usar]').onclick = async () => {
+    if (await salvarDefesa(d)) el.classList.add('hidden');
+  };
+}
+
+// ── O DESAFIO EM SI ───────────────────────────────────────────────────────────────
+// O adversário está offline, então a defesa dele vira MONSTRO: cada herói da defesa
+// entra em campo com vida e dano derivados do poder que ele tinha guardado, e o motor
+// de combate que já existe conduz a briga. Não há segunda implementação de luta — o
+// jogo só tem uma, e ela é a mesma da campanha.
+//
+// A batalha acontece no mapa em que o jogador está. Trocar de cenário por patente é o
+// passo seguinte (os campos `mapa` das PATENTES já estão lá, esperando os cenários).
+let ARENA_EM_CURSO = null;
+
+function poderVira(hp, dano) { return { hp, dano }; }
+
+function corpoDoDefensor(h, poderTotal) {
+  // A conta é deliberadamente simples e legível: o poder do herói vira vida e dano na
+  // mesma proporção que o jogador conhece do próprio personagem. Um número torto aqui
+  // aparece na hora como "esse cara é impossível" ou "ganhei sem apertar nada".
+  const p = Math.max(60, h.poder || Math.round(poderTotal / 2));
+  return poderVira(Math.round(60 + p * 0.55), Math.round(6 + p * 0.02));
+}
+
+async function iniciarDesafio(alvoId, nomeAlvo) {
+  if (ARENA_EM_CURSO) return;
+  document.getElementById('arenaTela')?.classList.add('hidden');
+  showToast(`⚔️ Carregando a defesa de ${nomeAlvo}…`);
+
+  const d = await defesaDe(alvoId);
+  if (!d || !d.herois?.length) { showToast('Esse jogador ainda não tem defesa.'); return; }
+
+  // Limpa o que estiver em campo: a arena é uma briga isolada, não uma emboscada no
+  // meio do que o jogador estava fazendo.
+  monsters.forEach(m => { if (m.mapKey === currentKey) m.dead = true; });
+
+  const inimigos = [];
+  d.herois.slice(0, 3).forEach((h, i) => {
+    const def = HERO_DEFINITIONS[h.id] || {};
+    const c = corpoDoDefensor(h, d.poder);
+    const p = pontoAndavelPerto(SCREEN_W * (0.34 + i * 0.16), SCREEN_H * 0.34);
+    const m = {
+      id: `arena_${alvoId}_${i}`,
+      type: 'maestro_esqueleto',      // corpo emprestado: o desenho do herói inimigo
+      mapKey: currentKey,             // é o passo seguinte
+      x: p.x, y: p.y, homeX: p.x, homeY: p.y,
+      hp: c.hp, maxHp: c.hp, damage: c.dano,
+      dead: false, respawnAt: 0, hurtUntil: 0, lastHit: 0, facing: 1,
+      phase: Math.random() * Math.PI * 2,
+      persegue: true, daArena: true,
+      nomeArena: `${def.name || h.id} · ${nomeAlvo}`,
+    };
+    monsters.push(m);
+    inimigos.push(m);
+    window.__carregarFolhaDeMonstro?.(m.type);
+  });
+
+  ARENA_EM_CURSO = {
+    alvoId, nomeAlvo, inimigos,
+    vidaInicial: playerHp,
+    comecou: performance.now(),
+  };
+  anunciar(`ARENA · ${nomeAlvo}`, 2200);
+  showToast(`Derrote a defesa de ${nomeAlvo}. Se você cair, é derrota.`);
+}
+
+// Chamada a cada quadro, junto do resto — não num ramo de render. É a armadilha nº 1 do
+// CLAUDE.md: lógica posta no ramo errado nunca executa.
+function acompanharArena() {
+  const a = ARENA_EM_CURSO;
+  if (!a) return;
+  const vivos = a.inimigos.filter(m => !m.dead);
+  if (!vivos.length) { encerrarArena(true); return; }
+  if (playerHp <= 0)  { encerrarArena(false); return; }
+  // Teto de tempo: sem ele, um empate por dano baixo dos dois lados prenderia o jogador
+  // numa luta que não acaba.
+  if (performance.now() - a.comecou > 180000) { encerrarArena(false, 'tempo esgotado'); }
+}
+
+async function encerrarArena(venceu, motivo) {
+  const a = ARENA_EM_CURSO;
+  if (!a) return;
+  ARENA_EM_CURSO = null;
+  a.inimigos.forEach(m => { m.dead = true; });
+  if (!venceu && playerHp <= 0) playerHp = Math.max(1, Math.round(playerMaxHp() * 0.3));
+  anunciar(venceu ? 'VITÓRIA' : 'DERROTA', 2000);
+  if (motivo) showToast('Fim da arena: ' + motivo);
+  await registrarResultado(a.alvoId, venceu);
+}
+
+// Botão da Arena, ao lado do de conta. Só aparece com conta e nível — um botão que só
+// sabe recusar é pior do que botão nenhum.
+function atualizarBotaoDaArena() {
+  let b = document.getElementById('arenaBtn');
+  if (!b) {
+    const barra = document.querySelector('.hud-right') || document.getElementById('playerHud');
+    if (!barra) return;
+    b = document.createElement('button');
+    b.id = 'arenaBtn'; b.className = 'icon-btn'; b.title = 'Arena';
+    b.innerHTML = '<span class="hud-emoji">⚔️</span><span class="hud-rot">Arena</span>';
+    b.addEventListener('click', abrirArena);
+    barra.appendChild(b);
+  }
+  b.classList.toggle('hidden', !(logado() && podeEntrarNaArena()));
 }

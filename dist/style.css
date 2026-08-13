@@ -8262,3 +8262,84 @@ body.sem-rotulos-hud .hud-rot { display: none; }
 /* O botão da fazenda aceso enquanto ela está aberta: é ele que fecha. */
 .icon-btn.aberto .hud-arte { filter: drop-shadow(0 0 6px rgba(251,191,36,.9)) brightness(1.15); }
 .icon-btn.aberto .hud-rot { color: #fbbf24; }
+
+/* ══ CONTA E ARENA ════════════════════════════════════════════════════════════
+   As duas telas são montadas em JavaScript, não escritas no HTML: o index.html e
+   o dist/index.html são mantidos à mão, em dobro, e cada bloco novo lá é mais uma
+   chance de os dois divergirem — a armadilha que o CLAUDE.md registra. */
+.conta-tela, .arena-tela {
+  position: absolute; inset: 0; z-index: 80;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(6,9,14,.7);
+  font-family: 'Outfit', sans-serif;
+}
+.conta-tela.hidden, .arena-tela.hidden { display: none; }
+.ct-caixa, .ar-caixa {
+  position: relative;
+  width: min(420px, 92%); max-height: 90%; overflow-y: auto;
+  padding: 18px;
+  background: linear-gradient(150deg, #241a3c, #140f22 60%, #1a1030);
+  border: 2px solid #c8a24a; border-radius: 15px;
+  box-shadow: 0 18px 50px rgba(0,0,0,.65);
+  color: #e2e8f0;
+}
+.ar-caixa { width: min(560px, 94%); }
+.ct-x, .ar-x {
+  position: absolute; top: 10px; right: 10px;
+  width: 30px; height: 30px;
+  background: #3a1420; border: 2px solid #c8a24a; border-radius: 50%;
+  color: #fca5a5; cursor: pointer;
+}
+.ct-caixa h2 { margin: 0 0 4px; font: 800 20px 'Cinzel', serif; color: #f5e6c8; }
+.ct-sub { margin: 0 0 12px; font-size: 12px; color: #b9a7e0; }
+.ct-nota { margin: 10px 0 0; font-size: 11px; color: #94a3b8; }
+.ct-campo {
+  display: block; width: 100%; margin-bottom: 8px; padding: 10px 12px;
+  background: rgba(10,7,20,.75); border: 1px solid #3b2d52; border-radius: 9px;
+  color: #e2e8f0; font: 13px 'Outfit', sans-serif;
+}
+.ct-campo.hidden { display: none; }
+.ct-erro {
+  margin-bottom: 8px; padding: 7px 10px;
+  background: rgba(127,29,29,.35); border: 1px solid #7f1d1d; border-radius: 8px;
+  font-size: 11.5px; color: #fca5a5;
+}
+.ct-erro.hidden { display: none; }
+.ct-acoes { display: flex; gap: 8px; margin-top: 10px; }
+.ct-btn, .ar-btn {
+  flex: 1 1 auto; padding: 10px;
+  background: linear-gradient(180deg, #7c3aed, #4c1d95);
+  border: 2px solid #c8a24a; border-radius: 10px;
+  font: 800 12px 'Cinzel', serif; letter-spacing: .06em; color: #f5e6c8;
+  cursor: pointer;
+}
+.ct-btn.secundario {
+  background: linear-gradient(180deg, rgba(30,22,50,.9), rgba(16,11,28,.9));
+  border-color: #3b2d52; color: #cbd5e1;
+}
+.ar-topo { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.ar-patente { flex: 1 1 auto; padding: 8px 11px;
+  background: rgba(10,7,20,.6); border-left: 3px solid var(--c, #94a3b8); border-radius: 8px; }
+.ar-patente b { display: block; font: 800 14px 'Cinzel', serif; color: var(--c, #cbd5e1); }
+.ar-patente span { font-size: 10.5px; color: #94a3b8; }
+.ar-btn { flex: 0 0 auto; padding: 9px 12px; font-size: 11px; }
+.ar-lista { display: flex; flex-direction: column; gap: 6px; }
+.ar-linha {
+  display: flex; align-items: center; gap: 10px; padding: 9px 11px;
+  background: rgba(14,10,26,.75); border: 1px solid #3b2d52; border-radius: 9px;
+}
+.ar-quem { flex: 1 1 auto; min-width: 0; }
+.ar-quem b { display: block; font-size: 13px; color: #e9d5ff; }
+.ar-quem small { font-size: 10px; }
+.ar-poder { flex: 0 0 auto; text-align: right; font: 800 14px 'Outfit'; color: #fde68a; }
+.ar-poder small { display: block; font: 600 8.5px 'Outfit'; letter-spacing: .1em; color: #94a3b8; }
+.ar-btn.desafiar { flex: 0 0 auto; padding: 8px 11px; }
+.ar-vazio, .ar-carregando { font-size: 12px; color: #94a3b8; text-align: center; padding: 22px 0; }
+.ar-defesa { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+.ar-def-heroi {
+  padding: 8px 10px; background: rgba(14,10,26,.75);
+  border: 1px solid #3b2d52; border-left: 3px solid #a78bfa; border-radius: 8px;
+}
+.ar-def-heroi b { display: block; font-size: 12.5px; color: #e9d5ff; }
+.ar-def-heroi small { display: block; font-size: 10px; color: #94a3b8; }
+.icon-btn.logado .hud-rot { color: #86efac; }
