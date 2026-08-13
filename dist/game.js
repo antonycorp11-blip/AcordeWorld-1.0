@@ -5768,15 +5768,26 @@ const PODER_POR_NIVEL = 20;
 // personagem ativo. E a leitura que o dono quer como numero central do jogo — a conta
 // cresce porque CADA personagem cresce, entao investir num segundo heroi soma em vez de
 // competir com o primeiro.
-function poderDaConta() {
+// Calcula QUALQUER coisa como se o herói `id` estivesse em campo.
+//
+// Praticamente todo cálculo do jogo — `derivedStats`, `nivelDePoder`, `attrsDoHeroi` —
+// lê o `selectedHeroId` global. Quem quer o número de OUTRO herói (a ficha, que mostra
+// quem o jogador escolheu ver; a soma da conta) tem de trocar o global, medir e devolver.
+// Fazer isso à mão em cada lugar é o que produziu o defeito: a ficha desenhava o retrato
+// da Wins e o poder do Akles.
+function comHeroi(id, fn) {
+  if (!id || id === selectedHeroId) return fn();
   const salvo = selectedHeroId;
+  selectedHeroId = id;
+  try { return fn(); } finally { selectedHeroId = salvo; }
+}
+
+function poderDaConta() {
   let total = 0;
   Object.keys(HERO_DEFINITIONS).forEach(id => {
     if (!HERO_DEFINITIONS[id].desbloqueado && id !== 'achilles') return;
-    selectedHeroId = id;
-    try { total += nivelDePoder(); } catch (e) {}
+    try { total += comHeroi(id, nivelDePoder); } catch (e) {}
   });
-  selectedHeroId = salvo;
   return Math.round(total);
 }
 
@@ -18476,7 +18487,7 @@ function desenharFicha() {
   const pod = document.getElementById('fichaPoder');
   if (pod) {
     pod.innerHTML = `<span class="fp-rot">NÍVEL DE PODER</span>
-      <b class="fp-num">${nivelDePoder().toLocaleString('pt-BR')}</b>
+      <b class="fp-num">${comHeroi(id, nivelDePoder).toLocaleString('pt-BR')}</b>
       <small class="fp-dica">toque para ver a conta</small>`;
     pod.onclick = e => mostrarDetalheDoPoder(e);
   }
@@ -18488,7 +18499,8 @@ function desenharFicha() {
   // jogo já calculava mas não tinha onde gastar — o botão de atributos caía no inventário.
   const barras = document.getElementById('fichaBarras');
   if (barras) {
-    const s2 = derivedStats();
+    // Do herói QUE ESTÁ SENDO VISTO, não do que está em campo.
+    const s2 = comHeroi(id, derivedStats);
     barras.innerHTML = `
       <div class="fa-resumo">
         <span>❤ <b>${Math.round(playerHp)}/${s2.maxHp}</b></span>
@@ -21354,7 +21366,26 @@ function abrirPopupDeItem(id, ev) {
     // personagem na ficha, ir em Equipamento e vestir a peca no outro sem perceber.
     const quem = fichaHeroiVisto || selectedHeroId;
     const eqh = equipado[quem] = equipado[quem] || {};
-    if (vestido) delete eqh[it.slot]; else eqh[it.slot] = it.id;
+    if (vestido) delete eqh[it.slot];
+    else {
+      // UMA PEÇA, UM DONO.
+      //
+      // O tier mora em `itensPossuidos[id]`, que é um registro por CONTA — não por herói.
+      // Com dois heróis vestindo o mesmo anel, subir o tier de um subia o do outro de
+      // graça: foi o que o dono viu, a Wins chegando ao tier que só o Akles pagou. Não é
+      // bônus, é a mesma peça contada duas vezes.
+      //
+      // Mesma regra que o Eco já segue ("um Eco não serve dois heróis"): vestir aqui tira
+      // de quem estava com ela, e o jogador é avisado de onde a peça saiu.
+      const antigo = Object.keys(equipado).find(h =>
+        h !== quem && equipado[h] && equipado[h][it.slot] === it.id);
+      if (antigo) {
+        delete equipado[antigo][it.slot];
+        const nomeAntigo = (HERO_DEFINITIONS[antigo] || {}).name || antigo;
+        showToast(`${it.nome} saiu de ${nomeAntigo}: uma peça veste um herói de cada vez.`);
+      }
+      eqh[it.slot] = it.id;
+    }
     savePlayerData();
     desenharEquipamentos();
     fecharPopupDeItem();
