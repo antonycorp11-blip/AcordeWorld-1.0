@@ -25591,17 +25591,27 @@ function closeBuildMenu() {
 //
 // A chave `anon` é pública por natureza: ela aparece em qualquer site que use Supabase e,
 // sozinha, não abre nada. Quem protege são as políticas de RLS do arquivo SQL.
-const NUVEM_URL   = SUPABASE_URL;
-const NUVEM_CHAVE = SUPABASE_KEY;
+// A chave nova do Supabase não se chama mais `anon`: chama-se **publishable**, e começa
+// com `sb_publishable_`. É a mesma função e a mesma natureza pública — só mudou o nome e o
+// formato. O `supabase-js@2` do CDN aceita as duas.
+const NUVEM_URL   = 'FALTA_A_PROJECT_URL';
+const NUVEM_CHAVE = 'sb_publishable_rusGPhvWkJqxoYRc_lYvoA_c2cUsdHo';
 
 const NUVEM_SUPABASE = {
   _c: null,
   cliente() {
     if (this._c) return this._c;
     if (!window.supabase) return null;
-    this._c = window.supabase.createClient(NUVEM_URL, NUVEM_CHAVE, {
-      auth: { persistSession: true, autoRefreshToken: true },
-    });
+    // `createClient` ATIRA quando a URL não é uma URL — e quem chama isto é o `disponivel()`,
+    // que roda na abertura. Uma exceção aqui não deixa a conta offline: derruba o jogo
+    // inteiro antes do primeiro quadro. Enquanto a URL do projeto não estiver colada, o
+    // certo é o jogo abrir sem nuvem, exatamente como abre sem internet.
+    if (!/^https:\/\/.+\..+/.test(NUVEM_URL)) return null;
+    try {
+      this._c = window.supabase.createClient(NUVEM_URL, NUVEM_CHAVE, {
+        auth: { persistSession: true, autoRefreshToken: true },
+      });
+    } catch (e) { return null; }
     return this._c;
   },
   disponivel() { return !!this.cliente(); },
@@ -26336,7 +26346,11 @@ async function diagnosticoDaNuvem() {
 
   ok(!!window.supabase, 'biblioteca carregou');
   ok(/^https:\/\/.+\.supabase\.co$/.test(NUVEM_URL), `URL do projeto: ${NUVEM_URL}`);
-  ok((NUVEM_CHAVE || '').length > 100, 'chave anon preenchida');
+  // As DUAS formas de chave pública valem. A antiga é um JWT — texto longo começando em
+  // `eyJ`. A nova é curta e começa em `sb_publishable_`. Medir por comprimento, como estava
+  // aqui, reprovava a chave nova por ela ter 45 caracteres em vez de duzentos.
+  ok(/^sb_publishable_/.test(NUVEM_CHAVE) || /^eyJ/.test(NUVEM_CHAVE),
+     'chave pública preenchida');
   // Não é erro usar o mesmo projeto do editor — é só uma informação que muda o que
   // esperar. Marcar com ✖ o que não está errado ensina o leitor a ignorar os ✖.
   l.push(`· ${NUVEM_URL === SUPABASE_URL
