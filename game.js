@@ -9043,7 +9043,7 @@ function tryTalk() {
     }
     return;
   }
-  else if(act==='forjarEscala'){ abrirForjadorDeEscalas(); return; }
+  else if(act==='forjarEscala'){ abrirForjador('forjadorEscalas', 'altar'); return; }
   else if(act==='sortear'){ abrirSorteio(); return; }
   
   // In play mode the map that matters is currentKey. Reading the editor's dropdown here
@@ -16428,9 +16428,21 @@ function renderGrimorio() {
     casa.className = 'dw-casa' + (it ? '' : ' vazia') + (it && grSelecionado === it.id ? ' sel' : '');
     if (it) {
       const info = infoDoItem(it.id);
+      // Três degraus, nesta ordem: folha de sprite → PNG solto → emoji.
+      //
+      // O degrau do MEIO faltava, e é onde mora quase tudo que o jogo dá hoje: o
+      // fragmento de cada nota tem arte própria em `assets/itens/fragmentos/`, e
+      // `infoDoItem` já devolve o caminho. Sem consultar isso, a grade pulava direto para
+      // o emoji e a mochila virava uma parede de 💎 iguais — doze notas diferentes com o
+      // mesmo diamante genérico, impossível de distinguir.
       const cv = miniCanvas(spriteDoItem(it.id), 34);
       if (cv) casa.appendChild(cv);
-      else { const e = document.createElement('span'); e.className = 'dw-emoji'; e.textContent = info?.emoji || '💎'; casa.appendChild(e); }
+      else if (info?.arte) {
+        const img = document.createElement('img');
+        img.src = info.arte; img.alt = ''; img.className = 'dw-arte';
+        casa.appendChild(img);
+      }
+      else { const e = document.createElement('span'); e.className = 'dw-emoji'; e.textContent = info?.emoji || '✦'; casa.appendChild(e); }
       const q = document.createElement('span');
       q.className = 'dw-qtd'; q.textContent = it.qtd;
       casa.appendChild(q);
@@ -20523,9 +20535,27 @@ const caminhoNota = id => `assets/itens/notas/${ARTE_FRAG[id] || 'C'}.png`;
 
 let notaEscolhida = 'do';
 
-function abrirForjador(qual) {
+// A ESCALA SE FORJA NO ALTAR, a nota se condensa na mão.
+//
+// Os dois moravam no mesmo submenu do HUD, alcançáveis de qualquer canto do mapa — e
+// isso apagava o Altar do jogo: o lugar existia, a cena mandava ir até ele, e não havia
+// motivo nenhum para andar até lá. A ordem que o dono quer é a que o capítulo já conta:
+// primeiro se aprende a CONDENSAR, na mão, pelo HUD; depois se vai ao Altar, com a Wins,
+// para MONTAR a escala — e é lá que se aprende a equipar os acordes.
+//
+// `ondeEstou` diz de onde veio o pedido. Sem ele, qualquer atalho reabriria a porta.
+function noAltarDasEscalas() {
+  return currentScene === 'forjador' || !!(typeof elementTarget === 'function'
+    && elementTarget(['altar_escalas']));
+}
+
+function abrirForjador(qual, ondeEstou) {
+  if (qual === 'forjadorEscalas' && ondeEstou !== 'altar' && !noAltarDasEscalas()) {
+    showToast('🜂 A escala se monta no Altar das Escalas. Vá até ele com a Wins.');
+    return;
+  }
   document.getElementById(qual)?.classList.remove('hidden');
-  if (qual === 'sintetizador') desenharSintetizador();
+  if (qual === 'sintetizador') { desenharSintetizador(); sincronizarAbaDeEscalas?.(); }
   else { if (!montagem) iniciarMontagem(notaEscolhida); desenharForjadorDeEscalas(); }
 }
 function fecharForjador(qual) { document.getElementById(qual)?.classList.add('hidden'); }
@@ -20824,6 +20854,12 @@ document.querySelectorAll('[data-ir]').forEach(b =>
     fecharForjador('sintetizador'); fecharForjador('forjadorEscalas');
     abrirForjador(b.dataset.ir);
   }));
+// A aba "ir para escalas" some quando o jogador não está no Altar: um botão que só sabe
+// dizer não é pior do que botão nenhum.
+function sincronizarAbaDeEscalas() {
+  document.querySelectorAll('[data-ir="forjadorEscalas"]').forEach(b =>
+    b.classList.toggle('hidden', !noAltarDasEscalas()));
+}
 ['sintetizador', 'forjadorEscalas'].forEach(id =>
   document.getElementById(id)?.addEventListener('click', e => {
     if (e.target.id === id) fecharForjador(id);

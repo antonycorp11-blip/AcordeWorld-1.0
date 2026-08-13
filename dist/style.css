@@ -8162,3 +8162,9 @@ body.na-fazenda #partyHud { display: none; }
    antes do canvas. Era esta a origem de "plantar exige muitos cliques" — metade da ilha
    simplesmente não aceitava dedo. Continua sobrando espaço de sobra para andar. */
 body.na-fazenda .stick-zone { width: 26%; height: 42%; }
+/* Item cuja arte é um PNG solto, não uma célula de folha — é o caso de todo fragmento
+   por nota. Sem esta classe a mochila caía no emoji genérico. */
+.dw-casa .dw-arte {
+  width: 34px; height: 34px; object-fit: contain;
+  image-rendering: pixelated;
+}
