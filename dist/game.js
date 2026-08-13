@@ -24179,6 +24179,15 @@ function marteladasParaOHabitat() {
   return Math.max(4, Math.round(r.marteladasBase * (1 - q - forca)));
 }
 
+// Cada nota tem a ILHA dela: o Fá é água serena, o Mi é luz, o Si é penumbra — a arte
+// responde à personalidade que o Eco já declara em monsters.json. Antes disto a obra
+// nascia com `faz_hab_01` fixo, então os sete habitats eram o mesmo desenho e a escolha
+// da nota não aparecia na tela.
+function propDoHabitat(nota) {
+  const id = 'faz_hab_' + nota;
+  return propDefs[id] ? id : 'faz_hab_01';   // volta ao antigo se a arte ainda não chegou
+}
+
 function ehObraDeHabitat(o) { return !!(o && o.obra); }
 function obraPronta(o) {
   return ehObraDeHabitat(o) && o.obra.marteladas >= o.obra.total
@@ -24198,7 +24207,7 @@ function plantarProjetoDeHabitat(nota, x, y) {
   const p = pontoAndavelPerto(encaixarNaGrade(x), encaixarNaGrade(y));
   const o = {
     id: `obra_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-    prop: 'faz_hab_01', mapKey: 'farm', x: p.x, y: p.y, escala: 1, flipX: false,
+    prop: propDoHabitat(nota), mapKey: 'farm', x: p.x, y: p.y, escala: 1, flipX: false,
     nota,
     obra: { marteladas: 0, total: marteladasParaOHabitat(), curaAte: 0 },
   };
