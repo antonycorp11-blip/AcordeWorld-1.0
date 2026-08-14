@@ -14795,18 +14795,44 @@ document.addEventListener('DOMContentLoaded',()=>{
   canvas=document.getElementById('gameCanvas');
   ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;
   setupHighDPICanvas();
-  window.addEventListener('resize', setupHighDPICanvas);
-  window.addEventListener('orientationchange', () => setTimeout(setupHighDPICanvas, 120));
+  // ── O TECLADO DO CELULAR NÃO É UMA MUDANÇA DE TELA ─────────────────────────────
+  //
+  // Abrir o teclado para digitar e-mail e senha encolhe a janela: no celular isso dispara
+  // um `resize` a cada quadro da animação de subida do teclado, e antes cada um deles
+  // refazia o canvas — trocar `canvas.width` apaga o buffer e força um redesenho inteiro.
+  // Vinte vezes em meio segundo, e a tela TREME. Era isso que acontecia ao entrar na
+  // conta, e por isso só acontecia ali: é a única tela do jogo com campo de texto.
+  //
+  // Duas defesas: só a LARGURA conta (o teclado muda a altura, não a largura), e ainda
+  // assim com uma pausa para o redimensionamento assentar antes de medir.
+  let _prazoDeMedir = null, _larguraMedida = 0;
+  function remedirCanvas(imediato = false) {
+    clearTimeout(_prazoDeMedir);
+    const agir = () => {
+      const larg = Math.round(canvas.getBoundingClientRect().width);
+      if (!imediato && larg === _larguraMedida) return;   // só o teclado: ignora
+      _larguraMedida = larg;
+      setupHighDPICanvas();
+    };
+    if (imediato) { agir(); return; }
+    _prazoDeMedir = setTimeout(agir, 180);
+  }
+  remedirCanvas(true);
+  window.addEventListener('resize', () => remedirCanvas());
+  window.addEventListener('orientationchange', () => setTimeout(() => remedirCanvas(true), 200));
   // Seguro contra a janela mudar de tamanho sem avisar. O Safari do celular encolheu a
   // área do jogo ao abrir uma caixa nativa e não disparou `resize` nenhum: o jogo voltou
   // desenhado em menos de metade da tela, com o resto preto, e ficou assim. Refazer a
   // conta quando a aba volta a aparecer custa uma medição e desfaz esse tipo de sequela.
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) setTimeout(setupHighDPICanvas, 60);
+    if (!document.hidden) setTimeout(() => remedirCanvas(true), 60);
   });
-  window.addEventListener('focus', () => setTimeout(setupHighDPICanvas, 60));
-  window.addEventListener('pageshow', () => setTimeout(setupHighDPICanvas, 60));
-  if (window.ResizeObserver) new ResizeObserver(setupHighDPICanvas).observe(canvas);
+  window.addEventListener('focus', () => setTimeout(() => remedirCanvas(true), 60));
+  window.addEventListener('pageshow', () => setTimeout(() => remedirCanvas(true), 60));
+  // O observador do canvas passa pelo MESMO filtro. Ligado direto no `setupHighDPICanvas`
+  // ele era a maior fonte do tremor: o teclado subindo encolhe o canvas quadro a quadro, e
+  // cada aviso do observador refazia o buffer inteiro.
+  if (window.ResizeObserver) new ResizeObserver(() => remedirCanvas()).observe(canvas);
   bindCanvasEvents();
   skinShopVideo=document.getElementById('skinShopVideo');
   loadingOverlay=document.getElementById('loadingOverlay');
@@ -26010,15 +26036,69 @@ function agendarEnvioDoSave() {
   _prazoDeEnvio = setTimeout(enviarSave, ENVIO_MS);
 }
 
+// ══ CÓPIAS DE SEGURANÇA ═══════════════════════════════════════════════════════════
+//
+// Escrito depois de uma regra minha ter sobrescrito a conta do dono com um save de
+// partida nova. A regra está consertada, mas a lição não é "consertei a regra": é que
+// gravação que descarta a versão anterior não perdoa engano nenhum — nem meu, nem do
+// jogador que toca no botão errado.
+//
+// Toda vez que um save é substituído, o que estava lá vai para uma gaveta local com data.
+// Ocupa alguns KB, dura sete dias, e é a diferença entre "perdi a tarde" e "espera aí".
+const GAVETA = 'acordelot_copias';
+const DIAS_DE_COPIA = 7;
+
+function guardarCopia(rotulo, save) {
+  if (!save || !Object.keys(save).length) return;
+  try {
+    const g = JSON.parse(localStorage.getItem(GAVETA) || '[]');
+    g.unshift({ rotulo, quando: Date.now(), peso: Math.round(pesoDoSave(save)), save });
+    const limite = Date.now() - DIAS_DE_COPIA * 864e5;
+    localStorage.setItem(GAVETA, JSON.stringify(
+      g.filter(c => c.quando > limite).slice(0, 12)));
+  } catch (e) { /* cota cheia: a cópia é um bônus, nunca pode derrubar o jogo */ }
+}
+
+// `copiasGuardadas()` no console lista o que dá para recuperar; `recuperarCopia(0)`
+// aplica a mais recente. Sem tela por enquanto — é ferramenta de resgate, não de uso.
+function copiasGuardadas() {
+  try {
+    const g = JSON.parse(localStorage.getItem(GAVETA) || '[]');
+    console.table(g.map((c, i) => ({ i, rotulo: c.rotulo, peso: c.peso,
+                                     quando: new Date(c.quando).toLocaleString('pt-BR'),
+                                     nivel: c.save?.level })));
+    return g.length;
+  } catch (e) { return 0; }
+}
+
+function recuperarCopia(i = 0) {
+  try {
+    const g = JSON.parse(localStorage.getItem(GAVETA) || '[]');
+    if (!g[i]) { console.warn('não há cópia nesse índice'); return false; }
+    guardarCopia('antes-de-recuperar', saveAtualComoObjeto());
+    aplicarSaveDaNuvem(g[i].save);      // mesmo caminho: grava local e recarrega
+    return true;
+  } catch (e) { return false; }
+}
+window.copiasGuardadas = copiasGuardadas;
+window.recuperarCopia = recuperarCopia;
+
 async function enviarSave() {
   if (!logado() || !CONTA.perfil) return;
   clearTimeout(_prazoDeEnvio);
+  const meu = saveAtualComoObjeto();
+  // O QUE ESTÁ NA NUVEM SAI DA FRENTE COM CÓPIA, não sem ela. `CONTA.perfil.save` é a
+  // última versão lida do servidor; se ela pesa mais que a que vai subir, esta gravação
+  // está DESTRUINDO progresso, e o mínimo é deixar de onde tirar de volta.
+  const naNuvem = CONTA.perfil.save;
+  if (pesoDoSave(naNuvem) > pesoDoSave(meu)) guardarCopia('nuvem-sobrescrita', naNuvem);
   const { erro } = await apiPerfil(`perfis?id=eq.${meuId()}`, {
     method: 'PATCH',
-    body: JSON.stringify({ save: saveAtualComoObjeto(), poder: poderDaConta(),
+    body: JSON.stringify({ save: meu, poder: poderDaConta(),
                            atualizado_em: new Date().toISOString() }),
   });
-  if (erro) console.warn('[conta] não subiu:', erro);
+  if (erro) { console.warn('[conta] não subiu:', erro); return; }
+  CONTA.perfil.save = meu;   // o que o servidor tem agora, para a próxima comparação
 }
 
 // Aplica um save vindo da nuvem. É o mesmo caminho do carregamento normal: grava na
@@ -26026,6 +26106,10 @@ async function enviarSave() {
 // mais uma lista de campos para divergir.
 function aplicarSaveDaNuvem(save) {
   try {
+    // O que estava neste aparelho também vira cópia. Trocar de save é destrutivo nos
+    // dois sentidos, e só um deles tinha rede.
+    try { guardarCopia('local-substituido',
+                       JSON.parse(localStorage.getItem(SAVE_KEY) || 'null')); } catch (e) {}
     localStorage.setItem(SAVE_KEY, JSON.stringify(save));
     loadPlayerData();
     atualizarRastreador?.(); updateHotbarUI?.(); updateInventorySlotsUI?.();
@@ -26049,20 +26133,65 @@ function aplicarSaveDaNuvem(save) {
 //
 // A margem de dois minutos absorve o relógio do celular fora de hora e a demora entre
 // gravar aqui e o servidor registrar.
-const MARGEM_DE_SAVE = 120000;
+// ══ QUANTO PROGRESSO TEM UM SAVE ══════════════════════════════════════════════════
+//
+// A conta NÃO pode ser por data, e esta é a lição mais cara deste arquivo.
+//
+// A regra anterior dizia: "se o save deste aparelho é o mais novo, quem jogou por último
+// foi aqui — subir é seguro". Parece óbvio e está errado, porque um save RECÉM-CRIADO é
+// sempre o mais novo. Numa guia anônima — que é como o dono testa — o jogo abre do zero,
+// grava um save de nível 1 com a hora de agora, o jogador entra na conta, e a conta de
+// nível 17 na nuvem é sobrescrita por esse nada. Sem pergunta, porque a data dizia que
+// estava tudo bem. Foi exatamente isso que apagou a partida dele.
+//
+// O que importa não é QUANDO o save foi gravado, é QUANTO tem dentro. Um save pesado
+// nunca é substituído por um leve sem alguém autorizar. A data agora só desempata.
+function pesoDoSave(s) {
+  if (!s || typeof s !== 'object') return 0;
+  const n = v => Number(v) || 0;
+  const tam = v => Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : 0);
+  // MOEDA E XP FICAM DE FORA, e isso foi medido, não escolhido: com `claves` na conta,
+  // uma partida NOVA pesava 20.290 — porque a banca de testes enche a carteira e um
+  // número de seis dígitos dividido por vinte engole todo o resto. Um save cheio de
+  // dinheiro e vazio de história teria vencido um save de nível 17.
+  //
+  // O que conta é o que custou TEMPO e não volta: nível, missões fechadas, heróis,
+  // acordes, escalas, bandeiras da história, itens e pets.
+  return n(s.level) * 100
+       + tam(s.completedQuests) * 60
+       + tam(s.acordesPossuidos) * 25
+       + tam(s.escalas) * 40
+       + tam(s.herois) * 80
+       + tam(s.itensPossuidos) * 10
+       + tam(s.bandeiras) * 30
+       + tam(s.petsDoJogador) * 20;
+}
+
+// Medido numa partida recém-criada: 290 (nível 1 = 100, os dois heróis do elenco = 160,
+// dois itens iniciais = 30). O piso fica acima disso para que "abriu o jogo e andou dois
+// passos" ainda conte como aparelho vazio — e a conta na nuvem entre sem perguntar nada.
+const PESO_DE_PARTIDA_NOVA = 400;
 
 function conciliarSaves() {
   const nuvem = CONTA.perfil?.save;
-  if (!nuvem || !Object.keys(nuvem).length) { enviarSave(); return; }
   let local = null;
   try { local = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) {}
-  const tLocal = local?.quando || 0;
-  const tNuvem = nuvem.quando || 0;
 
-  if (!local || !tLocal) { aplicarSaveDaNuvem(nuvem); return; }
-  // Este aparelho está igual ou à frente: sobe e pronto.
-  if (tLocal + MARGEM_DE_SAVE >= tNuvem) { enviarSave(); return; }
-  perguntarQualSave(tLocal, tNuvem, nuvem);
+  const pNuvem = pesoDoSave(nuvem);
+  const pLocal = pesoDoSave(local);
+
+  // Nuvem vazia (conta recém-criada): sobe o que houver aqui.
+  if (!nuvem || !Object.keys(nuvem).length || pNuvem < PESO_DE_PARTIDA_NOVA) {
+    enviarSave(); return;
+  }
+  // Aparelho sem partida de verdade — guia anônima, celular novo, cache limpo. A conta
+  // manda, e não há nada a perguntar: aqui não existe progresso para descartar.
+  if (!local || pLocal < PESO_DE_PARTIDA_NOVA) { aplicarSaveDaNuvem(nuvem); return; }
+  // Este aparelho tem tudo o que a conta tem, e mais: subir não perde nada de ninguém.
+  if (pLocal >= pNuvem) { enviarSave(); return; }
+  // A conta está À FRENTE deste aparelho. Só aqui há escolha de verdade — e ela é do
+  // dono, nunca minha.
+  perguntarQualSave(local?.quando || 0, nuvem.quando || 0, nuvem, pLocal, pNuvem);
 }
 
 // A escolha desenhada DENTRO do jogo, não num `confirm()` do navegador.
@@ -26072,8 +26201,23 @@ function conciliarSaves() {
 // apagava o quê, e ler isso sob pressão é como se perde progresso. O segundo é que a
 // caixa nativa, no Safari do celular, mexeu no tamanho da janela e o jogo voltou dela
 // desenhado em menos de metade da tela, com o resto preto.
-function perguntarQualSave(tLocal, tNuvem, nuvem) {
+function perguntarQualSave(tLocal, tNuvem, nuvem, pLocal = 0, pNuvem = 0) {
   const quando = t => t ? new Date(t).toLocaleString('pt-BR') : 'desconhecido';
+  // Nível e data, não um número interno. "Peso 4210" não ajuda ninguém a escolher; "nível
+  // 17, 6 missões" ajuda — e é o que separa uma escolha de um chute.
+  const resumo = s => {
+    if (!s) return 'sem progresso';
+    const p = [];
+    if (s.level) p.push(`nível ${s.level}`);
+    const q = Array.isArray(s.completedQuests) ? s.completedQuests.length : 0;
+    if (q) p.push(`${q} ${q === 1 ? 'missão' : 'missões'}`);
+    const h = s.herois ? Object.keys(s.herois).length : 0;
+    if (h) p.push(`${h} ${h === 1 ? 'herói' : 'heróis'}`);
+    return p.join(' · ') || 'sem progresso';
+  };
+  let local = null;
+  try { local = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) {}
+
   const el = caixaDeTela('saveTela', 'conta-tela', false);
   el.innerHTML = `
     <div class="ct-caixa">
@@ -26082,12 +26226,12 @@ function perguntarQualSave(tLocal, tNuvem, nuvem) {
          aqui gravou. Só um dos dois pode continuar.</p>
       <div class="ct-acoes ct-coluna">
         <button class="ct-btn" data-nuvem>
-          Continuar o da conta<small>mais recente · ${quando(tNuvem)}</small></button>
+          Continuar o da conta<small>${resumo(nuvem)} · ${quando(tNuvem)}</small></button>
         <button class="ct-btn secundario" data-local>
-          Ficar com o deste aparelho<small>${quando(tLocal)} · substitui o da conta</small></button>
+          Ficar com o deste aparelho<small>${resumo(local)} · ${quando(tLocal)}</small></button>
       </div>
-      <p class="ct-nota">O que não for escolhido é perdido. Na dúvida, o da conta é o que
-         você jogou por último.</p>
+      <p class="ct-nota">O que não for escolhido fica guardado neste aparelho por sete
+         dias — se errar, dá para voltar atrás.</p>
     </div>`;
   el.classList.remove('hidden');
   el.querySelector('[data-nuvem]').onclick = () => { el.classList.add('hidden'); aplicarSaveDaNuvem(nuvem); };
