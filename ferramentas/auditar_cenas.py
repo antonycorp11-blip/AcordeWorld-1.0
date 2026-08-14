@@ -56,6 +56,30 @@ for cid, d in sorted(cenas.items()):
         if not m: erro(cid, 'gatilho de fala sem mapa definido')
         elif not tem_npc(m, g.get('npc')): erro(cid, 'gatilho fala com "%s", que não está nesse mapa' % g.get('npc'))
 
+    # ── Campo de gatilho que o motor não lê ──────────────────────────────────────────
+    # Nasceu do `{"tipo":"escala","primeira":true}` da Cena 8b. O campo parecia funcionar
+    # e não fazia nada de útil: a repetição que ele queria evitar já era impossível, e o
+    # único efeito real era trancar a cena para quem tinha forjado uma escala antes de
+    # aceitá-la. Como a cena está na CORRENTE, a Jornada inteira parava nela — sem erro
+    # no console, sem nada a fazer na tela, e sem nenhuma ferramenta acusando.
+    #
+    # Campo que ninguém lê é pior que campo ausente: ele promete uma regra que não existe.
+    CAMPOS = {
+        'falar':  {'tipo', 'npc'},
+        'mapa':   {'tipo'},
+        'lugar':  {'tipo', 'x', 'y', 'raio', 'verbo'},
+        'missao': {'tipo', 'missao'},
+        'abates': {'tipo', 'corrida', 'fracao', 'minimo'},
+        'escala': {'tipo'},
+    }
+    campos_lidos = CAMPOS.get(g.get('tipo'))
+    if campos_lidos:
+        sobrando = [k for k in g if k not in campos_lidos and not k.startswith('_')]
+        if sobrando:
+            erro(cid, 'gatilho %s tem campo que o motor NÃO lê: %s — ou o motor passa a '
+                      'ler, ou o campo sai (ele promete uma regra que não existe)'
+                      % (g['tipo'], ', '.join(sobrando)))
+
     # Requisitos alcançáveis?
     r = d.get('requer') or {}
     for chave in ('missaoConcluida','missaoAtiva'):

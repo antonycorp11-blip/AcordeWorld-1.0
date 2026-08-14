@@ -8562,12 +8562,13 @@ function selarEscala() {
   // A recompensa de forjar não é só a escala: é escolher três acordes do campo harmônico
   // dela. É aqui que a teoria vira build.
   const tonica = montagem.tonica;
-  const primeira = escalasMontadas.length === 1;
   setTimeout(() => { montagem = null; renderAltar(); }, 2600);
   setTimeout(() => {
-    // Na PRIMEIRA escala, a Guardiã explica o campo harmônico antes de o jogador escolher.
-    // Depois disso ele já sabe, e a cena só atrapalharia.
-    if (!dispararCena('escala', { primeira }, () => abrirEscolhaDeAcordes(tonica))) {
+    // A Guardiã explica o campo harmônico antes de o jogador escolher — uma vez só, e
+    // quem garante isso é `cenaJaRodou`, dentro do resolvedor. Aqui não se conta escala:
+    // contar `escalasMontadas.length === 1` era o que trancava a cena para quem já tinha
+    // forjado antes de aceitá-la, e com ela a Jornada inteira.
+    if (!dispararCena('escala', {}, () => abrirEscolhaDeAcordes(tonica))) {
       abrirEscolhaDeAcordes(tonica);
     }
   }, 2800);
@@ -12291,7 +12292,25 @@ function cenaDoGatilho(tipo, ctx = {}) {
         return g.corrida === ctx.corrida && (ctx.fracao ?? 0) >= (g.fracao ?? 0.5)
                && (ctx.total ?? 0) > (g.minimo ?? 3) && (ctx.vivos ?? 0) > 0;
       case 'escala':
-        return g.primeira ? !!ctx.primeira : true;
+        // `primeira: true` no JSON queria dizer "só na primeira escala; depois disso o
+        // jogador já sabe e a aula atrapalha". A intenção é boa, mas a implementação
+        // media `escalasMontadas.length === 1` — o número de escalas do SAVE, não se a
+        // cena já foi vista.
+        //
+        // Duas consequências, e a segunda é grave:
+        //
+        // 1. A repetição que ela evitava já era impossível: `cenaJaRodou(c)`, dez linhas
+        //    acima, barra a cena que já aconteceu. O `primeira` não estava protegendo
+        //    nada.
+        // 2. Quem forjou uma escala ANTES de aceitar a cena — que é o caminho normal de
+        //    quem já estava jogando — nunca mais consegue dispará-la: a partir da segunda
+        //    escala `ctx.primeira` é falso para sempre. E como a cena faz parte da
+        //    CORRENTE, `faltaAlgumaCenaAntes` passa a barrar todas as seguintes. A
+        //    Jornada inteira para nela, sem erro nenhum e sem nada a fazer na tela.
+        //
+        // Agora a aula acontece na próxima escala forjada. É quando ela ainda serve, e
+        // continua acontecendo uma vez só, pelo motivo certo.
+        return true;
       default:
         return true;
     }

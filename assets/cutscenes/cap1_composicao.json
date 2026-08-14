@@ -150,9 +150,9 @@
     }
   ],
   "gatilho": {
-    "tipo": "escala",
-    "primeira": true
+    "tipo": "escala"
   },
+  "_gatilho": "Sem `primeira`: a aula acontece uma vez so porque `cenaJaRodou` a barra depois, nao porque se conta escala. Contar escala trancava a cena para quem forjou antes de aceita-la — e, como ela esta na corrente, travava a Jornada inteira.",
   "prioridade": 65,
   "vozes": [
     "Guardiã da Escala"
