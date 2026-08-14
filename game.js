@@ -14643,6 +14643,15 @@ document.addEventListener('DOMContentLoaded',()=>{
   setupHighDPICanvas();
   window.addEventListener('resize', setupHighDPICanvas);
   window.addEventListener('orientationchange', () => setTimeout(setupHighDPICanvas, 120));
+  // Seguro contra a janela mudar de tamanho sem avisar. O Safari do celular encolheu a
+  // área do jogo ao abrir uma caixa nativa e não disparou `resize` nenhum: o jogo voltou
+  // desenhado em menos de metade da tela, com o resto preto, e ficou assim. Refazer a
+  // conta quando a aba volta a aparecer custa uma medição e desfaz esse tipo de sequela.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) setTimeout(setupHighDPICanvas, 60);
+  });
+  window.addEventListener('focus', () => setTimeout(setupHighDPICanvas, 60));
+  window.addEventListener('pageshow', () => setTimeout(setupHighDPICanvas, 60));
   if (window.ResizeObserver) new ResizeObserver(setupHighDPICanvas).observe(canvas);
   bindCanvasEvents();
   skinShopVideo=document.getElementById('skinShopVideo');
@@ -25871,6 +25880,23 @@ function aplicarSaveDaNuvem(save) {
 }
 
 // Local e nuvem divergiram? Mostra as duas datas e deixa o jogador escolher.
+// A PERGUNTA SÓ EXISTE QUANDO HÁ ALGO A PERDER.
+//
+// A regra antiga comparava as duas datas e perguntava sempre que passassem de um minuto
+// de diferença. Isso pergunta na hora errada: quem acabou de criar a conta e continuou
+// jogando cai nela contra a PRÓPRIA gravação de dois minutos atrás — e uma caixa do
+// navegador aparece no meio da partida oferecendo apagar a tarde dele.
+//
+// A conta certa não é de tempo, é de risco. Se o save DESTE aparelho é o mais novo, quem
+// jogou por último foi aqui: subir é seguro e não há decisão nenhuma a tomar. O único
+// caso que merece pergunta é o inverso — a conta mais nova que este aparelho, que
+// significa que OUTRO aparelho avançou e este ficou para trás. Aí sim há duas partidas
+// de verdade, e só o dono sabe qual quer.
+//
+// A margem de dois minutos absorve o relógio do celular fora de hora e a demora entre
+// gravar aqui e o servidor registrar.
+const MARGEM_DE_SAVE = 120000;
+
 function conciliarSaves() {
   const nuvem = CONTA.perfil?.save;
   if (!nuvem || !Object.keys(nuvem).length) { enviarSave(); return; }
@@ -25880,19 +25906,38 @@ function conciliarSaves() {
   const tNuvem = nuvem.quando || 0;
 
   if (!local || !tLocal) { aplicarSaveDaNuvem(nuvem); return; }
-  if (Math.abs(tLocal - tNuvem) < 60000) {
-    // Praticamente o mesmo momento: o mais novo ganha, sem incomodar ninguém.
-    if (tNuvem > tLocal) aplicarSaveDaNuvem(nuvem); else enviarSave();
-    return;
-  }
+  // Este aparelho está igual ou à frente: sobe e pronto.
+  if (tLocal + MARGEM_DE_SAVE >= tNuvem) { enviarSave(); return; }
+  perguntarQualSave(tLocal, tNuvem, nuvem);
+}
+
+// A escolha desenhada DENTRO do jogo, não num `confirm()` do navegador.
+//
+// Dois motivos, e o segundo só apareceu na captura do celular. O primeiro é que "OK" e
+// "Cancelar" não dizem o que fazem: o texto tinha de explicar qual dos dois botões
+// apagava o quê, e ler isso sob pressão é como se perde progresso. O segundo é que a
+// caixa nativa, no Safari do celular, mexeu no tamanho da janela e o jogo voltou dela
+// desenhado em menos de metade da tela, com o resto preto.
+function perguntarQualSave(tLocal, tNuvem, nuvem) {
   const quando = t => t ? new Date(t).toLocaleString('pt-BR') : 'desconhecido';
-  const usarNuvem = window.confirm(
-    'Este aparelho e a conta têm progressos diferentes.\n\n'
-    + `Neste aparelho: ${quando(tLocal)}\n`
-    + `Na conta:       ${quando(tNuvem)}\n\n`
-    + 'OK usa o da CONTA (o deste aparelho é substituído).\n'
-    + 'Cancelar mantém o deste aparelho e o envia para a conta.');
-  if (usarNuvem) aplicarSaveDaNuvem(nuvem); else enviarSave();
+  const el = caixaDeTela('saveTela', 'conta-tela', false);
+  el.innerHTML = `
+    <div class="ct-caixa">
+      <h2>Dois progressos</h2>
+      <p class="ct-sub">Sua conta avançou em outro aparelho depois da última vez que este
+         aqui gravou. Só um dos dois pode continuar.</p>
+      <div class="ct-acoes ct-coluna">
+        <button class="ct-btn" data-nuvem>
+          Continuar o da conta<small>mais recente · ${quando(tNuvem)}</small></button>
+        <button class="ct-btn secundario" data-local>
+          Ficar com o deste aparelho<small>${quando(tLocal)} · substitui o da conta</small></button>
+      </div>
+      <p class="ct-nota">O que não for escolhido é perdido. Na dúvida, o da conta é o que
+         você jogou por último.</p>
+    </div>`;
+  el.classList.remove('hidden');
+  el.querySelector('[data-nuvem]').onclick = () => { el.classList.add('hidden'); aplicarSaveDaNuvem(nuvem); };
+  el.querySelector('[data-local]').onclick = () => { el.classList.add('hidden'); enviarSave(); };
 }
 
 // ── Sessão guardada ───────────────────────────────────────────────────────────────
@@ -26268,8 +26313,8 @@ function abrirTelaDeConta(modo) {
     <div class="ct-caixa">
       <button class="ct-x" data-fechar>✖</button>
       <h2>${modo === 'criar' ? 'Criar conta' : 'Entrar'}</h2>
-      <p class="ct-sub">A conta leva seu progresso de aparelho e abre a Arena.
-         Jogar sem conta continua funcionando.</p>
+      <p class="ct-sub">A conta leva seu progresso de aparelho e é o que te coloca
+         na Arena.</p>
       <input class="ct-campo" id="ctEmail" type="email" placeholder="e-mail" autocomplete="email">
       <input class="ct-campo" id="ctSenha" type="password" placeholder="senha (6+)" autocomplete="current-password">
       <input class="ct-campo ${modo === 'criar' ? '' : 'hidden'}" id="ctNome" type="text" placeholder="nome no jogo (3 a 18 letras)" maxlength="18">

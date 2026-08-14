@@ -8357,3 +8357,12 @@ body.sem-rotulos-hud .hud-rot { display: none; }
 .portaria.so-fundo .ct-caixa { display: none; }
 .ct-acoes.ct-coluna { flex-direction: column; gap: 8px; }
 .ct-acoes.ct-coluna .ct-btn { width: 100%; }
+
+/* Botão de escolha com uma segunda linha explicativa — usado na tela de dois
+   progressos, onde o rótulo sozinho ("da conta", "deste aparelho") não diz o que
+   se perde ao tocar nele. */
+.ct-btn small {
+  display: block; margin-top: 3px;
+  font-size: 10px; font-weight: 400; opacity: .75; letter-spacing: 0;
+  text-transform: none;
+}
