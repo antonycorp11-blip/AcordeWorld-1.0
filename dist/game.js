@@ -12173,7 +12173,7 @@ function preencherMenuDeCenas() {
 //   { tipo: 'lugar',  x, y, raio, verbo: 'Selar' }          pisar num ponto do cenário
 //   { tipo: 'missao', missao: 'consertar_ponte' }            ao fechar a missão
 //   { tipo: 'abates', corrida: 'patio', fracao: 0.5 }        no meio da limpeza da dungeon
-//   { tipo: 'escala', primeira: true }                       ao fechar escala no altar
+//   { tipo: 'escala' }                                       ao fechar escala no altar
 //   { tipo: 'roteiro' }                                      só por `cmd: cena`
 const VERBO_DO_GATILHO = { falar: 'Falar', lugar: 'Ver' };
 

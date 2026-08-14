@@ -112,6 +112,68 @@ for cid, d in sorted(cenas.items()):
         if c=='recrutar' and ("'%s'"%p.get('heroi')) not in motor:
             erro(cid, 'passo %d: herói inexistente — %s' % (i, p.get('heroi')))
 
+# ── O QUE A CENA EXIGE, ALGUÉM ENTREGA? ─────────────────────────────────────────────
+# A família de defeitos da Cena 8b: a condição está escrita, o motor a lê, e mesmo assim
+# ela nunca fica verdadeira porque NINGUÉM a produz. Não dá erro, não dá aviso, e a cena
+# — se estiver na corrente — leva a Jornada inteira junto.
+#
+# Três produtores conferidos aqui: bandeira, item e corrida de dungeon.
+def listar(v):
+    return [] if v is None else (v if isinstance(v, list) else [v])
+
+bandeiras_postas = set(re.findall(r"marcarBandeira\('([a-z_0-9]+)'", motor))
+itens_dados      = set(re.findall(r"playerInventory\.([a-zA-Z_0-9]+)\s*=", motor))
+itens_dados     |= set(re.findall(r"playerInventory\['([^']+)'\]\s*=", motor))
+for c in cenas.values():
+    for p in c.get('passos', []):
+        if p.get('cmd') == 'bandeira' and p.get('id'): bandeiras_postas.add(p['id'])
+        # O comando é `dar`, não `item` — o campo `item` é o argumento dele.
+        if p.get('cmd') == 'dar' and p.get('item'):    itens_dados.add(p['item'])
+for q in quests.values():
+    for it in listar((q.get('rewards') or {}).get('items')):
+        if isinstance(it, dict) and it.get('id'): itens_dados.add(it['id'])
+        elif isinstance(it, str): itens_dados.add(it)
+
+corridas = {d.get('id') for d in ler('assets/dados/dungeons.json')['dungeons']}
+
+for cid, d in sorted(cenas.items()):
+    r = d.get('requer') or {}
+    for b in listar(r.get('bandeira')):
+        if b not in bandeiras_postas:
+            erro(cid, 'requer a bandeira "%s", que NINGUÉM marca — a cena nunca acontece' % b)
+    for b in listar(r.get('semBandeira')):
+        if b not in bandeiras_postas:
+            aviso(cid, 'semBandeira "%s" nunca é marcada — a condição não faz nada' % b)
+    for k in (r.get('itens') or {}):
+        if k not in itens_dados:
+            erro(cid, 'requer o item "%s", que nenhuma cena, missão ou código entrega' % k)
+    corrida = (d.get('gatilho') or {}).get('corrida')
+    if corrida and corrida not in corridas:
+        erro(cid, 'gatilho abates aponta a dungeon "%s", que não existe' % corrida)
+
+# ── O ALVO DO OBJETIVO EXISTE? ──────────────────────────────────────────────────────
+# Ter o `type` certo não basta: o motor casa o alvo por SUBSTRING
+# (`chave.toLowerCase().includes(alvo)`), então um objetivo que manda falar com alguém
+# que não está em npcs.json, ou chegar a um mapa que não existe, fica aberto para sempre.
+# A missão trava e o rastreador segue mostrando o passo, como se faltasse achar o sujeito.
+todos_npcs = [(n.get('name') or '').strip().lower() for n in npcs]
+for qid, q in sorted(quests.items()):
+    for o in q['objectives']:
+        alvo = str(o.get('npc') or o.get('item') or '').strip().lower()
+        if not alvo: continue
+        if o.get('type') == 'talk':
+            casam = [nm for nm in todos_npcs if alvo in nm]
+            if not casam:
+                erro('missão:'+qid, 'objetivo "%s" manda falar com "%s" — nenhum NPC com '
+                                    'esse nome existe' % (o.get('id'), o.get('npc')))
+            elif len(set(casam)) > 1:
+                aviso('missão:'+qid, 'objetivo "%s": "%s" casa com %d NPCs (%s) — o '
+                                     'primeiro a conversar já conclui'
+                      % (o.get('id'), o.get('npc'), len(set(casam)), ', '.join(sorted(set(casam)))))
+        if o.get('type') == 'chegar' and alvo not in {m.lower() for m in mapas}:
+            erro('missão:'+qid, 'objetivo "%s" manda chegar ao mapa "%s", que não existe'
+                 % (o.get('id'), o.get('item') or o.get('npc')))
+
 # Conflito de gatilho: duas cenas disputando o MESMO NPC no mesmo mapa. O motor pega a
 # primeira que casa, entao a de tras so roda se o jogador voltar a falar sem motivo — foi
 # assim que a cena do Pipo perdeu para a da ponte e sumiu por varios playtests.
