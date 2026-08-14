@@ -14082,7 +14082,7 @@ function loop(now){
 
 function quadro(now){
   frameCount++;
-  if(now-lastFPSTime>=1000){currentFPS=frameCount;frameCount=0;lastFPSTime=now;if(fpsDisplay)fpsDisplay.textContent=`${currentFPS} FPS`;if(statusFPS)statusFPS.textContent=`${currentFPS} FPS`;}
+  if(now-lastFPSTime>=1000){currentFPS=frameCount;frameCount=0;lastFPSTime=now;if(fpsDisplay)fpsDisplay.textContent=`${currentFPS} FPS`;if(statusFPS)statusFPS.textContent=`${currentFPS} FPS`;talvezCederResolucao();}
 
   if(engineMode==='worldmap')return;   // desenhado pelo editor de mundo, em canvas próprio
 
@@ -14212,7 +14212,11 @@ function quadro(now){
     } else if(currentScene==='world'||!isPlayMode){
       const vid = videoDoMapa(mapKey);
       if (vid) ctx.drawImage(vid, 0, 0, SCREEN_W, SCREEN_H);
-      else { garantirFundo(mapKey); const bg=bgImages[mapKey]; if(bg?.complete) ctx.drawImage(bg,0,0,SCREEN_W,SCREEN_H); }
+      else {
+        garantirFundo(mapKey);
+        const bg = bgImages[mapKey];
+        if (bg?.complete) comSuavizacao(() => ctx.drawImage(bg, 0, 0, SCREEN_W, SCREEN_H));
+      }
       if (currentScene === 'world' && mapKey !== 'mega_world') renderSombrasDeNuvem(now, mapKey);
     }
     else { const st=interiorDef()?.still?.(); if(st)ctx.drawImage(st,0,0,SCREEN_W,SCREEN_H); }
@@ -14558,6 +14562,48 @@ function quadro(now){
 // ============================================================
 // INIT
 // ============================================================
+// ── Fundo de mapa: a ÚNICA coisa que se suaviza ───────────────────────────────────
+//
+// O jogo desliga a suavização em todo quadro, e está certo: sprite é pixel art, e
+// suavizar come a borda dura que a arte pede. Só que o FUNDO DO MAPA não é pixel art —
+// é ilustração pintada, e ele nunca é desenhado no tamanho em que foi salvo:
+//
+//   · os mapas antigos têm 1024×571 e sobem para a densidade da tela;
+//   · os que você gerou por último têm 2752×1536 e DESCEM para 1024×571.
+//
+// Descer 2752 para 1024 sem suavizar é o pior dos dois: sem média entre os pixels
+// vizinhos, dois em cada três somem inteiros e o que fica serrilha e cintila a cada
+// passo da câmera. Era por isso que o cenário novo, de resolução muito maior, aparecia
+// PIOR que o velho.
+//
+// Sprite continua sem suavização. A troca vale um desenho e volta ao normal em seguida.
+function comSuavizacao(desenhar) {
+  const antes = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  try { desenhar(); } finally { ctx.imageSmoothingEnabled = antes; }
+}
+
+// ── Teto de resolução que cede sozinho ────────────────────────────────────────────
+//
+// Um número fixo aqui erra nos dois sentidos: baixo demais borra o celular bom, alto
+// demais engasga o celular fraco, e não há como saber qual dos dois está na mão de quem
+// abriu o jogo. Então começa nítido e só desce quando o próprio aparelho mostrar que não
+// dá conta — três segundos seguidos abaixo de 45 quadros. É medida, não suposição.
+//
+// Desce, e não volta a subir: um aparelho que já engasgou vai engasgar de novo, e ficar
+// alternando entre dois tamanhos de canvas pisca a tela a cada troca.
+const TETO = { valor: 3, ruinsSeguidos: 0 };
+// Exposto para diagnóstico: quando alguém disser "está borrado", a primeira pergunta é
+// se o aparelho cedeu resolução ou se o teto nunca subiu. `TETO.valor` responde as duas.
+window.TETO = TETO;
+
+function talvezCederResolucao() {
+  if (TETO.valor <= 2 || !currentFPS) return;
+  TETO.ruinsSeguidos = currentFPS < 45 ? TETO.ruinsSeguidos + 1 : 0;
+  if (TETO.ruinsSeguidos >= 3) { TETO.valor = 2; setupHighDPICanvas(); }
+}
+
 function setupHighDPICanvas() {
   if (!canvas) return;
   // A resolução interna acompanha o tamanho REAL em tela, não um múltiplo fixo. Num
@@ -14571,9 +14617,16 @@ function setupHighDPICanvas() {
   // quatro vezes mais pixel do que a tela mostra, todo quadro. Como o canvas já é
   // `image-rendering: pixelated`, um pixel de desenho por pixel de tela é o que dá a
   // borda dura que a arte pede — supersampling aqui só amaciava o que não devia amaciar.
-  // O teto caiu de 4 para 2: acima disso é fôlego gasto num detalhe que ninguém vê,
-  // e em celular de densidade 3 era ele que derrubava a taxa de quadros.
-  const escala = Math.min(2, Math.max(1, (larguraCss * densidade) / SCREEN_W));
+  // O TETO É MEDIDO, NÃO CHUTADO.
+  //
+  // Este número é literalmente "quantos pixels a tela tem para cada unidade do jogo".
+  // Prendê-lo em 2 num celular de densidade 3 manda o navegador esticar um quadro de
+  // 2048 px para os ~2600 do painel — e, como o canvas é `image-rendering: pixelated`,
+  // essa esticada é sem suavização: sai serrilhado, não borrado. Foi essa a queda de
+  // nitidez. Mas o teto 2 nasceu de um motivo real: em densidade 3 o custo por quadro
+  // derrubava a taxa. Então em vez de escolher entre nitidez e fluidez de uma vez para
+  // todo aparelho, o teto começa alto e CEDE se o aparelho reclamar — ver `TETO`.
+  const escala = Math.min(TETO.valor, Math.max(1, (larguraCss * densidade) / SCREEN_W));
   const targetW = Math.round(SCREEN_W * escala);
   const targetH = Math.round(SCREEN_H * escala);
   if (canvas.width !== targetW || canvas.height !== targetH) {
@@ -25884,7 +25937,11 @@ async function portariaDaConta() {
   await CONTA.pronta;                       // a sessão guardada já foi lida?
   if (!NUVEM.disponivel()) return;          // sem nuvem não há o que perguntar
   if (logado()) return;                     // já entrou antes, neste aparelho
-  if (localStorage.getItem(CHAVE_SEM_CONTA)) return;
+  // A dispensa guardada só vale enquanto "jogar sem conta" existir. Sem esta segunda
+  // condição, quem tivesse tocado no botão durante o teste continuaria entrando sem conta
+  // depois de o jogo abrir para valer — e o interruptor desligado não teria efeito
+  // nenhum sobre justamente quem já usou o atalho.
+  if (SELETOR_DE_CENA_LIGADO && localStorage.getItem(CHAVE_SEM_CONTA)) return;
 
   // Enquanto a portaria está de pé o mundo não pode andar sozinho. `preTelaAberta` já é
   // a trava que segura gatilho de cena, cena de mapa e conversa de NPC — reusá-la evita
@@ -25900,21 +25957,26 @@ async function portariaDaConta() {
       <div class="ct-acoes ct-coluna">
         <button class="ct-btn" data-entrar>Entrar</button>
         <button class="ct-btn" data-criar>Criar conta</button>
-        <button class="ct-btn secundario" data-sem>Jogar sem conta</button>
+        ${SELETOR_DE_CENA_LIGADO
+          ? '<button class="ct-btn secundario" data-sem>Jogar sem conta (teste)</button>'
+          : ''}
       </div>
-      <p class="ct-nota">Dá para entrar depois pelo botão de conta, no HUD. Só é mais
-         simples agora: entrando com o jogo já começado, um dos dois progressos —
-         o deste aparelho ou o da conta — tem de ser descartado.</p>
+      <p class="ct-nota">A conta guarda seu progresso e é o que te coloca na Arena.</p>
     </div>`;
   el.classList.remove('hidden');
 
   await new Promise(pronto => {
     const sair = () => { el.classList.add('hidden'); preTelaAberta = false; pronto(); };
 
-    el.querySelector('[data-sem]').onclick = () => {
+    // "Jogar sem conta" só existe enquanto o jogo está em teste. Para o jogador a conta
+    // é obrigatória — sem ela não há Arena, não há progresso que acompanhe aparelho, e
+    // não há como ser adversário de ninguém. O interruptor é o MESMO que já tem de ser
+    // desligado antes de publicar (`SELETOR_DE_CENA_LIGADO`), de propósito: um
+    // interruptor a mais é um a mais para esquecer ligado no dia do lançamento.
+    el.querySelector('[data-sem]')?.addEventListener('click', () => {
       localStorage.setItem(CHAVE_SEM_CONTA, '1');
       sair();
-    };
+    });
     // Entrar e criar reaproveitam a tela de conta que já existe, em vez de repetir os
     // campos aqui: dois formulários com as mesmas regras divergem na primeira correção.
     for (const [attr, modo] of [['data-entrar', 'entrar'], ['data-criar', 'criar']]) {
