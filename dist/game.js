@@ -25811,7 +25811,11 @@ async function criarPerfil(nome) {
   const { erro } = await apiPerfil('perfis', {
     method: 'POST',
     headers: { 'Prefer': 'return=representation' },
-    body: JSON.stringify({ id: meuId(), nome, save: saveAtualComoObjeto(),
+    // `nome.trim()`, não `nome`: a validação logo acima mede o aparado, mas o que ia para
+    // o banco era o cru. Um nome digitado com espaço no fim passava aqui e batia na regra
+    // `char_length between 3 and 18` do Postgres — erro do servidor, em inglês, num campo
+    // que a pessoa juraria ter preenchido certo.
+    body: JSON.stringify({ id: meuId(), nome: nome.trim(), save: saveAtualComoObjeto(),
                            poder: poderDaConta() }),
   });
   if (erro) {
