@@ -4967,8 +4967,24 @@ function prepareSpriteCell(img, def, jaTemAlfa) {
   return prepareSprite(cell, jaTemAlfa);
 }
 
-function monsterDef(m) { return monsterDefs[m.type] || {}; }
+// `defesa` é o remendo por instância: o defensor da Arena é um HERÓI, e o alcance, o
+// tempo e o dano do golpe dele saem do combo do personagem, não da ficha do tipo de
+// monstro cujo corpo ele empresta para as contas de colisão. Sem isto, Akles e Wins
+// batiam com o mesmo tempo e o mesmo alcance de um esqueleto — e trocar de personagem
+// na defesa não mudava nada em campo.
+function monsterDef(m) { return m.defesa ? { ...monsterDefs[m.type], ...m.defesa }
+                                         : (monsterDefs[m.type] || {}); }
 function monsterBounds(m) {
+  // O herói da Arena tem o tamanho de um herói, não o do corpo emprestado: é esta caixa
+  // que a barra de vida e o empurrão entre corpos usam.
+  if (m.heroiId) {
+    // `player.height`, e não `HEROI_BASE.height`: é o mesmo número que o `renderPlayer`
+    // usa, já com a escala do jogador aplicada. Repetir a constante aqui faria o inimigo
+    // deixar de acompanhar quando a escala do herói mudasse — e já houve duas medições
+    // erradas neste projeto por confiar na constante em vez do valor em uso.
+    const h = player.height * (m.escala || 1);
+    return { x: m.x - h * 0.36, y: m.y - h, w: h * 0.72, h };
+  }
   const spr = monsterSprites[m.type];
   // Escala por instância: dois Ecos do mesmo tipo podem ter tamanhos diferentes,
   // o que ajuda a compor o cenário sem criar tipo novo para cada variação.
@@ -5198,8 +5214,24 @@ function updateMonsters(now) {
     // Bater sem aviso é o que fazia parecer que o monstro só encostava e tirava vida.
     if (playerHp > 0 && dist < (def.touchRange ?? 34) && now - m.lastHit > 900 && !m.golpeEm) {
       m.lastHit = now;
-      m.atacandoAte = now + (def.attackMs ?? 460);
-      m.golpeEm = now + (def.attackWindup ?? 190);
+      // Herói na Arena golpeia pelo COMBO dele: a Varredura da Wins alcança mais e dói
+      // menos que o Uníssono, e o remate do Akles demora mais que a estocada. É essa
+      // diferença que faz trocar de personagem na defesa significar alguma coisa — sem
+      // ela os dois batiam com o tempo e o alcance do esqueleto emprestado.
+      if (m.combo?.length) {
+        m.passoDoCombo = ((m.passoDoCombo ?? -1) + 1) % m.combo.length;
+        const g = m.combo[m.passoDoCombo];
+        m.golpe = g;
+        m.defesa = {
+          attackMs: g.ms,
+          attackWindup: Math.round(g.ms * 0.45),
+          touchRange: Math.round((m.alcanceBase || 34) * (g.alcance || 1)),
+          damage: Math.round((m.danoBase || 5) * (g.dano || 1)),
+        };
+      }
+      const d2 = monsterDef(m);
+      m.atacandoAte = now + (d2.attackMs ?? 460);
+      m.golpeEm = now + (d2.attackWindup ?? 190);
     }
     // O impacto só sai se o jogador ainda estiver ao alcance quando o golpe cai —
     // dá para escapar do bote andando para trás.
@@ -5573,6 +5605,105 @@ function renderEcosPorCima(now) {
 }
 let _soEcosDaFazenda = false;
 
+// ══ O DEFENSOR DA ARENA É UM HERÓI ════════════════════════════════════════════════
+//
+// Ele empresta o CORPO de um monstro para as contas que já existem — colisão, vida,
+// alcance —, mas o desenho e o golpe são do personagem. É o que faz enfrentar a defesa
+// de alguém parecer enfrentar aquela pessoa, e não um esqueleto com o nome dela em cima.
+//
+// O caminho é o mesmo do herói do jogador de propósito: as MESMAS folhas, a MESMA ficha
+// de medidas, a MESMA âncora nos pés. Um segundo jeito de desenhar herói divergiria do
+// primeiro na primeira folha nova — e hoje mesmo entram personagens novos.
+function folhaDoDefensor(m, now) {
+  const P = HERO_DEFINITIONS[m.heroiId];
+  if (!P || !P.folhas) return null;
+  const f = P.folhas;
+
+  const atacando = now < (m.atacandoAte || 0);
+  const golpe = atacando && m.golpe ? f[m.golpe.folha] : null;
+  const andando = !atacando && now < (m.andandoAte || 0);
+  // A Wins ainda não tem folha de parado; cai na de caminhada, e o quadro de descanso
+  // da ficha (`P.parado`) segura a pose. É a mesma muleta que o Akles usou.
+  const alvo = golpe || (!andando && f.parado ? f.parado : (f.andar || null));
+  if (!alvo) return null;
+
+  const img = folhasDoHeroi[alvo.src];
+  if (!img || !img.complete || img.naturalWidth < 10) return null;
+  const med = medidasDasFolhas[alvo.src.split('/').pop()];
+  if (!med) return null;
+
+  const dir = m.facing < 0 ? 'left' : 'right';
+  const LINHA = P.linhas || { down: 0, up: 1, side: 2, attack: 3 };
+  let row = LINHA[dir];
+  const espelhar = row === undefined;
+  if (row === undefined) row = LINHA.side ?? 0;
+
+  let frame;
+  if (golpe) {
+    // O quadro corre do começo ao fim DENTRO da janela do golpe, para o corte terminar
+    // junto com o dano em vez de congelar num quadro qualquer.
+    const passou = 1 - (m.atacandoAte - now) / Math.max(1, m.golpe.ms);
+    frame = Math.max(0, Math.min(med.cols - 1, Math.floor(passou * med.cols)));
+  } else if (andando) {
+    frame = Math.floor(now / 130) % med.cols;
+  } else if (f.parado) {
+    frame = Math.floor((now + m.phase * 400) / 200) % med.cols;   // respira
+  } else {
+    frame = (P.parado || {})[dir] ?? 0;
+  }
+  return { img, med, row: Math.min(med.rows - 1, row), frame, espelhar };
+}
+
+function desenharDefensor(m, now, hop) {
+  const d = folhaDoDefensor(m, now);
+  if (!d) return false;
+  const { img, med, row, frame, espelhar } = d;
+  const fw = img.width / med.cols, fh = img.height / med.rows;
+  // Escala pelo CORPO e âncora nos PÉS — a célula do golpe vertical é bem mais alta que
+  // o personagem para caber a arma erguida, e escalar pela célula encolheria o defensor
+  // pela metade justamente no ataque.
+  const esc = (player.height * (m.escala || 1)) / med.corpo;
+  const dW = fw * esc, dH = fh * esc, dPe = med.base * esc;
+
+  ctx.save();
+  // ANEL VERMELHO NO CHÃO, e não a sombra escura do herói.
+  //
+  // O defensor usa o mesmo desenho do personagem do jogador — que é o ponto —, e o
+  // resultado é dois Akles idênticos em campo, um deles você. Sem uma marca no chão, a
+  // briga vira adivinhação: dá para bater no ar por dois segundos até achar quem é quem.
+  // O anel resolve sem tocar no sprite, que é justamente o que não se quer alterar.
+  ctx.fillStyle = 'rgba(220,38,38,0.30)';
+  ctx.beginPath();
+  ctx.ellipse(m.x, m.y + 2, dW * 0.24, dW * 0.10, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(248,113,113,0.75)'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.ellipse(m.x, m.y + 2, dW * 0.24, dW * 0.10, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.translate(m.x, m.y - hop);
+  if (espelhar && m.facing < 0) ctx.scale(-1, 1);
+  if (now < (m.impactoAte || 0)) { ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 16; }
+  ctx.drawImage(img, frame * fw, row * fh, fw, fh, -dW / 2, -dPe + 4, dW, dH);
+  ctx.restore();
+
+  // O nome de quem está defendendo, acima da cabeça. Serve à leitura da briga e ao
+  // sentido dela: você não está enfrentando "um inimigo", está enfrentando o time de
+  // alguém — e é isso que faz ganhar valer.
+  if (m.nomeArena) {
+    ctx.save();
+    ctx.font = '600 9px Outfit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,9,14,0.92)';
+    const alturaDoNome = m.y - dH * (m.alturaDoNome || 0.72) - hop;
+    ctx.strokeText(m.nomeArena, m.x, alturaDoNome);
+    ctx.fillStyle = '#fca5a5';
+    ctx.fillText(m.nomeArena, m.x, alturaDoNome);
+    ctx.restore();
+  }
+  return true;
+}
+
 function renderMonsters(now) {
   monsters.forEach(m => {
     if (m.dead || m.mapKey !== currentKey) return;
@@ -5605,7 +5736,11 @@ function renderMonsters(now) {
 
     ctx.save();
     if (now < m.hurtUntil) ctx.globalAlpha = (Math.floor(now / 60) % 2) ? 0.35 : 1; // hit flash
-    if (spr) {
+    // O defensor da Arena desenha por outro caminho — e se a folha dele ainda não chegou,
+    // cai no do monstro logo abaixo em vez de sumir.
+    if (m.heroiId && desenharDefensor(m, now, hop)) {
+      /* desenhado como herói */
+    } else if (spr) {
       ctx.translate(m.x + m.facing * invest, m.y - hop);
       if (m.facing < 0) ctx.scale(-1, 1);
       if (now < (m.impactoAte || 0)) { ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 16; }
@@ -26508,14 +26643,28 @@ async function iniciarDesafio(alvoId, nomeAlvo) {
     const p = pontoAndavelPerto(SCREEN_W * (0.34 + i * 0.16), SCREEN_H * 0.34);
     const m = {
       id: `arena_${alvoId}_${i}`,
-      type: 'maestro_esqueleto',      // corpo emprestado: o desenho do herói inimigo
-      mapKey: currentKey,             // é o passo seguinte
+      // O TIPO segue sendo um monstro: é dele que vêm as contas de colisão e de IA que
+      // já existem. O que muda é `heroiId` — com ele, o desenho e o golpe passam a ser
+      // do personagem. Se a folha do herói não tiver chegado, o corpo emprestado aparece
+      // no lugar em vez de um buraco.
+      type: 'maestro_esqueleto',
+      heroiId: HERO_DEFINITIONS[h.id] ? h.id : null,
+      combo: (HERO_DEFINITIONS[h.id] || {}).combo || COMBO_PADRAO,
+      passoDoCombo: -1,
+      alcanceBase: 34, danoBase: c.dano,
+      mapKey: currentKey,
       x: p.x, y: p.y, homeX: p.x, homeY: p.y,
       hp: c.hp, maxHp: c.hp, damage: c.dano,
       dead: false, respawnAt: 0, hurtUntil: 0, lastHit: 0, facing: 1,
       phase: Math.random() * Math.PI * 2,
       persegue: true, daArena: true,
-      nomeArena: `${def.name || h.id} · ${nomeAlvo}`,
+      // Só o nome do HERÓI acima da cabeça. Com o dono junto, os dois defensores ficam
+      // lado a lado e as duas etiquetas se atropelam — vira uma linha ilegível. De quem
+      // é o time já está no anúncio da abertura e no aviso do desafio.
+      nomeArena: def.name || h.id,
+      // Altura da etiqueta alternada: mesmo curtas, duas etiquetas de defensores vizinhos
+      // encostam. Uma acima e uma abaixo resolvem sem afastar os corpos.
+      alturaDoNome: i % 2 ? 0.94 : 0.72,
     };
     monsters.push(m);
     inimigos.push(m);

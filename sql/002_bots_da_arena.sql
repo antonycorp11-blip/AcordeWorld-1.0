@@ -182,7 +182,13 @@ grant execute on function public.registrar_batalha(uuid, boolean) to authenticat
 --
 -- O `config` sai no MESMO formato que `defesaAPartirDoSave` monta no cliente, para o
 -- desafio reconstruir o bot pelo caminho que já existe — nenhum ramo especial no jogo.
-create or replace function public.gerar_bots(quantos integer default 20)
+-- `herois` é parâmetro porque o elenco cresce. Quando um personagem novo entrar no jogo,
+-- os bots passam a usá-lo com uma chamada, sem mexer na função:
+--     select gerar_bots(20, array['achilles','wins','o_novo']);
+-- O id tem de ser o MESMO de `HERO_DEFINITIONS` no game.js — é por ele que o cliente
+-- acha a folha e o combo do defensor.
+create or replace function public.gerar_bots(quantos integer default 20,
+                                             herois text[] default array['achilles','wins'])
 returns integer
 language plpgsql
 security definer
@@ -198,6 +204,11 @@ declare
                              'Sustenido','Tônica','Uníssono','Vibrato','Coda','Rondó'];
   i          integer := 0;
   criados    integer := 0;
+  quantos_h  integer;
+  escolhidos text[];
+  j          integer;
+  k          integer;
+  troca      text;
   nome_novo  text;
   trof       integer;
   niv        integer;
@@ -227,32 +238,45 @@ begin
       continue;   -- nome repetido: pula, o próximo laço sorteia outro
     end if;
 
+    -- Um ou dois heróis, sorteados do elenco. Dois é o caso mais comum de propósito:
+    -- uma defesa de um só acaba rápido demais e não mostra o que a Arena tem de bom,
+    -- que é trocar de alvo no meio da briga.
+    quantos_h := least(array_length(herois, 1), case when random() < 0.45 then 1 else 2 end);
+
+    -- EMBARALHADO À MÃO, e não com `order by random() limit n`.
+    --
+    -- Aquela forma parece certa e não é, dentro de plpgsql: o plano da consulta fica em
+    -- cache e o resultado sai IGUAL em todas as voltas do laço. Medido — seis sorteios
+    -- seguidos de três nomes devolveram os mesmos dois, sempre os dois primeiros. Todo
+    -- bot saía com o primeiro herói da lista, e um personagem novo no fim do elenco
+    -- nunca apareceria na Arena.
+    --
+    -- Fisher-Yates: código fixo, resultado sorteado, sem consulta para o planejador
+    -- guardar.
+    escolhidos := herois;
+    for j in reverse array_length(escolhidos, 1) .. 2 loop
+      k := 1 + floor(random() * j)::int;
+      troca := escolhidos[j]; escolhidos[j] := escolhidos[k]; escolhidos[k] := troca;
+    end loop;
+    escolhidos := escolhidos[1:quantos_h];
+
     cfg := jsonb_build_object(
       'v', 1,
       'automatica', true,
       'poder', pod,
-      'herois', case when random() < 0.55 then
-          jsonb_build_array(jsonb_build_object(
-            'id', 'achilles', 'nivel', niv, 'poder', pod,
-            'attrs', jsonb_build_object('ritmo', (niv/2)::int, 'afinacao', (niv/3)::int,
-                                        'folego', (niv/3)::int, 'dinamica', (niv/4)::int,
-                                        'memoria', (niv/4)::int),
-            'equipado', '{}'::jsonb, 'pet', null))
-        else
-          jsonb_build_array(
-            jsonb_build_object(
-              'id', 'achilles', 'nivel', niv, 'poder', (pod * 0.55)::int,
-              'attrs', jsonb_build_object('ritmo', (niv/2)::int, 'afinacao', (niv/3)::int,
-                                          'folego', (niv/3)::int, 'dinamica', (niv/4)::int,
-                                          'memoria', (niv/4)::int),
-              'equipado', '{}'::jsonb, 'pet', null),
-            jsonb_build_object(
-              'id', 'wins', 'nivel', greatest(1, niv - 2), 'poder', (pod * 0.45)::int,
-              'attrs', jsonb_build_object('ritmo', (niv/3)::int, 'afinacao', (niv/2)::int,
-                                          'folego', (niv/4)::int, 'dinamica', (niv/3)::int,
-                                          'memoria', (niv/3)::int),
-              'equipado', '{}'::jsonb, 'pet', null))
-        end,
+      'herois', (
+        select jsonb_agg(jsonb_build_object(
+          'id', hid,
+          'nivel', greatest(1, niv - (ord - 1) * 2),
+          'poder', (pod / quantos_h)::int,
+          -- Atributos derivados do nível, com pesos diferentes por posição: o segundo do
+          -- time não é uma cópia mais fraca do primeiro.
+          'attrs', jsonb_build_object(
+            'ritmo',    (niv / (1 + ord))::int, 'afinacao', (niv / (3 - (ord - 1)))::int,
+            'folego',   (niv / 3)::int,         'dinamica', (niv / 4)::int,
+            'memoria',  (niv / 4)::int),
+          'equipado', '{}'::jsonb, 'pet', null))
+        from unnest(escolhidos) with ordinality as e(hid, ord)),
       'tiers', '{}'::jsonb, 'pets', '{}'::jsonb, 'acordes', '[]'::jsonb);
 
     insert into arena_bots (nome, poder, trofeus, vitorias, derrotas, config)
@@ -264,7 +288,10 @@ begin
 end;
 $$;
 
-grant execute on function public.gerar_bots(integer) to authenticated;
+-- A assinatura tem de bater com a da função, INCLUSIVE os parâmetros com valor padrão:
+-- o `grant` não os enxerga. Escrito como `gerar_bots(integer)`, ele falhava com "function
+-- does not exist" e derrubava o arquivo inteiro antes de criar bot nenhum.
+grant execute on function public.gerar_bots(integer, text[]) to authenticated;
 
 -- Povoa agora, mas SÓ se a arena estiver vazia. Sem esta condição, rodar o arquivo de
 -- novo — o que se faz sem pensar, para conferir se está tudo lá — acrescentaria mais
