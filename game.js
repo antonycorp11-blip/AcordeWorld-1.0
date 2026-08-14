@@ -26146,16 +26146,38 @@ async function salvarDefesa(config) {
 }
 
 // ── A LISTA ───────────────────────────────────────────────────────────────────────
-async function listarAdversarios() {
-  const { dados, erro, offline } = await apiPerfil(
-    'arena_lista?select=*&order=trofeus.desc&limit=50');
+// VIZINHOS, NÃO OS MAIORES.
+//
+// Ordenar por troféu e cortar os cinquenta primeiros entrega sempre o topo da tabela —
+// e quem está começando abre a arena e vê cinquenta adversários intocáveis. Pior: é
+// exatamente o estado de quem acabou de criar conta, que é quando a arena precisa
+// parecer jogável.
+//
+// Então a busca é uma JANELA em volta do próprio troféu: um punhado logo acima, para
+// haver o que perseguir, e um punhado logo abaixo, para haver o que defender.
+async function listarAdversarios(meusTrofeus = 0) {
+  const t = meusTrofeus || 0;
+  const [acima, abaixo] = await Promise.all([
+    apiPerfil(`arena_lista?select=*&trofeus=gte.${t}&order=trofeus.asc&limit=18`),
+    apiPerfil(`arena_lista?select=*&trofeus=lt.${t}&order=trofeus.desc&limit=12`),
+  ]);
+  const erro = acima.erro || abaixo.erro;
   if (erro) {
     console.warn('[arena]', erro);
     // Devolve a razão junto: lista vazia por falta de rede e lista vazia por não haver
     // ninguém são coisas diferentes, e o jogador merece saber qual das duas é.
-    return Object.assign([], { falhou: true, offline });
+    return Object.assign([], { falhou: true, offline: acima.offline || abaixo.offline });
   }
-  return (dados || []).filter(x => x.id !== meuId());
+  const juntos = [...(acima.dados || []), ...(abaixo.dados || [])]
+    .filter(x => x.id !== meuId());
+  // Sem repetido: as duas consultas não se sobrepõem hoje, mas basta um empate de
+  // troféu no futuro para o mesmo adversário aparecer duas vezes na lista.
+  const vistos = new Set();
+  // Ordenado pela DISTÂNCIA até o meu troféu, não pelo troféu. Em ordem decrescente o
+  // topo da lista é sempre o adversário mais forte da janela — e o jogador teria de
+  // rolar para achar alguém do tamanho dele, que é justamente quem ele veio enfrentar.
+  return juntos.filter(x => !vistos.has(x.id) && vistos.add(x.id))
+               .sort((a, b) => Math.abs(a.trofeus - t) - Math.abs(b.trofeus - t));
 }
 
 async function meuRanking() {
@@ -26168,8 +26190,11 @@ async function meuRanking() {
 // Busca a defesa do alvo. Sem defesa montada, monta uma a partir do save público dele —
 // é o que garante que TODO jogador seja desafiável desde o primeiro dia.
 async function defesaDe(perfilId) {
+  // `arena_defesa_de` é uma view que já responde pelas duas origens: a defesa montada
+  // por um jogador e a de um bot. O jogo não precisa saber que existem duas tabelas —
+  // e não saber é o que impede um ramo "se for bot" de nascer aqui e se espalhar.
   const { dados } = await apiPerfil(
-    `arena_defesas?perfil_id=eq.${perfilId}&select=config`);
+    `arena_defesa_de?alvo=eq.${perfilId}&select=config`);
   const c = (dados || [])[0]?.config;
   if (c && c.herois?.length) return c;
   const { dados: p } = await apiPerfil(`perfis?id=eq.${perfilId}&select=save,poder,nome`);
@@ -26377,8 +26402,11 @@ async function abrirArena() {
   el.innerHTML = '<div class="ar-caixa"><p class="ar-carregando">Procurando adversários…</p></div>';
   el.classList.remove('hidden');
 
-  const [meu, lista] = await Promise.all([meuRanking(), listarAdversarios()]);
+  // O ranking vem PRIMEIRO, sozinho: a lista de adversários é uma janela em volta do
+  // meu troféu, então ela precisa saber quanto eu tenho antes de ser pedida.
+  const meu = await meuRanking();
   const trof = meu?.trofeus || 0;
+  const lista = await listarAdversarios(trof);
   const pat = patenteDe(trof), prox = proximaPatente(trof);
 
   el.innerHTML = `

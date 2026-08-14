@@ -193,7 +193,12 @@ grant execute on function public.registrar_batalha(uuid, boolean) to authenticat
 
 -- ── A LISTA DA ARENA ────────────────────────────────────────────────────────────
 -- Uma view só, para o cliente não ter de costurar três tabelas no navegador.
-create or replace view public.arena_lista as
+-- `drop` antes de criar, e não `create or replace`: o 002 acrescenta uma coluna a esta
+-- view, e o Postgres recusa uma substituição que MUDE a lista de colunas. Sem o drop,
+-- rodar este arquivo de novo depois do 002 morreria em "cannot drop columns from view" —
+-- e rodar de novo é justamente o que se faz quando algo parece fora do lugar.
+drop view if exists public.arena_lista;
+create view public.arena_lista as
   select p.id, p.nome, p.poder,
          coalesce(r.trofeus, 0)  as trofeus,
          coalesce(r.vitorias, 0) as vitorias,
