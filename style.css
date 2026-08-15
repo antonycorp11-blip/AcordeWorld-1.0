@@ -8409,12 +8409,17 @@ body.sem-rotulos-hud .hud-rot { display: none; }
                                       transparent 68%);
   pointer-events: none;
 }
+/* O canvas OCUPA a caixa e se remede por dentro — sem `object-fit`, que era o que
+   encolhia o herói numa caixa baixa em vez de redesenhá-lo no tamanho certo. */
 .palco-tela {
-  position: relative; z-index: 1;
-  width: 100%; max-height: 100%;
-  object-fit: contain;
+  position: absolute; inset: 0; z-index: 1;
+  width: 100%; height: 100%;
   image-rendering: pixelated;
 }
+/* A moldura precisa de altura para o herói caber inteiro. Em paisagem de celular ela
+   ficava com 130 px e o personagem sumia. */
+.ficha-moldura.palco { min-height: 190px; }
+.palco-dica { top: auto; bottom: 4px; }
 .palco-tags {
   position: relative; z-index: 2;
   display: flex; flex-wrap: wrap; gap: 5px; justify-content: center;
@@ -8479,3 +8484,21 @@ body.sem-rotulos-hud .hud-rot { display: none; }
 .ficha-herois.no-topo .ficha-time-btn { margin-left: 4px; padding: 7px 13px; font-size: 11px; }
 /* A barra lateral perde a fileira e ganha o espaço de volta. */
 .ficha-nav > .ficha-herois:not(.no-topo) { margin-top: auto; }
+
+/* ── Palco: a prévia dos golpes ───────────────────────────────────────────────
+   A pose parada diz como ele é; o golpe diz como ele JOGA, que é a pergunta de
+   quem está escolhendo o time. */
+.palco-dica {
+  position: absolute; top: 8px; left: 0; right: 0; z-index: 2;
+  text-align: center; pointer-events: none;
+  font: 500 9px 'Outfit', sans-serif; letter-spacing: .5px;
+  color: rgba(219,228,255,.45);
+}
+.palco-golpe {
+  position: absolute; top: 24px; left: 0; right: 0; z-index: 3;
+  text-align: center; pointer-events: none;
+  font: 800 13px 'Cinzel', serif; letter-spacing: 1.2px;
+  color: var(--cor-heroi);
+  text-shadow: 0 2px 8px rgba(0,0,0,.9);
+}
+.palco-golpe.hidden { display: none; }

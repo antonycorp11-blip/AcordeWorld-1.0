@@ -2401,7 +2401,20 @@ async function loadPinturasCloud() {
                   const [col, row] = k.split('_').map(Number);
                   const cv = pinturaDoBloco(col, row);
                   const cx = cv.getContext('2d');
-                  cx.clearRect(0, 0, cv.width, cv.height);
+                  // O CANVAS ACOMPANHA A CAIXA, e não o contrário.
+    //
+    // Ele nascia 360x420 fixo. Numa tela larga e baixa — o celular em paisagem, que é o
+    // alvo do jogo — a caixa fica com metade dessa altura, o `object-fit: contain`
+    // encolhe tudo, e o herói vira um boneco de dois centímetros exatamente na tela que
+    // deveria mostrá-lo grande. Medir a caixa a cada quadro custa nada e serve a
+    // qualquer formato.
+    const r = cv.getBoundingClientRect();
+    const larg = Math.max(80, Math.round(r.width)), altura = Math.max(80, Math.round(r.height));
+    if (cv.width !== larg || cv.height !== altura) {
+      cv.width = larg; cv.height = altura;
+      cx.imageSmoothingEnabled = false;
+    }
+    cx.clearRect(0, 0, cv.width, cv.height);
                   cx.drawImage(img, 0, 0);
                 } catch (e) {}
               };
@@ -6738,7 +6751,13 @@ function tocarEfeito(nome, x, y, opts = {}) {
   if (!EFEITOS[nome]) return null;
   const fx = { nome, x, y, inicio: performance.now(),
                ms: opts.ms || EFEITOS[nome].ms, escala: opts.escala || 1,
-               seguir: opts.seguir || null, alfa: opts.alfa ?? 1, atras: !!opts.atras };
+               seguir: opts.seguir || null, alfa: opts.alfa ?? 1, atras: !!opts.atras,
+               // `angulo` gira o efeito; `dx/dy` o afastam do centro de quem o gerou. Os
+               // dois existem para o rastro do golpe: ele nasce na frente do herói e
+               // aponta para onde ele está olhando, e sem isso sairia sempre igual,
+               // atravessado no corpo.
+               angulo: opts.angulo || 0, dx: opts.dx || 0, dy: opts.dy || 0,
+               espelho: !!opts.espelho };
   efeitosEmCurso.push(fx);
   return fx;
 }
@@ -6759,9 +6778,39 @@ function renderEfeitos(now, atras = false) {
     ctx.save();
     ctx.globalAlpha = f.alfa;
     ctx.globalCompositeOperation = 'lighter';   // luz soma, não tapa o que está atrás
-    ctx.drawImage(img, q * fw, 0, fw, fh, x - d / 2, y - d * 0.82, d, d * (fh / fw));
+    ctx.translate(x + f.dx, y + f.dy - d * 0.32);
+    if (f.angulo) ctx.rotate(f.angulo);
+    if (f.espelho) ctx.scale(-1, 1);
+    ctx.drawImage(img, q * fw, 0, fw, fh, -d / 2, -d * (fh / fw) / 2, d, d * (fh / fw));
     ctx.restore();
   }
+}
+
+// O RASTRO DO GOLPE, na direção em que o herói olha.
+//
+// A folha `fx_corte_corda` é um arco desenhado apontando para a DIREITA. Girá-lo por
+// direção é o que faz um desenho só servir aos quatro lados — e é também o que impede o
+// rastro de sair atravessado no corpo, que é como fica quando se desenha centrado.
+//
+// Só sai em quem TEM o efeito declarado. O Akles e a Wins têm rastro próprio dentro das
+// folhas de ataque deles; somar este por cima seria dois rastros no mesmo golpe.
+const ANGULO_DA_DIRECAO = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
+const AVANCO_DO_RASTRO = 30;
+
+function rastroDoGolpe(g) {
+  const def = personagemAtivo();
+  if (!def.rastro || !g) return;
+  const dir = player.direction || 'down';
+  const ang = ANGULO_DA_DIRECAO[dir] ?? 0;
+  const dx = Math.cos(ang) * AVANCO_DO_RASTRO, dy = Math.sin(ang) * AVANCO_DO_RASTRO * 0.6;
+  tocarEfeito(def.rastro, player.x, player.y, {
+    ms: Math.min(340, g.ms * 0.7),
+    // O arco acompanha o alcance do golpe: a estocada risca mais longe que o corte.
+    escala: 0.62 * (g.alcance || 1),
+    angulo: ang, dx, dy,
+    // No remate o arco vem ao contrário, fechando o giro em vez de repetir o corte.
+    espelho: !!g.remate,
+  });
 }
 
 // ══ HABILIDADES DO HUANS ══════════════════════════════════════════════════════════
@@ -7425,6 +7474,7 @@ function doAttack() {
   lastAttack = now;
   golpeEmCurso = g;
   attackAnimUntil = now + g.ms;
+  rastroDoGolpe(g);
   guardaAte = now + g.ms + GUARDA_MS;
   comboMostrado = { passo: comboPasso, rotulo: g.rotulo, ate: now + g.ms + 700 };
 
@@ -15596,6 +15646,9 @@ const HERO_DEFINITIONS = {
     ],
     face: 'assets/personagens/herois/huans_face.png',
     avatar: 'assets/personagens/herois/huans_face.png',
+    // O rastro do golpe: a folha solta que sai a cada elo da corrente. Os outros dois
+    // já trazem o rastro desenhado dentro das folhas de ataque, então só ele declara.
+    rastro: 'corte',
     weapon: 'Machado-Guitarra', clave: 'Dó', registro: 'Grave',
     papel: 'Impacto', raridade: 5, desbloqueado: true,
     base: { vida: 0, dano: 0, ritmo: 0, afinacao: 0 },
@@ -19101,19 +19154,42 @@ function montarPalcoDoHeroi(id) {
   const cor = COR_DA_CLAVE[def.clave] || '#a78bfa';
   caixa.style.setProperty('--cor-heroi', cor);
   caixa.classList.add('palco');
-  caixa.innerHTML = `<canvas class="palco-tela" width="360" height="420"></canvas>
+  caixa.innerHTML = `<canvas class="palco-tela"></canvas>
+    <div class="palco-golpe hidden"></div>
     <div class="palco-tags">
       <i>${def.weapon || '—'}</i><i>Clave de ${def.clave || '—'}</i><i>${def.papel || ''}</i>
-    </div>`;
+    </div>
+    ${(def.combo || []).length ? '<span class="palco-dica">toque para ver os golpes</span>' : ''}`;
 
   const cv = caixa.querySelector('canvas');
   const cx = cv.getContext('2d');
   cx.imageSmoothingEnabled = false;
 
+  // TOCAR NO PALCO MOSTRA O GOLPE.
+  //
+  // A pose parada diz como ele é; o golpe diz como ele JOGA, que é a pergunta de quem
+  // está escolhendo o time. As folhas de ataque já estão carregadas — passar por elas
+  // custa uma variável e é a prévia mais barata que existe.
+  let pose = null, poseAte = 0, elo = -1;
+  cv.style.cursor = 'pointer';
+  cv.addEventListener('click', () => {
+    const c = def.combo || [];
+    if (!c.length) return;
+    elo = (elo + 1) % c.length;
+    pose = c[elo];
+    poseAte = performance.now() + pose.ms + 260;
+    const t = caixa.querySelector('.palco-golpe');
+    if (t) { t.textContent = pose.rotulo || pose.folha; t.classList.remove('hidden'); }
+  });
+
   const passo = (agora) => {
     if (!document.body.contains(cv)) return;        // ficha fechou: para o laço
     const f = def.folhas || {};
-    const alvo = f.parado || f.andar;
+    if (pose && agora > poseAte) {
+      pose = null;
+      caixa.querySelector('.palco-golpe')?.classList.add('hidden');
+    }
+    const alvo = (pose && f[pose.folha]) || f.parado || f.andar;
     const img = alvo && folhasDoHeroi[alvo.src];
     const med = alvo && medidasDasFolhas[alvo.src.split('/').pop()];
     cx.clearRect(0, 0, cv.width, cv.height);
@@ -19121,10 +19197,17 @@ function montarPalcoDoHeroi(id) {
       const fw = img.width / med.cols, fh = img.height / med.rows;
       // Linha da FRENTE, sempre: é a pose em que se reconhece o personagem.
       const linha = (def.linhas || {}).down ?? 0;
-      const quadro = Math.floor(agora / 190) % med.cols;
+      // No golpe os quadros correm do começo ao fim DENTRO da janela dele, como no jogo;
+      // parado, o relógio manda e a respiração acontece sozinha.
+      const quadro = pose
+        ? Math.max(0, Math.min(med.cols - 1,
+            Math.floor((1 - (poseAte - agora) / (pose.ms + 260)) * med.cols)))
+        : Math.floor(agora / 190) % med.cols;
       // Escala pelo CORPO e âncora nos PÉS — a mesma regra do jogo, para o herói não
       // aparecer aqui de um tamanho e lá de outro.
-      const esc = (cv.height * 0.78) / med.corpo;
+      // 0.72 da altura útil: sobra ar em cima para o nome do golpe e embaixo para a
+      // sombra, sem o herói encostar em nenhum dos dois.
+      const esc = (cv.height * 0.72) / med.corpo;
       const dW = fw * esc, dH = fh * esc, dPe = med.base * esc;
       // Sombra no chão: sem ela ele flutua sobre o fundo.
       cx.save();
@@ -19148,7 +19231,11 @@ function montarPalcoDoHeroi(id) {
 // existe na ficha do personagem e é o que de fato diferencia um herói do outro: o Akles
 // investe, a Wins alcança, o Huans quebra. Mostrar isso conta quem ele é.
 function comboEmHtml(def) {
-  const c = def.combo || [];
+  // `COMBO_PADRAO` quando o herói não declara o próprio: é exatamente o que o jogo usa
+  // em campo (`comboAtual`), então mostrar outra coisa aqui seria mentir. O Akles não
+  // declara combo porque o padrão FOI escrito para ele — e por isso a ficha dele
+  // aparecia sem corrente nenhuma.
+  const c = (def.combo && def.combo.length) ? def.combo : COMBO_PADRAO;
   if (!c.length) return '';
   const barra = (v, max) => {
     const n = Math.max(1, Math.min(5, Math.round(v / max * 5)));
@@ -19343,6 +19430,11 @@ function desenharFicha() {
     linha.appendChild(col);
     alvo.appendChild(linha);
   });
+
+  // A corrente entra DEPOIS das habilidades e vale para os tres: e o que o botao de
+  // ataque faz. Ela estava escrita na ficha de cada heroi sem nunca ter sido mostrada —
+  // o Akles e a Wins tem combos proprios e o jogador nao tinha como saber disso.
+  alvo.insertAdjacentHTML('beforeend', comboEmHtml(def));
 }
 
 function fichaBotaoDePassiva(pid) {
