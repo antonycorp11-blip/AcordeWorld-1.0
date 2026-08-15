@@ -14682,7 +14682,8 @@ function quadro(now){
       else {
         garantirFundo(mapKey);
         const bg = bgImages[mapKey];
-        if (bg?.complete) comSuavizacao(() => ctx.drawImage(bg, 0, 0, SCREEN_W, SCREEN_H));
+        if (bg?.complete) comSuavizacao(bg.naturalWidth,
+                                        () => ctx.drawImage(bg, 0, 0, SCREEN_W, SCREEN_H));
       }
       if (currentScene === 'world' && mapKey !== 'mega_world') renderSombrasDeNuvem(now, mapKey);
     }
@@ -15046,10 +15047,22 @@ function quadro(now){
 // PIOR que o velho.
 //
 // Sprite continua sem suavização. A troca vale um desenho e volta ao normal em seguida.
-function comSuavizacao(desenhar) {
+// SUAVIZAR SÓ QUANDO REDUZ. Esta é a correção de uma correção minha, e a distinção é a
+// única coisa que importa aqui:
+//
+//   · REDUZINDO (o mapa tem 2752 px e o quadro desenha 1024 lógicos): sem média entre
+//     pixels vizinhos, dois em cada três somem e a arte serrilha e cintila. Suavizar é o
+//     certo.
+//   · AMPLIANDO (o mapa tem 1024 px e a tela do celular pede 2700): suavizar BORRA. E 35
+//     dos 43 mapas do jogo têm 1024 px, então a versão anterior — que suavizava sempre —
+//     deixou quase o jogo inteiro embaçado. Foi o que o dono viu na praça.
+//
+// A conta é direta: largura do arquivo contra largura do quadro em pixels de verdade.
+function comSuavizacao(largura, desenhar) {
   const antes = ctx.imageSmoothingEnabled;
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
+  const reduzindo = largura > canvas.width;
+  ctx.imageSmoothingEnabled = reduzindo;
+  if (reduzindo) ctx.imageSmoothingQuality = 'high';
   try { desenhar(); } finally { ctx.imageSmoothingEnabled = antes; }
 }
 
