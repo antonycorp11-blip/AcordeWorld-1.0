@@ -19528,14 +19528,21 @@ function desenharFicha() {
                           ? `Atributo vem de Partitura, no bloco acima. Seus ${skillPoints} ponto${skillPoints > 1 ? 's' : ''} de habilidade são para as passivas, ao lado. →`
                           : 'Atributo vem de Partitura — use o bloco acima.')}
       </div>` +
-      Object.entries(ATTR_META).map(([k, info]) => `
-        <div class="fa-linha">
-          <button class="fa-nome" data-explica="${k}">${info.icon} ${info.name} <i>?</i></button>
-          <span class="fa-segs">${Array.from({ length: 10 },
-            (_, i) => `<i class="fb-seg${i < H.attrs[k] ? ' on' : ''}"></i>`).join('')}</span>
-          <b class="fa-val">${H.attrs[k]}</b>
-          <button class="fa-mais" data-attr="${k}" ${H.attrPoints ? '' : 'disabled'}>+</button>
-        </div>`).join('');
+      // AS CINCO LINHAS DE ATRIBUTO SAÍRAM DAQUI. Elas viviam espremidas no fim desta
+      // coluna estreita, com as barras cortadas e as duas últimas quase sempre abaixo da
+      // dobra — e agora existe uma aba inteira só para elas, com o que cada uma faz
+      // escrito e a conta do poder ao lado. Manter as duas seria manter dois lugares para
+      // gastar o mesmo ponto, e dois lugares para divergir.
+      `<button class="fa-ir-atributos" data-ir-atributos>
+         ${H.attrPoints ? `▸ ${H.attrPoints} ponto${H.attrPoints > 1 ? 's' : ''} para distribuir`
+                        : '▸ Ver atributos e o cálculo do poder'}
+       </button>`;
+    barras.querySelector('[data-ir-atributos]')?.addEventListener('click', () => {
+      abaDeAtributos = true;
+      document.querySelectorAll('#fichaHeroi .ficha-aba').forEach(o => o.classList.remove('ativa'));
+      document.querySelector('#fichaHeroi [data-aba="atributos"]')?.classList.add('ativa');
+      desenharFicha();
+    });
     barras.querySelectorAll('.fa-mais').forEach(b2 => b2.addEventListener('click', () => {
       spendAttr(b2.dataset.attr);
       desenharFicha();
@@ -24033,16 +24040,28 @@ const ASCENSOES = [
 // A ascensão sobe junto porque o TETO do herói vem dela: sem os quatro degraus, `nivel`
 // pode virar 20 e o motor continuar tratando o teto como 5.
 function prepararHuansParaTeste() {
-  if (!SELETOR_DE_CENA_LIGADO) return;
-  if (bandeiras.huans_pronto_teste) return;
-  if (!HERO_DEFINITIONS.huans) return;
+  if (!SELETOR_DE_CENA_LIGADO || !HERO_DEFINITIONS.huans) return;
   const h = fichaDoHeroi('huans');
+
+  // NÍVEL E ASCENSÃO SEM BANDEIRA. A primeira versão trancava tudo atrás de uma marca no
+  // save, e a marca não sobrevivia: o preparo rodava na abertura, o save da conta chegava
+  // segundos depois e substituía tudo — inclusive a marca. Quem joga logado, que é o caso
+  // do dono, nunca via o herói no nível 20.
+  //
+  // `Math.max` torna isto seguro de repetir: subir para 20 quem já está em 20 não faz
+  // nada, e quem passar de 20 jogando não é rebaixado. Não há recurso sendo criado.
+  const antes = h.nivel;
   h.nivel = Math.max(h.nivel, 20);
-  h.ascensao = Math.max(h.ascensao, 4);      // teto 20
-  h.attrPoints = Math.max(h.attrPoints, 40);  // para haver o que distribuir na aba nova
-  bandeiras.huans_pronto_teste = true;
+  h.ascensao = Math.max(h.ascensao, 4);      // o teto do herói vem daqui, não do nível
+
+  // OS PONTOS, SIM, DEPENDEM DA MARCA — eles são recurso, e repetir a doação a cada
+  // abertura seria ponto infinito.
+  if (!bandeiras.huans_pronto_teste) {
+    h.attrPoints = Math.max(h.attrPoints, 40);
+    bandeiras.huans_pronto_teste = true;
+  }
+  if (antes < h.nivel) console.info('[teste] Huans no nível 20, três habilidades abertas.');
   savePlayerData();
-  console.info('[teste] Huans no nível 20 com as três habilidades abertas.');
 }
 
 function fichaDoHeroi(id) {
