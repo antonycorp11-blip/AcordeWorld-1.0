@@ -8161,6 +8161,10 @@ function savePlayerData() {
       passivas, habilidadesAbertas,
       passesDeDungeon, dungeons: ultimaConclusaoDeDungeon,
       acompanhante: ACOMP.npc ? ACOMP.npc.id : null,
+      // O MODO vai junto. Guardar só quem acompanha e não COMO fazia o guia virar
+      // seguidor em todo recarregamento: a cena mandava esperar na placa, o jogador
+      // fechava o jogo, e ao voltar o companheiro estava colado nele de novo.
+      acompanhanteModo: ACOMP.modo || null,
       fazendaExpansoes: expansoesCompradas(),
       cenaAceita,
       petsDoJogador, petEquipado,
@@ -8254,6 +8258,7 @@ function loadPlayerData() {
     if (d.petsDoJogador) petsDoJogador = d.petsDoJogador;
     if (d.petEquipado) petEquipado = d.petEquipado;
     if (d.acompanhante) window.__acompanhanteSalvo = d.acompanhante;
+    if (d.acompanhanteModo) window.__acompanhanteModo = d.acompanhanteModo;
     if (typeof d.claves === 'number') claveCount = d.claves;
     if (Array.isArray(d.owned)) ownedItems = d.owned;
     if (d.equipped) equipped = { ...equipped, ...d.equipped };
@@ -12913,9 +12918,16 @@ function executarPasso(p) {
       if (p.dispensar || !p.npc) dispensarAcompanhante();
       else {
         const quem = chamarAcompanhante(p.npc);
-        // `modo: 'guia'` = ela não anda atrás, só espera na placa certa. Serve para quem
-        // está mostrando o caminho e não fazendo companhia.
-        ACOMP.modo = p.modo || 'segue';
+        // GUIA É O PADRÃO, e `segue` é que precisa ser pedido.
+        //
+        // Estava ao contrário, e o resultado era que o modo guia — companheiro que espera
+        // ENCOSTADO NA PLACA do caminho, em vez de correr atrás — existia escrito e nunca
+        // rodava: nenhuma cena passava `modo`, então todas caíam em `segue`. Mais um caso
+        // de código pronto que nenhuma chamada alcançava.
+        //
+        // Guia também é o que não trava: quem espera na placa não precisa de busca de
+        // caminho, e o Pipo encalha em beco.
+        ACOMP.modo = p.modo || 'guia';
         if (quem && ACOMP.modo === 'guia') ACOMP.avisouPlaca = null;
       }
       return false;
@@ -20493,6 +20505,8 @@ function restaurarAcompanhante() {
   if (!n) return;
   window.__acompanhanteSalvo = null;
   ACOMP.npc = n;
+  ACOMP.modo = window.__acompanhanteModo || 'guia';
+  window.__acompanhanteModo = null;
   ACOMP.mapaAnterior = currentKey;
   ACOMP.proximaFala = performance.now() + 6000;
   n.mapKey = currentKey;

@@ -185,6 +185,14 @@
       "id": "wins_no_grupo"
     },
     {
+      "_": "Daqui em diante quem espera nas placas e a Wins. O Pipo sai do posto: dois guias na mesma placa e ruido, e a historia agora e dela."
+    },
+    {
+      "cmd": "acompanhante",
+      "npc": "Wins",
+      "modo": "guia"
+    },
+    {
       "cmd": "tutorial",
       "texto": "Wins entrou no grupo. Troque de herói pelos retratos no canto da tela — cada um tem nível, atributos e habilidades próprios."
     },
