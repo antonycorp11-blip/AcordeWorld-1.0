@@ -19160,16 +19160,20 @@ function alternarNoTime(heroId) {
 }
 
 function montarBotaoDeTime(chips, id) {
+  chips.querySelector('.ficha-time-btn')?.remove();   // um só, a cada desenho
   // Aparece sempre que houver mais de um herói aberto. A primeira versão só o mostrava
   // com MAIS heróis do que vagas, e some justo quando o jogador precisa dele: a Wins
   // começa trancada, então por boa parte do capítulo há dois abertos para duas vagas — e
   // o botão sumia sem explicação. Com dois, ele ainda serve para tirar e repor.
-  const abertos = Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado !== false);
-  if (abertos.length < 2) return;
+  const abertos = new Set([
+    ...(typeof elencoDaConta === 'function' ? elencoDaConta() : []),
+    ...Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado !== false).map(h => h.id),
+  ]);
+  if (abertos.size < 2) return;
 
   const dentro = partyState.party.includes(id);
   const b = document.createElement('button');
-  b.className = 'ficha-time-btn' + (dentro ? ' dentro' : '');
+  b.className = 'ficha-time-btn fora' + (dentro ? ' dentro' : '');
   b.textContent = dentro ? '✓ no time' : '+ pôr no time';
   b.addEventListener('click', () => {
     if (alternarNoTime(id)) { desenharFicha(); renderPartyHUD(); }
@@ -19586,7 +19590,19 @@ function desenharFicha() {
       topo.insertBefore(chips, topo.querySelector('.ficha-pontos'));
     }
     chips.innerHTML = '';
-    Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado !== false).forEach(h => {
+    // TODOS OS PERSONAGENS DA CONTA, não só os que a flag `desbloqueado` marca.
+    //
+    // `desbloqueado` é o estado de FÁBRICA: a Wins nasce falsa e vira verdadeira quando a
+    // história a recruta. Filtrar por ela escondia da barra quem o jogador já tem —
+    // bastava o recrutamento ter vindo pelo save (e não pela cena da sessão atual) para a
+    // Wins sumir daqui, que foi o que aconteceu. `elencoDaConta` já é a resposta certa:
+    // ela conta quem está desbloqueado, quem está no time e quem tem ficha gravada.
+    const doJogador = (typeof elencoDaConta === 'function' ? elencoDaConta() : [])
+      .map(x => HERO_DEFINITIONS[x]).filter(Boolean);
+    const abertosDeFabrica = Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado !== false);
+    const vistos = new Set();
+    [...doJogador, ...abertosDeFabrica].filter(h => !vistos.has(h.id) && vistos.add(h.id))
+      .forEach(h => {
       const b = document.createElement('button');
       const slot = partyState.party.indexOf(h.id);
       b.className = 'ficha-heroi-chip' + (h.id === id ? ' ativo' : '')
@@ -19597,7 +19613,9 @@ function desenharFicha() {
       b.addEventListener('click', () => { fichaHeroiVisto = h.id; desenharFicha(); });
       chips.appendChild(b);
     });
-    montarBotaoDeTime(chips, id);
+    // FORA da barra rolante. Dentro dela, o botão rolava junto e sumia assim que a
+    // lista passasse da largura — que é exatamente quando ele mais serve.
+    montarBotaoDeTime(chips.parentElement === topo ? topo : chips, id);
   }
 
   montarAbaDeAtributos();

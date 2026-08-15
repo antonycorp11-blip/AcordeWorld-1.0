@@ -4,189 +4,189 @@
     "rows": 4,
     "celula": [
       147,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "achilles_ataque.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
       287,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "achilles_ataque_vertical.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
       167,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "achilles_caminhada.png": {
     "cols": 8,
     "rows": 4,
     "celula": [
       137,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "achilles_estocada.png": {
     "cols": 5,
     "rows": 4,
     "celula": [
       271,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "achilles_giro.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
       318,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "achilles_guarda.png": {
     "cols": 4,
     "rows": 4,
     "celula": [
       236,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "achilles_parado.png": {
     "cols": 4,
     "rows": 4,
     "celula": [
-      183,
-      294
+      135,
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "wins_estocada.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
       220,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "wins_giro.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
       223,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "wins_varredura.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
       217,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "wins_vertical.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
       261,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "huans_caminhada.png": {
     "cols": 8,
     "rows": 4,
     "celula": [
       125,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "huans_parado.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
-      131,
-      294
+      123,
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "huans_guarda.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
       201,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "huans_corte.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
       271,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "huans_vertical.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
-      260,
-      294
+      240,
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "huans_estocada.png": {
     "cols": 6,
     "rows": 4,
     "celula": [
       458,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   },
   "huans_giro.png": {
     "cols": 8,
     "rows": 4,
     "celula": [
       191,
-      294
+      289
     ],
     "corpo": 162,
-    "base": 288
+    "base": 283
   }
 }

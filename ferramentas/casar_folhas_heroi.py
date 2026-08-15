@@ -106,6 +106,36 @@ def main(entradas):
     print(f'referência: {referencia} px (a menor — reduzir preserva o desenho, '
           f'ampliar pixel art inventa pixel)')
 
+    # ── PARADO E CAMINHADA TÊM DE MEDIR IGUAL ───────────────────────────────────────
+    #
+    # A escala é uma por PERSONAGEM, tirada da caminhada — e isso basta quando as folhas
+    # vêm todas do mesmo desenho. Não foi o caso do Huans: a folha de parado saiu com o
+    # corpo 6,8% maior que a de caminhada (173 contra 162 de ombro ao pé). Como as duas
+    # recebem o mesmo `corpo` na ficha, o jogo desenhava as duas na mesma escala e o herói
+    # ficava VISIVELMENTE maior parado do que andando — e ele troca entre as duas o tempo
+    # todo, então o defeito aparece a cada passo.
+    #
+    # As folhas de GOLPE ficam de fora desta correção de propósito: nelas o corpo encolhe
+    # porque o personagem agacha, e igualar isso apagaria a pose.
+    for f in folhas:
+        nome = Path(f['caminho']).name
+        # SÓ A FOLHA DE PARADO. Ela é a que troca com a caminhada o tempo todo — a cada
+        # passo dado e a cada tecla solta —, então uma diferença ali aparece o jogo
+        # inteiro. A de GUARDA ficou de fora depois de medir: no Akles ela pediria
+        # encolher e no Huans, crescer 32%, porque um fica de pé em guarda e o outro
+        # agacha. Igualar as duas apagaria a pose de um dos dois.
+        if '_parado' not in nome: continue
+        ref = ref_por_heroi[dono(f['caminho'])]
+        if not f['altura'] or not ref: continue
+        k = ref / f['altura']
+        if abs(k - 1) < 0.03: continue          # já casam: não mexe
+        print(f"  {nome:34} corpo {f['altura']} -> {ref} (x{k:.3f})")
+        f['quadros'] = [q if not q else
+                        q.resize((max(1, round(q.width * k)), max(1, round(q.height * k))),
+                                 Image.NEAREST)
+                        for q in f['quadros']]
+        f['altura'] = ref
+
     # Reescala e mede o maior quadro do conjunto inteiro, para a célula servir a todas.
     maxw = maxh = 0
     for f in folhas:

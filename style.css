@@ -8573,3 +8573,21 @@ body.sem-rotulos-hud .hud-rot { display: none; }
   color: #cbb6ff; font: 700 11.5px 'Outfit', sans-serif; letter-spacing: .3px;
 }
 .fa-ir-atributos:hover { background: rgba(124,58,237,.3); color: #f5e6c8; }
+
+/* ── Barra de personagens: preparada para muitos ──────────────────────────────
+   Ela nasceu para dois retratos. Com três já apertava, e com o gacha vêm mais —
+   então rola na horizontal em vez de espremer, e o botão do time fica FORA da
+   rolagem, senão ele some junto quando a lista passar da largura. */
+.ficha-herois.no-topo {
+  max-width: min(46vw, 520px);
+  overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: thin; -webkit-overflow-scrolling: touch;
+  flex-wrap: nowrap;
+}
+.ficha-herois.no-topo::-webkit-scrollbar { height: 4px; }
+.ficha-herois.no-topo::-webkit-scrollbar-thumb {
+  background: rgba(200,162,74,.5); border-radius: 3px;
+}
+.ficha-herois.no-topo .ficha-heroi-chip { flex: 0 0 auto; }
+/* O botão do time sai da rolagem e fica colado à direita da barra. */
+.ficha-time-btn.fora { flex: 0 0 auto; margin-left: 10px; }

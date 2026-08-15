@@ -111,10 +111,21 @@ def figuras_por_linha(tinta, rgba, colunas):
                 # Rótulo e número são baixos; o personagem ocupa a faixa quase toda.
                 if rec.height < (y1 - y0) * 0.45: continue
                 if e_rotulo(rec): continue
-                pecas.append(rec)
+                pecas.append((x0, rec))      # o X vai junto: a ORDEM é a animação
             if len(pecas) > colunas:
-                pecas = sorted(pecas, key=lambda p: -p.height)[:colunas]
-            fileiras.append(pecas)
+                # A ORDEM DA ESQUERDA PARA A DIREITA É A ANIMAÇÃO, e quase se perdeu aqui.
+                #
+                # Sobrando recorte, os mais altos são escolhidos — um rótulo teimoso ou
+                # uma faísca solta some assim. Mas a versão anterior devolvia a lista JÁ
+                # ORDENADA POR ALTURA, e a folha saía com os quadros embaralhados: o
+                # golpe tocava o impacto antes do bote, e a arma pulava de lado, de
+                # tamanho e de cor entre um quadro e outro. Foi o que o dono viu no golpe
+                # básico do Huans.
+                #
+                # Escolher por altura e depois REORDENAR por X mantém as duas coisas.
+                pecas = sorted(sorted(pecas, key=lambda t: -t[1].height)[:colunas],
+                               key=lambda t: t[0])
+            fileiras.append([r for _, r in pecas])
         return fileiras, 'por faixa'
 
     grade = []
