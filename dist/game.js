@@ -18863,6 +18863,96 @@ function fichaBarraSegmentada(nome, valor, ouro) {
     </div>`;
 }
 
+// ══ O PALCO DO HERÓI ══════════════════════════════════════════════════════════════
+//
+// A moldura mostrava um RETRATO: uma cabecinha parada dentro de uma caixa escura grande,
+// com o resto vazio. A tela chamava "PERSONAGEM" e o personagem era a menor coisa nela.
+//
+// Aqui ele aparece INTEIRO e ANIMADO, na folha de parado — a mesma que o jogo já carrega,
+// sem arte nova. Respirando, grande, sobre a cor da clave dele. É a diferença entre uma
+// ficha de cadastro e a carta de um personagem.
+//
+// Desenhado em canvas e não em <img> por um motivo prático: a folha é uma GRADE, e mostrar
+// um quadro dela exigiria recorte por CSS que muda a cada folha. O canvas recorta a célula
+// certa e anima de graça.
+const COR_DA_CLAVE = { 'Sol': '#22d3ee', 'Fá': '#4ade80', 'Dó': '#f59e0b' };
+let _palco = { id: null, raf: 0 };
+
+function montarPalcoDoHeroi(id) {
+  const caixa = document.querySelector('#fichaHeroi .ficha-moldura');
+  const def = HERO_DEFINITIONS[id];
+  if (!caixa || !def) return;
+  if (_palco.id === id && caixa.querySelector('canvas')) return;   // já está tocando
+
+  cancelAnimationFrame(_palco.raf);
+  _palco.id = id;
+  const cor = COR_DA_CLAVE[def.clave] || '#a78bfa';
+  caixa.style.setProperty('--cor-heroi', cor);
+  caixa.classList.add('palco');
+  caixa.innerHTML = `<canvas class="palco-tela" width="360" height="420"></canvas>
+    <div class="palco-tags">
+      <i>${def.weapon || '—'}</i><i>Clave de ${def.clave || '—'}</i><i>${def.papel || ''}</i>
+    </div>`;
+
+  const cv = caixa.querySelector('canvas');
+  const cx = cv.getContext('2d');
+  cx.imageSmoothingEnabled = false;
+
+  const passo = (agora) => {
+    if (!document.body.contains(cv)) return;        // ficha fechou: para o laço
+    const f = def.folhas || {};
+    const alvo = f.parado || f.andar;
+    const img = alvo && folhasDoHeroi[alvo.src];
+    const med = alvo && medidasDasFolhas[alvo.src.split('/').pop()];
+    cx.clearRect(0, 0, cv.width, cv.height);
+    if (img && img.complete && img.naturalWidth > 10 && med) {
+      const fw = img.width / med.cols, fh = img.height / med.rows;
+      // Linha da FRENTE, sempre: é a pose em que se reconhece o personagem.
+      const linha = (def.linhas || {}).down ?? 0;
+      const quadro = Math.floor(agora / 190) % med.cols;
+      // Escala pelo CORPO e âncora nos PÉS — a mesma regra do jogo, para o herói não
+      // aparecer aqui de um tamanho e lá de outro.
+      const esc = (cv.height * 0.78) / med.corpo;
+      const dW = fw * esc, dH = fh * esc, dPe = med.base * esc;
+      // Sombra no chão: sem ela ele flutua sobre o fundo.
+      cx.save();
+      cx.fillStyle = 'rgba(0,0,0,0.35)';
+      cx.beginPath();
+      cx.ellipse(cv.width / 2, cv.height - 26, dW * 0.13, dW * 0.045, 0, 0, Math.PI * 2);
+      cx.fill();
+      cx.restore();
+      cx.drawImage(img, quadro * fw, linha * fh, fw, fh,
+                   cv.width / 2 - dW / 2, cv.height - 22 - dPe, dW, dH);
+    }
+    _palco.raf = requestAnimationFrame(passo);
+  };
+  _palco.raf = requestAnimationFrame(passo);
+}
+
+// O moveset como identidade, não como tabela.
+//
+// A coluna da direita ficava VAZIA para quem ainda não tem habilidade — um retângulo
+// escuro com dois títulos e nada embaixo, que é o que mais pesava na tela. O combo já
+// existe na ficha do personagem e é o que de fato diferencia um herói do outro: o Akles
+// investe, a Wins alcança, o Huans quebra. Mostrar isso conta quem ele é.
+function comboEmHtml(def) {
+  const c = def.combo || [];
+  if (!c.length) return '';
+  const barra = (v, max) => {
+    const n = Math.max(1, Math.min(5, Math.round(v / max * 5)));
+    return '<b>' + '▮'.repeat(n) + '</b>' + '▯'.repeat(5 - n);
+  };
+  return `<div class="fm-bloco">
+    <div class="fm-cab">CORRENTE DE GOLPES<span>${def.weapon || ''}</span></div>
+    ${c.map((g, i) => `<div class="fm-linha">
+      <span class="fm-n">${i + 1}</span>
+      <span class="fm-nome">${g.rotulo || g.folha}${g.remate ? ' <em>remate</em>' : ''}</span>
+      <span class="fm-med" title="dano">${barra(g.dano || 1, 2.6)}</span>
+      <span class="fm-ms">${g.ms}ms</span>
+    </div>`).join('')}
+  </div>`;
+}
+
 function desenharFicha() {
   const el = document.getElementById('fichaHeroi');
   if (!el || el.classList.contains('hidden')) return;
@@ -18883,8 +18973,7 @@ function desenharFicha() {
       + ` <em>·</em> <b>${claveCount.toLocaleString('pt-BR')}</b> claves`;
     pts.classList.toggle('vazio', !skillPoints);
   }
-  const ret = document.getElementById('fichaRetrato');
-  if (ret && ret.getAttribute('src') !== extra.retrato) ret.src = extra.retrato;
+  montarPalcoDoHeroi(id);
   const nome = document.getElementById('fichaNome');
   if (nome) nome.textContent = (def.name || id).toUpperCase();
   const sub = document.getElementById('fichaSub');
@@ -18974,7 +19063,15 @@ function desenharFicha() {
   const lista = HABILIDADES[id] || [];
   const alvo = document.getElementById('fichaHabs');
   if (!alvo) return;
-  alvo.innerHTML = '';
+  // O cabeçalho HABILIDADES/PASSIVAS só faz sentido se houver habilidade. Sem isto, quem
+  // abre a ficha de um herói novo vê dois títulos sobre o vazio.
+  document.querySelector('#fichaHeroi .ficha-hab-cab')?.classList.toggle('hidden', !lista.length);
+  alvo.innerHTML = lista.length ? '' : comboEmHtml(def);
+  if (!lista.length) {
+    const l = document.getElementById('fichaLema');
+    if (l) l.textContent = def.lema ? `"${def.lema}"` : '';
+    return;
+  }
   lista.forEach((h, i) => {
     const linha = document.createElement('div');
     linha.className = 'ficha-hab' + (h.suprema ? ' suprema' : '');

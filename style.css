@@ -8385,3 +8385,82 @@ body.sem-rotulos-hud .hud-rot { display: none; }
   color: #f5e6c8; font: 700 11px 'Outfit', sans-serif; letter-spacing: .3px;
 }
 .ficha-time-btn.dentro { background: rgba(20,16,34,.9); border-color: #c8a24a; color: #c8a24a; }
+
+/* ══ FICHA: O PERSONAGEM EM EVIDÊNCIA ══════════════════════════════════════════
+   A moldura mostrava um retrato pequeno numa caixa grande e escura, com a coluna
+   da direita vazia. A tela se chama PERSONAGEM e o personagem era a menor coisa
+   nela. Agora ele ocupa a moldura inteira, animado, sobre a cor da clave dele. */
+.ficha-moldura.palco {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  padding: 0; overflow: hidden;
+  background:
+    radial-gradient(120% 78% at 50% 8%, color-mix(in srgb, var(--cor-heroi) 26%, transparent) 0%,
+                                        transparent 62%),
+    linear-gradient(180deg, #12183a 0%, #0b1029 68%, #080b1e 100%);
+  border-color: color-mix(in srgb, var(--cor-heroi) 55%, #c8a24a);
+  box-shadow: inset 0 0 44px color-mix(in srgb, var(--cor-heroi) 16%, transparent);
+}
+/* Halo atrás do herói: separa a silhueta do fundo sem tocar no sprite. */
+.ficha-moldura.palco::before {
+  content: ''; position: absolute; left: 50%; bottom: 14%;
+  width: 62%; aspect-ratio: 1; transform: translateX(-50%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--cor-heroi) 34%, transparent) 0%,
+                                      transparent 68%);
+  pointer-events: none;
+}
+.palco-tela {
+  position: relative; z-index: 1;
+  width: 100%; max-height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.palco-tags {
+  position: relative; z-index: 2;
+  display: flex; flex-wrap: wrap; gap: 5px; justify-content: center;
+  padding: 0 8px 9px;
+}
+.palco-tags i {
+  padding: 3px 9px; border-radius: 999px; font-style: normal;
+  background: rgba(8,11,26,.72);
+  border: 1px solid color-mix(in srgb, var(--cor-heroi) 45%, transparent);
+  color: #dbe4ff; font: 600 10px 'Outfit', sans-serif; letter-spacing: .3px;
+}
+
+/* ── O moveset no lugar do vazio ──────────────────────────────────────────── */
+.fm-bloco { padding: 4px 2px; }
+.fm-cab {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 8px; padding-bottom: 6px;
+  border-bottom: 1px solid rgba(200,162,74,.28);
+  font: 800 11px 'Outfit', sans-serif; letter-spacing: 1.6px; color: #c8a24a;
+}
+.fm-cab span { font-weight: 500; letter-spacing: .3px; color: #94a3b8; text-transform: none; }
+.fm-linha {
+  display: grid; grid-template-columns: 22px 1fr auto 52px;
+  align-items: center; gap: 8px;
+  padding: 7px 8px; margin-bottom: 5px;
+  background: rgba(255,255,255,.035); border-radius: 8px;
+  border-left: 2px solid rgba(200,162,74,.4);
+}
+.fm-n {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(200,162,74,.18); color: #c8a24a;
+  font: 800 10px/20px 'Outfit', sans-serif; text-align: center;
+}
+.fm-nome { font: 600 12px 'Outfit', sans-serif; color: #e2e8f0; }
+.fm-nome em {
+  font-style: normal; font-size: 9px; letter-spacing: .6px;
+  color: #f0abfc; opacity: .85;
+}
+.fm-med { font-size: 10px; letter-spacing: 1px; color: #3b4463; }
+.fm-med b { color: #f59e0b; font-weight: 400; }
+.fm-ms { font: 500 10px 'Outfit', sans-serif; color: #64748b; text-align: right; }
+
+/* ── Os chips de herói, maiores e legíveis ────────────────────────────────── */
+.ficha-herois { gap: 7px; }
+.ficha-heroi-chip { width: 46px; height: 46px; }
+.ficha-heroi-chip.ativo {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 14px rgba(0,0,0,.5), 0 0 0 2px #c8a24a;
+}
