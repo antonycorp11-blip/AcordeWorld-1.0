@@ -4,7 +4,7 @@
 descreve as **folhas**. Você entrega o desenho do Huans como referência de imagem e pede as
 poses; o gerador não inventa design, só anima o que você deu.
 
-São **treze folhas**: sete do personagem e seis de efeito de habilidade. Todas seguem o
+São **doze folhas**: sete do personagem e cinco de efeito de habilidade. Todas seguem o
 mesmo molde do Akles e da Wins, medido das folhas deles — é isso que impede o herói de
 mudar de tamanho ao trocar de personagem ou de golpe.
 
@@ -134,11 +134,11 @@ um de apoio.
 > forms and the strands rise, 4–6 they pulse steadily, 7–8 they fade. The centre stays
 > **empty and transparent** so the character shows through.
 
-### 9. `fx_aura_dissonancia` — aura de ameaça
-> **Content: a standing aura of broken, jagged sound.** Same shape as above — ground ring
-> plus rising strands — but the strands are snapped and frayed, whipping out of rhythm, with
-> small dark cracks in the ring. Cold violet and deep magenta. Centre **empty and
-> transparent**.
+### 9. ~~`fx_aura_dissonancia`~~ — **cortada**
+Dissonância é dos Dissonantes, não dele. Uma aura de som quebrado no herói contaria a
+história errada: ele é do Clã das Cordas, e o que ele faz é ressoar. Se um dia ele precisar
+de uma segunda aura, ela sai do mesmo vocabulário — corda, vibração, harmônico —, não do
+vocabulário do inimigo.
 
 ### 10. `fx_corte_corda` — o rastro do golpe horizontal
 > **Content: a wide crescent slash trail, drawn as a taut string snapping.** A curved arc
@@ -180,7 +180,6 @@ assets/personagens/herois/huans_giro.png
 assets/personagens/herois/huans_face.png      ← o retrato, se já tiver
 
 assets/efeitos/fx_aura_ressonancia.png
-assets/efeitos/fx_aura_dissonancia.png
 assets/efeitos/fx_corte_corda.png
 assets/efeitos/fx_onda_harmonica.png
 assets/efeitos/fx_acorde_impacto.png
