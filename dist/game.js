@@ -5461,11 +5461,23 @@ function renderRelogioDoMundo() {
   if (el.dataset.sig === sig) return;
   el.dataset.sig = sig;
   el.classList.toggle('noite', noite);
-  // Na clareira o aviso é mais forte: é lá que a noite tem consequência.
   const perigo = noite && mapaTemEcos(currentKey);
+
+  // SÓ O ÍCONE, QUASE SEMPRE.
+  //
+  // Era uma faixa com duas linhas de texto no meio do topo, permanente. Ela ocupava o
+  // lugar onde o jogador olha para ver o que está à frente, e passava 90% do tempo
+  // dizendo o óbvio — "DIA, anoitece em 7 min" — porque a informação só importa em dois
+  // momentos: quando a virada está perto e quando a noite tem consequência.
+  //
+  // Então o normal é um selo pequeno, do tamanho de um botão do HUD. Ele ABRE sozinho e
+  // mostra o texto nos dois momentos em que serve, e fecha de novo depois.
+  const abrir = perigo || min <= 2;
+  el.classList.toggle('so-ico', !abrir);
   el.innerHTML = `<span class="ht-ico">${noite ? '🌑' : '☀️'}</span>`
-    + `<span class="ht-txt">${noite ? 'NOITE' : 'DIA'}`
-    + `<small>${perigo ? 'caçadores entre os Ecos' : (noite ? 'amanhece' : 'anoitece') + ` em ${min} min`}</small></span>`;
+    + (abrir ? `<span class="ht-txt">${noite ? 'NOITE' : 'DIA'}`
+      + `<small>${perigo ? 'caçadores entre os Ecos'
+                         : (noite ? 'amanhece' : 'anoitece') + ` em ${min} min`}</small></span>` : '');
 }
 
 function renderRessonancia() {
@@ -21291,9 +21303,31 @@ function dispensarAcompanhante() {
 function acompanhanteAtivo() { return !!ACOMP.npc; }
 
 // Rechama quem estava acompanhando antes de o jogo ser fechado.
+// A HISTÓRIA MANDA MAIS QUE O SAVE.
+//
+// O acompanhante fica guardado por id e volta a cada abertura. Só que quem o dispensa é
+// uma CENA — o `cap1_entrega` solta o Pipo, por exemplo —, e se essa cena já rodou o
+// menino não deveria voltar. Voltava: o save dizia "Pipo" e ninguém perguntava se a
+// história já tinha passado do ponto em que ele andava junto. O dono viu o Pipo colado
+// nele numa missão em que o menino nem aparece.
+//
+// A resposta sai dos próprios roteiros: se ALGUMA cena que já aconteceu manda dispensar,
+// o acompanhamento acabou. Nada codificado por nome — cena nova que dispense já entra
+// nesta conta sozinha.
+function acompanhamentoJaAcabou() {
+  return (CUT.roteiros || []).some(c =>
+    cenaJaRodou(c) && (c.passos || []).some(p =>
+      p.cmd === 'acompanhante' && (p.dispensar || !p.npc)));
+}
+
 function restaurarAcompanhante() {
   const id = window.__acompanhanteSalvo;
   if (!id || ACOMP.npc) return;
+  if (acompanhamentoJaAcabou()) {
+    window.__acompanhanteSalvo = null; window.__acompanhanteModo = null;
+    savePlayerData();
+    return;
+  }
   const n = npcData.find(x => x.id === id);
   if (!n) return;
   window.__acompanhanteSalvo = null;
@@ -22252,8 +22286,51 @@ function bonusDeConjunto() {
 // uma segunda conta para exibição: se o número mudar aqui, mudou na luta.
 let filtroDoInventario = 'todos';
 
+// ══ A BARRA LATERAL EM TODAS AS TRÊS TELAS ════════════════════════════════════════
+//
+// Equipamento e Composição são overlays SEPARADOS: abrir uma delas fecha a ficha, e as
+// abas iam junto. Para voltar ao personagem o jogador tinha de sair, reabrir o HUD e
+// entrar de novo — três toques para desfazer um. As três telas são o mesmo assunto e
+// devem ter a mesma navegação.
+//
+// A barra é INJETADA por JS, não escrita nos dois `index.html`: manter o mesmo bloco à
+// mão em dois arquivos é a armadilha que o CLAUDE.md registra.
+const ABAS_DO_PERSONAGEM = [
+  ['geral',      'VISÃO GERAL'],
+  ['atributos',  'ATRIBUTOS'],
+  ['equip',      'EQUIPAMENTO'],
+  ['composicao', 'COMPOSIÇÃO'],
+];
+
+function irParaAbaDoPersonagem(aba) {
+  fecharEquipamentos?.(); fecharComposicao?.();
+  if (aba === 'equip')      { fecharFicha?.(); abrirEquipamentos(); return; }
+  if (aba === 'composicao') { fecharFicha?.(); abrirComposicao();   return; }
+  abaDeAtributos = (aba === 'atributos');
+  abrirFicha(fichaHeroiVisto || selectedHeroId);
+}
+
+function injetarBarraLateral(overlay, ativa) {
+  const quadro = overlay?.firstElementChild;
+  if (!quadro) return;
+  let nav = quadro.querySelector('.ficha-nav.injetada');
+  if (!nav) {
+    nav = document.createElement('nav');
+    nav.className = 'ficha-nav injetada';
+    quadro.insertBefore(nav, quadro.firstChild);
+    quadro.classList.add('com-barra');
+  }
+  nav.innerHTML = ABAS_DO_PERSONAGEM.map(([id, rot]) =>
+    `<button class="ficha-aba${id === ativa ? ' ativa' : ''}" data-ir="${id}">${rot}</button>`
+  ).join('');
+  nav.querySelectorAll('[data-ir]').forEach(b =>
+    b.addEventListener('click', () => irParaAbaDoPersonagem(b.dataset.ir)));
+}
+
 function abrirEquipamentos() {
-  document.getElementById('equipTela')?.classList.remove('hidden');
+  const el = document.getElementById('equipTela');
+  el?.classList.remove('hidden');
+  injetarBarraLateral(el, 'equip');
   desenharEquipamentos();
 }
 function fecharEquipamentos() {
@@ -23769,7 +23846,9 @@ document.getElementById('acConfirmar')?.addEventListener('click', confirmarEscol
 // ── Tela de Composição ────────────────────────────────────────────────────────
 function abrirComposicao() {
   trocarFocoDeAcordes(heroiEmFoco());
-  document.getElementById('composicao')?.classList.remove('hidden');
+  const el = document.getElementById('composicao');
+  el?.classList.remove('hidden');
+  injetarBarraLateral(el, 'composicao');
   desenharComposicao();
 }
 function fecharComposicao() { document.getElementById('composicao')?.classList.add('hidden'); }
@@ -24246,15 +24325,20 @@ function blocoDeNivelDoHeroi(id) {
   if (noLimite) {
     return `<div class="fa-nivel"><div class="fan-topo"><b>NÍVEL MÁXIMO</b></div></div>`;
   }
-  return `<div class="fa-nivel">
-    <div class="fan-topo"><b>XP DO HERÓI</b><span>${h.xp} / ${precisa}</span></div>
+  // SUBIR DE NÍVEL É A AÇÃO DESTA TELA, então ela deixa de ser um botãozinho apertado ao
+  // lado de outro. Com os atributos fora daqui, a Visão Geral tem espaço — e o que sobra
+  // dela é exatamente isto: quem é o herói e como ele cresce.
+  const tem = partituras();
+  return `<div class="fa-nivel grande">
+    <div class="fan-topo"><b>NÍVEL ${h.nivel}</b><span>${h.xp} / ${precisa} XP</span></div>
     <div class="fan-barra"><i style="width:${pct}%"></i></div>
-    <div class="fan-acoes">
-      <button class="fan-btn${partituras() > 0 ? ' pode' : ''}" data-partitura="1">
-        USAR 1 PARTITURA</button>
-      <button class="fan-btn${partituras() >= 10 ? ' pode' : ''}" data-partitura="10">×10</button>
-      <span class="fan-tem">${partituras()} guardadas</span>
-    </div>
+    <button class="fan-subir${tem > 0 ? ' pode' : ''}" data-partitura="1">
+      <span class="fs-ico">♪</span>
+      <span class="fs-txt"><b>SUBIR DE NÍVEL</b><i>gasta 1 Partitura</i></span>
+      <span class="fs-tem">${tem}</span>
+    </button>
+    <button class="fan-btn dez${tem >= 10 ? ' pode' : ''}" data-partitura="10">
+      usar 10 de uma vez</button>
   </div>`;
 }
 
@@ -24522,19 +24606,40 @@ function abrirPreTela() {
   const el = document.getElementById('preTela');
   if (!el) return;
   preTelaAberta = true;
-  const id = selectedHeroId || 'achilles';
-  const def = HERO_DEFINITIONS[id] || {};
-  const h = fichaDoHeroi(id);
-  const r = document.getElementById('ptRetrato');
-  const arte = (FICHA_HEROIS[id] || {}).retrato;
-  if (r && arte) r.src = arte;
-  document.getElementById('ptNome').textContent = (def.name || id).toUpperCase();
-  document.getElementById('ptClasse').textContent = def.class || '';
-  document.getElementById('ptNivelHeroi').textContent = h.nivel;
-  document.getElementById('ptNivelConta').textContent = level;
-  document.getElementById('ptPoder').textContent = nivelDePoder().toLocaleString('pt-BR');
-  document.getElementById('ptOuro').textContent = playerCoins.toLocaleString('pt-BR');
-  document.getElementById('ptClaves').textContent = claveCount.toLocaleString('pt-BR');
+
+  // O CARTÃO É DA CONTA, NÃO DE UM HERÓI.
+  //
+  // Antes ele mostrava um personagem só, com o poder DELE — e o número parecia o da
+  // conta. Quem tem três heróis abria o jogo vendo um terço do que tem. Agora a fileira
+  // traz todos, cada um com o próprio poder embaixo, e o total da conta vem separado,
+  // com as moedas ao lado, que é o que essa tela existe para responder: onde eu parei e
+  // com o que eu tenho.
+  const elenco = (typeof elencoDaConta === 'function' ? elencoDaConta() : [selectedHeroId])
+    .filter(x => HERO_DEFINITIONS[x]);
+  const cartao = el.querySelector('.pt-cartao');
+  if (cartao) {
+    cartao.innerHTML = `
+      <div class="pt-fila">${elenco.map(hid => {
+        const d = HERO_DEFINITIONS[hid], f = fichaDoHeroi(hid);
+        const arte = (FICHA_HEROIS[hid] || {}).retrato || d.face || '';
+        const noTime = partyState.party.includes(hid);
+        return `<div class="pt-card${noTime ? ' no-time' : ''}">
+          <img src="${arte}" alt="${d.name}">
+          <b>${d.name}</b>
+          <span class="pt-nv">nv ${f.nivel}</span>
+          <span class="pt-pod">${comHeroi(hid, nivelDePoder).toLocaleString('pt-BR')}</span>
+        </div>`;
+      }).join('')}</div>
+      <div class="pt-conta">
+        <div class="pt-conta-item"><span>CONTA</span><b>${level}</b></div>
+        <div class="pt-conta-item forte"><span>PODER TOTAL</span>
+          <b>${(typeof poderDaConta === 'function' ? poderDaConta() : nivelDePoder())
+                .toLocaleString('pt-BR')}</b></div>
+        <div class="pt-conta-item"><span>🪙 ouro</span><b>${playerCoins.toLocaleString('pt-BR')}</b></div>
+        <div class="pt-conta-item"><span>𝄞 claves</span><b>${claveCount.toLocaleString('pt-BR')}</b></div>
+      </div>`;
+  }
+
   const q = missaoAtual();
   document.getElementById('ptMissao').innerHTML = q
     ? `<span>CONTINUAR</span><b>${q.title || q.id}</b>
@@ -27422,7 +27527,10 @@ function atualizarBotaoDeConta() {
     barra.appendChild(b);
   }
   const nome = CONTA.perfil?.nome;
-  b.innerHTML = `<span class="hud-emoji">${nome ? '☁️' : '👤'}</span>`
+  // MESMA CAIXA DOS OUTROS BOTÕES. Ele era montado à parte e saía com outra altura e
+  // outro peso de texto, e ficava visivelmente torto na fileira. `hud-emoji` sozinho não
+  // ocupa o espaço que uma `hud-arte` ocupa — daí o desalinho.
+  b.innerHTML = `<span class="hud-emoji hud-arte-vaga">${nome ? '☁️' : '👤'}</span>`
               + `<span class="hud-rot">${nome ? nome.slice(0, 9) : 'Entrar'}</span>`;
   b.classList.toggle('logado', !!nome);
 }
@@ -27478,10 +27586,9 @@ function abrirTelaDeConta(modo) {
       <button class="ct-x" data-fechar>✖</button>
       <h2>${p.nome}</h2>
       <p class="ct-sub">Poder da conta <b>${(p.poder || 0).toLocaleString('pt-BR')}</b></p>
-      <p class="ct-nota">O progresso deste aparelho sobe para a conta sozinho. Entre com
-         o mesmo e-mail em outro aparelho para continuar de onde parou.</p>
+      <p class="ct-nota">O progresso sobe sozinho, o tempo todo. Entre com o mesmo e-mail
+         em outro aparelho para continuar de onde parou.</p>
       <div class="ct-acoes">
-        <button class="ct-btn" data-enviar>Salvar na conta agora</button>
         <button class="ct-btn secundario" data-sair>Sair da conta</button>
       </div>
     </div>` : `

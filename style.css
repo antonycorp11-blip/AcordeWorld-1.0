@@ -6101,6 +6101,7 @@ body.jogando .party-hud { top: 46%; }
 
 .dg-quadro {
   width: min(560px, 92%); max-height: 92%; overflow-y: auto;
+  scrollbar-width: thin;
   padding: 18px 22px 16px;
   background: linear-gradient(165deg, rgba(40,34,86,.97), rgba(12,14,34,.98) 60%);
   border: 2px solid #a97e2c;
@@ -7373,7 +7374,15 @@ body.jogando .party-hud.calmo { opacity: .62; }
   font-family: 'Outfit', sans-serif;
 }
 .pt-overlay.hidden { display: none; }
-.pt-quadro { display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(560px, 92%); }
+/* A TELA INTEIRA TEM DE CABER, SEM ROLAR. O botão INICIAR ficava abaixo da dobra em
+   paisagem de celular e o dono precisava virar o aparelho para conseguir entrar — numa
+   tela cuja única função é entrar. O quadro agora ocupa a altura disponível e o botão
+   fica ancorado no fim dela. */
+.pt-overlay { padding: 10px 12px; align-items: stretch; }
+.pt-quadro {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  width: min(620px, 96%); margin: auto; max-height: 100%;
+}
 .pt-logo { width: min(64vw, 380px); filter: drop-shadow(0 8px 26px rgba(168,85,247,.45)); }
 .pt-cartao {
   width: 100%; padding: 12px 14px;
@@ -8591,3 +8600,163 @@ body.sem-rotulos-hud .hud-rot { display: none; }
 .ficha-herois.no-topo .ficha-heroi-chip { flex: 0 0 auto; }
 /* O botão do time sai da rolagem e fica colado à direita da barra. */
 .ficha-time-btn.fora { flex: 0 0 auto; margin-left: 10px; }
+
+/* ── Pré-tela: a conta inteira, não um herói ──────────────────────────────────
+   Ela mostrava um personagem só, com o poder DELE, e o número parecia o da
+   conta. Quem tem três heróis abria o jogo vendo um terço do que tem. */
+.pt-fila {
+  display: flex; gap: 8px; justify-content: center; flex-wrap: nowrap;
+  overflow-x: auto; padding-bottom: 3px;
+}
+.pt-card {
+  flex: 0 0 auto; width: 84px; padding: 7px 4px 6px; text-align: center;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(146,110,200,.3);
+  border-radius: 10px;
+}
+.pt-card.no-time { border-color: #c8a24a; background: rgba(200,162,74,.12); }
+.pt-card img {
+  width: 46px; height: 46px; object-fit: contain; object-position: top;
+  image-rendering: pixelated;
+}
+.pt-card b { display: block; font-size: 11px; color: #f8ecc4; letter-spacing: .04em; }
+.pt-nv  { display: block; font-size: 9px; color: #8a79b8; }
+.pt-pod { display: block; font-size: 13px; font-weight: 800; color: #ffd77a; }
+
+.pt-conta {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  margin-top: 9px; padding-top: 9px; border-top: 1px solid rgba(169,126,44,.35);
+}
+.pt-conta-item { text-align: center; }
+.pt-conta-item span { display: block; font-size: 8px; font-weight: 800;
+                      letter-spacing: .14em; color: #8a79b8; }
+.pt-conta-item b { font-size: 15px; color: #f2e3b6; }
+.pt-conta-item.forte b { color: #ffd77a; font-size: 18px; }
+
+/* Em paisagem baixa tudo encolhe junto, para o botão nunca sair da tela. */
+/* MEDIDO, não estimado: a 900x414 o conteúdo somava 437 px numa janela de 394 — 43 a
+   mais, e o INICIAR caía fora. A logo sozinha levava 98. Limitar a logo pela ALTURA (e
+   não pela largura) é o que resolve, porque é a altura que está faltando. */
+@media (max-height: 470px) {
+  .pt-logo { width: auto; max-height: 58px; max-width: 60vw; }
+  .pt-quadro { gap: 6px; }
+  .pt-cartao { padding: 7px 9px; }
+  .pt-card { width: 66px; padding: 4px 3px; }
+  .pt-card img { width: 32px; height: 32px; }
+  .pt-card b { font-size: 10px; }
+  .pt-nv { font-size: 8px; }
+  .pt-pod { font-size: 12px; }
+  .pt-conta { margin-top: 6px; padding-top: 6px; }
+  .pt-conta-item span { font-size: 7px; }
+  .pt-conta-item b { font-size: 12px; }
+  .pt-conta-item.forte b { font-size: 14px; }
+  .pt-missao { padding: 5px 10px; }
+  .pt-missao b { font-size: 11px; }
+  .pt-missao small { font-size: 9px; }
+  .pt-cena label { font-size: 8px; }
+  .pt-jogar { padding: 8px; font-size: 11px; letter-spacing: .2em; }
+}
+
+/* ══ PORTÃO DA DUNGEON: CABE NA TELA, SEM ROLAR ═══════════════════════════════
+   Ele era uma coluna alta com `overflow-y: auto`, e num celular em paisagem o
+   botão ENTRAR ficava abaixo da dobra: o jogador rolava para decidir e rolava de
+   novo para aceitar. Num jogo de celular isso é um erro de projeto, não de
+   estilo — a decisão e o aceite têm de estar visíveis juntos.
+
+   A saída é duas colunas em paisagem: identidade e dificuldade à esquerda,
+   metas e prêmio à direita, botões ancorados embaixo. */
+@media (min-aspect-ratio: 13/10) {
+  .dg-quadro {
+    width: min(94vw, 900px); max-height: 94%; overflow: hidden;
+    display: grid; grid-template-columns: 1fr 1fr;
+    grid-template-areas: 'exige exige' 'cab metas' 'dif metas' 'botoes botoes';
+    align-content: start; gap: 0 18px; padding: 12px 16px 12px;
+  }
+  .dg-exige       { grid-area: exige; }
+  .dg-cab         { grid-area: cab; padding-bottom: 6px; margin-bottom: 6px; }
+  .dg-objetivo    { grid-area: cab; align-self: end; margin: 0; }
+  .dg-dificuldades{ grid-area: dif; align-content: start; }
+  .dg-metas, .dg-premio, .dg-achados, .dg-passe { grid-column: 2; }
+  .dg-metas       { grid-area: metas; align-self: start; }
+  .dg-botoes      { grid-area: botoes; margin-top: 8px; }
+
+  /* Tudo encolhe junto: o que não pode é sair da tela. */
+  .dg-nome    { font-size: 18px; margin: 4px 0 1px; }
+  .dg-sub     { font-size: 10px; }
+  .dg-objetivo{ font-size: 11px; margin-bottom: 6px; }
+  .dg-meta b  { font-size: 13px; }
+  .dg-meta small { font-size: 8px; }
+  .dg-metas   { margin-bottom: 8px; }
+}
+/* Em telas MUITO baixas o quadro ainda pode rolar por dentro, mas os botões nunca:
+   eles ficam colados no fim, sempre alcançáveis. */
+.dg-botoes { position: sticky; bottom: 0; background: linear-gradient(180deg,
+             rgba(12,14,34,0) 0%, rgba(12,14,34,.95) 30%); padding-top: 8px; }
+
+/* ── Dia e noite: selo pequeno que só abre quando importa ─────────────────────
+   Era uma faixa permanente com duas linhas de texto no meio do topo — o lugar
+   onde o jogador olha para ver o que está à frente —, e passava quase todo o
+   tempo dizendo o óbvio. Agora é um selo do tamanho de um botão do HUD, e ele
+   abre sozinho quando a virada está perto ou quando há caçadores soltos. */
+.ht-caixa.so-ico { padding: 4px; gap: 0; width: 26px; height: 26px;
+                   justify-content: center; }
+.ht-caixa.so-ico .ht-ico { font-size: 14px; }
+.ht-caixa { transition: width .25s ease, padding .25s ease; }
+
+/* ── Barra de vida: menor ─────────────────────────────────────────────────────
+   170 px de largura e 14 de altura no celular tomavam um quinto da tela e
+   espremiam o personagem contra o resto do HUD. */
+.bar { width: 118px; height: 10px; border-width: 1px; }
+.bar.xp { width: 118px; height: 7px; }
+@media (min-width: 900px) { .bar, .bar.xp { width: 140px; } }
+
+/* O botão de conta usa a mesma caixa dos outros: um emoji solto não ocupa o
+   espaço de uma `hud-arte`, e ele saía mais baixo que o resto da fileira. */
+.hud-arte-vaga {
+  display: grid; place-items: center;
+  width: 28px; height: 28px; font-size: 17px; line-height: 1;
+}
+
+/* ── Subir de nível: a ação principal da Visão Geral ──────────────────────────
+   Com os atributos fora daqui, o que sobra desta coluna é quem é o herói e como
+   ele cresce. O botão era pequeno e dividia a linha com um "×10" do mesmo peso;
+   agora ele é o destaque e o ×10 é o secundário. */
+.fa-nivel.grande { padding: 12px; }
+.fan-subir {
+  display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 10px;
+  width: 100%; margin-top: 10px; padding: 11px 12px;
+  background: linear-gradient(180deg, #ffe9ab, #d19a26);
+  border: 2px solid #e8c469; border-radius: 11px;
+  color: #2a1c06; text-align: left;
+  box-shadow: 0 3px 0 rgba(0,0,0,.35);
+}
+.fan-subir:not(.pode) {
+  background: rgba(30,36,60,.7); border-color: rgba(107,124,180,.35);
+  color: #6b779c; box-shadow: none;
+}
+.fs-ico { font-size: 20px; text-align: center; }
+.fs-txt b { display: block; font: 800 13px 'Outfit', sans-serif; letter-spacing: .1em; }
+.fs-txt i { font: 500 10px 'Outfit', sans-serif; font-style: normal; opacity: .75; }
+.fs-tem {
+  min-width: 26px; padding: 3px 7px; border-radius: 999px;
+  background: rgba(0,0,0,.22); font: 800 13px 'Outfit', sans-serif; text-align: center;
+}
+.fan-subir:not(.pode) .fs-tem { background: rgba(0,0,0,.3); }
+.fan-btn.dez {
+  width: 100%; margin-top: 6px; padding: 7px;
+  font-size: 10.5px; letter-spacing: .06em; opacity: .85;
+}
+
+/* ── Barra lateral sempre visível ─────────────────────────────────────────────
+   Equipamento e Composição fechavam a ficha e abriam outra tela, e as abas
+   sumiam junto: para voltar, o jogador tinha de sair e reabrir o personagem.
+   Agora elas continuam ali, na mesma posição, nas três telas. */
+.eq-overlay .ficha-nav, .comp-overlay .ficha-nav { display: flex; }
+
+/* A barra injetada em Equipamento e Composição: mesma aparência da ficha, colada
+   à esquerda do quadro. */
+.com-barra { display: grid; grid-template-columns: 132px 1fr; gap: 12px; align-items: start; }
+.ficha-nav.injetada { padding: 10px 0 10px 10px; }
+@media (max-width: 760px) {
+  .com-barra { grid-template-columns: 104px 1fr; gap: 8px; }
+  .ficha-nav.injetada .ficha-aba { padding: 7px 8px; font-size: 10px; }
+}
