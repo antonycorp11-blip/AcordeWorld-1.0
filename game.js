@@ -7639,7 +7639,11 @@ function consumirRessonancia(mapKey) {
 }
 
 function mapaTemEcos(mapKey) {
-  return monsters.some(m => m.mapKey === mapKey && monsterDef(m).exigeRessonador);
+  // `daFazenda` fica de fora: o Eco de estimação é do mesmo TIPO do selvagem, mas ele não
+  // faz do lugar uma clareira — é bicho de casa. Sem esta linha, invocar um Eco na
+  // fazenda transformava a horta em terreno de caça noturna.
+  return monsters.some(m => m.mapKey === mapKey && !m.daFazenda
+                            && monsterDef(m).exigeRessonador);
 }
 
 // ── Captura de Ecos ──────────────────────────────────────────────────────────────
@@ -13525,6 +13529,20 @@ function soltarEcosDaNoite() {
 }
 
 function soltarCacaNoturna() {
+  // A FAZENDA NÃO É CLAREIRA. Este foi um bug com três elos, e nenhum deles parecia
+  // errado sozinho:
+  //
+  //   1. `mapaTemEcos` responde "sim" para qualquer mapa com um monstro que exige
+  //      Ressonador — e os Ecos que o jogador INVOCA na fazenda são desse tipo. Bastava
+  //      ter um Eco de estimação para a fazenda passar por clareira.
+  //   2. Anoitecendo, os caçadores nasciam ali dentro, junto das plantações.
+  //   3. E não apareciam: o desenho da fazenda roda em duas passadas, uma só para os
+  //      Ecos de casa, e quem não é Eco de casa não é desenhado em nenhuma delas. A IA
+  //      continuava rodando.
+  //
+  // Resultado: inimigo invisível batendo no jogador no meio da horta. A caça é da
+  // CLAREIRA, e a fazenda é o lugar para onde se vai quando não se quer briga.
+  if (currentScene === 'farm') { limparCacaNoturna(); return; }
   if (!mapaTemEcos(currentKey) || corridaAtiva()) return;
   if (mapaDaCacaNoturna === currentKey) return;
   limparCacaNoturna();
@@ -26353,6 +26371,10 @@ function acordarBarraDaFazenda() {
 }
 
 function entrarNaFazenda() {
+  // Quem já estava caçando lá fora não entra junto. Sem isto, entrar na fazenda com a
+  // noite em curso levava os caçadores do mapa anterior para dentro — e lá eles ficam
+  // invisíveis, porque o desenho da fazenda não os inclui.
+  if (typeof limparCacaNoturna === 'function') limparCacaNoturna();
   if (currentScene !== 'world') { showToast('🔨 Saia para o mapa antes de abrir a fazenda.'); return; }
   sceneBeforeFarm = currentScene;
   window.keyBeforeFarm = currentKey;
