@@ -1,122 +1,192 @@
 {
- "wins_caminhada.png": {
-  "cols": 7,
-  "rows": 4,
-  "celula": [
-   147,
-   289
-  ],
-  "corpo": 181,
-  "base": 283
- },
- "achilles_ataque.png": {
-  "cols": 6,
-  "rows": 4,
-  "celula": [
-   287,
-   289
-  ],
-  "corpo": 168,
-  "base": 283
- },
- "achilles_ataque_vertical.png": {
-  "cols": 6,
-  "rows": 4,
-  "celula": [
-   167,
-   289
-  ],
-  "corpo": 173,
-  "base": 283
- },
- "achilles_caminhada.png": {
-  "cols": 8,
-  "rows": 4,
-  "celula": [
-   137,
-   289
-  ],
-  "corpo": 192,
-  "base": 283
- },
- "achilles_estocada.png": {
-  "cols": 5,
-  "rows": 4,
-  "celula": [
-   271,
-   289
-  ],
-  "corpo": 201,
-  "base": 283
- },
- "achilles_giro.png": {
-  "cols": 6,
-  "rows": 4,
-  "celula": [
-   318,
-   289
-  ],
-  "corpo": 171,
-  "base": 283
- },
- "achilles_guarda.png": {
-  "cols": 4,
-  "rows": 4,
-  "celula": [
-   236,
-   289
-  ],
-  "corpo": 238,
-  "base": 283
- },
- "achilles_parado.png": {
-  "cols": 4,
-  "rows": 4,
-  "celula": [
-   183,
-   289
-  ],
-  "corpo": 248,
-  "base": 283
- },
- "wins_estocada.png": {
-  "cols": 6,
-  "rows": 4,
-  "celula": [
-   220,
-   289
-  ],
-  "corpo": 161,
-  "base": 283
- },
- "wins_giro.png": {
-  "cols": 6,
-  "rows": 4,
-  "celula": [
-   223,
-   289
-  ],
-  "corpo": 184,
-  "base": 283
- },
- "wins_varredura.png": {
-  "cols": 6,
-  "rows": 4,
-  "celula": [
-   217,
-   289
-  ],
-  "corpo": 193,
-  "base": 283
- },
- "wins_vertical.png": {
-  "cols": 6,
-  "rows": 4,
-  "celula": [
-   261,
-   289
-  ],
-  "corpo": 161,
-  "base": 283
- }
+  "wins_caminhada.png": {
+    "cols": 7,
+    "rows": 4,
+    "celula": [
+      147,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "achilles_ataque.png": {
+    "cols": 6,
+    "rows": 4,
+    "celula": [
+      287,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "achilles_ataque_vertical.png": {
+    "cols": 6,
+    "rows": 4,
+    "celula": [
+      167,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "achilles_caminhada.png": {
+    "cols": 8,
+    "rows": 4,
+    "celula": [
+      137,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "achilles_estocada.png": {
+    "cols": 5,
+    "rows": 4,
+    "celula": [
+      271,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "achilles_giro.png": {
+    "cols": 6,
+    "rows": 4,
+    "celula": [
+      318,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "achilles_guarda.png": {
+    "cols": 4,
+    "rows": 4,
+    "celula": [
+      236,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "achilles_parado.png": {
+    "cols": 4,
+    "rows": 4,
+    "celula": [
+      183,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "wins_estocada.png": {
+    "cols": 6,
+    "rows": 4,
+    "celula": [
+      220,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "wins_giro.png": {
+    "cols": 6,
+    "rows": 4,
+    "celula": [
+      223,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "wins_varredura.png": {
+    "cols": 6,
+    "rows": 4,
+    "celula": [
+      217,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "wins_vertical.png": {
+    "cols": 6,
+    "rows": 4,
+    "celula": [
+      261,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "huans_caminhada.png": {
+    "cols": 8,
+    "rows": 4,
+    "celula": [
+      125,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "huans_parado.png": {
+    "cols": 6,
+    "rows": 4,
+    "celula": [
+      131,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "huans_guarda.png": {
+    "cols": 6,
+    "rows": 4,
+    "celula": [
+      201,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "huans_corte.png": {
+    "cols": 6,
+    "rows": 4,
+    "celula": [
+      271,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "huans_vertical.png": {
+    "cols": 6,
+    "rows": 4,
+    "celula": [
+      221,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "huans_estocada.png": {
+    "cols": 6,
+    "rows": 4,
+    "celula": [
+      458,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  },
+  "huans_giro.png": {
+    "cols": 8,
+    "rows": 4,
+    "celula": [
+      191,
+      289
+    ],
+    "corpo": 162,
+    "base": 283
+  }
 }

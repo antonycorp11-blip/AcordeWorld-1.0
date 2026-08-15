@@ -15365,6 +15365,50 @@ const HERO_DEFINITIONS = {
     base: { vida: 0, dano: 0, ritmo: 0, afinacao: 0 },
     lema: 'A nota certa alcança mais longe que o braço.',
   },
+
+  // ── HUANS, Clã das Cordas ────────────────────────────────────────────────────
+  // A arma dele é um machado-guitarra, e o moveset sai disso: peso de machado com o
+  // alcance de um braço de guitarra. Comparado aos outros dois, ele bate MAIS FORTE e
+  // MAIS DEVAGAR — é a terceira resposta à mesma pergunta, e é o que faz escolher entre
+  // os três significar alguma coisa. O Akles investe, a Wins alcança, o Huans quebra.
+  'huans': {
+    id: 'huans', name: 'Huans', class: 'Clã das Cordas', gender: 'Masculino',
+    src: 'assets/personagens/herois/huans_caminhada.png', cols: 8, rows: 4,
+    // Mesma ficha dos outros dois: as dezenove folhas dos três foram casadas juntas, e
+    // é por isso que os três têm 162 px de corpo e os pés na mesma linha. Sem isso o
+    // herói mudaria de tamanho ao trocar de personagem.
+    medidas: 'assets/personagens/herois/achilles_folhas.json',
+    folhas: {
+      andar:     { src: 'assets/personagens/herois/huans_caminhada.png' },
+      parado:    { src: 'assets/personagens/herois/huans_parado.png' },
+      guarda:    { src: 'assets/personagens/herois/huans_guarda.png' },
+      corte:     { src: 'assets/personagens/herois/huans_corte.png' },
+      vertical:  { src: 'assets/personagens/herois/huans_vertical.png' },
+      estocada:  { src: 'assets/personagens/herois/huans_estocada.png' },
+      giro:      { src: 'assets/personagens/herois/huans_giro.png' },
+    },
+    linhas: { down: 0, up: 1, left: 2, right: 3 },
+    // Quadro de descanso por direção, na folha de caminhada — só vale enquanto a folha
+    // de parado não estiver carregada.
+    parado: { down: 0, up: 0, left: 2, right: 2 },
+    // Corrente própria. Machado é peso: cada golpe demora mais que o equivalente dos
+    // outros dois e dói mais. O remate `giro` é o mais lento do jogo e o único que
+    // atinge em volta — quem erra o tempo dele fica exposto, e é essa a troca.
+    combo: [
+      { folha: 'corte',    ms: 420, alcance: 1.20, dano: 1.1, rotulo: 'Corte de Corda' },
+      { folha: 'vertical', ms: 560, alcance: 1.05, dano: 1.7, rotulo: 'Queda de Braço' },
+      { folha: 'estocada', ms: 460, alcance: 1.65, dano: 1.5, rotulo: 'Traste Longo',
+        empurrao: 40 },
+      { folha: 'giro',     ms: 720, alcance: 1.50, dano: 2.6, rotulo: 'Acorde Maior',
+        emVolta: true, remate: true },
+    ],
+    face: 'assets/personagens/herois/huans_face.png',
+    avatar: 'assets/personagens/herois/huans_face.png',
+    weapon: 'Machado-Guitarra', clave: 'Dó', registro: 'Grave',
+    papel: 'Impacto', raridade: 5, desbloqueado: true,
+    base: { vida: 0, dano: 0, ritmo: 0, afinacao: 0 },
+    lema: 'Corda que não vibra é só arame.',
+  },
 };
 let selectedHeroId = 'achilles';
 
@@ -18561,6 +18605,12 @@ const FICHA_HEROIS = {
     retrato: 'assets/personagens/retratos/wins.png',
     perfil: [['ATAQUE', 6, true], ['DEFESA', 4, true], ['HABILIDADE', 9, false], ['SUPORTE', 8, false]],
   },
+  // Retrato provisório recortado da folha de parado — a carta não pode sair sem rosto.
+  // Entra a arte de retrato de verdade quando ela existir, trocando esta linha.
+  huans: {
+    retrato: 'assets/personagens/herois/huans_face.png',
+    perfil: [['ATAQUE', 9, true], ['DEFESA', 6, true], ['HABILIDADE', 5, false], ['SUPORTE', 2, false]],
+  },
 };
 
 // Catálogo das passivas. `valor(n)` devolve o efeito no nível n já em número legível —
@@ -18717,6 +18767,70 @@ const PASSIVAS_INFO = {
   },
 };
 
+// ══ O TIME DE DOIS, ESCOLHIDO ENTRE OS DESBLOQUEADOS ══════════════════════════════
+//
+// Com dois heróis o time era o elenco inteiro e não havia o que escolher. Com o terceiro
+// passa a haver, e escolher é metade da graça: cada um tem um combo próprio, então trocar
+// quem entra muda o jogo, não o retrato.
+//
+// A regra do toque, em uma frase: quem está fora ENTRA no lugar de quem está em campo
+// esperando, e quem está dentro SAI se sobrar alguém. Sem tela de arrastar, sem confirmar
+// — no celular, um toque tem de bastar.
+function alternarNoTime(heroId) {
+  const dentro = partyState.party.indexOf(heroId);
+
+  if (dentro >= 0) {
+    // Tirar. Nunca até esvaziar: um time sem ninguém não tem como jogar, e a mensagem
+    // vale mais que o bloqueio silencioso.
+    if (partyState.party.filter(Boolean).length <= 1) {
+      showToast('O time não pode ficar vazio.'); return false;
+    }
+    partyState.party[dentro] = null;
+    // Se saiu quem estava em campo, o outro assume — senão o jogo fica sem personagem.
+    if (dentro === partyState.activePartyIndex) {
+      const sobra = partyState.party.findIndex(Boolean);
+      if (sobra >= 0) trocarHeroiDoTime(sobra, true);
+    }
+    showToast(`${HERO_DEFINITIONS[heroId]?.name || heroId} saiu do time.`);
+  } else {
+    const vaga = partyState.party.findIndex(x => !x);
+    if (vaga >= 0) {
+      partyState.party[vaga] = heroId;
+    } else {
+      // Time cheio: entra no lugar de quem NÃO está em campo. Substituir quem está
+      // jogando trocaria o personagem debaixo da mão do jogador no meio de um passo.
+      const reserva = partyState.activePartyIndex === 0 ? 1 : 0;
+      const saiu = partyState.party[reserva];
+      partyState.party[reserva] = heroId;
+      showToast(`${HERO_DEFINITIONS[heroId]?.name || heroId} entrou no lugar de `
+                + `${HERO_DEFINITIONS[saiu]?.name || saiu}.`);
+      savePlayerData();
+      return true;
+    }
+    showToast(`${HERO_DEFINITIONS[heroId]?.name || heroId} entrou no time.`);
+  }
+  savePlayerData();
+  return true;
+}
+
+function montarBotaoDeTime(chips, id) {
+  // Aparece sempre que houver mais de um herói aberto. A primeira versão só o mostrava
+  // com MAIS heróis do que vagas, e some justo quando o jogador precisa dele: a Wins
+  // começa trancada, então por boa parte do capítulo há dois abertos para duas vagas — e
+  // o botão sumia sem explicação. Com dois, ele ainda serve para tirar e repor.
+  const abertos = Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado !== false);
+  if (abertos.length < 2) return;
+
+  const dentro = partyState.party.includes(id);
+  const b = document.createElement('button');
+  b.className = 'ficha-time-btn' + (dentro ? ' dentro' : '');
+  b.textContent = dentro ? '✓ no time' : '+ pôr no time';
+  b.addEventListener('click', () => {
+    if (alternarNoTime(id)) { desenharFicha(); renderPartyHUD(); }
+  });
+  chips.appendChild(b);
+}
+
 let fichaHeroiVisto = null;   // qual herói a ficha está mostrando (pode não ser o ativo)
 
 function fichaAberta() {
@@ -18844,12 +18958,16 @@ function desenharFicha() {
     chips.innerHTML = '';
     Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado !== false).forEach(h => {
       const b = document.createElement('button');
-      b.className = 'ficha-heroi-chip' + (h.id === id ? ' ativo' : '');
-      b.title = h.name;
-      b.innerHTML = `<img src="${(FICHA_HEROIS[h.id] || {}).retrato || h.face || ''}" alt="${h.name}">`;
+      const slot = partyState.party.indexOf(h.id);
+      b.className = 'ficha-heroi-chip' + (h.id === id ? ' ativo' : '')
+                  + (slot >= 0 ? ' no-time' : '');
+      b.title = h.name + (slot >= 0 ? ` — no time (${slot + 1})` : '');
+      b.innerHTML = `<img src="${(FICHA_HEROIS[h.id] || {}).retrato || h.face || ''}" alt="${h.name}">`
+                  + (slot >= 0 ? `<i class="fhc-slot">${slot + 1}</i>` : '');
       b.addEventListener('click', () => { fichaHeroiVisto = h.id; desenharFicha(); });
       chips.appendChild(b);
     });
+    montarBotaoDeTime(chips, id);
   }
 
   // Habilidades: uma linha por habilidade, com a coluna de passivas à direita.

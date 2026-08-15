@@ -8366,3 +8366,22 @@ body.sem-rotulos-hud .hud-rot { display: none; }
   font-size: 10px; font-weight: 400; opacity: .75; letter-spacing: 0;
   text-transform: none;
 }
+
+/* ── Time: quem está escalado ─────────────────────────────────────────────────
+   O selo no retrato existe porque, com três heróis e duas vagas, "quem está no
+   time" deixou de ser óbvio pela ausência. Sem ele o jogador toca no botão para
+   descobrir, e descobrir tocando é como se troca o herói errado. */
+.ficha-heroi-chip { position: relative; }
+.ficha-heroi-chip.no-time { border-color: #c8a24a; box-shadow: 0 0 0 2px rgba(200,162,74,.35); }
+.fhc-slot {
+  position: absolute; right: -3px; bottom: -3px;
+  min-width: 15px; height: 15px; padding: 0 3px;
+  background: #c8a24a; color: #1a1030; border-radius: 8px;
+  font: 800 10px/15px 'Outfit', sans-serif; text-align: center; font-style: normal;
+}
+.ficha-time-btn {
+  margin-left: 8px; padding: 6px 12px;
+  background: rgba(124,58,237,.85); border: 1px solid #a78bfa; border-radius: 9px;
+  color: #f5e6c8; font: 700 11px 'Outfit', sans-serif; letter-spacing: .3px;
+}
+.ficha-time-btn.dentro { background: rgba(20,16,34,.9); border-color: #c8a24a; color: #c8a24a; }
