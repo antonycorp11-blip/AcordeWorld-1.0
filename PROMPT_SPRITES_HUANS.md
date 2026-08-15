@@ -87,6 +87,17 @@ Uma geração por folha. Sempre com o bloco técnico acima antes.
 > **Content: one overhead downward strike, 6 frames per row**: the weapon is raised high
 > above the head, comes down hard, and the pose settles low. Make the cell **taller** to fit
 > the raised weapon — do NOT shrink the character to make it fit.
+>
+> CRITICAL — the first attempt failed on exactly this: the character's body must be the
+> **same height in all four rows**. Do not draw him smaller in the side views than in the
+> front view. Measured from head to heel, front, back, left and right are identical.
+>
+> Do **not** draw grid lines, cell borders or separators anywhere in the image.
+
+**A primeira tentativa saiu com 23% de variação** — 213 px de corpo na frente contra 164 no
+perfil — e com grade desenhada por cima. As duas linhas acima existem por causa disso: a
+folha é a única do conjunto em que o gerador encolheu o personagem para caber o machado
+erguido, que é justamente o que a instrução da célula mais alta manda não fazer.
 
 ### 6. `huans_estocada` — 6 colunas
 > **Content: one forward lunging thrust, 6 frames per row**: a step forward with the front
