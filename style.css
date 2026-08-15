@@ -8502,3 +8502,55 @@ body.sem-rotulos-hud .hud-rot { display: none; }
   text-shadow: 0 2px 8px rgba(0,0,0,.9);
 }
 .palco-golpe.hidden { display: none; }
+
+/* ══ ABA DE ATRIBUTOS ══════════════════════════════════════════════════════════
+   Os cinco atributos de um lado, a conta do poder do outro. O número sozinho
+   ("NÍVEL DE PODER 150") não dizia se valia mais subir equipamento ou atributo. */
+.at-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 2px; }
+@media (max-width: 760px) { .at-grade { grid-template-columns: 1fr; } }
+.at-col { min-width: 0; }
+.at-cab {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 9px; padding-bottom: 6px;
+  border-bottom: 1px solid rgba(200,162,74,.28);
+  font: 800 11px 'Outfit', sans-serif; letter-spacing: 1.6px; color: #c8a24a;
+}
+.at-cab span { font-weight: 700; letter-spacing: .3px; color: #f5e6c8; text-transform: none; }
+.at-cab2 { margin-top: 14px; }
+.at-linha {
+  display: grid; grid-template-columns: 26px 1fr auto 30px;
+  align-items: center; gap: 8px;
+  padding: 7px 8px; margin-bottom: 5px;
+  background: rgba(255,255,255,.035); border-radius: 8px;
+  border-left: 2px solid rgba(107,124,180,.4);
+}
+.at-linha.pode { border-left-color: #c8a24a; }
+.at-ico { font-size: 15px; color: #a78bfa; text-align: center; }
+.at-txt b { display: block; font: 700 12px 'Outfit', sans-serif; color: #e2e8f0; }
+.at-txt i { font: 400 10px 'Outfit', sans-serif; font-style: normal; color: #7c89ab; }
+.at-val { font: 800 15px 'Outfit', sans-serif; color: #f5e6c8; }
+.at-mais {
+  width: 26px; height: 26px; border-radius: 7px;
+  background: rgba(124,58,237,.8); border: 1px solid #a78bfa; color: #fff;
+  font: 800 15px/1 'Outfit', sans-serif;
+}
+.at-mais:disabled { background: rgba(30,36,60,.6); border-color: rgba(107,124,180,.3); color: #4b5675; }
+.at-nota { margin-top: 9px; font: 400 10px 'Outfit', sans-serif; color: #7c89ab; line-height: 1.5; }
+.at-nota b { color: #c8a24a; }
+
+.at-fonte { margin-bottom: 9px; }
+.at-fonte-cab {
+  display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;
+  font: 600 12px 'Outfit', sans-serif; color: #e2e8f0;
+}
+.at-fonte-cab span { font-weight: 800; color: #f5e6c8; }
+.at-fonte-cab i { font-style: normal; font-size: 10px; color: #7c89ab; margin-left: 5px; }
+.at-barra { height: 7px; background: rgba(8,11,26,.7); border-radius: 4px; overflow: hidden; }
+.at-barra i { display: block; height: 100%; background: linear-gradient(90deg, #c8a24a, #f59e0b); }
+.at-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 12px; }
+.at-stats div {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 4px 8px; background: rgba(255,255,255,.03); border-radius: 6px;
+}
+.at-stats span { font: 400 11px 'Outfit', sans-serif; color: #94a3b8; }
+.at-stats b { font: 700 12px 'Outfit', sans-serif; color: #e2e8f0; }

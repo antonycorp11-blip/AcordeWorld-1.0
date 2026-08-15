@@ -6786,6 +6786,33 @@ function renderEfeitos(now, atras = false) {
   }
 }
 
+// ══ O TEMPO DENTRO DO GOLPE ═══════════════════════════════════════════════════════
+//
+// Os quadros corriam em tempo IGUAL: seis quadros em 560 ms, 93 ms cada. Funciona quando
+// a folha distribui o movimento por igual, e a Queda de Braço não distribui — nela os três
+// primeiros quadros são todos PREPARAÇÃO (de pé, machado subindo) e o quarto já é o
+// impacto, agachado no chão. Com tempo igual, a pancada acontece em 93 ms sem nenhum
+// quadro de passagem: lê como corte de cena, não como golpe. Foi isso que o dono viu.
+//
+// `tempos` dá PESO a cada quadro. Segurar a preparação e correr pela pancada é o que dá
+// peso ao machado sem quadro novo nenhum — e quadro novo é arte, que custa.
+//
+// Sem `tempos`, tudo segue igual como antes: nenhum golpe existente muda de comportamento.
+function quadroDoGolpe(g, passou, cols) {
+  const t = Math.max(0, Math.min(1, passou));
+  const pesos = g.tempos;
+  if (!pesos || pesos.length !== cols) {
+    return Math.max(0, Math.min(cols - 1, Math.floor(t * cols)));
+  }
+  const soma = pesos.reduce((a, b) => a + b, 0);
+  let acc = 0;
+  for (let i = 0; i < cols; i++) {
+    acc += pesos[i] / soma;
+    if (t <= acc) return i;
+  }
+  return cols - 1;
+}
+
 // O RASTRO DO GOLPE, na direção em que o herói olha.
 //
 // A folha `fx_corte_corda` é um arco desenhado apontando para a DIREITA. Girá-lo por
@@ -6794,6 +6821,21 @@ function renderEfeitos(now, atras = false) {
 //
 // Só sai em quem TEM o efeito declarado. O Akles e a Wins têm rastro próprio dentro das
 // folhas de ataque deles; somar este por cima seria dois rastros no mesmo golpe.
+// O clarão no quadro da pancada. Agendado pelo `tempos` do próprio golpe, para bater
+// junto com o desenho e não num tempo inventado à parte.
+function clarãoDoImpacto(g) {
+  const def = personagemAtivo();
+  if (!def.rastro || g.impacto == null || !g.tempos) return;
+  const soma = g.tempos.reduce((a, b) => a + b, 0);
+  const ate = g.tempos.slice(0, g.impacto).reduce((a, b) => a + b, 0) / soma;
+  const dir = player.direction || 'down';
+  const ang = ANGULO_DA_DIRECAO[dir] ?? 0;
+  setTimeout(() => {
+    tocarEfeito('acorde', player.x + Math.cos(ang) * 26, player.y + Math.sin(ang) * 16,
+                { ms: 380, escala: 0.55 });
+  }, ate * g.ms);
+}
+
 const ANGULO_DA_DIRECAO = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
 const AVANCO_DO_RASTRO = 30;
 
@@ -7475,6 +7517,7 @@ function doAttack() {
   golpeEmCurso = g;
   attackAnimUntil = now + g.ms;
   rastroDoGolpe(g);
+  clarãoDoImpacto(g);
   guardaAte = now + g.ms + GUARDA_MS;
   comboMostrado = { passo: comboPasso, rotulo: g.rotulo, ate: now + g.ms + 700 };
 
@@ -8558,6 +8601,7 @@ async function loadShopCatalog() {
   // haver um save local com que comparar antes de decidir qual dos dois vale.
   if (typeof restaurarSessao === 'function') restaurarSessao();
   aplicarHeroisRecrutados();
+  prepararHuansParaTeste();
   limparHeroisTrancadosDoGrupo();
   abastecerBancaDeTestes();
   // As roupas da loja são 3,9 MB que ninguém vê até abrir a loja. Ficam num pedido
@@ -9858,7 +9902,7 @@ function renderPlayer() {
     // corte terminar junto com o dano em vez de ficar parado num quadro qualquer.
     if (troca && troca.atacando && golpeEmCurso) {
       const passou = 1 - (attackAnimUntil - performance.now()) / golpeEmCurso.ms;
-      frame = Math.max(0, Math.min(cols - 1, Math.floor(passou * cols)));
+      frame = quadroDoGolpe(golpeEmCurso, passou, cols);
     }
 
     // Ataque só troca de linha se a folha TIVER uma linha de ataque. A do Achilles usa
@@ -15638,7 +15682,13 @@ const HERO_DEFINITIONS = {
     // atinge em volta — quem erra o tempo dele fica exposto, e é essa a troca.
     combo: [
       { folha: 'corte',    ms: 420, alcance: 1.20, dano: 1.1, rotulo: 'Corte de Corda' },
-      { folha: 'vertical', ms: 560, alcance: 1.05, dano: 1.7, rotulo: 'Queda de Braço' },
+      // `tempos`: os três primeiros quadros são preparação e o quarto é a pancada. Segurar
+      // os dois primeiros e correr pelo terceiro dá peso ao machado; sem isso o golpe
+      // pulava de "machado no alto" para "machado no chão" sem passagem nenhuma.
+      // `impacto: 3` acende o clarão no quadro em que ele bate — luz cobre o corte de pose,
+      // que é o remendo mais barato e mais antigo da animação.
+      { folha: 'vertical', ms: 560, alcance: 1.05, dano: 1.7, rotulo: 'Queda de Braço',
+        tempos: [1.6, 1.4, 0.5, 1.5, 1.0, 1.0], impacto: 3 },
       { folha: 'estocada', ms: 460, alcance: 1.65, dano: 1.5, rotulo: 'Traste Longo',
         empurrao: 40 },
       { folha: 'giro',     ms: 720, alcance: 1.50, dano: 2.6, rotulo: 'Acorde Maior',
@@ -19252,6 +19302,145 @@ function comboEmHtml(def) {
   </div>`;
 }
 
+// ══ DE ONDE VEM O PODER ═══════════════════════════════════════════════════════════
+//
+// O número aparecia sozinho — "NÍVEL DE PODER 150" — e não havia como saber se subir
+// equipamento valia mais que subir atributo. Aqui ele é aberto por FONTE.
+//
+// A conta é feita MEDINDO, não deduzindo: cada fonte é desligada por um instante e o que
+// o poder cai é o que ela valia. Refazer a fórmula à mão aqui daria um segundo cálculo
+// para divergir do primeiro na próxima mudança — e o número da tela deixaria de ser o
+// número do combate, que é o defeito mais caro que uma tela de status pode ter.
+function poderPorFonte() {
+  const total = nivelDePoder();
+  const partes = [];
+
+  const medir = (rotulo, desligar) => {
+    const restaurar = desligar();
+    const semEla = nivelDePoder();
+    restaurar();
+    const v = Math.max(0, total - semEla);
+    if (v > 0) partes.push([rotulo, v]);
+  };
+
+  const vazio = () => ({});
+  medir('Equipamento', () => {
+    const o = window.bonusDeEquipamento; window.bonusDeEquipamento = vazio;
+    return () => { window.bonusDeEquipamento = o; };
+  });
+  medir('Acordes', () => {
+    const a = window.bonusDeAcordes, c = window.bonusDeCadencia;
+    window.bonusDeAcordes = vazio; window.bonusDeCadencia = vazio;
+    return () => { window.bonusDeAcordes = a; window.bonusDeCadencia = c; };
+  });
+  medir('Habilidades', () => {
+    const o = learnedSkills; learnedSkills = [];
+    return () => { learnedSkills = o; };
+  });
+  medir('Atributos', () => {
+    const f = fichaDoHeroi(fichaHeroiVisto || selectedHeroId);
+    const o = { ...f.attrs };
+    Object.keys(f.attrs).forEach(k => { f.attrs[k] = 0; });
+    return () => { Object.assign(f.attrs, o); };
+  });
+
+  // O que sobra depois de tirar todas é o piso: nível do herói e o corpo do personagem.
+  const somado = partes.reduce((a, b) => a + b[1], 0);
+  const base = Math.max(0, total - somado);
+  if (base > 0) partes.push(['Nível e base', base]);
+  partes.sort((a, b) => b[1] - a[1]);
+  return { total, partes };
+}
+
+// ══ A ABA DE ATRIBUTOS ════════════════════════════════════════════════════════════
+//
+// Os atributos moravam empilhados sob o retrato, espremidos no fim da coluna, e a conta do
+// poder não morava em lugar nenhum. Aqui eles têm a tela inteira: os cinco de um lado, de
+// onde vem cada ponto de poder do outro.
+//
+// A aba é criada em JS e não no HTML porque `index.html` e `dist/index.html` são mantidos
+// à mão, em dobro — é a armadilha que o CLAUDE.md registra.
+let abaDeAtributos = false;
+
+function montarAbaDeAtributos() {
+  const nav = document.querySelector('#fichaHeroi .ficha-nav');
+  if (!nav || nav.querySelector('[data-aba="atributos"]')) return;
+  const b = document.createElement('button');
+  b.className = 'ficha-aba';
+  b.dataset.aba = 'atributos';
+  b.textContent = 'ATRIBUTOS';
+  b.addEventListener('click', () => {
+    abaDeAtributos = true;
+    nav.querySelectorAll('.ficha-aba').forEach(o => o.classList.remove('ativa'));
+    b.classList.add('ativa');
+    desenharFicha();
+  });
+  nav.insertBefore(b, nav.querySelector('[data-aba="equip"]'));
+  // Voltar para a visão geral desliga a aba — senão ela ficaria presa.
+  nav.querySelector('[data-aba="geral"]')?.addEventListener('click', () => {
+    abaDeAtributos = false; desenharFicha();
+  });
+}
+
+function desenharAtributos(id) {
+  const alvo = document.getElementById('fichaHabs');
+  if (!alvo) return;
+  const H = fichaDoHeroi(id);
+  const { total, partes } = poderPorFonte();
+  const s = derivedStats();
+
+  const ATRIB = [
+    ['ritmo',    '♪', 'Ritmo',    'Velocidade de ataque e zona da bigorna.'],
+    ['afinacao', '♫', 'Afinação', 'Janela de captura e chance de Fragmento Puro.'],
+    ['folego',   '◉', 'Fôlego',   'Vida máxima e recarga das habilidades.'],
+    ['dinamica', '◆', 'Dinâmica', 'Dano de golpe e de feitiço.'],
+    ['memoria',  '▤', 'Memória',  'Capacidade de claves e desconto na síntese.'],
+  ];
+  const pontos = H.attrPoints || 0;
+
+  alvo.innerHTML = `
+    <div class="at-grade">
+      <section class="at-col">
+        <div class="at-cab">ATRIBUTOS<span>${pontos ? `${pontos} a distribuir` : 'sem pontos'}</span></div>
+        ${ATRIB.map(([k, ico, nome, oq]) => {
+          const v = H.attrs[k] || 0;
+          return `<div class="at-linha${pontos ? ' pode' : ''}" data-attr="${k}">
+            <span class="at-ico">${ico}</span>
+            <div class="at-txt"><b>${nome}</b><i>${oq}</i></div>
+            <span class="at-val">${v}</span>
+            <button class="at-mais" data-sobe="${k}" ${pontos ? '' : 'disabled'}>+</button>
+          </div>`;
+        }).join('')}
+        <p class="at-nota">Ponto de atributo vem de <b>Partitura</b>, na visão geral.
+           Ponto de habilidade é outra moeda, e se gasta nas passivas.</p>
+      </section>
+
+      <section class="at-col">
+        <div class="at-cab">DE ONDE VEM O PODER<span>${total.toLocaleString('pt-BR')}</span></div>
+        ${partes.map(([rot, v]) => {
+          const pct = total ? (v / total * 100) : 0;
+          return `<div class="at-fonte">
+            <div class="at-fonte-cab"><b>${rot}</b><span>${v.toLocaleString('pt-BR')}
+              <i>${pct.toFixed(0)}%</i></span></div>
+            <div class="at-barra"><i style="width:${pct.toFixed(1)}%"></i></div>
+          </div>`;
+        }).join('')}
+        <div class="at-cab at-cab2">O QUE ISSO VIRA EM COMBATE</div>
+        <div class="at-stats">
+          ${[['Vida', Math.round(s.maxHp)], ['Ataque', Math.round(s.dmg)],
+             ['Defesa', `${Math.round(s.defesa)}%`], ['Agilidade', `${Math.round(s.atkSpeed)}%`],
+             ['Crítico', `${Math.round(s.crit)}%`], ['Dano crítico', `${Math.round(s.danoCritico)}%`],
+             ['Magia', `${Math.round(s.dmgMagia)}%`], ['Recarga', `-${Math.round(s.recarga)}%`]]
+            .map(([n, v]) => `<div><span>${n}</span><b>${v}</b></div>`).join('')}
+        </div>
+      </section>
+    </div>`;
+
+  alvo.querySelectorAll('[data-sobe]').forEach(b => b.addEventListener('click', () => {
+    spendAttr(b.dataset.sobe);   // a mesma função dos outros botões: uma regra, um lugar
+  }));
+}
+
 function desenharFicha() {
   const el = document.getElementById('fichaHeroi');
   if (!el || el.classList.contains('hidden')) return;
@@ -19371,6 +19560,15 @@ function desenharFicha() {
       chips.appendChild(b);
     });
     montarBotaoDeTime(chips, id);
+  }
+
+  montarAbaDeAtributos();
+  if (abaDeAtributos) {
+    document.querySelector('#fichaHeroi .ficha-hab-cab')?.classList.add('hidden');
+    desenharAtributos(id);
+    const l = document.getElementById('fichaLema');
+    if (l) l.textContent = def.lema ? `"${def.lema}"` : '';
+    return;
   }
 
   // Habilidades: uma linha por habilidade, com a coluna de passivas à direita.
@@ -23785,6 +23983,31 @@ const ASCENSOES = [
   { ate: 35, claves: 90000, notas: { do: 14, sol: 10, re: 8 } },
   { ate: 40, claves: 150000, notas: { la: 16, mi: 12, fa_s: 10 } },
 ];
+
+// ══ HUANS PRONTO PARA TESTE ═══════════════════════════════════════════════════════
+//
+// Pedido do dono: o Huans no nível 20, com as três habilidades abertas, para dar para
+// jogar com ele hoje em vez de subir vinte níveis antes de ver a suprema.
+//
+// Roda UMA VEZ por save, com bandeira própria — sem ela, cada abertura devolveria os
+// pontos e o teste viraria dinheiro infinito. E só com `SELETOR_DE_CENA_LIGADO`, que é
+// o mesmo interruptor que já tem de ser desligado antes de publicar: um herói novo que
+// nasce no nível 20 é presente de teste, não regra de jogo.
+//
+// A ascensão sobe junto porque o TETO do herói vem dela: sem os quatro degraus, `nivel`
+// pode virar 20 e o motor continuar tratando o teto como 5.
+function prepararHuansParaTeste() {
+  if (!SELETOR_DE_CENA_LIGADO) return;
+  if (bandeiras.huans_pronto_teste) return;
+  if (!HERO_DEFINITIONS.huans) return;
+  const h = fichaDoHeroi('huans');
+  h.nivel = Math.max(h.nivel, 20);
+  h.ascensao = Math.max(h.ascensao, 4);      // teto 20
+  h.attrPoints = Math.max(h.attrPoints, 40);  // para haver o que distribuir na aba nova
+  bandeiras.huans_pronto_teste = true;
+  savePlayerData();
+  console.info('[teste] Huans no nível 20 com as três habilidades abertas.');
+}
 
 function fichaDoHeroi(id) {
   const k = id || selectedHeroId || 'achilles';
