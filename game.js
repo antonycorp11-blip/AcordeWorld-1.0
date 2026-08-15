@@ -6694,6 +6694,10 @@ const passivas = {
   'wins.grito.raio':      1,   // alcance do grito paralisante
   'wins.suprema.carga':   1,   // reduz o tempo de carregamento da suprema
   'wins.suprema.sono':    1,   // quanto tempo os monstros dormem
+  'huans.ressonancia.duracao': 1,  // quanto tempo a aura dura
+  'huans.ressonancia.cura':    1,  // vida devolvida a cada batida da aura
+  'huans.onda.raio':           1,  // alcance do anel de som
+  'huans.acorde.dano':         1,  // peso das tres batidas
 };
 function nivelPassiva(id) { return passivas[id] || 1; }
 // Guardado junto do resto do progresso, para a evolução não se perder ao fechar o jogo.
@@ -6703,6 +6707,166 @@ function carregarPassivas(d) { if (d) Object.assign(passivas, d); }
 // Cada herói declara as suas. Os três botões da roda leem esta lista, então trocar de
 // personagem troca o que os botões fazem — antes eles chamavam a Lâmina e a Sétima direto,
 // e a Wins apertava o botão para ver a espada do Achilles sair.
+// ══ EFEITOS EM FOLHA ══════════════════════════════════════════════════════════════
+//
+// As folhas de efeito são desenhadas SEM personagem, de propósito: assim o mesmo efeito
+// serve a qualquer herói e o corpo continua visível por baixo. Efeito colado na criatura
+// foi o que fez o ataque dos Ecos terminar com um feixe de luz no lugar do bicho.
+//
+// Cada folha é uma tira de 8 quadros, do nascer ao dissipar, sem laço.
+const EFEITOS = {
+  ressonancia: { src: 'assets/efeitos/fx_aura_ressonancia.png', ms: 900 },
+  onda:        { src: 'assets/efeitos/fx_onda_harmonica.png',   ms: 620 },
+  corte:       { src: 'assets/efeitos/fx_corte_corda.png',      ms: 320 },
+  acorde:      { src: 'assets/efeitos/fx_acorde_impacto.png',   ms: 700 },
+  afinacao:    { src: 'assets/efeitos/fx_afinacao.png',         ms: 1000 },
+};
+const QUADROS_DO_EFEITO = 8;
+const imagensDeEfeito = {};
+let efeitosEmCurso = [];
+
+function carregarEfeitos() {
+  for (const [nome, e] of Object.entries(EFEITOS)) {
+    const img = new Image();
+    img.src = e.src;
+    imagensDeEfeito[nome] = img;
+  }
+}
+
+// `seguir` prende o efeito a alguém (a aura acompanha o herói); sem ele fica onde nasceu.
+function tocarEfeito(nome, x, y, opts = {}) {
+  if (!EFEITOS[nome]) return null;
+  const fx = { nome, x, y, inicio: performance.now(),
+               ms: opts.ms || EFEITOS[nome].ms, escala: opts.escala || 1,
+               seguir: opts.seguir || null, alfa: opts.alfa ?? 1, atras: !!opts.atras };
+  efeitosEmCurso.push(fx);
+  return fx;
+}
+
+function renderEfeitos(now, atras = false) {
+  if (!efeitosEmCurso.length) return;
+  efeitosEmCurso = efeitosEmCurso.filter(f => now - f.inicio < f.ms);
+  for (const f of efeitosEmCurso) {
+    if (!!f.atras !== atras) continue;
+    const img = imagensDeEfeito[f.nome];
+    if (!img || !img.complete || img.naturalWidth < 10) continue;
+    const t = (now - f.inicio) / f.ms;
+    const q = Math.min(QUADROS_DO_EFEITO - 1, Math.floor(t * QUADROS_DO_EFEITO));
+    const fw = img.width / QUADROS_DO_EFEITO, fh = img.height;
+    const alvo = f.seguir === 'jogador' ? player : f.seguir;
+    const x = alvo ? alvo.x : f.x, y = alvo ? alvo.y : f.y;
+    const d = 96 * f.escala;
+    ctx.save();
+    ctx.globalAlpha = f.alfa;
+    ctx.globalCompositeOperation = 'lighter';   // luz soma, não tapa o que está atrás
+    ctx.drawImage(img, q * fw, 0, fw, fh, x - d / 2, y - d * 0.82, d, d * (fh / fw));
+    ctx.restore();
+  }
+}
+
+// ══ HABILIDADES DO HUANS ══════════════════════════════════════════════════════════
+//
+// O Clã das Cordas dá o vocabulário, e as três seguem a mesma ideia em escalas diferentes:
+// fazer a corda vibrar. Uma vibra NELE (aura), uma vibra o CHÃO em volta (onda), e a
+// suprema é o acorde inteiro caindo num ponto.
+//
+// Elas não repetem as do Akles nem as da Wins: ele não tem nada à distância e nada que
+// paralise. O que ele tem é área e peso — perto, forte e lento.
+const RESSONANCIA_NOME = 'RESSONÂNCIA';
+const RESSONANCIA_MS = 6000, RESSONANCIA_ESPERA = 14000, RESSONANCIA_BONUS = 1.45;
+let ressonanciaAte = 0, ressonanciaEsperaAte = 0, ressonanciaPulso = 0;
+
+function ativarRessonancia() {
+  const now = performance.now();
+  if (now < ressonanciaEsperaAte) return false;
+  ressonanciaAte = now + RESSONANCIA_MS + 900 * (nivelPassiva('huans.ressonancia.duracao') - 1);
+  ressonanciaEsperaAte = now + RESSONANCIA_ESPERA;
+  ressonanciaPulso = 0;
+  tocarEfeito('ressonancia', player.x, player.y, { seguir: 'jogador', ms: 900, atras: true });
+  anunciar(RESSONANCIA_NOME);
+  return true;
+}
+function ressonanciaAtiva() { return performance.now() < ressonanciaAte; }
+
+// A aura repõe o efeito enquanto dura e devolve um pouco de vida a cada batida — é o que
+// faz dela um ESTADO e não um número somado por seis segundos.
+function atualizarRessonancia(now) {
+  if (!ressonanciaAtiva()) return;
+  if (now - ressonanciaPulso < 900) return;
+  ressonanciaPulso = now;
+  tocarEfeito('ressonancia', player.x, player.y, { seguir: 'jogador', ms: 900, atras: true });
+  const cura = nivelPassiva('huans.ressonancia.cura') - 1;
+  if (cura > 0 && playerHp > 0 && playerHp < playerMaxHp()) {
+    playerHp = Math.min(playerMaxHp(), playerHp + cura);
+    tocarEfeito('afinacao', player.x, player.y, { ms: 700, escala: 0.6 });
+  }
+}
+
+const ONDA_NOME = 'ONDA HARMÔNICA';
+const ONDA_ESPERA = 9000, ONDA_RAIO = 128;
+let ondaEsperaAte = 0;
+
+function ativarOnda() {
+  const now = performance.now();
+  if (now < ondaEsperaAte) return false;
+  ondaEsperaAte = now + ONDA_ESPERA;
+  const raio = ONDA_RAIO + 26 * (nivelPassiva('huans.onda.raio') - 1);
+  tocarEfeito('onda', player.x, player.y, { escala: raio / 58, atras: true });
+  // O dano sai com a onda, não no toque do botão: o jogador vê o círculo crescer e
+  // entende por que acertou quem acertou.
+  setTimeout(() => {
+    const agora = performance.now();
+    liveMonsters().forEach(m => {
+      if (m.pronto) return;
+      const d = Math.hypot(m.x - player.x, m.y - player.y);
+      if (d > raio) return;
+      const dmg = Math.max(1, Math.round(playerDamage() * 0.9));
+      m.hp -= dmg; m.hurtUntil = agora + 220;
+      addFloater(m.x, monsterBounds(m).y - 12, `-${dmg}`, '#67e8f9');
+      empurrarMonstro(m, 26);
+      if (m.hp <= 0) killMonster(m, agora);
+    });
+  }, 220);
+  anunciar(ONDA_NOME);
+  return true;
+}
+
+const ACORDE_NOME = 'ACORDE MAIOR';
+const ACORDE_ESPERA = 18000, ACORDE_ALCANCE = 170;
+let acordeEsperaAte = 0;
+
+function ativarAcordeMaior() {
+  const now = performance.now();
+  if (now < acordeEsperaAte) return false;
+  acordeEsperaAte = now + ACORDE_ESPERA;
+  const alvo = liveMonsters()
+    .filter(m => !m.pronto && Math.hypot(m.x - player.x, m.y - player.y) < ACORDE_ALCANCE)
+    .sort((a, b) => Math.hypot(a.x - player.x, a.y - player.y)
+                  - Math.hypot(b.x - player.x, b.y - player.y))[0];
+  const cx0 = alvo ? alvo.x : player.x + (player.direction === 'left' ? -90
+                             : player.direction === 'right' ? 90 : 0);
+  const cy0 = alvo ? alvo.y : player.y + (player.direction === 'up' ? -80
+                             : player.direction === 'down' ? 80 : 0);
+  // TRÊS batidas, não uma: é um acorde. A terceira dói mais que as duas primeiras
+  // somadas, então errar o posicionamento no meio custa caro.
+  const forca = [0.8, 1.0, 1.9];
+  forca.forEach((k, i) => setTimeout(() => {
+    const agora = performance.now();
+    tocarEfeito('acorde', cx0, cy0, { escala: 1 + i * 0.25, ms: 620 });
+    liveMonsters().forEach(m => {
+      if (m.pronto) return;
+      if (Math.hypot(m.x - cx0, m.y - cy0) > 62 + i * 12) return;
+      const dmg = Math.max(1, Math.round(playerDamage() * k
+                  * (1 + 0.22 * (nivelPassiva('huans.acorde.dano') - 1))));
+      m.hp -= dmg; m.hurtUntil = agora + 240;
+      addFloater(m.x, monsterBounds(m).y - 12, `-${dmg}`, '#fbbf24');
+      if (m.hp <= 0) killMonster(m, agora);
+    });
+  }, i * 240));
+  anunciar(ACORDE_NOME);
+  return true;
+}
+
 const HABILIDADES = {
   achilles: [
     { id: 'lamina', nome: LAMINA_NOME, ico: 'assets/icons/habilidades/akles_lamina.png', tecla: 'Q',
@@ -6723,6 +6887,28 @@ const HABILIDADES = {
       resta: () => Math.max(0, (orbitaAtiva() ? orbitaAte : orbitaEsperaAte) - performance.now()),
       total: () => orbitaAtiva() ? ORBITA_MS : ORBITA_ESPERA,
       passivas: ['akles.suprema.dano', 'akles.suprema.cura', 'akles.suprema.tamanho'] },
+  ],
+  // Sem ícone de arte ainda: entra o emoji, que o mesmo código já sabe desenhar
+  // (`ficha-hab` testa a extensão do arquivo). Trocar por PNG depois é uma linha cada.
+  huans: [
+    { id: 'ressonancia', nome: RESSONANCIA_NOME, ico: '🎸', tecla: 'Q',
+      desc: 'A corda vibra nele: mais dano por alguns segundos, e a aura fica visível.',
+      usar: () => ativarRessonancia(), ativa: () => ressonanciaAtiva(),
+      resta: () => Math.max(0, (ressonanciaAtiva() ? ressonanciaAte : ressonanciaEsperaAte) - performance.now()),
+      total: () => ressonanciaAtiva() ? RESSONANCIA_MS : RESSONANCIA_ESPERA,
+      passivas: ['huans.ressonancia.duracao', 'huans.ressonancia.cura'] },
+    { id: 'onda', nome: ONDA_NOME, ico: '💠', tecla: 'R',
+      desc: 'Bate o chão e solta um anel de som que fere e empurra tudo em volta.',
+      usar: () => ativarOnda(), ativa: () => false,
+      resta: () => Math.max(0, ondaEsperaAte - performance.now()),
+      total: () => ONDA_ESPERA,
+      passivas: ['huans.onda.raio'] },
+    { id: 'acorde', nome: ACORDE_NOME, ico: '🎵', tecla: 'F', suprema: true,
+      desc: 'Três batidas no mesmo ponto, como um acorde. A terceira dói mais que as duas primeiras juntas.',
+      usar: () => ativarAcordeMaior(), ativa: () => false,
+      resta: () => Math.max(0, acordeEsperaAte - performance.now()),
+      total: () => ACORDE_ESPERA,
+      passivas: ['huans.acorde.dano'] },
   ],
   wins: [
     { id: 'chuva', nome: CHUVA_NOME, ico: 'assets/icons/habilidades/wins_chuva.png', tecla: 'Q',
@@ -14256,6 +14442,9 @@ function quadro(now){
   // estava dentro do bloco `outdoors`, que não roda em todos os modos — o portão nunca
   // abria no modo andar do editor.
   atualizarDungeon(now);
+  // A aura do Huans é regra de jogo — repõe o efeito e devolve vida —, então vive aqui e
+  // não dentro do ramo `outdoors`, que não roda em todos os modos.
+  atualizarRessonancia(now);
   // O ciclo de dia e noite pela MESMA razão: ele é regra de jogo — é o que solta os
   // caçadores noturnos — e dentro de um ramo de desenho simplesmente não rodaria em
   // todos os modos. Esta é a armadilha nº 1 do projeto, e ela já custou caro.
@@ -14543,6 +14732,7 @@ function quadro(now){
 
     // A aura vem ANTES do herói: brilho é luz em volta do corpo, não um véu por cima.
     renderAuraDaLamina(now);
+    renderEfeitos(now, true);     // os marcados `atras`: aura e onda saem debaixo do corpo
     renderPlayer();
     if(!player.oculto){const pW=outdoors?player.width:HEROI_BASE.interiorW*heroiEscala,
                        pH=outdoors?player.height:HEROI_BASE.interiorH*heroiEscala;
@@ -14669,6 +14859,7 @@ function quadro(now){
       atualizarLaminaVoando(now); renderLaminaVoando(now); renderMira(now);
       atualizarOrbita(now); renderOrbita(now);
       atualizarChuvaDeLancas(now); renderChuva(now);
+      renderEfeitos(now, false);   // e os de impacto, por cima de tudo
       renderGrito(now); atualizarSono(now);
       renderEstadosDeMonstro(now);
       renderFaroisDeBau(now);
@@ -15270,6 +15461,7 @@ function initMegaWorldControls() {
   initMainMenu();
   initQuestBuilder();
   loadHeroSprites();
+  carregarEfeitos();
 }
 
 // Todas as folhas são 4x4 com fundo branco, no mesmo formato do Arthur: linha 0 de
@@ -18750,6 +18942,26 @@ const PASSIVAS_INFO = {
     oQueFaz: 'A espada arremessada joga o alvo mais longe ao acertar — serve para tirar um inimigo de cima de você.',
     valor: n => `${30 + 22 * n} px de empurrão`,
   },
+  'huans.ressonancia.duracao': {
+    nome: 'Corda Longa', ico: 'relogio',
+    oQueFaz: 'A aura dura mais. Como ela é o que sustenta o dano dele, cada nível é mais tempo batendo forte, não um número maior.',
+    valor: n => `${((6000 + 900 * (n - 1)) / 1000).toFixed(1)} s de aura`,
+  },
+  'huans.ressonancia.cura': {
+    nome: 'Ressonância Simpática', ico: 'cruz',
+    oQueFaz: 'A aura devolve vida a cada batida, uma vez por segundo enquanto durar. Não cura muito de uma vez; cura por ficar de pé.',
+    valor: n => n <= 1 ? 'sem cura ainda' : `+${n - 1} de vida por batida`,
+  },
+  'huans.onda.raio': {
+    nome: 'Harmônico Aberto', ico: 'onda',
+    oQueFaz: 'Aumenta o anel de som, então ele pega mais inimigos de uma vez e empurra de mais longe.',
+    valor: n => `${128 + 26 * (n - 1)} px de raio`,
+  },
+  'huans.acorde.dano': {
+    nome: 'Acorde Cheio', ico: 'espada',
+    oQueFaz: 'Soma peso às três batidas da suprema. A terceira é a que mais sente, porque já é a mais pesada das três.',
+    valor: n => `+${Math.round(22 * (n - 1))}% de dano`,
+  },
   'wins.grito.raio': {
     nome: 'Projeção de Voz', ico: 'onda',
     oQueFaz: 'Aumenta o raio do grito, então ele pega mais inimigos de uma vez.',
@@ -19044,6 +19256,21 @@ function desenharFicha() {
   // Trocador de herói: só quem já está desbloqueado aparece.
   const chips = document.getElementById('fichaHerois');
   if (chips) {
+    // O TROCADOR SOBE PARA O TOPO.
+    //
+    // Ele nasceu no fim da barra lateral, onde cabia quando eram dois retratos de 34 px.
+    // Com três — e com o quarto vindo do gacha — virou uma fileira apertada no rodapé
+    // esquerdo, que é o canto onde menos se olha. Escolher personagem é a primeira coisa
+    // que se faz nesta tela, e o primeiro lugar onde se olha é o cabeçalho.
+    //
+    // A mudança é feita AQUI e não no HTML de propósito: `index.html` e `dist/index.html`
+    // são mantidos à mão, em dobro, e mover um bloco nos dois é a armadilha que o
+    // CLAUDE.md registra como a que já custou caro.
+    const topo = document.querySelector('#fichaHeroi .ficha-topo');
+    if (topo && chips.parentElement !== topo) {
+      chips.classList.add('no-topo');
+      topo.insertBefore(chips, topo.querySelector('.ficha-pontos'));
+    }
     chips.innerHTML = '';
     Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado !== false).forEach(h => {
       const b = document.createElement('button');
