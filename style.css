@@ -8554,3 +8554,11 @@ body.sem-rotulos-hud .hud-rot { display: none; }
 }
 .at-stats span { font: 400 11px 'Outfit', sans-serif; color: #94a3b8; }
 .at-stats b { font: 700 12px 'Outfit', sans-serif; color: #e2e8f0; }
+
+/* ── Aba de atributos: a coluna do retrato sai ────────────────────────────────
+   Ela repetia o nível de poder e os próprios atributos — que ali ficavam
+   espremidos no rodapé — e roubava metade da largura de uma tela feita de
+   números e barras. O personagem tem a Visão Geral inteira para ele. */
+.ficha-corpo.so-numeros .ficha-esq { display: none; }
+.ficha-corpo.so-numeros .ficha-dir { grid-column: 2 / -1; }
+.ficha-corpo.so-numeros .at-grade { gap: 22px; }

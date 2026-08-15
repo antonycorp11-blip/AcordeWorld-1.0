@@ -19594,6 +19594,11 @@ function desenharFicha() {
   }
 
   montarAbaDeAtributos();
+  // Na aba de atributos a coluna do retrato SAI. Ela repetia duas coisas que a aba já
+  // mostra melhor — o nível de poder e os próprios atributos, que ficavam espremidos no
+  // rodapé — e roubava metade da largura de uma tela que é feita de números e barras.
+  // O personagem tem a Visão Geral inteira para ele; aqui quem manda é a conta.
+  document.querySelector('#fichaHeroi .ficha-corpo')?.classList.toggle('so-numeros', abaDeAtributos);
   if (abaDeAtributos) {
     document.querySelector('#fichaHeroi .ficha-hab-cab')?.classList.add('hidden');
     desenharAtributos(id);
@@ -26918,6 +26923,10 @@ function aplicarSaveDaNuvem(save) {
                        JSON.parse(localStorage.getItem(SAVE_KEY) || 'null')); } catch (e) {}
     localStorage.setItem(SAVE_KEY, JSON.stringify(save));
     loadPlayerData();
+    // O save da nuvem substitui TUDO, inclusive a bandeira de preparo. Sem repetir aqui,
+    // quem joga logado nunca via o Huans no nível 20: o preparo rodava na abertura e era
+    // apagado segundos depois, quando a conta chegava.
+    if (typeof prepararHuansParaTeste === 'function') prepararHuansParaTeste();
     atualizarRastreador?.(); updateHotbarUI?.(); updateInventorySlotsUI?.();
     showToast('☁️ Progresso da conta carregado.');
   } catch (e) { showToast('Não deu para aplicar o save da nuvem.'); }
