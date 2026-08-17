@@ -8668,19 +8668,28 @@ body.sem-rotulos-hud .hud-rot { display: none; }
    A saída é duas colunas em paisagem: identidade e dificuldade à esquerda,
    metas e prêmio à direita, botões ancorados embaixo. */
 @media (min-aspect-ratio: 13/10) {
-  .dg-quadro {
+  /* A grade de entrada não pode atingir `.fim`: a apuração tem outra estrutura e
+     era distribuída nas áreas do portão, deixando seus blocos fora de ordem. */
+  .dg-quadro:not(.fim) {
     width: min(94vw, 900px); max-height: 94%; overflow: hidden;
     display: grid; grid-template-columns: 1fr 1fr;
-    grid-template-areas: 'exige exige' 'cab metas' 'dif metas' 'botoes botoes';
-    align-content: start; gap: 0 18px; padding: 12px 16px 12px;
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'cab      metas'
+      'objetivo premio'
+      'dif      achados'
+      'dif      passe'
+      'botoes   botoes';
+    align-content: stretch; gap: 6px 18px; padding: 12px 16px;
   }
-  .dg-exige       { grid-area: exige; }
-  .dg-cab         { grid-area: cab; padding-bottom: 6px; margin-bottom: 6px; }
-  .dg-objetivo    { grid-area: cab; align-self: end; margin: 0; }
-  .dg-dificuldades{ grid-area: dif; align-content: start; }
-  .dg-metas, .dg-premio, .dg-achados, .dg-passe { grid-column: 2; }
-  .dg-metas       { grid-area: metas; align-self: start; }
-  .dg-botoes      { grid-area: botoes; margin-top: 8px; }
+  .dg-quadro:not(.fim) > .dg-cab          { grid-area: cab; padding-bottom: 6px; margin-bottom: 0; }
+  .dg-quadro:not(.fim) > .dg-objetivo     { grid-area: objetivo; margin: 0; }
+  .dg-quadro:not(.fim) > .dg-dificuldades { grid-area: dif; align-content: start; margin-bottom: 0; }
+  .dg-quadro:not(.fim) > .dg-metas        { grid-area: metas; align-self: start; margin-bottom: 0; }
+  .dg-quadro:not(.fim) > .dg-premio       { grid-area: premio; margin-bottom: 0; }
+  .dg-quadro:not(.fim) > .dg-achados      { grid-area: achados; min-height: 0; overflow-y: auto; margin-bottom: 0; }
+  .dg-quadro:not(.fim) > .dg-passe        { grid-area: passe; margin: 0; }
+  .dg-quadro:not(.fim) > .dg-botoes       { grid-area: botoes; margin-top: 0; }
 
   /* Tudo encolhe junto: o que não pode é sair da tela. */
   .dg-nome    { font-size: 18px; margin: 4px 0 1px; }
@@ -8757,9 +8766,24 @@ body.sem-rotulos-hud .hud-rot { display: none; }
 
 /* A barra injetada em Equipamento e Composição: mesma aparência da ficha, colada
    à esquerda do quadro. */
-.com-barra { display: grid; grid-template-columns: 132px 1fr; gap: 12px; align-items: start; }
+.com-barra {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  column-gap: 12px; align-items: stretch; overflow: hidden;
+}
+.com-barra > .ficha-nav.injetada {
+  grid-column: 1; grid-row: 1 / 3;
+  min-width: 0; min-height: 0; overflow-y: auto;
+}
+.com-barra > .eq-topo, .com-barra > .ac-topo {
+  grid-column: 2; grid-row: 1; min-width: 0;
+}
+.com-barra > .eq-corpo, .com-barra > .comp-corpo {
+  grid-column: 2; grid-row: 2; min-width: 0; min-height: 0;
+}
 .ficha-nav.injetada { padding: 10px 0 10px 10px; }
 @media (max-width: 760px) {
-  .com-barra { grid-template-columns: 104px 1fr; gap: 8px; }
+  .com-barra { grid-template-columns: 104px minmax(0, 1fr); column-gap: 8px; }
   .ficha-nav.injetada .ficha-aba { padding: 7px 8px; font-size: 10px; }
 }
