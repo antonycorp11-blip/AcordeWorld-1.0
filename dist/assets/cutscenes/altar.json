@@ -100,7 +100,7 @@
       "texto": "Tudo que já foi tocado, em qualquer lugar, saiu dessas doze."
     },
     {
-      "_": "── o Altar ──"
+      "_": "── a síntese portátil ──"
     },
     {
       "cmd": "esperar",
@@ -109,22 +109,22 @@
     {
       "cmd": "falar",
       "quem": "Sr. Antony",
-      "texto": "Mas não é aqui que isso acontece. Nem eu tenho poder para condensar som."
+      "texto": "Você não precisa de uma forja para condensar som. O Ressonador já levou essa técnica até sua mão."
     },
     {
       "cmd": "falar",
       "quem": "Sr. Antony",
-      "texto": "Existe um lugar. O Salão do Forjador de Escalas."
+      "texto": "Abra o Sintetizador no botão Síntese do seu HUD. Fragmentos entram; uma nota inteira sai."
     },
     {
       "cmd": "falar",
       "quem": "Sr. Antony",
-      "texto": "Um altar antigo, com um arco de encaixes de cristal. Ninguém sabe quem o construiu."
+      "texto": "O Salão do Forjador vem depois. Ele não cria notas: combina notas e intervalos para forjar escalas."
     },
     {
       "cmd": "falar",
       "quem": "Sr. Antony",
-      "texto": "Ele estava lá antes da cidade. Talvez antes da música."
+      "texto": "Primeiro prove que consegue condensar uma nota sozinho."
     },
     {
       "cmd": "esperar",
@@ -133,7 +133,7 @@
     {
       "cmd": "falar",
       "quem": "Sr. Antony",
-      "texto": "Leve seus fragmentos até ele. O altar sabe o que fazer."
+      "texto": "Use os fragmentos que trouxe. O Sintetizador sabe o que fazer."
     },
     {
       "cmd": "falar",
@@ -149,7 +149,7 @@
     {
       "cmd": "falar",
       "quem": "Sr. Antony",
-      "texto": "Mas uma coisa de cada vez. Vá condensar sua primeira nota."
+      "texto": "Mas uma coisa de cada vez. Condense sua primeira nota pelo HUD."
     },
     {
       "cmd": "falar",
@@ -162,7 +162,7 @@
     },
     {
       "cmd": "tutorial",
-      "texto": "Vá ao Salão do Forjador de Escalas e use o Altar para condensar sua primeira nota."
+      "texto": "Abra Síntese no HUD e condense sua primeira nota. O Forjador será usado depois, exclusivamente para montar escalas."
     },
     {
       "cmd": "hud",

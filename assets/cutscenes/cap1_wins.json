@@ -190,7 +190,7 @@
     {
       "cmd": "acompanhante",
       "npc": "Wins",
-      "modo": "guia"
+      "modo": "segue"
     },
     {
       "cmd": "tutorial",

@@ -14,7 +14,7 @@
     {
       "cmd": "falar",
       "quem": "Personagem",
-      "texto": "Ela... está soando sozinha.",
+      "texto": "A nota que condensei... ela reagiu ao salão.",
       "auto": 1600
     },
     {
@@ -29,7 +29,7 @@
     {
       "cmd": "falar",
       "quem": "Personagem",
-      "texto": "O altar. Os cristais acenderam.",
+      "texto": "O Forjador. Os cristais do altar acenderam.",
       "auto": 1500
     },
     {
@@ -304,8 +304,10 @@
   },
   "mapa": "custom_1786501580114_289",
   "gatilho": {
-    "tipo": "missao",
-    "missao": "primeira_nota"
+    "tipo": "mapa"
+  },
+  "requer": {
+    "missaoConcluida": "primeira_nota"
   },
   "prioridade": 62,
   "vozes": [

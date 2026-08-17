@@ -216,12 +216,9 @@
      "type": "sintetizar",
      "item": "nota",
      "quantidade": 1,
-     "text": "Condense sua primeira nota no Altar das Escalas"
+     "text": "Abra Síntese no HUD e condense sua primeira nota"
     }
-   ],
-   "aoConcluir": {
-    "cena": "primeira_voz"
-   }
+   ]
   },
   {
    "id": "a_escala_maior",
@@ -254,6 +251,18 @@
      "item": "semitom",
      "quantidade": 2,
      "text": "Reúna 2 Semitons (Ecos Cromáticos)"
+    },
+    {
+     "id": "forjar_escala",
+     "type": "montar",
+     "item": "escala",
+     "quantidade": 1,
+     "text": "Forje a escala maior no Altar do Forjador",
+     "requer": [
+      "naturais",
+      "tons",
+      "semitons"
+     ]
     }
    ]
   },

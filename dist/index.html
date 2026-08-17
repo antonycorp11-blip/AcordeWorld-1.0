@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Acordelot">
   <link rel="apple-touch-icon" href="assets/icons/icone-192.png">
-  <link rel="stylesheet" href="style.css?v=9529c157eb">
+  <link rel="stylesheet" href="style.css?v=4aaef53380">
   <!-- Supabase JS client — necessário para Realtime WebSocket (co-edição em tempo real) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -421,6 +421,7 @@
                        No lugar entra o NÍVEL DE PODER, que é o número que resume a build
                        inteira e o que as dungeons exigem. -->
                   <div class="ficha-poder" id="fichaPoder"></div>
+                  <div class="ficha-nivel-fixo" id="fichaNivelFixo"></div>
                   <div class="ficha-barras" id="fichaBarras"></div>
                 </section>
                 <section class="ficha-dir">
@@ -515,13 +516,10 @@
             <div class="fj-quadro">
               <header class="fj-topo">
                 <span class="fj-selo">𝄞</span>
-                <h2 class="fj-titulo">Altar de Síntese de Notas</h2>
+                <h2 class="fj-titulo">Síntese portátil de Notas</h2>
                 <button class="fj-fechar" data-fechar="sintetizador">✕</button>
               </header>
-              <div class="fj-abas">
-                <button class="fj-aba ativa" data-ir="sintetizador">Síntese de Notas</button>
-                <button class="fj-aba" data-ir="forjadorEscalas">Forja de Escalas</button>
-              </div>
+              <div class="fj-abas"><span class="fj-aba ativa">Síntese portátil de Notas</span></div>
               <div class="fj-corpo fj-corpo-3">
                 <section class="fj-col">
                   <div class="fj-cab">Fragmentos</div>
@@ -553,10 +551,7 @@
                 <h2 class="fj-titulo">Forjar Escalas Maiores</h2>
                 <button class="fj-fechar" data-fechar="forjadorEscalas">✕</button>
               </header>
-              <div class="fj-abas">
-                <button class="fj-aba" data-ir="sintetizador">Síntese de Notas</button>
-                <button class="fj-aba ativa" data-ir="forjadorEscalas">Forja de Escalas</button>
-              </div>
+              <div class="fj-abas"><span class="fj-aba ativa">Forjador exclusivo de Escalas</span></div>
               <p class="fj-sub">Combine Notas com Tons (T) e Semitons (S) para forjar uma escala maior.</p>
               <div class="fj-corpo fj-corpo-3">
                 <section class="fj-col">
@@ -1192,6 +1187,6 @@
 ">🔄 Enviar minhas ruas</button>
 
 <script src="config.js?v=20260807161410"></script>
-<script src="game.js?v=35a115d81f"></script>
+<script src="game.js?v=0c54231a6d"></script>
 </body>
 </html>
