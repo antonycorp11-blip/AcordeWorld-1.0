@@ -768,12 +768,18 @@ body.mobile-play #viewport-container {
   justify-content: center;
 }
 body.mobile-play #canvas-stage {
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
-  max-width: none;
-  max-height: none;
-  aspect-ratio: auto;
+  /* O jogo desenha em 1024×571. Preencher 100vw×100dvh deformava o quadro sempre que
+     a tela não tinha exatamente essa proporção — no celular paisagem o cenário era
+     esticado na horizontal e parecia ter perdido resolução. O palco agora usa o maior
+     retângulo 1024:571 que cabe na tela; o restante vira letterbox preto. As versões em
+     vh são fallback para Safari antigo, e dvh evita a barra do navegador nos atuais. */
+  width: min(100vw, 179.3345vh);
+  height: min(100vh, 55.7617vw);
+  width: min(100vw, 179.3345dvh);
+  height: min(100dvh, 55.7617vw);
+  max-width: 100vw;
+  max-height: 100dvh;
+  aspect-ratio: 1024 / 571;
   border-radius: 0;
   box-shadow: none;
   margin: 0;

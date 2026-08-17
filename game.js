@@ -8635,6 +8635,10 @@ function loadPlayerData() {
     }
     if (Array.isArray(d.skills)) learnedSkills = d.skills;
     applyMovementStats();
+    // O laço de desenho pode ter começado antes de NPCs e save terminarem de carregar.
+    // Toda carga local ou da nuvem invalida a primeira leitura e pede nova reconciliação
+    // do acompanhante com as bandeiras que acabaram de chegar.
+    window.__acompanhanteHistoriaReconciliado = false;
     revisarMissoesDisponiveis();
     revisarObjetivosDeProgresso();
     // A migração acima pode já ter marcado o último objetivo como concluído. Nesse caso
@@ -14624,6 +14628,7 @@ function quadro(now){
   // Os números do HUD pela mesma razão: o bloco que os atualizava só roda no modo jogo,
   // e no modo ANDAR a barra ficava congelada nos valores do primeiro quadro.
   if (personagemAndando()) { atualizarNumerosDoHud(); atualizarMissaoNoHud(); }
+  reconciliarAcompanhanteComHistoria();
   if (window.__acompanhanteSalvo) restaurarAcompanhante();
   atualizarAcompanhante(now);
   verificarGatilhosDaHistoria();
@@ -21360,6 +21365,50 @@ function dispensarAcompanhante() {
 
 function acompanhanteAtivo() { return !!ACOMP.npc; }
 
+// Saves antigos guardavam quem estava andando junto, mas não necessariamente todas as
+// cenas concluídas. Isso permitia restaurar o Pipo muito depois da entrega ao Dorn e
+// deixar a Wins parada na Praça mesmo após ela entrar no grupo. As bandeiras são marcos
+// mais antigos e mais estáveis do save, então definem o acompanhante canônico:
+//
+//   Pipo entra       → pipo_no_grupo
+//   Pipo vai embora  → entregou_com_pipo
+//   Wins entra       → wins_no_grupo
+//
+// `undefined` significa que a história ainda não decidiu; `null`, que decidiu por
+// ninguém. Não há escolha manual de acompanhante neste capítulo, portanto a história
+// pode reparar o save sem apagar uma decisão do jogador.
+function acompanhanteEsperadoPelaHistoria() {
+  if (temBandeira('wins_no_grupo')) return 'Wins';
+  if (temBandeira('entregou_com_pipo')) return null;
+  if (temBandeira('pipo_no_grupo')) return 'Pipo';
+  return undefined;
+}
+
+function reconciliarAcompanhanteComHistoria() {
+  if (window.__acompanhanteHistoriaReconciliado || !npcData.length) return;
+  const esperado = acompanhanteEsperadoPelaHistoria();
+  if (esperado === undefined) {
+    window.__acompanhanteHistoriaReconciliado = true;
+    return;
+  }
+
+  const salvo = npcData.find(n => n.id === window.__acompanhanteSalvo);
+  const atual = ACOMP.npc || salvo;
+  const nomeAtual = String(atual?.name || '').toLowerCase();
+  if (esperado === null) {
+    if (ACOMP.npc) dispensarAcompanhante();
+    window.__acompanhanteSalvo = null;
+    window.__acompanhanteModo = null;
+  } else if (!nomeAtual.includes(esperado.toLowerCase())) {
+    if (ACOMP.npc) dispensarAcompanhante();
+    const correto = npcData.find(n => String(n.name || '').toLowerCase()
+      .includes(esperado.toLowerCase()));
+    window.__acompanhanteSalvo = correto?.id || null;
+    window.__acompanhanteModo = 'guia';
+  }
+  window.__acompanhanteHistoriaReconciliado = true;
+}
+
 // Rechama quem estava acompanhando antes de o jogo ser fechado.
 // A HISTÓRIA MANDA MAIS QUE O SAVE.
 //
@@ -21373,6 +21422,15 @@ function acompanhanteAtivo() { return !!ACOMP.npc; }
 // o acompanhamento acabou. Nada codificado por nome — cena nova que dispense já entra
 // nesta conta sozinha.
 function acompanhamentoJaAcabou(id) {
+  // A bandeira corrige saves antigos mesmo quando a lista de cenas não foi gravada.
+  const esperado = acompanhanteEsperadoPelaHistoria();
+  if (esperado !== undefined) {
+    if (esperado === null) return true;
+    const salvoPelaBandeira = npcData.find(n => n.id === id);
+    return !salvoPelaBandeira || !String(salvoPelaBandeira.name || '').toLowerCase()
+      .includes(esperado.toLowerCase());
+  }
+
   const vistos = (CUT.roteiros || []).filter(c => cenaJaRodou(c))
     .map((c, indice) => ({ c, indice }))
     .sort((a, b) => ordemDaCena(a.c) - ordemDaCena(b.c) || a.indice - b.indice);
