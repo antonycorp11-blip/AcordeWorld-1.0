@@ -426,7 +426,10 @@
   "requer": {
     "escalasForjadas": 1,
     "semBandeira": "pipo_levado",
-    "bandeira": "wins_no_grupo"
+    "bandeira": [
+      "wins_no_grupo",
+      "wins_sentiu_esquecimento"
+    ]
   },
   "ordem": 20,
   "_ordem": "O rapto do Pipo"

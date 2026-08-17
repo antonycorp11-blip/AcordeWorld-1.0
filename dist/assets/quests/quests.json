@@ -113,46 +113,6 @@
    ]
   },
   {
-   "id": "ponte_de_acordelot",
-   "title": "A Ponte Quebrada",
-   "description": "O Ferreiro Dorn precisa de material para reconstruir a ponte na entrada da cidade.",
-   "xp": 140,
-   "recompensa": {
-    "moedas": 120,
-    "claves": 40
-   },
-   "objectives": [
-    {
-     "id": "madeira",
-     "type": "coletar",
-     "item": "wood",
-     "quantidade": 6,
-     "text": "Colete madeira na floresta"
-    },
-    {
-     "id": "pedra",
-     "type": "coletar",
-     "item": "stone",
-     "quantidade": 4,
-     "text": "Colete pedra na floresta"
-    },
-    {
-     "id": "entregar",
-     "type": "talk",
-     "npc": "Dorn",
-     "text": "Leve o material ao Ferreiro Dorn",
-     "requer": [
-      "madeira",
-      "pedra"
-     ]
-    }
-   ],
-   "custo": {
-    "wood": 6,
-    "stone": 4
-   }
-  },
-  {
    "id": "martelo_do_ferreiro",
    "title": "O Martelo do Aprendiz",
    "description": "Dorn ensina: ninguém conserta ponte sem ferramenta própria.",
@@ -399,6 +359,9 @@
   {
    "id": "treino_nivel_5",
    "title": "Peso de Ferramenta",
+   "desbloqueio": {
+    "missaoConcluida": "consertar_ponte"
+   },
    "xp": 150,
    "description": "Ferramenta leve mente pra você, disse o Dorn. Personagem fraco também.",
    "recompensa": {
@@ -419,6 +382,9 @@
   {
    "id": "treino_passiva",
    "title": "O Que Se Repete Fica",
+   "desbloqueio": {
+    "missaoConcluida": "consertar_ponte"
+   },
    "xp": 120,
    "description": "Passiva é o que você faz sem pensar. Só se compra pensando.",
    "recompensa": {
@@ -439,6 +405,9 @@
   {
    "id": "treino_sintese",
    "title": "Juntar o Que Está Solto",
+   "desbloqueio": {
+    "missaoConcluida": "o_primeiro_ressonador"
+   },
    "xp": 140,
    "description": "Fragmento sozinho não toca nada. Sete deles viram uma nota.",
    "recompensa": {
@@ -459,6 +428,9 @@
   {
    "id": "treino_escala",
    "title": "A Oitava Fecha",
+   "desbloqueio": {
+    "missaoConcluida": "primeira_nota"
+   },
    "xp": 260,
    "description": "Doze semitons e você volta ao começo. É a regra mais velha da música.",
    "recompensa": {
@@ -479,6 +451,9 @@
   {
    "id": "treino_acordes",
    "title": "Três Compassos",
+   "desbloqueio": {
+    "missaoConcluida": "primeira_nota"
+   },
    "xp": 300,
    "description": "Um acorde é um efeito. Três em sequência são uma frase — e a frase é a build.",
    "recompensa": {
@@ -499,6 +474,9 @@
   {
    "id": "treino_poder",
    "title": "O Número Que Importa",
+   "desbloqueio": {
+    "bandeira": "wins_no_grupo"
+   },
    "xp": 400,
    "description": "O poder da conta é a soma dos seus personagens. Um herói forte é metade do caminho; dois é o caminho.",
    "recompensa": {
@@ -520,6 +498,9 @@
   {
    "id": "treino_grupo",
    "title": "Ninguém Toca Sozinho",
+   "desbloqueio": {
+    "missaoConcluida": "o_primeiro_ressonador"
+   },
    "xp": 200,
    "description": "Cada herói cresce por conta própria, e a conta soma os dois.",
    "recompensa": {

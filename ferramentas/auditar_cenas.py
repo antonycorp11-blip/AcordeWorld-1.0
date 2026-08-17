@@ -215,6 +215,26 @@ for qid, q in sorted(quests.items()):
         elif t and t != 'talk' and t not in tipos_limiar and not porCena and not (o.get('item') or o.get('npc')):
             erro('missão:'+qid, 'objetivo "%s" sem item/npc — o casamento nunca bate' % o.get('id'))
 
+# Toda missão atual precisa ter uma porta de entrada. Algumas nascem em cena; as de
+# treinamento nascem de um marco declarado no próprio catálogo. Sem esta conferência a
+# missão ficava perfeita por dentro e, ainda assim, eternamente presa em "bloqueada".
+abertas_por_cena = {p.get('id') for c in cenas.values() for p in c.get('passos', [])
+                    if p.get('cmd') == 'missao'}
+for qid, q in sorted(quests.items()):
+    d = q.get('desbloqueio') or {}
+    if qid not in abertas_por_cena and not d:
+        erro('missão:'+qid, 'não é aberta por nenhuma cena e não declara `desbloqueio`')
+    desconhecidas = set(d) - {'missaoConcluida', 'bandeira'}
+    if desconhecidas:
+        erro('missão:'+qid, '`desbloqueio` tem campo que o motor não lê: %s'
+             % ', '.join(sorted(desconhecidas)))
+    anterior = d.get('missaoConcluida')
+    if anterior and anterior not in quests:
+        erro('missão:'+qid, 'desbloqueio aponta missão inexistente: %s' % anterior)
+    band = d.get('bandeira')
+    if band and band not in bandeiras_postas:
+        erro('missão:'+qid, 'desbloqueio exige bandeira que ninguém marca: %s' % band)
+
 
 # ── Voz sem corpo ─────────────────────────────────────────────────────────────
 # O dono jogou o rapto e viu: "nocth e vexor nao estao na cidade, somente o dialogo deles
@@ -279,4 +299,3 @@ for nivel, cena, msg in problemas:
 print('\n%d erro(s), %d aviso(s), %d cenas, %d missões'
       % (len(erros), len(problemas)-len(erros), len(cenas), len(quests)))
 sys.exit(1 if erros else 0)
-

@@ -105,6 +105,10 @@
       "texto": "Se eu esquecer de novo, você me lembra."
     },
     {
+      "cmd": "bandeira",
+      "id": "wins_sentiu_esquecimento"
+    },
+    {
       "cmd": "controle",
       "ativo": true
     },
@@ -123,6 +127,5 @@
     "bandeira": "wins_no_grupo"
   },
   "ordem": 19,
-  "opcional": true,
-  "_ordem": "OPCIONAL: no meio da limpeza, a Wins esquece"
+  "_ordem": "No meio da limpeza, a Wins esquece — acontecimento obrigatório antes do rapto"
 }

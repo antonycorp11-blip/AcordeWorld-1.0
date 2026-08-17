@@ -40,6 +40,14 @@ definidas |= set(re.findall(r'\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:
 definidas |= set(re.findall(r'\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*[A-Za-z_$][\w$]*\s*=>', codigo))
 definidas |= set(re.findall(r'([A-Za-z_$][\w$]*)\s*[:=]\s*(?:async\s*)?(?:function|\([^)]*\)\s*=>)', codigo))
 definidas |= set(re.findall(r'window\.([A-Za-z_$][\w$]*)\s*=', codigo))
+# Métodos de objetos (`disponivel() {}` / `async entrar() {}`) também são definições.
+# E callbacks recebidos como parâmetro (`function comSuavizacao(..., desenhar)`) são
+# chamados legitimamente dentro da função, embora não tenham declaração própria.
+definidas |= set(re.findall(r'(?m)^\s*(?:async\s+)?([a-zA-Z_$][\w$]*)\s*\([^)]*\)\s*\{', codigo))
+for params in re.findall(r'\bfunction(?:\s+[A-Za-z_$][\w$]*)?\s*\(([^)]*)\)', codigo):
+    definidas |= {p.strip() for p in params.split(',') if re.fullmatch(r'[A-Za-z_$][\w$]*', p.strip())}
+for params in re.findall(r'\(([^()]*)\)\s*=>', codigo):
+    definidas |= {p.strip() for p in params.split(',') if re.fullmatch(r'[A-Za-z_$][\w$]*', p.strip())}
 chamadas = set(re.findall(r'(?<![\w.$])([a-z][A-Za-z0-9_$]{3,})\s*\(', codigo))
 NATIVAS = set('''if for while switch catch return typeof function requestAnimationFrame setTimeout
 setInterval clearTimeout clearInterval parseInt parseFloat isNaN isFinite encodeURIComponent
