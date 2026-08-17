@@ -2401,7 +2401,20 @@ async function loadPinturasCloud() {
                   const [col, row] = k.split('_').map(Number);
                   const cv = pinturaDoBloco(col, row);
                   const cx = cv.getContext('2d');
-                  cx.clearRect(0, 0, cv.width, cv.height);
+                  // O CANVAS ACOMPANHA A CAIXA, e não o contrário.
+    //
+    // Ele nascia 360x420 fixo. Numa tela larga e baixa — o celular em paisagem, que é o
+    // alvo do jogo — a caixa fica com metade dessa altura, o `object-fit: contain`
+    // encolhe tudo, e o herói vira um boneco de dois centímetros exatamente na tela que
+    // deveria mostrá-lo grande. Medir a caixa a cada quadro custa nada e serve a
+    // qualquer formato.
+    const r = cv.getBoundingClientRect();
+    const larg = Math.max(80, Math.round(r.width)), altura = Math.max(80, Math.round(r.height));
+    if (cv.width !== larg || cv.height !== altura) {
+      cv.width = larg; cv.height = altura;
+      cx.imageSmoothingEnabled = false;
+    }
+    cx.clearRect(0, 0, cv.width, cv.height);
                   cx.drawImage(img, 0, 0);
                 } catch (e) {}
               };
@@ -5448,11 +5461,23 @@ function renderRelogioDoMundo() {
   if (el.dataset.sig === sig) return;
   el.dataset.sig = sig;
   el.classList.toggle('noite', noite);
-  // Na clareira o aviso é mais forte: é lá que a noite tem consequência.
   const perigo = noite && mapaTemEcos(currentKey);
+
+  // SÓ O ÍCONE, QUASE SEMPRE.
+  //
+  // Era uma faixa com duas linhas de texto no meio do topo, permanente. Ela ocupava o
+  // lugar onde o jogador olha para ver o que está à frente, e passava 90% do tempo
+  // dizendo o óbvio — "DIA, anoitece em 7 min" — porque a informação só importa em dois
+  // momentos: quando a virada está perto e quando a noite tem consequência.
+  //
+  // Então o normal é um selo pequeno, do tamanho de um botão do HUD. Ele ABRE sozinho e
+  // mostra o texto nos dois momentos em que serve, e fecha de novo depois.
+  const abrir = perigo || min <= 2;
+  el.classList.toggle('so-ico', !abrir);
   el.innerHTML = `<span class="ht-ico">${noite ? '🌑' : '☀️'}</span>`
-    + `<span class="ht-txt">${noite ? 'NOITE' : 'DIA'}`
-    + `<small>${perigo ? 'caçadores entre os Ecos' : (noite ? 'amanhece' : 'anoitece') + ` em ${min} min`}</small></span>`;
+    + (abrir ? `<span class="ht-txt">${noite ? 'NOITE' : 'DIA'}`
+      + `<small>${perigo ? 'caçadores entre os Ecos'
+                         : (noite ? 'amanhece' : 'anoitece') + ` em ${min} min`}</small></span>` : '');
 }
 
 function renderRessonancia() {
@@ -6694,6 +6719,10 @@ const passivas = {
   'wins.grito.raio':      1,   // alcance do grito paralisante
   'wins.suprema.carga':   1,   // reduz o tempo de carregamento da suprema
   'wins.suprema.sono':    1,   // quanto tempo os monstros dormem
+  'huans.ressonancia.duracao': 1,  // quanto tempo a aura dura
+  'huans.ressonancia.cura':    1,  // vida devolvida a cada batida da aura
+  'huans.onda.raio':           1,  // alcance do anel de som
+  'huans.acorde.dano':         1,  // peso das tres batidas
 };
 function nivelPassiva(id) { return passivas[id] || 1; }
 // Guardado junto do resto do progresso, para a evolução não se perder ao fechar o jogo.
@@ -6703,6 +6732,244 @@ function carregarPassivas(d) { if (d) Object.assign(passivas, d); }
 // Cada herói declara as suas. Os três botões da roda leem esta lista, então trocar de
 // personagem troca o que os botões fazem — antes eles chamavam a Lâmina e a Sétima direto,
 // e a Wins apertava o botão para ver a espada do Achilles sair.
+// ══ EFEITOS EM FOLHA ══════════════════════════════════════════════════════════════
+//
+// As folhas de efeito são desenhadas SEM personagem, de propósito: assim o mesmo efeito
+// serve a qualquer herói e o corpo continua visível por baixo. Efeito colado na criatura
+// foi o que fez o ataque dos Ecos terminar com um feixe de luz no lugar do bicho.
+//
+// Cada folha é uma tira de 8 quadros, do nascer ao dissipar, sem laço.
+const EFEITOS = {
+  ressonancia: { src: 'assets/efeitos/fx_aura_ressonancia.png', ms: 900 },
+  onda:        { src: 'assets/efeitos/fx_onda_harmonica.png',   ms: 620 },
+  corte:       { src: 'assets/efeitos/fx_corte_corda.png',      ms: 320 },
+  acorde:      { src: 'assets/efeitos/fx_acorde_impacto.png',   ms: 700 },
+  afinacao:    { src: 'assets/efeitos/fx_afinacao.png',         ms: 1000 },
+};
+const QUADROS_DO_EFEITO = 8;
+const imagensDeEfeito = {};
+let efeitosEmCurso = [];
+
+function carregarEfeitos() {
+  for (const [nome, e] of Object.entries(EFEITOS)) {
+    const img = new Image();
+    img.src = e.src;
+    imagensDeEfeito[nome] = img;
+  }
+}
+
+// `seguir` prende o efeito a alguém (a aura acompanha o herói); sem ele fica onde nasceu.
+function tocarEfeito(nome, x, y, opts = {}) {
+  if (!EFEITOS[nome]) return null;
+  const fx = { nome, x, y, inicio: performance.now(),
+               ms: opts.ms || EFEITOS[nome].ms, escala: opts.escala || 1,
+               seguir: opts.seguir || null, alfa: opts.alfa ?? 1, atras: !!opts.atras,
+               // `angulo` gira o efeito; `dx/dy` o afastam do centro de quem o gerou. Os
+               // dois existem para o rastro do golpe: ele nasce na frente do herói e
+               // aponta para onde ele está olhando, e sem isso sairia sempre igual,
+               // atravessado no corpo.
+               angulo: opts.angulo || 0, dx: opts.dx || 0, dy: opts.dy || 0,
+               espelho: !!opts.espelho };
+  efeitosEmCurso.push(fx);
+  return fx;
+}
+
+function renderEfeitos(now, atras = false) {
+  if (!efeitosEmCurso.length) return;
+  efeitosEmCurso = efeitosEmCurso.filter(f => now - f.inicio < f.ms);
+  for (const f of efeitosEmCurso) {
+    if (!!f.atras !== atras) continue;
+    const img = imagensDeEfeito[f.nome];
+    if (!img || !img.complete || img.naturalWidth < 10) continue;
+    const t = (now - f.inicio) / f.ms;
+    const q = Math.min(QUADROS_DO_EFEITO - 1, Math.floor(t * QUADROS_DO_EFEITO));
+    const fw = img.width / QUADROS_DO_EFEITO, fh = img.height;
+    const alvo = f.seguir === 'jogador' ? player : f.seguir;
+    const x = alvo ? alvo.x : f.x, y = alvo ? alvo.y : f.y;
+    const d = 96 * f.escala;
+    ctx.save();
+    ctx.globalAlpha = f.alfa;
+    ctx.globalCompositeOperation = 'lighter';   // luz soma, não tapa o que está atrás
+    ctx.translate(x + f.dx, y + f.dy - d * 0.32);
+    if (f.angulo) ctx.rotate(f.angulo);
+    if (f.espelho) ctx.scale(-1, 1);
+    ctx.drawImage(img, q * fw, 0, fw, fh, -d / 2, -d * (fh / fw) / 2, d, d * (fh / fw));
+    ctx.restore();
+  }
+}
+
+// ══ O TEMPO DENTRO DO GOLPE ═══════════════════════════════════════════════════════
+//
+// Os quadros corriam em tempo IGUAL: seis quadros em 560 ms, 93 ms cada. Funciona quando
+// a folha distribui o movimento por igual, e a Queda de Braço não distribui — nela os três
+// primeiros quadros são todos PREPARAÇÃO (de pé, machado subindo) e o quarto já é o
+// impacto, agachado no chão. Com tempo igual, a pancada acontece em 93 ms sem nenhum
+// quadro de passagem: lê como corte de cena, não como golpe. Foi isso que o dono viu.
+//
+// `tempos` dá PESO a cada quadro. Segurar a preparação e correr pela pancada é o que dá
+// peso ao machado sem quadro novo nenhum — e quadro novo é arte, que custa.
+//
+// Sem `tempos`, tudo segue igual como antes: nenhum golpe existente muda de comportamento.
+function quadroDoGolpe(g, passou, cols) {
+  const t = Math.max(0, Math.min(1, passou));
+  const pesos = g.tempos;
+  if (!pesos || pesos.length !== cols) {
+    return Math.max(0, Math.min(cols - 1, Math.floor(t * cols)));
+  }
+  const soma = pesos.reduce((a, b) => a + b, 0);
+  let acc = 0;
+  for (let i = 0; i < cols; i++) {
+    acc += pesos[i] / soma;
+    if (t <= acc) return i;
+  }
+  return cols - 1;
+}
+
+// O RASTRO DO GOLPE, na direção em que o herói olha.
+//
+// A folha `fx_corte_corda` é um arco desenhado apontando para a DIREITA. Girá-lo por
+// direção é o que faz um desenho só servir aos quatro lados — e é também o que impede o
+// rastro de sair atravessado no corpo, que é como fica quando se desenha centrado.
+//
+// Só sai em quem TEM o efeito declarado. O Akles e a Wins têm rastro próprio dentro das
+// folhas de ataque deles; somar este por cima seria dois rastros no mesmo golpe.
+// O clarão no quadro da pancada. Agendado pelo `tempos` do próprio golpe, para bater
+// junto com o desenho e não num tempo inventado à parte.
+function clarãoDoImpacto(g) {
+  const def = personagemAtivo();
+  if (!def.rastro || g.impacto == null || !g.tempos) return;
+  const soma = g.tempos.reduce((a, b) => a + b, 0);
+  const ate = g.tempos.slice(0, g.impacto).reduce((a, b) => a + b, 0) / soma;
+  const dir = player.direction || 'down';
+  const ang = ANGULO_DA_DIRECAO[dir] ?? 0;
+  setTimeout(() => {
+    tocarEfeito('acorde', player.x + Math.cos(ang) * 26, player.y + Math.sin(ang) * 16,
+                { ms: 380, escala: 0.55 });
+  }, ate * g.ms);
+}
+
+const ANGULO_DA_DIRECAO = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
+const AVANCO_DO_RASTRO = 30;
+
+function rastroDoGolpe(g) {
+  const def = personagemAtivo();
+  if (!def.rastro || !g) return;
+  const dir = player.direction || 'down';
+  const ang = ANGULO_DA_DIRECAO[dir] ?? 0;
+  const dx = Math.cos(ang) * AVANCO_DO_RASTRO, dy = Math.sin(ang) * AVANCO_DO_RASTRO * 0.6;
+  tocarEfeito(def.rastro, player.x, player.y, {
+    ms: Math.min(340, g.ms * 0.7),
+    // O arco acompanha o alcance do golpe: a estocada risca mais longe que o corte.
+    escala: 0.62 * (g.alcance || 1),
+    angulo: ang, dx, dy,
+    // No remate o arco vem ao contrário, fechando o giro em vez de repetir o corte.
+    espelho: !!g.remate,
+  });
+}
+
+// ══ HABILIDADES DO HUANS ══════════════════════════════════════════════════════════
+//
+// O Clã das Cordas dá o vocabulário, e as três seguem a mesma ideia em escalas diferentes:
+// fazer a corda vibrar. Uma vibra NELE (aura), uma vibra o CHÃO em volta (onda), e a
+// suprema é o acorde inteiro caindo num ponto.
+//
+// Elas não repetem as do Akles nem as da Wins: ele não tem nada à distância e nada que
+// paralise. O que ele tem é área e peso — perto, forte e lento.
+const RESSONANCIA_NOME = 'RESSONÂNCIA';
+const RESSONANCIA_MS = 6000, RESSONANCIA_ESPERA = 14000, RESSONANCIA_BONUS = 1.45;
+let ressonanciaAte = 0, ressonanciaEsperaAte = 0, ressonanciaPulso = 0;
+
+function ativarRessonancia() {
+  const now = performance.now();
+  if (now < ressonanciaEsperaAte) return false;
+  ressonanciaAte = now + RESSONANCIA_MS + 900 * (nivelPassiva('huans.ressonancia.duracao') - 1);
+  ressonanciaEsperaAte = now + RESSONANCIA_ESPERA;
+  ressonanciaPulso = 0;
+  tocarEfeito('ressonancia', player.x, player.y, { seguir: 'jogador', ms: 900, atras: true });
+  anunciar(RESSONANCIA_NOME);
+  return true;
+}
+function ressonanciaAtiva() { return performance.now() < ressonanciaAte; }
+
+// A aura repõe o efeito enquanto dura e devolve um pouco de vida a cada batida — é o que
+// faz dela um ESTADO e não um número somado por seis segundos.
+function atualizarRessonancia(now) {
+  if (!ressonanciaAtiva()) return;
+  if (now - ressonanciaPulso < 900) return;
+  ressonanciaPulso = now;
+  tocarEfeito('ressonancia', player.x, player.y, { seguir: 'jogador', ms: 900, atras: true });
+  const cura = nivelPassiva('huans.ressonancia.cura') - 1;
+  if (cura > 0 && playerHp > 0 && playerHp < playerMaxHp()) {
+    playerHp = Math.min(playerMaxHp(), playerHp + cura);
+    tocarEfeito('afinacao', player.x, player.y, { ms: 700, escala: 0.6 });
+  }
+}
+
+const ONDA_NOME = 'ONDA HARMÔNICA';
+const ONDA_ESPERA = 9000, ONDA_RAIO = 128;
+let ondaEsperaAte = 0;
+
+function ativarOnda() {
+  const now = performance.now();
+  if (now < ondaEsperaAte) return false;
+  ondaEsperaAte = now + ONDA_ESPERA;
+  const raio = ONDA_RAIO + 26 * (nivelPassiva('huans.onda.raio') - 1);
+  tocarEfeito('onda', player.x, player.y, { escala: raio / 58, atras: true });
+  // O dano sai com a onda, não no toque do botão: o jogador vê o círculo crescer e
+  // entende por que acertou quem acertou.
+  setTimeout(() => {
+    const agora = performance.now();
+    liveMonsters().forEach(m => {
+      if (m.pronto) return;
+      const d = Math.hypot(m.x - player.x, m.y - player.y);
+      if (d > raio) return;
+      const dmg = Math.max(1, Math.round(playerDamage() * 0.9));
+      m.hp -= dmg; m.hurtUntil = agora + 220;
+      addFloater(m.x, monsterBounds(m).y - 12, `-${dmg}`, '#67e8f9');
+      empurrarMonstro(m, 26);
+      if (m.hp <= 0) killMonster(m, agora);
+    });
+  }, 220);
+  anunciar(ONDA_NOME);
+  return true;
+}
+
+const ACORDE_NOME = 'ACORDE MAIOR';
+const ACORDE_ESPERA = 18000, ACORDE_ALCANCE = 170;
+let acordeEsperaAte = 0;
+
+function ativarAcordeMaior() {
+  const now = performance.now();
+  if (now < acordeEsperaAte) return false;
+  acordeEsperaAte = now + ACORDE_ESPERA;
+  const alvo = liveMonsters()
+    .filter(m => !m.pronto && Math.hypot(m.x - player.x, m.y - player.y) < ACORDE_ALCANCE)
+    .sort((a, b) => Math.hypot(a.x - player.x, a.y - player.y)
+                  - Math.hypot(b.x - player.x, b.y - player.y))[0];
+  const cx0 = alvo ? alvo.x : player.x + (player.direction === 'left' ? -90
+                             : player.direction === 'right' ? 90 : 0);
+  const cy0 = alvo ? alvo.y : player.y + (player.direction === 'up' ? -80
+                             : player.direction === 'down' ? 80 : 0);
+  // TRÊS batidas, não uma: é um acorde. A terceira dói mais que as duas primeiras
+  // somadas, então errar o posicionamento no meio custa caro.
+  const forca = [0.8, 1.0, 1.9];
+  forca.forEach((k, i) => setTimeout(() => {
+    const agora = performance.now();
+    tocarEfeito('acorde', cx0, cy0, { escala: 1 + i * 0.25, ms: 620 });
+    liveMonsters().forEach(m => {
+      if (m.pronto) return;
+      if (Math.hypot(m.x - cx0, m.y - cy0) > 62 + i * 12) return;
+      const dmg = Math.max(1, Math.round(playerDamage() * k
+                  * (1 + 0.22 * (nivelPassiva('huans.acorde.dano') - 1))));
+      m.hp -= dmg; m.hurtUntil = agora + 240;
+      addFloater(m.x, monsterBounds(m).y - 12, `-${dmg}`, '#fbbf24');
+      if (m.hp <= 0) killMonster(m, agora);
+    });
+  }, i * 240));
+  anunciar(ACORDE_NOME);
+  return true;
+}
+
 const HABILIDADES = {
   achilles: [
     { id: 'lamina', nome: LAMINA_NOME, ico: 'assets/icons/habilidades/akles_lamina.png', tecla: 'Q',
@@ -6723,6 +6990,28 @@ const HABILIDADES = {
       resta: () => Math.max(0, (orbitaAtiva() ? orbitaAte : orbitaEsperaAte) - performance.now()),
       total: () => orbitaAtiva() ? ORBITA_MS : ORBITA_ESPERA,
       passivas: ['akles.suprema.dano', 'akles.suprema.cura', 'akles.suprema.tamanho'] },
+  ],
+  // Sem ícone de arte ainda: entra o emoji, que o mesmo código já sabe desenhar
+  // (`ficha-hab` testa a extensão do arquivo). Trocar por PNG depois é uma linha cada.
+  huans: [
+    { id: 'ressonancia', nome: RESSONANCIA_NOME, ico: '🎸', tecla: 'Q',
+      desc: 'A corda vibra nele: mais dano por alguns segundos, e a aura fica visível.',
+      usar: () => ativarRessonancia(), ativa: () => ressonanciaAtiva(),
+      resta: () => Math.max(0, (ressonanciaAtiva() ? ressonanciaAte : ressonanciaEsperaAte) - performance.now()),
+      total: () => ressonanciaAtiva() ? RESSONANCIA_MS : RESSONANCIA_ESPERA,
+      passivas: ['huans.ressonancia.duracao', 'huans.ressonancia.cura'] },
+    { id: 'onda', nome: ONDA_NOME, ico: '💠', tecla: 'R',
+      desc: 'Bate o chão e solta um anel de som que fere e empurra tudo em volta.',
+      usar: () => ativarOnda(), ativa: () => false,
+      resta: () => Math.max(0, ondaEsperaAte - performance.now()),
+      total: () => ONDA_ESPERA,
+      passivas: ['huans.onda.raio'] },
+    { id: 'acorde', nome: ACORDE_NOME, ico: '🎵', tecla: 'F', suprema: true,
+      desc: 'Três batidas no mesmo ponto, como um acorde. A terceira dói mais que as duas primeiras juntas.',
+      usar: () => ativarAcordeMaior(), ativa: () => false,
+      resta: () => Math.max(0, acordeEsperaAte - performance.now()),
+      total: () => ACORDE_ESPERA,
+      passivas: ['huans.acorde.dano'] },
   ],
   wins: [
     { id: 'chuva', nome: CHUVA_NOME, ico: 'assets/icons/habilidades/wins_chuva.png', tecla: 'Q',
@@ -7239,6 +7528,8 @@ function doAttack() {
   lastAttack = now;
   golpeEmCurso = g;
   attackAnimUntil = now + g.ms;
+  rastroDoGolpe(g);
+  clarãoDoImpacto(g);
   guardaAte = now + g.ms + GUARDA_MS;
   comboMostrado = { passo: comboPasso, rotulo: g.rotulo, ate: now + g.ms + 700 };
 
@@ -7360,7 +7651,11 @@ function consumirRessonancia(mapKey) {
 }
 
 function mapaTemEcos(mapKey) {
-  return monsters.some(m => m.mapKey === mapKey && monsterDef(m).exigeRessonador);
+  // `daFazenda` fica de fora: o Eco de estimação é do mesmo TIPO do selvagem, mas ele não
+  // faz do lugar uma clareira — é bicho de casa. Sem esta linha, invocar um Eco na
+  // fazenda transformava a horta em terreno de caça noturna.
+  return monsters.some(m => m.mapKey === mapKey && !m.daFazenda
+                            && monsterDef(m).exigeRessonador);
 }
 
 // ── Captura de Ecos ──────────────────────────────────────────────────────────────
@@ -8161,6 +8456,10 @@ function savePlayerData() {
       passivas, habilidadesAbertas,
       passesDeDungeon, dungeons: ultimaConclusaoDeDungeon,
       acompanhante: ACOMP.npc ? ACOMP.npc.id : null,
+      // O MODO vai junto. Guardar só quem acompanha e não COMO fazia o guia virar
+      // seguidor em todo recarregamento: a cena mandava esperar na placa, o jogador
+      // fechava o jogo, e ao voltar o companheiro estava colado nele de novo.
+      acompanhanteModo: ACOMP.modo || null,
       fazendaExpansoes: expansoesCompradas(),
       cenaAceita,
       petsDoJogador, petEquipado,
@@ -8254,6 +8553,7 @@ function loadPlayerData() {
     if (d.petsDoJogador) petsDoJogador = d.petsDoJogador;
     if (d.petEquipado) petEquipado = d.petEquipado;
     if (d.acompanhante) window.__acompanhanteSalvo = d.acompanhante;
+    if (d.acompanhanteModo) window.__acompanhanteModo = d.acompanhanteModo;
     if (typeof d.claves === 'number') claveCount = d.claves;
     if (Array.isArray(d.owned)) ownedItems = d.owned;
     if (d.equipped) equipped = { ...equipped, ...d.equipped };
@@ -8317,6 +8617,7 @@ async function loadShopCatalog() {
   // haver um save local com que comparar antes de decidir qual dos dois vale.
   if (typeof restaurarSessao === 'function') restaurarSessao();
   aplicarHeroisRecrutados();
+  prepararHuansParaTeste();
   limparHeroisTrancadosDoGrupo();
   abastecerBancaDeTestes();
   // As roupas da loja são 3,9 MB que ninguém vê até abrir a loja. Ficam num pedido
@@ -9617,7 +9918,7 @@ function renderPlayer() {
     // corte terminar junto com o dano em vez de ficar parado num quadro qualquer.
     if (troca && troca.atacando && golpeEmCurso) {
       const passou = 1 - (attackAnimUntil - performance.now()) / golpeEmCurso.ms;
-      frame = Math.max(0, Math.min(cols - 1, Math.floor(passou * cols)));
+      frame = quadroDoGolpe(golpeEmCurso, passou, cols);
     }
 
     // Ataque só troca de linha se a folha TIVER uma linha de ataque. A do Achilles usa
@@ -12913,9 +13214,16 @@ function executarPasso(p) {
       if (p.dispensar || !p.npc) dispensarAcompanhante();
       else {
         const quem = chamarAcompanhante(p.npc);
-        // `modo: 'guia'` = ela não anda atrás, só espera na placa certa. Serve para quem
-        // está mostrando o caminho e não fazendo companhia.
-        ACOMP.modo = p.modo || 'segue';
+        // GUIA É O PADRÃO, e `segue` é que precisa ser pedido.
+        //
+        // Estava ao contrário, e o resultado era que o modo guia — companheiro que espera
+        // ENCOSTADO NA PLACA do caminho, em vez de correr atrás — existia escrito e nunca
+        // rodava: nenhuma cena passava `modo`, então todas caíam em `segue`. Mais um caso
+        // de código pronto que nenhuma chamada alcançava.
+        //
+        // Guia também é o que não trava: quem espera na placa não precisa de busca de
+        // caminho, e o Pipo encalha em beco.
+        ACOMP.modo = p.modo || 'guia';
         if (quem && ACOMP.modo === 'guia') ACOMP.avisouPlaca = null;
       }
       return false;
@@ -13233,6 +13541,20 @@ function soltarEcosDaNoite() {
 }
 
 function soltarCacaNoturna() {
+  // A FAZENDA NÃO É CLAREIRA. Este foi um bug com três elos, e nenhum deles parecia
+  // errado sozinho:
+  //
+  //   1. `mapaTemEcos` responde "sim" para qualquer mapa com um monstro que exige
+  //      Ressonador — e os Ecos que o jogador INVOCA na fazenda são desse tipo. Bastava
+  //      ter um Eco de estimação para a fazenda passar por clareira.
+  //   2. Anoitecendo, os caçadores nasciam ali dentro, junto das plantações.
+  //   3. E não apareciam: o desenho da fazenda roda em duas passadas, uma só para os
+  //      Ecos de casa, e quem não é Eco de casa não é desenhado em nenhuma delas. A IA
+  //      continuava rodando.
+  //
+  // Resultado: inimigo invisível batendo no jogador no meio da horta. A caça é da
+  // CLAREIRA, e a fazenda é o lugar para onde se vai quando não se quer briga.
+  if (currentScene === 'farm') { limparCacaNoturna(); return; }
   if (!mapaTemEcos(currentKey) || corridaAtiva()) return;
   if (mapaDaCacaNoturna === currentKey) return;
   limparCacaNoturna();
@@ -14244,6 +14566,9 @@ function quadro(now){
   // estava dentro do bloco `outdoors`, que não roda em todos os modos — o portão nunca
   // abria no modo andar do editor.
   atualizarDungeon(now);
+  // A aura do Huans é regra de jogo — repõe o efeito e devolve vida —, então vive aqui e
+  // não dentro do ramo `outdoors`, que não roda em todos os modos.
+  atualizarRessonancia(now);
   // O ciclo de dia e noite pela MESMA razão: ele é regra de jogo — é o que solta os
   // caçadores noturnos — e dentro de um ramo de desenho simplesmente não rodaria em
   // todos os modos. Esta é a armadilha nº 1 do projeto, e ela já custou caro.
@@ -14369,7 +14694,8 @@ function quadro(now){
       else {
         garantirFundo(mapKey);
         const bg = bgImages[mapKey];
-        if (bg?.complete) comSuavizacao(() => ctx.drawImage(bg, 0, 0, SCREEN_W, SCREEN_H));
+        if (bg?.complete) comSuavizacao(bg.naturalWidth,
+                                        () => ctx.drawImage(bg, 0, 0, SCREEN_W, SCREEN_H));
       }
       if (currentScene === 'world' && mapKey !== 'mega_world') renderSombrasDeNuvem(now, mapKey);
     }
@@ -14531,6 +14857,7 @@ function quadro(now){
 
     // A aura vem ANTES do herói: brilho é luz em volta do corpo, não um véu por cima.
     renderAuraDaLamina(now);
+    renderEfeitos(now, true);     // os marcados `atras`: aura e onda saem debaixo do corpo
     renderPlayer();
     if(!player.oculto){const pW=outdoors?player.width:HEROI_BASE.interiorW*heroiEscala,
                        pH=outdoors?player.height:HEROI_BASE.interiorH*heroiEscala;
@@ -14657,6 +14984,7 @@ function quadro(now){
       atualizarLaminaVoando(now); renderLaminaVoando(now); renderMira(now);
       atualizarOrbita(now); renderOrbita(now);
       atualizarChuvaDeLancas(now); renderChuva(now);
+      renderEfeitos(now, false);   // e os de impacto, por cima de tudo
       renderGrito(now); atualizarSono(now);
       renderEstadosDeMonstro(now);
       renderFaroisDeBau(now);
@@ -14731,10 +15059,22 @@ function quadro(now){
 // PIOR que o velho.
 //
 // Sprite continua sem suavização. A troca vale um desenho e volta ao normal em seguida.
-function comSuavizacao(desenhar) {
+// SUAVIZAR SÓ QUANDO REDUZ. Esta é a correção de uma correção minha, e a distinção é a
+// única coisa que importa aqui:
+//
+//   · REDUZINDO (o mapa tem 2752 px e o quadro desenha 1024 lógicos): sem média entre
+//     pixels vizinhos, dois em cada três somem e a arte serrilha e cintila. Suavizar é o
+//     certo.
+//   · AMPLIANDO (o mapa tem 1024 px e a tela do celular pede 2700): suavizar BORRA. E 35
+//     dos 43 mapas do jogo têm 1024 px, então a versão anterior — que suavizava sempre —
+//     deixou quase o jogo inteiro embaçado. Foi o que o dono viu na praça.
+//
+// A conta é direta: largura do arquivo contra largura do quadro em pixels de verdade.
+function comSuavizacao(largura, desenhar) {
   const antes = ctx.imageSmoothingEnabled;
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
+  const reduzindo = largura > canvas.width;
+  ctx.imageSmoothingEnabled = reduzindo;
+  if (reduzindo) ctx.imageSmoothingQuality = 'high';
   try { desenhar(); } finally { ctx.imageSmoothingEnabled = antes; }
 }
 
@@ -14795,18 +15135,44 @@ document.addEventListener('DOMContentLoaded',()=>{
   canvas=document.getElementById('gameCanvas');
   ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;
   setupHighDPICanvas();
-  window.addEventListener('resize', setupHighDPICanvas);
-  window.addEventListener('orientationchange', () => setTimeout(setupHighDPICanvas, 120));
+  // ── O TECLADO DO CELULAR NÃO É UMA MUDANÇA DE TELA ─────────────────────────────
+  //
+  // Abrir o teclado para digitar e-mail e senha encolhe a janela: no celular isso dispara
+  // um `resize` a cada quadro da animação de subida do teclado, e antes cada um deles
+  // refazia o canvas — trocar `canvas.width` apaga o buffer e força um redesenho inteiro.
+  // Vinte vezes em meio segundo, e a tela TREME. Era isso que acontecia ao entrar na
+  // conta, e por isso só acontecia ali: é a única tela do jogo com campo de texto.
+  //
+  // Duas defesas: só a LARGURA conta (o teclado muda a altura, não a largura), e ainda
+  // assim com uma pausa para o redimensionamento assentar antes de medir.
+  let _prazoDeMedir = null, _larguraMedida = 0;
+  function remedirCanvas(imediato = false) {
+    clearTimeout(_prazoDeMedir);
+    const agir = () => {
+      const larg = Math.round(canvas.getBoundingClientRect().width);
+      if (!imediato && larg === _larguraMedida) return;   // só o teclado: ignora
+      _larguraMedida = larg;
+      setupHighDPICanvas();
+    };
+    if (imediato) { agir(); return; }
+    _prazoDeMedir = setTimeout(agir, 180);
+  }
+  remedirCanvas(true);
+  window.addEventListener('resize', () => remedirCanvas());
+  window.addEventListener('orientationchange', () => setTimeout(() => remedirCanvas(true), 200));
   // Seguro contra a janela mudar de tamanho sem avisar. O Safari do celular encolheu a
   // área do jogo ao abrir uma caixa nativa e não disparou `resize` nenhum: o jogo voltou
   // desenhado em menos de metade da tela, com o resto preto, e ficou assim. Refazer a
   // conta quando a aba volta a aparecer custa uma medição e desfaz esse tipo de sequela.
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) setTimeout(setupHighDPICanvas, 60);
+    if (!document.hidden) setTimeout(() => remedirCanvas(true), 60);
   });
-  window.addEventListener('focus', () => setTimeout(setupHighDPICanvas, 60));
-  window.addEventListener('pageshow', () => setTimeout(setupHighDPICanvas, 60));
-  if (window.ResizeObserver) new ResizeObserver(setupHighDPICanvas).observe(canvas);
+  window.addEventListener('focus', () => setTimeout(() => remedirCanvas(true), 60));
+  window.addEventListener('pageshow', () => setTimeout(() => remedirCanvas(true), 60));
+  // O observador do canvas passa pelo MESMO filtro. Ligado direto no `setupHighDPICanvas`
+  // ele era a maior fonte do tremor: o teclado subindo encolhe o canvas quadro a quadro, e
+  // cada aviso do observador refazia o buffer inteiro.
+  if (window.ResizeObserver) new ResizeObserver(() => remedirCanvas()).observe(canvas);
   bindCanvasEvents();
   skinShopVideo=document.getElementById('skinShopVideo');
   loadingOverlay=document.getElementById('loadingOverlay');
@@ -15232,6 +15598,7 @@ function initMegaWorldControls() {
   initMainMenu();
   initQuestBuilder();
   loadHeroSprites();
+  carregarEfeitos();
 }
 
 // Todas as folhas são 4x4 com fundo branco, no mesmo formato do Arthur: linha 0 de
@@ -15326,6 +15693,59 @@ const HERO_DEFINITIONS = {
     papel: 'Alcance', raridade: 5, desbloqueado: false,
     base: { vida: 0, dano: 0, ritmo: 0, afinacao: 0 },
     lema: 'A nota certa alcança mais longe que o braço.',
+  },
+
+  // ── HUANS, Clã das Cordas ────────────────────────────────────────────────────
+  // A arma dele é um machado-guitarra, e o moveset sai disso: peso de machado com o
+  // alcance de um braço de guitarra. Comparado aos outros dois, ele bate MAIS FORTE e
+  // MAIS DEVAGAR — é a terceira resposta à mesma pergunta, e é o que faz escolher entre
+  // os três significar alguma coisa. O Akles investe, a Wins alcança, o Huans quebra.
+  'huans': {
+    id: 'huans', name: 'Huans', class: 'Clã das Cordas', gender: 'Masculino',
+    src: 'assets/personagens/herois/huans_caminhada.png', cols: 8, rows: 4,
+    // Mesma ficha dos outros dois: as dezenove folhas dos três foram casadas juntas, e
+    // é por isso que os três têm 162 px de corpo e os pés na mesma linha. Sem isso o
+    // herói mudaria de tamanho ao trocar de personagem.
+    medidas: 'assets/personagens/herois/achilles_folhas.json',
+    folhas: {
+      andar:     { src: 'assets/personagens/herois/huans_caminhada.png' },
+      parado:    { src: 'assets/personagens/herois/huans_parado.png' },
+      guarda:    { src: 'assets/personagens/herois/huans_guarda.png' },
+      corte:     { src: 'assets/personagens/herois/huans_corte.png' },
+      vertical:  { src: 'assets/personagens/herois/huans_vertical.png' },
+      estocada:  { src: 'assets/personagens/herois/huans_estocada.png' },
+      giro:      { src: 'assets/personagens/herois/huans_giro.png' },
+    },
+    linhas: { down: 0, up: 1, left: 2, right: 3 },
+    // Quadro de descanso por direção, na folha de caminhada — só vale enquanto a folha
+    // de parado não estiver carregada.
+    parado: { down: 0, up: 0, left: 2, right: 2 },
+    // Corrente própria. Machado é peso: cada golpe demora mais que o equivalente dos
+    // outros dois e dói mais. O remate `giro` é o mais lento do jogo e o único que
+    // atinge em volta — quem erra o tempo dele fica exposto, e é essa a troca.
+    combo: [
+      { folha: 'corte',    ms: 420, alcance: 1.20, dano: 1.1, rotulo: 'Corte de Corda' },
+      // `tempos`: os três primeiros quadros são preparação e o quarto é a pancada. Segurar
+      // os dois primeiros e correr pelo terceiro dá peso ao machado; sem isso o golpe
+      // pulava de "machado no alto" para "machado no chão" sem passagem nenhuma.
+      // `impacto: 3` acende o clarão no quadro em que ele bate — luz cobre o corte de pose,
+      // que é o remendo mais barato e mais antigo da animação.
+      { folha: 'vertical', ms: 560, alcance: 1.05, dano: 1.7, rotulo: 'Queda de Braço',
+        tempos: [1.6, 1.4, 0.5, 1.5, 1.0, 1.0], impacto: 3 },
+      { folha: 'estocada', ms: 460, alcance: 1.65, dano: 1.5, rotulo: 'Traste Longo',
+        empurrao: 40 },
+      { folha: 'giro',     ms: 720, alcance: 1.50, dano: 2.6, rotulo: 'Acorde Maior',
+        emVolta: true, remate: true },
+    ],
+    face: 'assets/personagens/herois/huans_face.png',
+    avatar: 'assets/personagens/herois/huans_face.png',
+    // O rastro do golpe: a folha solta que sai a cada elo da corrente. Os outros dois
+    // já trazem o rastro desenhado dentro das folhas de ataque, então só ele declara.
+    rastro: 'corte',
+    weapon: 'Machado-Guitarra', clave: 'Dó', registro: 'Grave',
+    papel: 'Impacto', raridade: 5, desbloqueado: true,
+    base: { vida: 0, dano: 0, ritmo: 0, afinacao: 0 },
+    lema: 'Corda que não vibra é só arame.',
   },
 };
 let selectedHeroId = 'achilles';
@@ -18523,6 +18943,12 @@ const FICHA_HEROIS = {
     retrato: 'assets/personagens/retratos/wins.png',
     perfil: [['ATAQUE', 6, true], ['DEFESA', 4, true], ['HABILIDADE', 9, false], ['SUPORTE', 8, false]],
   },
+  // Retrato provisório recortado da folha de parado — a carta não pode sair sem rosto.
+  // Entra a arte de retrato de verdade quando ela existir, trocando esta linha.
+  huans: {
+    retrato: 'assets/personagens/herois/huans_face.png',
+    perfil: [['ATAQUE', 9, true], ['DEFESA', 6, true], ['HABILIDADE', 5, false], ['SUPORTE', 2, false]],
+  },
 };
 
 // Catálogo das passivas. `valor(n)` devolve o efeito no nível n já em número legível —
@@ -18662,6 +19088,26 @@ const PASSIVAS_INFO = {
     oQueFaz: 'A espada arremessada joga o alvo mais longe ao acertar — serve para tirar um inimigo de cima de você.',
     valor: n => `${30 + 22 * n} px de empurrão`,
   },
+  'huans.ressonancia.duracao': {
+    nome: 'Corda Longa', ico: 'relogio',
+    oQueFaz: 'A aura dura mais. Como ela é o que sustenta o dano dele, cada nível é mais tempo batendo forte, não um número maior.',
+    valor: n => `${((6000 + 900 * (n - 1)) / 1000).toFixed(1)} s de aura`,
+  },
+  'huans.ressonancia.cura': {
+    nome: 'Ressonância Simpática', ico: 'cruz',
+    oQueFaz: 'A aura devolve vida a cada batida, uma vez por segundo enquanto durar. Não cura muito de uma vez; cura por ficar de pé.',
+    valor: n => n <= 1 ? 'sem cura ainda' : `+${n - 1} de vida por batida`,
+  },
+  'huans.onda.raio': {
+    nome: 'Harmônico Aberto', ico: 'onda',
+    oQueFaz: 'Aumenta o anel de som, então ele pega mais inimigos de uma vez e empurra de mais longe.',
+    valor: n => `${128 + 26 * (n - 1)} px de raio`,
+  },
+  'huans.acorde.dano': {
+    nome: 'Acorde Cheio', ico: 'espada',
+    oQueFaz: 'Soma peso às três batidas da suprema. A terceira é a que mais sente, porque já é a mais pesada das três.',
+    valor: n => `+${Math.round(22 * (n - 1))}% de dano`,
+  },
   'wins.grito.raio': {
     nome: 'Projeção de Voz', ico: 'onda',
     oQueFaz: 'Aumenta o raio do grito, então ele pega mais inimigos de uma vez.',
@@ -18678,6 +19124,74 @@ const PASSIVAS_INFO = {
     valor: n => `${((2500 + 900 * n) / 1000).toFixed(1)} s de sono`,
   },
 };
+
+// ══ O TIME DE DOIS, ESCOLHIDO ENTRE OS DESBLOQUEADOS ══════════════════════════════
+//
+// Com dois heróis o time era o elenco inteiro e não havia o que escolher. Com o terceiro
+// passa a haver, e escolher é metade da graça: cada um tem um combo próprio, então trocar
+// quem entra muda o jogo, não o retrato.
+//
+// A regra do toque, em uma frase: quem está fora ENTRA no lugar de quem está em campo
+// esperando, e quem está dentro SAI se sobrar alguém. Sem tela de arrastar, sem confirmar
+// — no celular, um toque tem de bastar.
+function alternarNoTime(heroId) {
+  const dentro = partyState.party.indexOf(heroId);
+
+  if (dentro >= 0) {
+    // Tirar. Nunca até esvaziar: um time sem ninguém não tem como jogar, e a mensagem
+    // vale mais que o bloqueio silencioso.
+    if (partyState.party.filter(Boolean).length <= 1) {
+      showToast('O time não pode ficar vazio.'); return false;
+    }
+    partyState.party[dentro] = null;
+    // Se saiu quem estava em campo, o outro assume — senão o jogo fica sem personagem.
+    if (dentro === partyState.activePartyIndex) {
+      const sobra = partyState.party.findIndex(Boolean);
+      if (sobra >= 0) trocarHeroiDoTime(sobra, true);
+    }
+    showToast(`${HERO_DEFINITIONS[heroId]?.name || heroId} saiu do time.`);
+  } else {
+    const vaga = partyState.party.findIndex(x => !x);
+    if (vaga >= 0) {
+      partyState.party[vaga] = heroId;
+    } else {
+      // Time cheio: entra no lugar de quem NÃO está em campo. Substituir quem está
+      // jogando trocaria o personagem debaixo da mão do jogador no meio de um passo.
+      const reserva = partyState.activePartyIndex === 0 ? 1 : 0;
+      const saiu = partyState.party[reserva];
+      partyState.party[reserva] = heroId;
+      showToast(`${HERO_DEFINITIONS[heroId]?.name || heroId} entrou no lugar de `
+                + `${HERO_DEFINITIONS[saiu]?.name || saiu}.`);
+      savePlayerData();
+      return true;
+    }
+    showToast(`${HERO_DEFINITIONS[heroId]?.name || heroId} entrou no time.`);
+  }
+  savePlayerData();
+  return true;
+}
+
+function montarBotaoDeTime(chips, id) {
+  chips.querySelector('.ficha-time-btn')?.remove();   // um só, a cada desenho
+  // Aparece sempre que houver mais de um herói aberto. A primeira versão só o mostrava
+  // com MAIS heróis do que vagas, e some justo quando o jogador precisa dele: a Wins
+  // começa trancada, então por boa parte do capítulo há dois abertos para duas vagas — e
+  // o botão sumia sem explicação. Com dois, ele ainda serve para tirar e repor.
+  const abertos = new Set([
+    ...(typeof elencoDaConta === 'function' ? elencoDaConta() : []),
+    ...Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado !== false).map(h => h.id),
+  ]);
+  if (abertos.size < 2) return;
+
+  const dentro = partyState.party.includes(id);
+  const b = document.createElement('button');
+  b.className = 'ficha-time-btn fora' + (dentro ? ' dentro' : '');
+  b.textContent = dentro ? '✓ no time' : '+ pôr no time';
+  b.addEventListener('click', () => {
+    if (alternarNoTime(id)) { desenharFicha(); renderPartyHUD(); }
+  });
+  chips.appendChild(b);
+}
 
 let fichaHeroiVisto = null;   // qual herói a ficha está mostrando (pode não ser o ativo)
 
@@ -18711,6 +19225,269 @@ function fichaBarraSegmentada(nome, valor, ouro) {
     </div>`;
 }
 
+// ══ O PALCO DO HERÓI ══════════════════════════════════════════════════════════════
+//
+// A moldura mostrava um RETRATO: uma cabecinha parada dentro de uma caixa escura grande,
+// com o resto vazio. A tela chamava "PERSONAGEM" e o personagem era a menor coisa nela.
+//
+// Aqui ele aparece INTEIRO e ANIMADO, na folha de parado — a mesma que o jogo já carrega,
+// sem arte nova. Respirando, grande, sobre a cor da clave dele. É a diferença entre uma
+// ficha de cadastro e a carta de um personagem.
+//
+// Desenhado em canvas e não em <img> por um motivo prático: a folha é uma GRADE, e mostrar
+// um quadro dela exigiria recorte por CSS que muda a cada folha. O canvas recorta a célula
+// certa e anima de graça.
+const COR_DA_CLAVE = { 'Sol': '#22d3ee', 'Fá': '#4ade80', 'Dó': '#f59e0b' };
+let _palco = { id: null, raf: 0 };
+
+function montarPalcoDoHeroi(id) {
+  const caixa = document.querySelector('#fichaHeroi .ficha-moldura');
+  const def = HERO_DEFINITIONS[id];
+  if (!caixa || !def) return;
+  if (_palco.id === id && caixa.querySelector('canvas')) return;   // já está tocando
+
+  cancelAnimationFrame(_palco.raf);
+  _palco.id = id;
+  const cor = COR_DA_CLAVE[def.clave] || '#a78bfa';
+  caixa.style.setProperty('--cor-heroi', cor);
+  caixa.classList.add('palco');
+  caixa.innerHTML = `<canvas class="palco-tela"></canvas>
+    <div class="palco-golpe hidden"></div>
+    <div class="palco-tags">
+      <i>${def.weapon || '—'}</i><i>Clave de ${def.clave || '—'}</i><i>${def.papel || ''}</i>
+    </div>
+    ${(def.combo || []).length ? '<span class="palco-dica">toque para ver os golpes</span>' : ''}`;
+
+  const cv = caixa.querySelector('canvas');
+  const cx = cv.getContext('2d');
+  cx.imageSmoothingEnabled = false;
+
+  // TOCAR NO PALCO MOSTRA O GOLPE.
+  //
+  // A pose parada diz como ele é; o golpe diz como ele JOGA, que é a pergunta de quem
+  // está escolhendo o time. As folhas de ataque já estão carregadas — passar por elas
+  // custa uma variável e é a prévia mais barata que existe.
+  let pose = null, poseAte = 0, elo = -1;
+  cv.style.cursor = 'pointer';
+  cv.addEventListener('click', () => {
+    const c = def.combo || [];
+    if (!c.length) return;
+    elo = (elo + 1) % c.length;
+    pose = c[elo];
+    poseAte = performance.now() + pose.ms + 260;
+    const t = caixa.querySelector('.palco-golpe');
+    if (t) { t.textContent = pose.rotulo || pose.folha; t.classList.remove('hidden'); }
+  });
+
+  const passo = (agora) => {
+    if (!document.body.contains(cv)) return;        // ficha fechou: para o laço
+    const f = def.folhas || {};
+    if (pose && agora > poseAte) {
+      pose = null;
+      caixa.querySelector('.palco-golpe')?.classList.add('hidden');
+    }
+    const alvo = (pose && f[pose.folha]) || f.parado || f.andar;
+    const img = alvo && folhasDoHeroi[alvo.src];
+    const med = alvo && medidasDasFolhas[alvo.src.split('/').pop()];
+    cx.clearRect(0, 0, cv.width, cv.height);
+    if (img && img.complete && img.naturalWidth > 10 && med) {
+      const fw = img.width / med.cols, fh = img.height / med.rows;
+      // Linha da FRENTE, sempre: é a pose em que se reconhece o personagem.
+      const linha = (def.linhas || {}).down ?? 0;
+      // No golpe os quadros correm do começo ao fim DENTRO da janela dele, como no jogo;
+      // parado, o relógio manda e a respiração acontece sozinha.
+      const quadro = pose
+        ? Math.max(0, Math.min(med.cols - 1,
+            Math.floor((1 - (poseAte - agora) / (pose.ms + 260)) * med.cols)))
+        : Math.floor(agora / 190) % med.cols;
+      // Escala pelo CORPO e âncora nos PÉS — a mesma regra do jogo, para o herói não
+      // aparecer aqui de um tamanho e lá de outro.
+      // 0.72 da altura útil: sobra ar em cima para o nome do golpe e embaixo para a
+      // sombra, sem o herói encostar em nenhum dos dois.
+      const esc = (cv.height * 0.72) / med.corpo;
+      const dW = fw * esc, dH = fh * esc, dPe = med.base * esc;
+      // Sombra no chão: sem ela ele flutua sobre o fundo.
+      cx.save();
+      cx.fillStyle = 'rgba(0,0,0,0.35)';
+      cx.beginPath();
+      cx.ellipse(cv.width / 2, cv.height - 26, dW * 0.13, dW * 0.045, 0, 0, Math.PI * 2);
+      cx.fill();
+      cx.restore();
+      cx.drawImage(img, quadro * fw, linha * fh, fw, fh,
+                   cv.width / 2 - dW / 2, cv.height - 22 - dPe, dW, dH);
+    }
+    _palco.raf = requestAnimationFrame(passo);
+  };
+  _palco.raf = requestAnimationFrame(passo);
+}
+
+// O moveset como identidade, não como tabela.
+//
+// A coluna da direita ficava VAZIA para quem ainda não tem habilidade — um retângulo
+// escuro com dois títulos e nada embaixo, que é o que mais pesava na tela. O combo já
+// existe na ficha do personagem e é o que de fato diferencia um herói do outro: o Akles
+// investe, a Wins alcança, o Huans quebra. Mostrar isso conta quem ele é.
+function comboEmHtml(def) {
+  // `COMBO_PADRAO` quando o herói não declara o próprio: é exatamente o que o jogo usa
+  // em campo (`comboAtual`), então mostrar outra coisa aqui seria mentir. O Akles não
+  // declara combo porque o padrão FOI escrito para ele — e por isso a ficha dele
+  // aparecia sem corrente nenhuma.
+  const c = (def.combo && def.combo.length) ? def.combo : COMBO_PADRAO;
+  if (!c.length) return '';
+  const barra = (v, max) => {
+    const n = Math.max(1, Math.min(5, Math.round(v / max * 5)));
+    return '<b>' + '▮'.repeat(n) + '</b>' + '▯'.repeat(5 - n);
+  };
+  return `<div class="fm-bloco">
+    <div class="fm-cab">CORRENTE DE GOLPES<span>${def.weapon || ''}</span></div>
+    ${c.map((g, i) => `<div class="fm-linha">
+      <span class="fm-n">${i + 1}</span>
+      <span class="fm-nome">${g.rotulo || g.folha}${g.remate ? ' <em>remate</em>' : ''}</span>
+      <span class="fm-med" title="dano">${barra(g.dano || 1, 2.6)}</span>
+      <span class="fm-ms">${g.ms}ms</span>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ══ DE ONDE VEM O PODER ═══════════════════════════════════════════════════════════
+//
+// O número aparecia sozinho — "NÍVEL DE PODER 150" — e não havia como saber se subir
+// equipamento valia mais que subir atributo. Aqui ele é aberto por FONTE.
+//
+// A conta é feita MEDINDO, não deduzindo: cada fonte é desligada por um instante e o que
+// o poder cai é o que ela valia. Refazer a fórmula à mão aqui daria um segundo cálculo
+// para divergir do primeiro na próxima mudança — e o número da tela deixaria de ser o
+// número do combate, que é o defeito mais caro que uma tela de status pode ter.
+function poderPorFonte() {
+  const total = nivelDePoder();
+  const partes = [];
+
+  const medir = (rotulo, desligar) => {
+    const restaurar = desligar();
+    const semEla = nivelDePoder();
+    restaurar();
+    const v = Math.max(0, total - semEla);
+    if (v > 0) partes.push([rotulo, v]);
+  };
+
+  const vazio = () => ({});
+  medir('Equipamento', () => {
+    const o = window.bonusDeEquipamento; window.bonusDeEquipamento = vazio;
+    return () => { window.bonusDeEquipamento = o; };
+  });
+  medir('Acordes', () => {
+    const a = window.bonusDeAcordes, c = window.bonusDeCadencia;
+    window.bonusDeAcordes = vazio; window.bonusDeCadencia = vazio;
+    return () => { window.bonusDeAcordes = a; window.bonusDeCadencia = c; };
+  });
+  medir('Habilidades', () => {
+    const o = learnedSkills; learnedSkills = [];
+    return () => { learnedSkills = o; };
+  });
+  medir('Atributos', () => {
+    const f = fichaDoHeroi(fichaHeroiVisto || selectedHeroId);
+    const o = { ...f.attrs };
+    Object.keys(f.attrs).forEach(k => { f.attrs[k] = 0; });
+    return () => { Object.assign(f.attrs, o); };
+  });
+
+  // O que sobra depois de tirar todas é o piso: nível do herói e o corpo do personagem.
+  const somado = partes.reduce((a, b) => a + b[1], 0);
+  const base = Math.max(0, total - somado);
+  if (base > 0) partes.push(['Nível e base', base]);
+  partes.sort((a, b) => b[1] - a[1]);
+  return { total, partes };
+}
+
+// ══ A ABA DE ATRIBUTOS ════════════════════════════════════════════════════════════
+//
+// Os atributos moravam empilhados sob o retrato, espremidos no fim da coluna, e a conta do
+// poder não morava em lugar nenhum. Aqui eles têm a tela inteira: os cinco de um lado, de
+// onde vem cada ponto de poder do outro.
+//
+// A aba é criada em JS e não no HTML porque `index.html` e `dist/index.html` são mantidos
+// à mão, em dobro — é a armadilha que o CLAUDE.md registra.
+let abaDeAtributos = false;
+
+function montarAbaDeAtributos() {
+  const nav = document.querySelector('#fichaHeroi .ficha-nav');
+  if (!nav || nav.querySelector('[data-aba="atributos"]')) return;
+  const b = document.createElement('button');
+  b.className = 'ficha-aba';
+  b.dataset.aba = 'atributos';
+  b.textContent = 'ATRIBUTOS';
+  b.addEventListener('click', () => {
+    abaDeAtributos = true;
+    nav.querySelectorAll('.ficha-aba').forEach(o => o.classList.remove('ativa'));
+    b.classList.add('ativa');
+    desenharFicha();
+  });
+  nav.insertBefore(b, nav.querySelector('[data-aba="equip"]'));
+  // Voltar para a visão geral desliga a aba — senão ela ficaria presa.
+  nav.querySelector('[data-aba="geral"]')?.addEventListener('click', () => {
+    abaDeAtributos = false; desenharFicha();
+  });
+}
+
+function desenharAtributos(id) {
+  const alvo = document.getElementById('fichaHabs');
+  if (!alvo) return;
+  const H = fichaDoHeroi(id);
+  const { total, partes } = poderPorFonte();
+  const s = derivedStats();
+
+  const ATRIB = [
+    ['ritmo',    '♪', 'Ritmo',    'Velocidade de ataque e zona da bigorna.'],
+    ['afinacao', '♫', 'Afinação', 'Janela de captura e chance de Fragmento Puro.'],
+    ['folego',   '◉', 'Fôlego',   'Vida máxima e recarga das habilidades.'],
+    ['dinamica', '◆', 'Dinâmica', 'Dano de golpe e de feitiço.'],
+    ['memoria',  '▤', 'Memória',  'Capacidade de claves e desconto na síntese.'],
+  ];
+  const pontos = H.attrPoints || 0;
+
+  alvo.innerHTML = `
+    <div class="at-grade">
+      <section class="at-col">
+        <div class="at-cab">ATRIBUTOS<span>${pontos ? `${pontos} a distribuir` : 'sem pontos'}</span></div>
+        ${ATRIB.map(([k, ico, nome, oq]) => {
+          const v = H.attrs[k] || 0;
+          return `<div class="at-linha${pontos ? ' pode' : ''}" data-attr="${k}">
+            <span class="at-ico">${ico}</span>
+            <div class="at-txt"><b>${nome}</b><i>${oq}</i></div>
+            <span class="at-val">${v}</span>
+            <button class="at-mais" data-sobe="${k}" ${pontos ? '' : 'disabled'}>+</button>
+          </div>`;
+        }).join('')}
+        <p class="at-nota">Ponto de atributo vem de <b>Partitura</b>, na visão geral.
+           Ponto de habilidade é outra moeda, e se gasta nas passivas.</p>
+      </section>
+
+      <section class="at-col">
+        <div class="at-cab">DE ONDE VEM O PODER<span>${total.toLocaleString('pt-BR')}</span></div>
+        ${partes.map(([rot, v]) => {
+          const pct = total ? (v / total * 100) : 0;
+          return `<div class="at-fonte">
+            <div class="at-fonte-cab"><b>${rot}</b><span>${v.toLocaleString('pt-BR')}
+              <i>${pct.toFixed(0)}%</i></span></div>
+            <div class="at-barra"><i style="width:${pct.toFixed(1)}%"></i></div>
+          </div>`;
+        }).join('')}
+        <div class="at-cab at-cab2">O QUE ISSO VIRA EM COMBATE</div>
+        <div class="at-stats">
+          ${[['Vida', Math.round(s.maxHp)], ['Ataque', Math.round(s.dmg)],
+             ['Defesa', `${Math.round(s.defesa)}%`], ['Agilidade', `${Math.round(s.atkSpeed)}%`],
+             ['Crítico', `${Math.round(s.crit)}%`], ['Dano crítico', `${Math.round(s.danoCritico)}%`],
+             ['Magia', `${Math.round(s.dmgMagia)}%`], ['Recarga', `-${Math.round(s.recarga)}%`]]
+            .map(([n, v]) => `<div><span>${n}</span><b>${v}</b></div>`).join('')}
+        </div>
+      </section>
+    </div>`;
+
+  alvo.querySelectorAll('[data-sobe]').forEach(b => b.addEventListener('click', () => {
+    spendAttr(b.dataset.sobe);   // a mesma função dos outros botões: uma regra, um lugar
+  }));
+}
+
 function desenharFicha() {
   const el = document.getElementById('fichaHeroi');
   if (!el || el.classList.contains('hidden')) return;
@@ -18731,8 +19508,7 @@ function desenharFicha() {
       + ` <em>·</em> <b>${claveCount.toLocaleString('pt-BR')}</b> claves`;
     pts.classList.toggle('vazio', !skillPoints);
   }
-  const ret = document.getElementById('fichaRetrato');
-  if (ret && ret.getAttribute('src') !== extra.retrato) ret.src = extra.retrato;
+  montarPalcoDoHeroi(id);
   const nome = document.getElementById('fichaNome');
   if (nome) nome.textContent = (def.name || id).toUpperCase();
   const sub = document.getElementById('fichaSub');
@@ -18768,14 +19544,21 @@ function desenharFicha() {
                           ? `Atributo vem de Partitura, no bloco acima. Seus ${skillPoints} ponto${skillPoints > 1 ? 's' : ''} de habilidade são para as passivas, ao lado. →`
                           : 'Atributo vem de Partitura — use o bloco acima.')}
       </div>` +
-      Object.entries(ATTR_META).map(([k, info]) => `
-        <div class="fa-linha">
-          <button class="fa-nome" data-explica="${k}">${info.icon} ${info.name} <i>?</i></button>
-          <span class="fa-segs">${Array.from({ length: 10 },
-            (_, i) => `<i class="fb-seg${i < H.attrs[k] ? ' on' : ''}"></i>`).join('')}</span>
-          <b class="fa-val">${H.attrs[k]}</b>
-          <button class="fa-mais" data-attr="${k}" ${H.attrPoints ? '' : 'disabled'}>+</button>
-        </div>`).join('');
+      // AS CINCO LINHAS DE ATRIBUTO SAÍRAM DAQUI. Elas viviam espremidas no fim desta
+      // coluna estreita, com as barras cortadas e as duas últimas quase sempre abaixo da
+      // dobra — e agora existe uma aba inteira só para elas, com o que cada uma faz
+      // escrito e a conta do poder ao lado. Manter as duas seria manter dois lugares para
+      // gastar o mesmo ponto, e dois lugares para divergir.
+      `<button class="fa-ir-atributos" data-ir-atributos>
+         ${H.attrPoints ? `▸ ${H.attrPoints} ponto${H.attrPoints > 1 ? 's' : ''} para distribuir`
+                        : '▸ Ver atributos e o cálculo do poder'}
+       </button>`;
+    barras.querySelector('[data-ir-atributos]')?.addEventListener('click', () => {
+      abaDeAtributos = true;
+      document.querySelectorAll('#fichaHeroi .ficha-aba').forEach(o => o.classList.remove('ativa'));
+      document.querySelector('#fichaHeroi [data-aba="atributos"]')?.classList.add('ativa');
+      desenharFicha();
+    });
     barras.querySelectorAll('.fa-mais').forEach(b2 => b2.addEventListener('click', () => {
       spendAttr(b2.dataset.attr);
       desenharFicha();
@@ -18803,22 +19586,77 @@ function desenharFicha() {
   // Trocador de herói: só quem já está desbloqueado aparece.
   const chips = document.getElementById('fichaHerois');
   if (chips) {
+    // O TROCADOR SOBE PARA O TOPO.
+    //
+    // Ele nasceu no fim da barra lateral, onde cabia quando eram dois retratos de 34 px.
+    // Com três — e com o quarto vindo do gacha — virou uma fileira apertada no rodapé
+    // esquerdo, que é o canto onde menos se olha. Escolher personagem é a primeira coisa
+    // que se faz nesta tela, e o primeiro lugar onde se olha é o cabeçalho.
+    //
+    // A mudança é feita AQUI e não no HTML de propósito: `index.html` e `dist/index.html`
+    // são mantidos à mão, em dobro, e mover um bloco nos dois é a armadilha que o
+    // CLAUDE.md registra como a que já custou caro.
+    const topo = document.querySelector('#fichaHeroi .ficha-topo');
+    if (topo && chips.parentElement !== topo) {
+      chips.classList.add('no-topo');
+      topo.insertBefore(chips, topo.querySelector('.ficha-pontos'));
+    }
     chips.innerHTML = '';
-    Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado !== false).forEach(h => {
+    // TODOS OS PERSONAGENS DA CONTA, não só os que a flag `desbloqueado` marca.
+    //
+    // `desbloqueado` é o estado de FÁBRICA: a Wins nasce falsa e vira verdadeira quando a
+    // história a recruta. Filtrar por ela escondia da barra quem o jogador já tem —
+    // bastava o recrutamento ter vindo pelo save (e não pela cena da sessão atual) para a
+    // Wins sumir daqui, que foi o que aconteceu. `elencoDaConta` já é a resposta certa:
+    // ela conta quem está desbloqueado, quem está no time e quem tem ficha gravada.
+    const doJogador = (typeof elencoDaConta === 'function' ? elencoDaConta() : [])
+      .map(x => HERO_DEFINITIONS[x]).filter(Boolean);
+    const abertosDeFabrica = Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado !== false);
+    const vistos = new Set();
+    [...doJogador, ...abertosDeFabrica].filter(h => !vistos.has(h.id) && vistos.add(h.id))
+      .forEach(h => {
       const b = document.createElement('button');
-      b.className = 'ficha-heroi-chip' + (h.id === id ? ' ativo' : '');
-      b.title = h.name;
-      b.innerHTML = `<img src="${(FICHA_HEROIS[h.id] || {}).retrato || h.face || ''}" alt="${h.name}">`;
+      const slot = partyState.party.indexOf(h.id);
+      b.className = 'ficha-heroi-chip' + (h.id === id ? ' ativo' : '')
+                  + (slot >= 0 ? ' no-time' : '');
+      b.title = h.name + (slot >= 0 ? ` — no time (${slot + 1})` : '');
+      b.innerHTML = `<img src="${(FICHA_HEROIS[h.id] || {}).retrato || h.face || ''}" alt="${h.name}">`
+                  + (slot >= 0 ? `<i class="fhc-slot">${slot + 1}</i>` : '');
       b.addEventListener('click', () => { fichaHeroiVisto = h.id; desenharFicha(); });
       chips.appendChild(b);
     });
+    // FORA da barra rolante. Dentro dela, o botão rolava junto e sumia assim que a
+    // lista passasse da largura — que é exatamente quando ele mais serve.
+    montarBotaoDeTime(chips.parentElement === topo ? topo : chips, id);
+  }
+
+  montarAbaDeAtributos();
+  // Na aba de atributos a coluna do retrato SAI. Ela repetia duas coisas que a aba já
+  // mostra melhor — o nível de poder e os próprios atributos, que ficavam espremidos no
+  // rodapé — e roubava metade da largura de uma tela que é feita de números e barras.
+  // O personagem tem a Visão Geral inteira para ele; aqui quem manda é a conta.
+  document.querySelector('#fichaHeroi .ficha-corpo')?.classList.toggle('so-numeros', abaDeAtributos);
+  if (abaDeAtributos) {
+    document.querySelector('#fichaHeroi .ficha-hab-cab')?.classList.add('hidden');
+    desenharAtributos(id);
+    const l = document.getElementById('fichaLema');
+    if (l) l.textContent = def.lema ? `"${def.lema}"` : '';
+    return;
   }
 
   // Habilidades: uma linha por habilidade, com a coluna de passivas à direita.
   const lista = HABILIDADES[id] || [];
   const alvo = document.getElementById('fichaHabs');
   if (!alvo) return;
-  alvo.innerHTML = '';
+  // O cabeçalho HABILIDADES/PASSIVAS só faz sentido se houver habilidade. Sem isto, quem
+  // abre a ficha de um herói novo vê dois títulos sobre o vazio.
+  document.querySelector('#fichaHeroi .ficha-hab-cab')?.classList.toggle('hidden', !lista.length);
+  alvo.innerHTML = lista.length ? '' : comboEmHtml(def);
+  if (!lista.length) {
+    const l = document.getElementById('fichaLema');
+    if (l) l.textContent = def.lema ? `"${def.lema}"` : '';
+    return;
+  }
   lista.forEach((h, i) => {
     const linha = document.createElement('div');
     linha.className = 'ficha-hab' + (h.suprema ? ' suprema' : '');
@@ -18863,6 +19701,11 @@ function desenharFicha() {
     linha.appendChild(col);
     alvo.appendChild(linha);
   });
+
+  // A corrente entra DEPOIS das habilidades e vale para os tres: e o que o botao de
+  // ataque faz. Ela estava escrita na ficha de cada heroi sem nunca ter sido mostrada —
+  // o Akles e a Wins tem combos proprios e o jogador nao tinha como saber disso.
+  alvo.insertAdjacentHTML('beforeend', comboEmHtml(def));
 }
 
 function fichaBotaoDePassiva(pid) {
@@ -20460,13 +21303,37 @@ function dispensarAcompanhante() {
 function acompanhanteAtivo() { return !!ACOMP.npc; }
 
 // Rechama quem estava acompanhando antes de o jogo ser fechado.
+// A HISTÓRIA MANDA MAIS QUE O SAVE.
+//
+// O acompanhante fica guardado por id e volta a cada abertura. Só que quem o dispensa é
+// uma CENA — o `cap1_entrega` solta o Pipo, por exemplo —, e se essa cena já rodou o
+// menino não deveria voltar. Voltava: o save dizia "Pipo" e ninguém perguntava se a
+// história já tinha passado do ponto em que ele andava junto. O dono viu o Pipo colado
+// nele numa missão em que o menino nem aparece.
+//
+// A resposta sai dos próprios roteiros: se ALGUMA cena que já aconteceu manda dispensar,
+// o acompanhamento acabou. Nada codificado por nome — cena nova que dispense já entra
+// nesta conta sozinha.
+function acompanhamentoJaAcabou() {
+  return (CUT.roteiros || []).some(c =>
+    cenaJaRodou(c) && (c.passos || []).some(p =>
+      p.cmd === 'acompanhante' && (p.dispensar || !p.npc)));
+}
+
 function restaurarAcompanhante() {
   const id = window.__acompanhanteSalvo;
   if (!id || ACOMP.npc) return;
+  if (acompanhamentoJaAcabou()) {
+    window.__acompanhanteSalvo = null; window.__acompanhanteModo = null;
+    savePlayerData();
+    return;
+  }
   const n = npcData.find(x => x.id === id);
   if (!n) return;
   window.__acompanhanteSalvo = null;
   ACOMP.npc = n;
+  ACOMP.modo = window.__acompanhanteModo || 'guia';
+  window.__acompanhanteModo = null;
   ACOMP.mapaAnterior = currentKey;
   ACOMP.proximaFala = performance.now() + 6000;
   n.mapKey = currentKey;
@@ -21419,8 +22286,51 @@ function bonusDeConjunto() {
 // uma segunda conta para exibição: se o número mudar aqui, mudou na luta.
 let filtroDoInventario = 'todos';
 
+// ══ A BARRA LATERAL EM TODAS AS TRÊS TELAS ════════════════════════════════════════
+//
+// Equipamento e Composição são overlays SEPARADOS: abrir uma delas fecha a ficha, e as
+// abas iam junto. Para voltar ao personagem o jogador tinha de sair, reabrir o HUD e
+// entrar de novo — três toques para desfazer um. As três telas são o mesmo assunto e
+// devem ter a mesma navegação.
+//
+// A barra é INJETADA por JS, não escrita nos dois `index.html`: manter o mesmo bloco à
+// mão em dois arquivos é a armadilha que o CLAUDE.md registra.
+const ABAS_DO_PERSONAGEM = [
+  ['geral',      'VISÃO GERAL'],
+  ['atributos',  'ATRIBUTOS'],
+  ['equip',      'EQUIPAMENTO'],
+  ['composicao', 'COMPOSIÇÃO'],
+];
+
+function irParaAbaDoPersonagem(aba) {
+  fecharEquipamentos?.(); fecharComposicao?.();
+  if (aba === 'equip')      { fecharFicha?.(); abrirEquipamentos(); return; }
+  if (aba === 'composicao') { fecharFicha?.(); abrirComposicao();   return; }
+  abaDeAtributos = (aba === 'atributos');
+  abrirFicha(fichaHeroiVisto || selectedHeroId);
+}
+
+function injetarBarraLateral(overlay, ativa) {
+  const quadro = overlay?.firstElementChild;
+  if (!quadro) return;
+  let nav = quadro.querySelector('.ficha-nav.injetada');
+  if (!nav) {
+    nav = document.createElement('nav');
+    nav.className = 'ficha-nav injetada';
+    quadro.insertBefore(nav, quadro.firstChild);
+    quadro.classList.add('com-barra');
+  }
+  nav.innerHTML = ABAS_DO_PERSONAGEM.map(([id, rot]) =>
+    `<button class="ficha-aba${id === ativa ? ' ativa' : ''}" data-ir="${id}">${rot}</button>`
+  ).join('');
+  nav.querySelectorAll('[data-ir]').forEach(b =>
+    b.addEventListener('click', () => irParaAbaDoPersonagem(b.dataset.ir)));
+}
+
 function abrirEquipamentos() {
-  document.getElementById('equipTela')?.classList.remove('hidden');
+  const el = document.getElementById('equipTela');
+  el?.classList.remove('hidden');
+  injetarBarraLateral(el, 'equip');
   desenharEquipamentos();
 }
 function fecharEquipamentos() {
@@ -22936,7 +23846,9 @@ document.getElementById('acConfirmar')?.addEventListener('click', confirmarEscol
 // ── Tela de Composição ────────────────────────────────────────────────────────
 function abrirComposicao() {
   trocarFocoDeAcordes(heroiEmFoco());
-  document.getElementById('composicao')?.classList.remove('hidden');
+  const el = document.getElementById('composicao');
+  el?.classList.remove('hidden');
+  injetarBarraLateral(el, 'composicao');
   desenharComposicao();
 }
 function fecharComposicao() { document.getElementById('composicao')?.classList.add('hidden'); }
@@ -23212,6 +24124,43 @@ const ASCENSOES = [
   { ate: 40, claves: 150000, notas: { la: 16, mi: 12, fa_s: 10 } },
 ];
 
+// ══ HUANS PRONTO PARA TESTE ═══════════════════════════════════════════════════════
+//
+// Pedido do dono: o Huans no nível 20, com as três habilidades abertas, para dar para
+// jogar com ele hoje em vez de subir vinte níveis antes de ver a suprema.
+//
+// Roda UMA VEZ por save, com bandeira própria — sem ela, cada abertura devolveria os
+// pontos e o teste viraria dinheiro infinito. E só com `SELETOR_DE_CENA_LIGADO`, que é
+// o mesmo interruptor que já tem de ser desligado antes de publicar: um herói novo que
+// nasce no nível 20 é presente de teste, não regra de jogo.
+//
+// A ascensão sobe junto porque o TETO do herói vem dela: sem os quatro degraus, `nivel`
+// pode virar 20 e o motor continuar tratando o teto como 5.
+function prepararHuansParaTeste() {
+  if (!SELETOR_DE_CENA_LIGADO || !HERO_DEFINITIONS.huans) return;
+  const h = fichaDoHeroi('huans');
+
+  // NÍVEL E ASCENSÃO SEM BANDEIRA. A primeira versão trancava tudo atrás de uma marca no
+  // save, e a marca não sobrevivia: o preparo rodava na abertura, o save da conta chegava
+  // segundos depois e substituía tudo — inclusive a marca. Quem joga logado, que é o caso
+  // do dono, nunca via o herói no nível 20.
+  //
+  // `Math.max` torna isto seguro de repetir: subir para 20 quem já está em 20 não faz
+  // nada, e quem passar de 20 jogando não é rebaixado. Não há recurso sendo criado.
+  const antes = h.nivel;
+  h.nivel = Math.max(h.nivel, 20);
+  h.ascensao = Math.max(h.ascensao, 4);      // o teto do herói vem daqui, não do nível
+
+  // OS PONTOS, SIM, DEPENDEM DA MARCA — eles são recurso, e repetir a doação a cada
+  // abertura seria ponto infinito.
+  if (!bandeiras.huans_pronto_teste) {
+    h.attrPoints = Math.max(h.attrPoints, 40);
+    bandeiras.huans_pronto_teste = true;
+  }
+  if (antes < h.nivel) console.info('[teste] Huans no nível 20, três habilidades abertas.');
+  savePlayerData();
+}
+
 function fichaDoHeroi(id) {
   const k = id || selectedHeroId || 'achilles';
   if (!herois[k]) {
@@ -23376,15 +24325,20 @@ function blocoDeNivelDoHeroi(id) {
   if (noLimite) {
     return `<div class="fa-nivel"><div class="fan-topo"><b>NÍVEL MÁXIMO</b></div></div>`;
   }
-  return `<div class="fa-nivel">
-    <div class="fan-topo"><b>XP DO HERÓI</b><span>${h.xp} / ${precisa}</span></div>
+  // SUBIR DE NÍVEL É A AÇÃO DESTA TELA, então ela deixa de ser um botãozinho apertado ao
+  // lado de outro. Com os atributos fora daqui, a Visão Geral tem espaço — e o que sobra
+  // dela é exatamente isto: quem é o herói e como ele cresce.
+  const tem = partituras();
+  return `<div class="fa-nivel grande">
+    <div class="fan-topo"><b>NÍVEL ${h.nivel}</b><span>${h.xp} / ${precisa} XP</span></div>
     <div class="fan-barra"><i style="width:${pct}%"></i></div>
-    <div class="fan-acoes">
-      <button class="fan-btn${partituras() > 0 ? ' pode' : ''}" data-partitura="1">
-        USAR 1 PARTITURA</button>
-      <button class="fan-btn${partituras() >= 10 ? ' pode' : ''}" data-partitura="10">×10</button>
-      <span class="fan-tem">${partituras()} guardadas</span>
-    </div>
+    <button class="fan-subir${tem > 0 ? ' pode' : ''}" data-partitura="1">
+      <span class="fs-ico">♪</span>
+      <span class="fs-txt"><b>SUBIR DE NÍVEL</b><i>gasta 1 Partitura</i></span>
+      <span class="fs-tem">${tem}</span>
+    </button>
+    <button class="fan-btn dez${tem >= 10 ? ' pode' : ''}" data-partitura="10">
+      usar 10 de uma vez</button>
   </div>`;
 }
 
@@ -23652,19 +24606,40 @@ function abrirPreTela() {
   const el = document.getElementById('preTela');
   if (!el) return;
   preTelaAberta = true;
-  const id = selectedHeroId || 'achilles';
-  const def = HERO_DEFINITIONS[id] || {};
-  const h = fichaDoHeroi(id);
-  const r = document.getElementById('ptRetrato');
-  const arte = (FICHA_HEROIS[id] || {}).retrato;
-  if (r && arte) r.src = arte;
-  document.getElementById('ptNome').textContent = (def.name || id).toUpperCase();
-  document.getElementById('ptClasse').textContent = def.class || '';
-  document.getElementById('ptNivelHeroi').textContent = h.nivel;
-  document.getElementById('ptNivelConta').textContent = level;
-  document.getElementById('ptPoder').textContent = nivelDePoder().toLocaleString('pt-BR');
-  document.getElementById('ptOuro').textContent = playerCoins.toLocaleString('pt-BR');
-  document.getElementById('ptClaves').textContent = claveCount.toLocaleString('pt-BR');
+
+  // O CARTÃO É DA CONTA, NÃO DE UM HERÓI.
+  //
+  // Antes ele mostrava um personagem só, com o poder DELE — e o número parecia o da
+  // conta. Quem tem três heróis abria o jogo vendo um terço do que tem. Agora a fileira
+  // traz todos, cada um com o próprio poder embaixo, e o total da conta vem separado,
+  // com as moedas ao lado, que é o que essa tela existe para responder: onde eu parei e
+  // com o que eu tenho.
+  const elenco = (typeof elencoDaConta === 'function' ? elencoDaConta() : [selectedHeroId])
+    .filter(x => HERO_DEFINITIONS[x]);
+  const cartao = el.querySelector('.pt-cartao');
+  if (cartao) {
+    cartao.innerHTML = `
+      <div class="pt-fila">${elenco.map(hid => {
+        const d = HERO_DEFINITIONS[hid], f = fichaDoHeroi(hid);
+        const arte = (FICHA_HEROIS[hid] || {}).retrato || d.face || '';
+        const noTime = partyState.party.includes(hid);
+        return `<div class="pt-card${noTime ? ' no-time' : ''}">
+          <img src="${arte}" alt="${d.name}">
+          <b>${d.name}</b>
+          <span class="pt-nv">nv ${f.nivel}</span>
+          <span class="pt-pod">${comHeroi(hid, nivelDePoder).toLocaleString('pt-BR')}</span>
+        </div>`;
+      }).join('')}</div>
+      <div class="pt-conta">
+        <div class="pt-conta-item"><span>CONTA</span><b>${level}</b></div>
+        <div class="pt-conta-item forte"><span>PODER TOTAL</span>
+          <b>${(typeof poderDaConta === 'function' ? poderDaConta() : nivelDePoder())
+                .toLocaleString('pt-BR')}</b></div>
+        <div class="pt-conta-item"><span>🪙 ouro</span><b>${playerCoins.toLocaleString('pt-BR')}</b></div>
+        <div class="pt-conta-item"><span>𝄞 claves</span><b>${claveCount.toLocaleString('pt-BR')}</b></div>
+      </div>`;
+  }
+
   const q = missaoAtual();
   document.getElementById('ptMissao').innerHTML = q
     ? `<span>CONTINUAR</span><b>${q.title || q.id}</b>
@@ -25556,6 +26531,10 @@ function acordarBarraDaFazenda() {
 }
 
 function entrarNaFazenda() {
+  // Quem já estava caçando lá fora não entra junto. Sem isto, entrar na fazenda com a
+  // noite em curso levava os caçadores do mapa anterior para dentro — e lá eles ficam
+  // invisíveis, porque o desenho da fazenda não os inclui.
+  if (typeof limparCacaNoturna === 'function') limparCacaNoturna();
   if (currentScene !== 'world') { showToast('🔨 Saia para o mapa antes de abrir a fazenda.'); return; }
   sceneBeforeFarm = currentScene;
   window.keyBeforeFarm = currentKey;
@@ -26010,15 +26989,69 @@ function agendarEnvioDoSave() {
   _prazoDeEnvio = setTimeout(enviarSave, ENVIO_MS);
 }
 
+// ══ CÓPIAS DE SEGURANÇA ═══════════════════════════════════════════════════════════
+//
+// Escrito depois de uma regra minha ter sobrescrito a conta do dono com um save de
+// partida nova. A regra está consertada, mas a lição não é "consertei a regra": é que
+// gravação que descarta a versão anterior não perdoa engano nenhum — nem meu, nem do
+// jogador que toca no botão errado.
+//
+// Toda vez que um save é substituído, o que estava lá vai para uma gaveta local com data.
+// Ocupa alguns KB, dura sete dias, e é a diferença entre "perdi a tarde" e "espera aí".
+const GAVETA = 'acordelot_copias';
+const DIAS_DE_COPIA = 7;
+
+function guardarCopia(rotulo, save) {
+  if (!save || !Object.keys(save).length) return;
+  try {
+    const g = JSON.parse(localStorage.getItem(GAVETA) || '[]');
+    g.unshift({ rotulo, quando: Date.now(), peso: Math.round(pesoDoSave(save)), save });
+    const limite = Date.now() - DIAS_DE_COPIA * 864e5;
+    localStorage.setItem(GAVETA, JSON.stringify(
+      g.filter(c => c.quando > limite).slice(0, 12)));
+  } catch (e) { /* cota cheia: a cópia é um bônus, nunca pode derrubar o jogo */ }
+}
+
+// `copiasGuardadas()` no console lista o que dá para recuperar; `recuperarCopia(0)`
+// aplica a mais recente. Sem tela por enquanto — é ferramenta de resgate, não de uso.
+function copiasGuardadas() {
+  try {
+    const g = JSON.parse(localStorage.getItem(GAVETA) || '[]');
+    console.table(g.map((c, i) => ({ i, rotulo: c.rotulo, peso: c.peso,
+                                     quando: new Date(c.quando).toLocaleString('pt-BR'),
+                                     nivel: c.save?.level })));
+    return g.length;
+  } catch (e) { return 0; }
+}
+
+function recuperarCopia(i = 0) {
+  try {
+    const g = JSON.parse(localStorage.getItem(GAVETA) || '[]');
+    if (!g[i]) { console.warn('não há cópia nesse índice'); return false; }
+    guardarCopia('antes-de-recuperar', saveAtualComoObjeto());
+    aplicarSaveDaNuvem(g[i].save);      // mesmo caminho: grava local e recarrega
+    return true;
+  } catch (e) { return false; }
+}
+window.copiasGuardadas = copiasGuardadas;
+window.recuperarCopia = recuperarCopia;
+
 async function enviarSave() {
   if (!logado() || !CONTA.perfil) return;
   clearTimeout(_prazoDeEnvio);
+  const meu = saveAtualComoObjeto();
+  // O QUE ESTÁ NA NUVEM SAI DA FRENTE COM CÓPIA, não sem ela. `CONTA.perfil.save` é a
+  // última versão lida do servidor; se ela pesa mais que a que vai subir, esta gravação
+  // está DESTRUINDO progresso, e o mínimo é deixar de onde tirar de volta.
+  const naNuvem = CONTA.perfil.save;
+  if (pesoDoSave(naNuvem) > pesoDoSave(meu)) guardarCopia('nuvem-sobrescrita', naNuvem);
   const { erro } = await apiPerfil(`perfis?id=eq.${meuId()}`, {
     method: 'PATCH',
-    body: JSON.stringify({ save: saveAtualComoObjeto(), poder: poderDaConta(),
+    body: JSON.stringify({ save: meu, poder: poderDaConta(),
                            atualizado_em: new Date().toISOString() }),
   });
-  if (erro) console.warn('[conta] não subiu:', erro);
+  if (erro) { console.warn('[conta] não subiu:', erro); return; }
+  CONTA.perfil.save = meu;   // o que o servidor tem agora, para a próxima comparação
 }
 
 // Aplica um save vindo da nuvem. É o mesmo caminho do carregamento normal: grava na
@@ -26026,8 +27059,16 @@ async function enviarSave() {
 // mais uma lista de campos para divergir.
 function aplicarSaveDaNuvem(save) {
   try {
+    // O que estava neste aparelho também vira cópia. Trocar de save é destrutivo nos
+    // dois sentidos, e só um deles tinha rede.
+    try { guardarCopia('local-substituido',
+                       JSON.parse(localStorage.getItem(SAVE_KEY) || 'null')); } catch (e) {}
     localStorage.setItem(SAVE_KEY, JSON.stringify(save));
     loadPlayerData();
+    // O save da nuvem substitui TUDO, inclusive a bandeira de preparo. Sem repetir aqui,
+    // quem joga logado nunca via o Huans no nível 20: o preparo rodava na abertura e era
+    // apagado segundos depois, quando a conta chegava.
+    if (typeof prepararHuansParaTeste === 'function') prepararHuansParaTeste();
     atualizarRastreador?.(); updateHotbarUI?.(); updateInventorySlotsUI?.();
     showToast('☁️ Progresso da conta carregado.');
   } catch (e) { showToast('Não deu para aplicar o save da nuvem.'); }
@@ -26049,20 +27090,65 @@ function aplicarSaveDaNuvem(save) {
 //
 // A margem de dois minutos absorve o relógio do celular fora de hora e a demora entre
 // gravar aqui e o servidor registrar.
-const MARGEM_DE_SAVE = 120000;
+// ══ QUANTO PROGRESSO TEM UM SAVE ══════════════════════════════════════════════════
+//
+// A conta NÃO pode ser por data, e esta é a lição mais cara deste arquivo.
+//
+// A regra anterior dizia: "se o save deste aparelho é o mais novo, quem jogou por último
+// foi aqui — subir é seguro". Parece óbvio e está errado, porque um save RECÉM-CRIADO é
+// sempre o mais novo. Numa guia anônima — que é como o dono testa — o jogo abre do zero,
+// grava um save de nível 1 com a hora de agora, o jogador entra na conta, e a conta de
+// nível 17 na nuvem é sobrescrita por esse nada. Sem pergunta, porque a data dizia que
+// estava tudo bem. Foi exatamente isso que apagou a partida dele.
+//
+// O que importa não é QUANDO o save foi gravado, é QUANTO tem dentro. Um save pesado
+// nunca é substituído por um leve sem alguém autorizar. A data agora só desempata.
+function pesoDoSave(s) {
+  if (!s || typeof s !== 'object') return 0;
+  const n = v => Number(v) || 0;
+  const tam = v => Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : 0);
+  // MOEDA E XP FICAM DE FORA, e isso foi medido, não escolhido: com `claves` na conta,
+  // uma partida NOVA pesava 20.290 — porque a banca de testes enche a carteira e um
+  // número de seis dígitos dividido por vinte engole todo o resto. Um save cheio de
+  // dinheiro e vazio de história teria vencido um save de nível 17.
+  //
+  // O que conta é o que custou TEMPO e não volta: nível, missões fechadas, heróis,
+  // acordes, escalas, bandeiras da história, itens e pets.
+  return n(s.level) * 100
+       + tam(s.completedQuests) * 60
+       + tam(s.acordesPossuidos) * 25
+       + tam(s.escalas) * 40
+       + tam(s.herois) * 80
+       + tam(s.itensPossuidos) * 10
+       + tam(s.bandeiras) * 30
+       + tam(s.petsDoJogador) * 20;
+}
+
+// Medido numa partida recém-criada: 290 (nível 1 = 100, os dois heróis do elenco = 160,
+// dois itens iniciais = 30). O piso fica acima disso para que "abriu o jogo e andou dois
+// passos" ainda conte como aparelho vazio — e a conta na nuvem entre sem perguntar nada.
+const PESO_DE_PARTIDA_NOVA = 400;
 
 function conciliarSaves() {
   const nuvem = CONTA.perfil?.save;
-  if (!nuvem || !Object.keys(nuvem).length) { enviarSave(); return; }
   let local = null;
   try { local = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) {}
-  const tLocal = local?.quando || 0;
-  const tNuvem = nuvem.quando || 0;
 
-  if (!local || !tLocal) { aplicarSaveDaNuvem(nuvem); return; }
-  // Este aparelho está igual ou à frente: sobe e pronto.
-  if (tLocal + MARGEM_DE_SAVE >= tNuvem) { enviarSave(); return; }
-  perguntarQualSave(tLocal, tNuvem, nuvem);
+  const pNuvem = pesoDoSave(nuvem);
+  const pLocal = pesoDoSave(local);
+
+  // Nuvem vazia (conta recém-criada): sobe o que houver aqui.
+  if (!nuvem || !Object.keys(nuvem).length || pNuvem < PESO_DE_PARTIDA_NOVA) {
+    enviarSave(); return;
+  }
+  // Aparelho sem partida de verdade — guia anônima, celular novo, cache limpo. A conta
+  // manda, e não há nada a perguntar: aqui não existe progresso para descartar.
+  if (!local || pLocal < PESO_DE_PARTIDA_NOVA) { aplicarSaveDaNuvem(nuvem); return; }
+  // Este aparelho tem tudo o que a conta tem, e mais: subir não perde nada de ninguém.
+  if (pLocal >= pNuvem) { enviarSave(); return; }
+  // A conta está À FRENTE deste aparelho. Só aqui há escolha de verdade — e ela é do
+  // dono, nunca minha.
+  perguntarQualSave(local?.quando || 0, nuvem.quando || 0, nuvem, pLocal, pNuvem);
 }
 
 // A escolha desenhada DENTRO do jogo, não num `confirm()` do navegador.
@@ -26072,8 +27158,23 @@ function conciliarSaves() {
 // apagava o quê, e ler isso sob pressão é como se perde progresso. O segundo é que a
 // caixa nativa, no Safari do celular, mexeu no tamanho da janela e o jogo voltou dela
 // desenhado em menos de metade da tela, com o resto preto.
-function perguntarQualSave(tLocal, tNuvem, nuvem) {
+function perguntarQualSave(tLocal, tNuvem, nuvem, pLocal = 0, pNuvem = 0) {
   const quando = t => t ? new Date(t).toLocaleString('pt-BR') : 'desconhecido';
+  // Nível e data, não um número interno. "Peso 4210" não ajuda ninguém a escolher; "nível
+  // 17, 6 missões" ajuda — e é o que separa uma escolha de um chute.
+  const resumo = s => {
+    if (!s) return 'sem progresso';
+    const p = [];
+    if (s.level) p.push(`nível ${s.level}`);
+    const q = Array.isArray(s.completedQuests) ? s.completedQuests.length : 0;
+    if (q) p.push(`${q} ${q === 1 ? 'missão' : 'missões'}`);
+    const h = s.herois ? Object.keys(s.herois).length : 0;
+    if (h) p.push(`${h} ${h === 1 ? 'herói' : 'heróis'}`);
+    return p.join(' · ') || 'sem progresso';
+  };
+  let local = null;
+  try { local = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) {}
+
   const el = caixaDeTela('saveTela', 'conta-tela', false);
   el.innerHTML = `
     <div class="ct-caixa">
@@ -26082,12 +27183,12 @@ function perguntarQualSave(tLocal, tNuvem, nuvem) {
          aqui gravou. Só um dos dois pode continuar.</p>
       <div class="ct-acoes ct-coluna">
         <button class="ct-btn" data-nuvem>
-          Continuar o da conta<small>mais recente · ${quando(tNuvem)}</small></button>
+          Continuar o da conta<small>${resumo(nuvem)} · ${quando(tNuvem)}</small></button>
         <button class="ct-btn secundario" data-local>
-          Ficar com o deste aparelho<small>${quando(tLocal)} · substitui o da conta</small></button>
+          Ficar com o deste aparelho<small>${resumo(local)} · ${quando(tLocal)}</small></button>
       </div>
-      <p class="ct-nota">O que não for escolhido é perdido. Na dúvida, o da conta é o que
-         você jogou por último.</p>
+      <p class="ct-nota">O que não for escolhido fica guardado neste aparelho por sete
+         dias — se errar, dá para voltar atrás.</p>
     </div>`;
   el.classList.remove('hidden');
   el.querySelector('[data-nuvem]').onclick = () => { el.classList.add('hidden'); aplicarSaveDaNuvem(nuvem); };
@@ -26426,7 +27527,10 @@ function atualizarBotaoDeConta() {
     barra.appendChild(b);
   }
   const nome = CONTA.perfil?.nome;
-  b.innerHTML = `<span class="hud-emoji">${nome ? '☁️' : '👤'}</span>`
+  // MESMA CAIXA DOS OUTROS BOTÕES. Ele era montado à parte e saía com outra altura e
+  // outro peso de texto, e ficava visivelmente torto na fileira. `hud-emoji` sozinho não
+  // ocupa o espaço que uma `hud-arte` ocupa — daí o desalinho.
+  b.innerHTML = `<span class="hud-emoji hud-arte-vaga">${nome ? '☁️' : '👤'}</span>`
               + `<span class="hud-rot">${nome ? nome.slice(0, 9) : 'Entrar'}</span>`;
   b.classList.toggle('logado', !!nome);
 }
@@ -26482,10 +27586,9 @@ function abrirTelaDeConta(modo) {
       <button class="ct-x" data-fechar>✖</button>
       <h2>${p.nome}</h2>
       <p class="ct-sub">Poder da conta <b>${(p.poder || 0).toLocaleString('pt-BR')}</b></p>
-      <p class="ct-nota">O progresso deste aparelho sobe para a conta sozinho. Entre com
-         o mesmo e-mail em outro aparelho para continuar de onde parou.</p>
+      <p class="ct-nota">O progresso sobe sozinho, o tempo todo. Entre com o mesmo e-mail
+         em outro aparelho para continuar de onde parou.</p>
       <div class="ct-acoes">
-        <button class="ct-btn" data-enviar>Salvar na conta agora</button>
         <button class="ct-btn secundario" data-sair>Sair da conta</button>
       </div>
     </div>` : `
