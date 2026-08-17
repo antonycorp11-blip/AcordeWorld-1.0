@@ -14732,7 +14732,8 @@ function quadro(now){
         bgImages['farm'] = img;
       }
       if (bgImages['farm'].complete) {
-        ctx.drawImage(bgImages['farm'], 0, 0, SCREEN_W, SCREEN_H);
+        comSuavizacao('farm', () =>
+          ctx.drawImage(bgImages['farm'], 0, 0, SCREEN_W, SCREEN_H));
       }
       // Grade só enquanto há ferramenta armada: construir sem grade é chute, e grade
       // permanente polui o cenário quando o jogador só quer olhar a fazenda.
@@ -14743,16 +14744,17 @@ function quadro(now){
       // O ciclo de dia/noite será desenhado por cima depois
     } else if(currentScene==='world'||!isPlayMode){
       const vid = videoDoMapa(mapKey);
-      if (vid) ctx.drawImage(vid, 0, 0, SCREEN_W, SCREEN_H);
+      if (vid) comSuavizacao(mapKey, () => ctx.drawImage(vid, 0, 0, SCREEN_W, SCREEN_H));
       else {
         garantirFundo(mapKey);
         const bg = bgImages[mapKey];
-        if (bg?.complete) comSuavizacao(bg.naturalWidth,
+        if (bg?.complete) comSuavizacao(mapKey,
                                         () => ctx.drawImage(bg, 0, 0, SCREEN_W, SCREEN_H));
       }
       if (currentScene === 'world' && mapKey !== 'mega_world') renderSombrasDeNuvem(now, mapKey);
     }
-    else { const st=interiorDef()?.still?.(); if(st)ctx.drawImage(st,0,0,SCREEN_W,SCREEN_H); }
+    else { const st=interiorDef()?.still?.(); if(st)comSuavizacao(currentScene,
+      () => ctx.drawImage(st,0,0,SCREEN_W,SCREEN_H)); }
   }
 
   // Caminhada do editor: só move o personagem e nada mais. Sem HUD, sem monstro, sem
@@ -15123,11 +15125,16 @@ function quadro(now){
 //     deixou quase o jogo inteiro embaçado. Foi o que o dono viu na praça.
 //
 // A conta é direta: largura do arquivo contra largura do quadro em pixels de verdade.
-function comSuavizacao(largura, desenhar) {
+function comSuavizacao(mapa, desenhar) {
   const antes = ctx.imageSmoothingEnabled;
-  const reduzindo = largura > canvas.width;
-  ctx.imageSmoothingEnabled = reduzindo;
-  if (reduzindo) ctx.imageSmoothingQuality = 'high';
+  const artePixelada = !!pixelArt[mapa];
+  // O canvas tem resolução física (DPR), mas é composto pelo navegador no tamanho CSS.
+  // Comparar o arquivo com `canvas.width` confundia pixels físicos com pixels visíveis:
+  // um mapa de 1024 px exibido a 700 px no celular era tratado como ampliação e passava
+  // por vizinho mais próximo duas vezes. Ilustração pintada sempre usa o filtro de alta
+  // qualidade; somente um mapa explicitamente marcado como pixel art preserva os blocos.
+  ctx.imageSmoothingEnabled = !artePixelada;
+  if (!artePixelada) ctx.imageSmoothingQuality = 'high';
   try { desenhar(); } finally { ctx.imageSmoothingEnabled = antes; }
 }
 
@@ -19255,6 +19262,18 @@ function abrirFicha(heroId) {
   fichaHeroiVisto = heroId || fichaHeroiVisto || selectedHeroId || partyState.party[partyState.activePartyIndex] || 'achilles';
   el.classList.remove('hidden');
   desenharFicha();
+  if (!tutorialHudConcluido('ficha_subir_nivel') && partituras() > 0) {
+    agendarTutorialHud('ficha_subir_nivel', '#fichaNivelFixo [data-partitura="1"]',
+      'Subir nível com Partitura',
+      'Este botão fica sempre visível. Cada toque gasta 1 Partitura e treina o herói.', true);
+  } else if (!tutorialHudConcluido('ficha_equipamento')) {
+    agendarTutorialHud('ficha_equipamento', '#fichaHeroi [data-aba="equip"]',
+      'Equipamentos', 'Toque nesta aba para escolher e fortalecer as peças do herói.', true);
+  } else {
+    agendarTutorialHud('ficha_composicao', '#fichaHeroi [data-aba="composicao"]',
+      'Acordes e composição',
+      'Toque nesta aba para equipar escalas, ordenar acordes e criar cadências.', true);
+  }
 }
 
 function fecharFicha() {
@@ -19576,6 +19595,17 @@ function desenharFicha() {
   // Atributos DE VERDADE, no lugar das barras decorativas. Eram quatro números fixos que
   // descreviam o papel do herói e não faziam nada; agora são os cinco atributos que o
   // jogo já calculava mas não tinha onde gastar — o botão de atributos caía no inventário.
+  const nivelFixo = document.getElementById('fichaNivelFixo');
+  if (nivelFixo) {
+    nivelFixo.innerHTML = blocoDeNivelDoHeroi(id);
+    nivelFixo.querySelectorAll('[data-partitura]').forEach(b2 =>
+      b2.addEventListener('click', () => {
+        if (usarPartitura(id, +b2.dataset.partitura)) desenharFicha();
+      }));
+    nivelFixo.querySelector('[data-ascender]')?.addEventListener('click', () => {
+      if (ascender(id)) desenharFicha();
+    });
+  }
   const barras = document.getElementById('fichaBarras');
   if (barras) {
     // Do herói QUE ESTÁ SENDO VISTO, não do que está em campo.
@@ -19585,7 +19615,6 @@ function desenharFicha() {
         <span>❤ <b>${Math.round(playerHp)}/${s2.maxHp}</b></span>
         <span>Nível <b>${H.nivel}</b><small>/${tetoDoHeroi(id)}</small></span>
       </div>
-      ${blocoDeNivelDoHeroi(id)}
       ${blocoDoPetNaFicha(id)}
       <div class="fa-pontos${H.attrPoints ? ' tem' : ''}">
         ${H.attrPoints ? `${H.attrPoints} ponto${H.attrPoints > 1 ? 's' : ''} de atributo para distribuir`
@@ -19622,13 +19651,6 @@ function desenharFicha() {
       }));
     barras.querySelector('[data-evoluir]')?.addEventListener('click', () => {
       if (evoluirPet(barras.querySelector('[data-evoluir]').dataset.evoluir)) desenharFicha();
-    });
-    barras.querySelectorAll('[data-partitura]').forEach(b2 =>
-      b2.addEventListener('click', () => {
-        if (usarPartitura(id, +b2.dataset.partitura)) desenharFicha();
-      }));
-    barras.querySelector('[data-ascender]')?.addEventListener('click', () => {
-      if (ascender(id)) desenharFicha();
     });
   }
 
@@ -21334,7 +21356,12 @@ const ACOMP_FOLGA = 46;
 const ACOMP_LONGE = 420;     // acima disto ele corta caminho e reaparece
 
 function chamarAcompanhante(nome) {
-  const n = npcData.find(x => String(x.name || '').toLowerCase().includes(String(nome).toLowerCase()));
+  const corresponde = x => String(x.name || '').toLowerCase().includes(String(nome).toLowerCase());
+  // Prefere a instância que já está neste mapa. A Wins tem corpos de cena na Praça,
+  // no Pátio e no Selo; escolher sempre o primeiro fazia o corpo da fonte ser arrancado
+  // de lá enquanto a instância do Pátio continuava parada no mesmo cenário.
+  const n = npcData.find(x => x.mapKey === currentKey && corresponde(x))
+         || npcData.find(corresponde);
   if (!n) return null;
   if (ACOMP.npc && ACOMP.npc !== n) dispensarAcompanhante();
   if (ACOMP.npc !== n) {
@@ -21384,6 +21411,13 @@ function acompanhanteEsperadoPelaHistoria() {
   return undefined;
 }
 
+function modoEsperadoDoAcompanhante(nome) {
+  // Wins é companheira de viagem: anda junto. As placas já acendem a rota no mapa e
+  // não precisam sequestrá-la para um ponto fixo. Pipo continua como guia na etapa em
+  // que apresenta a cidade e a floresta.
+  return String(nome || '').toLowerCase().includes('wins') ? 'segue' : 'guia';
+}
+
 function reconciliarAcompanhanteComHistoria() {
   if (window.__acompanhanteHistoriaReconciliado || !npcData.length) return;
   const esperado = acompanhanteEsperadoPelaHistoria();
@@ -21392,19 +21426,20 @@ function reconciliarAcompanhanteComHistoria() {
     return;
   }
 
-  const salvo = npcData.find(n => n.id === window.__acompanhanteSalvo);
-  const atual = ACOMP.npc || salvo;
-  const nomeAtual = String(atual?.name || '').toLowerCase();
+  const nomeAtivo = String(ACOMP.npc?.name || '').toLowerCase();
   if (esperado === null) {
     if (ACOMP.npc) dispensarAcompanhante();
     window.__acompanhanteSalvo = null;
     window.__acompanhanteModo = null;
-  } else if (!nomeAtual.includes(esperado.toLowerCase())) {
-    if (ACOMP.npc) dispensarAcompanhante();
-    const correto = npcData.find(n => String(n.name || '').toLowerCase()
-      .includes(esperado.toLowerCase()));
-    window.__acompanhanteSalvo = correto?.id || null;
-    window.__acompanhanteModo = 'guia';
+  } else {
+    if (!nomeAtivo.includes(esperado.toLowerCase())) {
+      if (ACOMP.npc) dispensarAcompanhante();
+      chamarAcompanhante(esperado);
+    }
+    // Corrige também saves que já tinham a pessoa certa, mas no modo antigo `guia`.
+    ACOMP.modo = modoEsperadoDoAcompanhante(esperado);
+    window.__acompanhanteSalvo = null;
+    window.__acompanhanteModo = null;
   }
   window.__acompanhanteHistoriaReconciliado = true;
 }
@@ -21503,7 +21538,7 @@ function atualizarAcompanhante(now) {
   // lado da placa certa e espera ali, com um balão. O jogador não precisa saber qual das
   // placas usar — basta procurar quem está encostado numa. Não trava nunca, porque não
   // anda.
-  const salto = ROTA.destino ? proximoSaltoDaRota() : null;
+  const salto = ACOMP.modo === 'guia' && ROTA.destino ? proximoSaltoDaRota() : null;
   const placa = salto ? npcData.find(p2 => p2.mapKey === currentKey
                         && p2.type === 'signpost' && p2.targetMapKey === salto) : null;
   if (placa) {
@@ -21818,7 +21853,15 @@ function abrirForjador(qual, ondeEstou) {
     return;
   }
   document.getElementById(qual)?.classList.remove('hidden');
-  if (qual === 'sintetizador') { desenharSintetizador(); sincronizarAbaDeEscalas?.(); }
+  if (qual === 'sintetizador') {
+    desenharSintetizador(); sincronizarAbaDeEscalas?.();
+    // Inserção invertida porque ambos têm prioridade: primeiro escolhe a Nota, depois
+    // executa a condensação.
+    agendarTutorialHud('sint_condensar', '#sintBotao', 'Condensar a Nota',
+      'Confira o custo e toque aqui para transformar os fragmentos escolhidos.', true);
+    agendarTutorialHud('sint_escolher_nota', '#sintNotas .fj-nota-btn', 'Escolha a Nota',
+      'Toque numa Nota para definir quais fragmentos serão condensados.', true);
+  }
   else { if (!montagem) iniciarMontagem(notaEscolhida); desenharForjadorDeEscalas(); }
 }
 function fecharForjador(qual) { document.getElementById(qual)?.classList.add('hidden'); }
@@ -22243,6 +22286,110 @@ const LIBERACAO_DE_BOTOES = {
 // Uma vez aberto, nunca mais fecha: gastar o último fragmento não pode sumir com a forja.
 const botoesJaAbertos = new Set();
 
+// Tutoriais que apontam para o controle VERDADEIRO. O jogador aprende executando a
+// ação, não fechando um texto que descreve um botão em outro lugar da tela.
+const CHAVE_TUTORIAIS_HUD = 'acordelot_tutoriais_hud_v1' + SUFIXO_DO_SAVE;
+const filaTutoriaisHud = [];
+let tutorialHudAtual = null;
+let tutorialHudEl = null;
+
+const GUIAS_DOS_BOTOES = {
+  somBtn: ['hud_som', 'Trilha e som', 'Toque aqui para ajustar música e efeitos.'],
+  mapaBtn: ['hud_mapa', 'Mapa do reino', 'Toque aqui para ver os lugares já descobertos.'],
+  missoesBtn: ['hud_missoes', 'Missões', 'Toque aqui para acompanhar requisitos e recompensas.'],
+  btnBuildMode: ['hud_fazenda', 'Fazenda', 'Toque aqui para plantar, construir e organizar sua ilha.'],
+  forjaBtn: ['hud_sintese', 'Síntese portátil', 'Toque aqui para condensar seus fragmentos em Notas.'],
+  fichaBtn: ['hud_personagem', 'Personagem', 'Toque aqui para evoluir, equipar e montar acordes.'],
+  invBtn: ['hud_bolsa', 'Bolsa', 'Toque aqui para consultar tudo o que você carrega.'],
+};
+
+function tutoriaisHudFeitos() {
+  try { return new Set(JSON.parse(localStorage.getItem(CHAVE_TUTORIAIS_HUD) || '[]')); }
+  catch (_) { return new Set(); }
+}
+function tutorialHudConcluido(chave) { return tutoriaisHudFeitos().has(chave); }
+function gravarTutorialHud(chave) {
+  const feitos = tutoriaisHudFeitos(); feitos.add(chave);
+  try { localStorage.setItem(CHAVE_TUTORIAIS_HUD, JSON.stringify([...feitos])); } catch (_) {}
+}
+function agendarTutorialHud(chave, seletor, titulo, texto, prioridade = false) {
+  if (!chave || tutorialHudConcluido(chave) || tutorialHudAtual?.chave === chave
+      || filaTutoriaisHud.some(x => x.chave === chave)) return;
+  const item = { chave, seletor, titulo, texto };
+  prioridade ? filaTutoriaisHud.unshift(item) : filaTutoriaisHud.push(item);
+  setTimeout(tentarTutorialHud, 80);
+}
+
+function modalSobreOJogoAberto() {
+  return [...document.querySelectorAll(
+    '#miniMapa, #telaMissoes, #sintetizador, #forjadorEscalas, #fichaHeroi, #equipTela, #composicao, #inventoryOverlay'
+  )].some(el => !el.classList.contains('hidden'));
+}
+
+function reposicionarTutorialHud() {
+  const alvo = tutorialHudAtual?.alvo;
+  if (!alvo || !tutorialHudEl || !document.body.contains(alvo)) return encerrarTutorialHud(false);
+  const r = alvo.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return encerrarTutorialHud(false);
+  const margem = 7, x = Math.max(4, r.left - margem), y = Math.max(4, r.top - margem);
+  const d = Math.min(innerWidth - 4, r.right + margem), b = Math.min(innerHeight - 4, r.bottom + margem);
+  const [c1,c2,c3,c4] = tutorialHudEl.querySelectorAll('.hud-tutor-cortina');
+  Object.assign(c1.style, { left:'0px', top:'0px', width:'100vw', height:y+'px' });
+  Object.assign(c2.style, { left:'0px', top:y+'px', width:x+'px', height:(b-y)+'px' });
+  Object.assign(c3.style, { left:d+'px', top:y+'px', width:Math.max(0,innerWidth-d)+'px', height:(b-y)+'px' });
+  Object.assign(c4.style, { left:'0px', top:b+'px', width:'100vw', height:Math.max(0,innerHeight-b)+'px' });
+  Object.assign(tutorialHudEl.querySelector('.hud-tutor-alvo').style,
+    { left:x+'px', top:y+'px', width:(d-x)+'px', height:(b-y)+'px' });
+  const balao = tutorialHudEl.querySelector('.hud-tutor-balao');
+  const bw = Math.min(310, innerWidth - 24);
+  const bx = Math.max(12, Math.min(innerWidth - bw - 12, (x+d-bw)/2));
+  const cabeAbaixo = b + 120 < innerHeight;
+  balao.style.left = bx + 'px';
+  balao.style.top = (cabeAbaixo ? b + 12 : Math.max(12, y - balao.offsetHeight - 12)) + 'px';
+}
+
+function encerrarTutorialHud(concluir = true) {
+  if (!tutorialHudAtual) return;
+  const { chave, alvo, aoClicar } = tutorialHudAtual;
+  alvo?.removeEventListener('click', aoClicar, true);
+  if (concluir) gravarTutorialHud(chave);
+  tutorialHudAtual = null;
+  tutorialHudEl?.remove(); tutorialHudEl = null;
+  setTimeout(tentarTutorialHud, 140);
+}
+
+function tentarTutorialHud() {
+  if (tutorialHudAtual) {
+    const r = tutorialHudAtual.alvo?.getBoundingClientRect();
+    if (!tutorialHudAtual.alvo?.isConnected || !r || r.width < 2 || r.height < 2)
+      encerrarTutorialHud(false);
+    return;
+  }
+  if (!filaTutoriaisHud.length || !isPlayMode || preTelaAberta || CUT.ativo) return;
+  const item = filaTutoriaisHud[0];
+  const alvo = typeof item.seletor === 'string' ? document.querySelector(item.seletor) : item.seletor;
+  if (!alvo || alvo.classList.contains('trancado')) return;
+  const r = alvo.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return;
+  // Um botão do HUD não é ensinado atrás de uma tela aberta. Controles que moram dentro
+  // da própria tela (equipar, compor, condensar) continuam permitidos.
+  if (alvo.closest('#playerHud') && modalSobreOJogoAberto()) return;
+  filaTutoriaisHud.shift();
+  tutorialHudEl = document.createElement('div');
+  tutorialHudEl.className = 'hud-tutor';
+  tutorialHudEl.innerHTML = '<i class="hud-tutor-cortina"></i>'.repeat(4)
+    + `<i class="hud-tutor-alvo"></i><div class="hud-tutor-balao"><b>${item.titulo}</b>`
+    + `${item.texto}<small>Toque no destaque para continuar.</small>`
+    + `<button class="hud-tutor-pular" type="button">Pular dica</button></div>`;
+  document.body.appendChild(tutorialHudEl);
+  const aoClicar = () => setTimeout(() => encerrarTutorialHud(true), 0);
+  tutorialHudAtual = { ...item, alvo, aoClicar };
+  alvo.addEventListener('click', aoClicar, true);
+  tutorialHudEl.querySelector('.hud-tutor-pular').onclick = () => encerrarTutorialHud(true);
+  requestAnimationFrame(reposicionarTutorialHud);
+}
+window.addEventListener('resize', reposicionarTutorialHud);
+
 function atualizarBotoesLiberados() {
   for (const [id, liberado] of Object.entries(LIBERACAO_DE_BOTOES)) {
     const el = document.getElementById(id);
@@ -22252,6 +22399,8 @@ function atualizarBotoesLiberados() {
       try { ok = !!liberado(); } catch (e) { ok = false; }
       if (!ok) { el.classList.add('trancado'); continue; }
       botoesJaAbertos.add(id);
+      const guia = GUIAS_DOS_BOTOES[id];
+      if (guia) agendarTutorialHud(guia[0], '#' + id, guia[1], guia[2]);
       // Avisa só na estreia — o jogador precisa saber que ganhou algo novo.
       if (id !== 'somBtn') showToast(`Novo: ${el.title || 'botão liberado'}`);
     }
@@ -22273,6 +22422,7 @@ function poderDaContaEmCache() {
 
 function atualizarNumerosDoHud() {
   atualizarBotoesLiberados();
+  tentarTutorialHud();
   sincronizarHabilidadesSePreciso();
   const pn = document.getElementById('hudPoderNum');
   if (pn) pn.textContent = poderDaContaEmCache().toLocaleString('pt-BR');
@@ -22463,6 +22613,9 @@ function abrirEquipamentos() {
   el?.classList.remove('hidden');
   injetarBarraLateral(el, 'equip');
   desenharEquipamentos();
+  if (document.querySelector('#equipGrade .eq-card'))
+    agendarTutorialHud('equip_escolher', '#equipGrade .eq-card', 'Escolha uma peça',
+      'Toque numa peça da coleção para ver atributos, encaixe e melhoria.', true);
 }
 function fecharEquipamentos() {
   document.getElementById('equipTela')?.classList.add('hidden');
@@ -22699,6 +22852,8 @@ function abrirPopupDeItem(id, ev) {
   const w = pop.offsetWidth, h = pop.offsetHeight;
   pop.style.left = `${Math.max(6, Math.min(pai.width - w - 6, x - w / 2))}px`;
   pop.style.top  = `${Math.max(6, Math.min(pai.height - h - 6, y + 14))}px`;
+  agendarTutorialHud('equip_vestir', '#equipPopup [data-acao="vestir"]', 'Equipar a peça',
+    'Toque aqui para vestir a peça no personagem que está selecionado.', true);
 }
 function fecharPopupDeItem() { document.getElementById('equipPopup')?.classList.add('hidden'); }
 
@@ -23985,6 +24140,13 @@ function abrirComposicao() {
   el?.classList.remove('hidden');
   injetarBarraLateral(el, 'composicao');
   desenharComposicao();
+  if (document.querySelector('#compEscalas .comp-escala')) {
+    agendarTutorialHud('comp_escala', '#compEscalas .comp-escala', 'Equipe uma escala',
+      'Toque numa escala forjada para ativar o campo harmônico do personagem.', true);
+  } else if (document.querySelector('#compGuardados .comp-acorde')) {
+    agendarTutorialHud('comp_acorde', '#compGuardados .comp-acorde', 'Equipe um acorde',
+      'Toque num acorde guardado para colocá-lo na partitura.', true);
+  }
 }
 function fecharComposicao() { document.getElementById('composicao')?.classList.add('hidden'); }
 

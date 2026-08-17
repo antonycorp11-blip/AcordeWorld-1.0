@@ -1111,8 +1111,8 @@
               <!-- O botão de atributos saiu: eles vivem na ficha do personagem agora, e ter
                    dois caminhos para o mesmo lugar só confundia. O aviso de pontos migrou
                    para o botão da ficha. -->
-              <!-- Temporário: os forjadores vão viver em pontos fixos do mapa. Enquanto
-                   isso, este botão abre os dois para poder testar. -->
+              <!-- A síntese de notas é uma habilidade portátil e vive no HUD. O
+                   Forjador físico é exclusivamente o lugar onde escalas são montadas. -->
               <!-- Minimapa: a grade real do mundo, para escolher destino e acender
                    as placas do caminho. -->
               <button id="mapaBtn" class="icon-btn trancado" title="Mapa do Reino (M)">
@@ -1131,7 +1131,7 @@
                 <img class="hud-arte" src="assets/ui/hud/musica.png" alt="">
                 <span class="hud-rot">Música</span>
               </button>
-              <button id="forjaBtn" class="icon-btn trancado" title="Forjadores (F2 nota · F3 escala)">
+              <button id="forjaBtn" class="icon-btn trancado" title="Sintetizador de Notas (F2)">
                 <img class="hud-arte" src="assets/ui/hud/sintese.png" alt="">
                 <span class="hud-rot">Síntese</span>
               </button>
@@ -1191,6 +1191,7 @@
                        No lugar entra o NÍVEL DE PODER, que é o número que resume a build
                        inteira e o que as dungeons exigem. -->
                   <div class="ficha-poder" id="fichaPoder"></div>
+                  <div class="ficha-nivel-fixo" id="fichaNivelFixo"></div>
                   <div class="ficha-barras" id="fichaBarras"></div>
                 </section>
                 <section class="ficha-dir">
@@ -1285,13 +1286,10 @@
             <div class="fj-quadro">
               <header class="fj-topo">
                 <span class="fj-selo">𝄞</span>
-                <h2 class="fj-titulo">Altar de Síntese de Notas</h2>
+                <h2 class="fj-titulo">Síntese portátil de Notas</h2>
                 <button class="fj-fechar" data-fechar="sintetizador">✕</button>
               </header>
-              <div class="fj-abas">
-                <button class="fj-aba ativa" data-ir="sintetizador">Síntese de Notas</button>
-                <button class="fj-aba" data-ir="forjadorEscalas">Forja de Escalas</button>
-              </div>
+              <div class="fj-abas"><span class="fj-aba ativa">Síntese portátil de Notas</span></div>
               <div class="fj-corpo fj-corpo-3">
                 <section class="fj-col">
                   <div class="fj-cab">Fragmentos</div>
@@ -1323,10 +1321,7 @@
                 <h2 class="fj-titulo">Forjar Escalas Maiores</h2>
                 <button class="fj-fechar" data-fechar="forjadorEscalas">✕</button>
               </header>
-              <div class="fj-abas">
-                <button class="fj-aba" data-ir="sintetizador">Síntese de Notas</button>
-                <button class="fj-aba ativa" data-ir="forjadorEscalas">Forja de Escalas</button>
-              </div>
+              <div class="fj-abas"><span class="fj-aba ativa">Forjador exclusivo de Escalas</span></div>
               <p class="fj-sub">Combine Notas com Tons (T) e Semitons (S) para forjar uma escala maior.</p>
               <div class="fj-corpo fj-corpo-3">
                 <section class="fj-col">
