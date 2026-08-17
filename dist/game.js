@@ -27,7 +27,8 @@ const SUFIXO_DO_SAVE = BANCA_DE_TESTES ? '_banca' : '';
 // Enquanto o capítulo está em teste, pular direto para uma cena precisa funcionar
 // TAMBÉM no link publicado — testar no celular pelo link normal é o fluxo real do
 // Antony. Vira `false` numa linha quando o jogo abrir para jogador de verdade.
-const SELETOR_DE_CENA_LIGADO = true;
+const SELETOR_DE_CENA_LIGADO = BANCA_DE_TESTES;
+let autenticacaoLiberada = BANCA_DE_TESTES;
 
 const SCREEN_W = 1024;
 const SCREEN_H = 571;
@@ -517,6 +518,11 @@ const keys = {w:false,a:false,s:false,d:false,shift:false};
 // small push walks and a full push sprints.
 const stick = { active:false, x:0, y:0 };
 
+function digitandoEmCampo(e) {
+  const a = e?.target || document.activeElement;
+  return !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable);
+}
+
 // One entry point for "do the thing": the E key, the desktop pill and the touch button
 // all land here, so they can never drift apart.
 function doAction() {
@@ -529,6 +535,7 @@ function doAction() {
 }
 
 window.addEventListener('keydown', e => {
+  if (digitandoEmCampo(e)) return;
   if ((e.code==='Space'||e.code==='Enter'||e.code==='KeyE') && avancarCena()) { e.preventDefault(); return; }
   if (dlg.state !== DLG_STATE.CLOSED) { handleDlgKey(e); return; }
   // Arrow-key nudge for pixel-level placement while editing (Shift = 10px steps).
@@ -1467,14 +1474,14 @@ let activeQuests=[], completedQuests=[];
 // acontece, e um estado que passa a ser verdade. Por isso vivem aqui, junto do "ja tenho",
 // e nao no `progressoDeMissao`, que conta eventos.
 const LIMIAR = {
-  nivel:     () => nivelDoHeroi(),
+  nivel:     () => Math.max(...elencoDaConta().map(id => nivelDoHeroi(id))),
   nivelConta:() => level,
   poder:     () => poderDaConta(),
   passivas:  () => Object.values(passivas || {}).filter(n => n > 1).length,
   acordes:   () => (acordesEquipados || []).length,
   escalas:   () => (escalasMontadas || []).length,
   notas:     () => Object.values(notasPossuidas || {}).filter(v => v > 0).length,
-  herois:    () => Object.values(HERO_DEFINITIONS).filter(h => h.desbloqueado).length,
+  herois:    () => new Set((partyState?.party || []).filter(id => id && HERO_DEFINITIONS[id])).size,
 };
 
 function objetivoJaSatisfeito(o) {
@@ -1509,6 +1516,20 @@ function revisarObjetivosDeProgresso() {
   if (mudou) { atualizarRastreador(); atualizarMissaoNoHud(true); verificarMissoesConcluidas(); }
 }
 
+function requisitoDeDesbloqueioCumprido(q) {
+  const r = q.desbloqueio;
+  if (!r) return false;
+  if (r.missaoConcluida && !completedQuests.includes(r.missaoConcluida)) return false;
+  if (r.bandeira && !temBandeira(r.bandeira)) return false;
+  return true;
+}
+
+function revisarMissoesDisponiveis() {
+  (questsData || []).forEach(q => {
+    if (requisitoDeDesbloqueioCumprido(q)) unlockQuest(q.id);
+  });
+}
+
 function conferirObjetivosJaCumpridos(q) {
   let mudou = false;
   (q.objectives || []).forEach(o => {
@@ -1518,9 +1539,9 @@ function conferirObjetivosJaCumpridos(q) {
 }
 
 function unlockQuest(id) {
-  const def=questsData.find(q=>q.id===id); if(!def||activeQuests.find(q=>q.id===id)) return;
+  const def=questsData.find(q=>q.id===id);
+  if(!def || activeQuests.find(q=>q.id===id) || completedQuests.includes(id)) return;
   const q=JSON.parse(JSON.stringify(def)); activeQuests.push(q);
-  grantXp(q.xp ?? 40); // starting a quest already pays a little
   pathGuide.questId=id; pathGuide.active=true;
   pathGuide.waypoints=(q.path_waypoints?.[currentKey])||[];
   pathGuide.particles=[];
@@ -1591,6 +1612,7 @@ function verificarMissoesConcluidas() {
       }
     }, 700);
   }
+  revisarMissoesDisponiveis();
   atualizarRastreador();
 }
 
@@ -2142,6 +2164,7 @@ function updateAmbient(now) {
 }
 
 // Nearest NPC the player could talk to right now — drives both the E key and the prompt.
+let npcAcompanhanteAtual = null;
 function npcNaCena(n) {
   if (!n) return false;
   // No EDITOR tudo aparece: um NPC escondido por bandeira que sumisse da tela de edicao
@@ -2149,6 +2172,12 @@ function npcNaCena(n) {
   if (!isPlayMode) return true;
   if (n.oculto) return false;
   if (n.forcarVisivel) return true;      // a cena em curso manda mais que a bandeira
+  // Há mais de uma instância de alguns personagens em mapas diferentes. Enquanto uma
+  // delas acompanha o jogador, as demais ficam escondidas para não haver duas Wins (ou
+  // dois Pipos) na mesma cena depois de atravessar uma passagem.
+  if (npcAcompanhanteAtual && n !== npcAcompanhanteAtual
+      && String(n.name || '').trim().toLowerCase()
+        === String(npcAcompanhanteAtual.name || '').trim().toLowerCase()) return false;
   const lista = v => v == null ? [] : (Array.isArray(v) ? v : [v]);
   if (lista(n.sumirCom).some(temBandeira)) return false;
   if (!lista(n.apareceCom).every(temBandeira)) return false;
@@ -8460,6 +8489,8 @@ function savePlayerData() {
       // seguidor em todo recarregamento: a cena mandava esperar na placa, o jogador
       // fechava o jogo, e ao voltar o companheiro estava colado nele de novo.
       acompanhanteModo: ACOMP.modo || null,
+      acompanhanteDitas: [...ACOMP.ditas],
+      acompanhanteFaladas: ACOMP.faladas || 0,
       fazendaExpansoes: expansoesCompradas(),
       cenaAceita,
       petsDoJogador, petEquipado,
@@ -8539,7 +8570,11 @@ function loadPlayerData() {
       selectedHeroId = HERO_DEFINITIONS[d.heroi] ? d.heroi : 'achilles';
     }
     if (d.inventario) playerInventory = { ...playerInventory, ...d.inventario };
-    if (Array.isArray(d.missoesAtivas)) activeQuests = d.missoesAtivas.map(migrarMissaoSalva);
+    if (Array.isArray(d.missoesAtivas)) {
+      activeQuests = d.missoesAtivas
+        .filter(q => questsData.some(def => def.id === q.id))
+        .map(migrarMissaoSalva);
+    }
     if (Array.isArray(d.missoesFeitas)) completedQuests = d.missoesFeitas;
     if (d.cenas) CUT.jaRodou = { ...CUT.jaRodou, ...d.cenas };
     if (d.mapa) window.__mapaSalvo = d.mapa;
@@ -8554,6 +8589,8 @@ function loadPlayerData() {
     if (d.petEquipado) petEquipado = d.petEquipado;
     if (d.acompanhante) window.__acompanhanteSalvo = d.acompanhante;
     if (d.acompanhanteModo) window.__acompanhanteModo = d.acompanhanteModo;
+    if (Array.isArray(d.acompanhanteDitas)) window.__acompanhanteDitas = d.acompanhanteDitas;
+    if (typeof d.acompanhanteFaladas === 'number') window.__acompanhanteFaladas = d.acompanhanteFaladas;
     if (typeof d.claves === 'number') claveCount = d.claves;
     if (Array.isArray(d.owned)) ownedItems = d.owned;
     if (d.equipped) equipped = { ...equipped, ...d.equipped };
@@ -8598,6 +8635,12 @@ function loadPlayerData() {
     }
     if (Array.isArray(d.skills)) learnedSkills = d.skills;
     applyMovementStats();
+    revisarMissoesDisponiveis();
+    revisarObjetivosDeProgresso();
+    // A migração acima pode já ter marcado o último objetivo como concluído. Nesse caso
+    // `revisarObjetivosDeProgresso` não detecta mudança e não chama a conclusão; conferir
+    // sempre aqui transforma o estado completo em recompensa, em vez de deixá-lo ativo.
+    verificarMissoesConcluidas();
   } catch (e) {}
 }
 
@@ -8660,6 +8703,7 @@ function equipItem(id) {
   const it = itemById(id);
   if (!it || !ownsItem(id)) return;
   equipped[it.slot] = (equipped[it.slot] === id) ? null : id;
+  revisarObjetivosDeProgresso();
   savePlayerData();
   renderShopUI(); renderInventoryUI();
 }
@@ -8690,6 +8734,7 @@ function condensarNota(nota) {
     notasPossuidas[nota.id] = (notasPossuidas[nota.id] || 0) + 1;
     progressoDeMissao('sintetizar', 'nota');
     progressoDeMissao('sintetizar', nota.natural ? 'natural' : 'sustenida');
+    revisarObjetivosDeProgresso();
     savePlayerData();
     renderAltar();
   });
@@ -11147,6 +11192,7 @@ function blockIOSGestures() {
 // entrada. Também garante o botão "Continuar" quando há progresso salvo, e esconde o
 // seletor de cenas, que é ferramenta de autoria e não coisa de aluno.
 function abrirMenuInicialSePreciso() {
+  if (!autenticacaoLiberada) return;
   if (!IS_PLAY_BUILD && !wantsMobilePlay()) return;
   const menu = document.getElementById('mainMenuOverlay');
   if (!menu || isPlayMode) return;
@@ -12530,8 +12576,8 @@ function podeAceitar(c) {
 function cenasOferecidas() {
   const emOrdem = CUT.roteiros.filter(c => c.ordem && !cenaJaRodou(c))
                               .sort((a, b) => a.ordem - b.ordem);
-  const espinha = emOrdem.find(c => !c.opcional && !faltaAlgumaCenaAntes(c));
-  const opcionais = emOrdem.filter(c => c.opcional && !faltaAlgumaCenaAntes(c));
+  const espinha = emOrdem.find(c => !c.opcional && podeAceitar(c));
+  const opcionais = emOrdem.filter(c => c.opcional && podeAceitar(c));
   return [espinha, ...opcionais].filter(Boolean);
 }
 
@@ -13200,6 +13246,8 @@ function executarPasso(p) {
         showToast(`✦ ${h.name} entrou no grupo`);
         renderPartyHUD();
       }
+      revisarMissoesDisponiveis();
+      revisarObjetivosDeProgresso();
       return false;
     }
 
@@ -15426,7 +15474,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   requestAnimationFrame(loop);
 
   // Cada passo isolado: um que falhe não leva os outros junto.
-  try { if(wantsMobilePlay())enterMobilePlay(); } catch(e){ console.error('[Acordelot] entrada em jogo:', e); }
   try { abrirMenuInicialSePreciso(); } catch(e){ console.error('[Acordelot] menu inicial:', e); }
   try { iniciarAutosave(); } catch(e){ console.error('[Acordelot] autosave:', e); }
   setTimeout(()=>loadingOverlay?.classList.add('hidden'),600);
@@ -16273,8 +16320,12 @@ async function finishInit(){
   // fim de todas. O config vem primeiro porque as camadas dependem da lista de
   // cenários; o resto vai junto, em paralelo.
   await loadWorldConfig();
+  // O catálogo de missões precisa existir ANTES de `loadShopCatalog`, porque este carrega
+  // o save e migra as missões ativas para a definição atual. Em paralelo, às vezes o save
+  // vencia a corrida e objetivos antigos voltavam sem tipo/quantidade até o próximo jogo.
+  await loadQuests();
   await Promise.all([
-    loadLayers(), loadNPCs(), loadQuests(), loadShopCatalog(),
+    loadLayers(), loadNPCs(), loadShopCatalog(),
     loadMonsters(), loadObjetos(), loadMundo(), loadSkillTree(),
   ]);
   refreshMapSelect();
@@ -16294,7 +16345,7 @@ async function finishInit(){
   await carregarCatalogoDeCenas();
   preencherMenuDeCenas();
   abrirMenuInicialSePreciso();   // de novo: agora o catálogo existe e o menu fica coerente
-  if (wantsMobilePlay()) talvezIniciarCenaDoMapa(currentKey);
+  if (wantsMobilePlay() && autenticacaoLiberada) talvezIniciarCenaDoMapa(currentKey);
 }
 setTimeout(()=>{
   loadingOverlay?.classList.add('hidden');
@@ -16305,7 +16356,11 @@ setTimeout(()=>{
   // pré-tela mostra em quem você está e onde parou. Na ordem inversa o jogador escolhe o
   // herói e o nível de uma partida que a conta pode substituir logo em seguida.
   if (IS_PLAY_BUILD || wantsMobilePlay()) {
-    portariaDaConta().catch(() => {}).then(abrirPreTela);
+    portariaDaConta().then(() => {
+      autenticacaoLiberada = true;
+      if (!isPlayMode) enterMobilePlay();
+      abrirPreTela();
+    }).catch(e => console.error('[Acordelot] portaria:', e));
   }
 },1500);
 
@@ -16918,6 +16973,7 @@ function equiparFerramenta(id) {
   equipped[slot] = id;
   equipped.activeTool = slot;
   playerInventory[id] = 1;
+  revisarObjetivosDeProgresso();
   savePlayerData();
   showToast(`${t.icon} ${t.name} equipado`);
   return true;
@@ -16929,6 +16985,7 @@ function desequiparFerramenta(id) {
   if (!slot) return false;
   equipped[slot] = null;
   if (equipped.activeTool === slot) equipped.activeTool = null;
+  revisarObjetivosDeProgresso();
   savePlayerData();
   showToast(`✕ ${t ? t.name : 'Item'} desequipado!`);
   grSelecionado = null;
@@ -21272,6 +21329,7 @@ function renderAltarDaForja(now) {
 // constrói andando junto por vinte minutos enquanto o menino fala bobagem.
 const ACOMP = {
   npc: null,
+  origem: null,
   proximaFala: 0,
   mapaAnterior: null,
   ditas: new Set(),      // falas de uma vez só, para não repetir o que é especial
@@ -21286,7 +21344,12 @@ const ACOMP_LONGE = 420;     // acima disto ele corta caminho e reaparece
 function chamarAcompanhante(nome) {
   const n = npcData.find(x => String(x.name || '').toLowerCase().includes(String(nome).toLowerCase()));
   if (!n) return null;
+  if (ACOMP.npc && ACOMP.npc !== n) dispensarAcompanhante();
+  if (ACOMP.npc !== n) {
+    ACOMP.origem = { mapKey: n.mapKey, x: n.x, y: n.y, flipX: n.flipX };
+  }
   ACOMP.npc = n;
+  npcAcompanhanteAtual = n;
   ACOMP.mapaAnterior = currentKey;
   ACOMP.proximaFala = performance.now() + 3000;
   n.mapKey = currentKey;
@@ -21296,7 +21359,15 @@ function chamarAcompanhante(nome) {
 }
 
 function dispensarAcompanhante() {
+  const n = ACOMP.npc;
+  if (n && ACOMP.origem) Object.assign(n, ACOMP.origem);
   ACOMP.npc = null;
+  ACOMP.origem = null;
+  ACOMP.modo = null;
+  ACOMP.mapaAnterior = null;
+  ACOMP.avisouPlaca = null;
+  ACOMP.faladas = 0;
+  npcAcompanhanteAtual = null;
   ACOMP.ditas.clear();
 }
 
@@ -21314,16 +21385,25 @@ function acompanhanteAtivo() { return !!ACOMP.npc; }
 // A resposta sai dos próprios roteiros: se ALGUMA cena que já aconteceu manda dispensar,
 // o acompanhamento acabou. Nada codificado por nome — cena nova que dispense já entra
 // nesta conta sozinha.
-function acompanhamentoJaAcabou() {
-  return (CUT.roteiros || []).some(c =>
-    cenaJaRodou(c) && (c.passos || []).some(p =>
-      p.cmd === 'acompanhante' && (p.dispensar || !p.npc)));
+function acompanhamentoJaAcabou(id) {
+  const vistos = (CUT.roteiros || []).filter(c => cenaJaRodou(c))
+    .map((c, indice) => ({ c, indice }))
+    .sort((a, b) => ordemDaCena(a.c) - ordemDaCena(b.c) || a.indice - b.indice);
+  let ultimo = null;
+  vistos.forEach(({ c }) => (c.passos || []).forEach(p => {
+    if (p.cmd === 'acompanhante') ultimo = p;
+  }));
+  if (!ultimo) return false;
+  if (ultimo.dispensar || !ultimo.npc) return true;
+  const salvo = npcData.find(n => n.id === id);
+  return !salvo || !String(salvo.name || '').toLowerCase()
+    .includes(String(ultimo.npc).toLowerCase());
 }
 
 function restaurarAcompanhante() {
   const id = window.__acompanhanteSalvo;
   if (!id || ACOMP.npc) return;
-  if (acompanhamentoJaAcabou()) {
+  if (acompanhamentoJaAcabou(id)) {
     window.__acompanhanteSalvo = null; window.__acompanhanteModo = null;
     savePlayerData();
     return;
@@ -21331,9 +21411,15 @@ function restaurarAcompanhante() {
   const n = npcData.find(x => x.id === id);
   if (!n) return;
   window.__acompanhanteSalvo = null;
+  ACOMP.origem = { mapKey: n.mapKey, x: n.x, y: n.y, flipX: n.flipX };
   ACOMP.npc = n;
+  npcAcompanhanteAtual = n;
   ACOMP.modo = window.__acompanhanteModo || 'guia';
   window.__acompanhanteModo = null;
+  ACOMP.ditas = new Set(window.__acompanhanteDitas || []);
+  ACOMP.faladas = window.__acompanhanteFaladas || 0;
+  window.__acompanhanteDitas = null;
+  window.__acompanhanteFaladas = null;
   ACOMP.mapaAnterior = currentKey;
   ACOMP.proximaFala = performance.now() + 6000;
   n.mapKey = currentKey;
@@ -21391,9 +21477,8 @@ function atualizarAcompanhante(now) {
     return;
   }
   ACOMP.avisouPlaca = null;
-  // Guia sem rota nao tem o que mostrar: fica onde esta em vez de sair correndo atras do
-  // jogador, que e trabalho de acompanhante e nao de quem esta indicando caminho.
-  if (ACOMP.modo === 'guia') return;
+  // Sem uma placa relevante, o guia continua sendo companhia: segue o jogador até haver
+  // algo concreto para indicar. Assim "vamos juntos" não vira um NPC parado no mapa.
 
   const dx = player.x - n.x, dy = player.y - n.y;
   const d = Math.hypot(dx, dy);
@@ -21965,6 +22050,7 @@ function sintetizarNotaAgora() {
     notasPossuidas[nota.id] = (notasPossuidas[nota.id] || 0) + 1;
     progressoDeMissao('sintetizar', 'nota');
     progressoDeMissao('sintetizar', nota.natural ? 'natural' : 'sustenida');
+    revisarObjetivosDeProgresso();
     savePlayerData();
     sintetizando = false;
     quadro?.classList.remove('forjando');
@@ -22553,6 +22639,7 @@ function abrirPopupDeItem(id, ev) {
       }
       eqh[it.slot] = it.id;
     }
+    revisarObjetivosDeProgresso();
     savePlayerData();
     desenharEquipamentos();
     fecharPopupDeItem();
@@ -22592,6 +22679,7 @@ function subirTier(it) {
   Object.entries(c.notas).forEach(([nid, q]) => { notasPossuidas[nid] -= q; });
   claveCount -= c.claves;
   itensPossuidos[it.id].tier = t + 1;
+  revisarObjetivosDeProgresso();
   savePlayerData();
   showToast(`${it.nome} subiu para T${t + 1}!`);
   desenharEquipamentos();
@@ -23658,6 +23746,7 @@ function subirAcorde(id) {
   nivelDoAcorde[id] = nivelDe(id) + 1;
   playForgeHit?.();
   showToast(`Acorde no nível ${nivelDe(id)} — efeito ${Math.round((multiplicadorDoAcorde(id) - 1) * 100)}% acima do base.`);
+  revisarObjetivosDeProgresso();
   savePlayerData();
   updateInventorySlotsUI?.();
   return true;
@@ -23838,6 +23927,7 @@ function confirmarEscolhaDeAcordes() {
   const n = escolhaEmCurso.escolhidos.length;
   escolhaEmCurso = null;
   document.getElementById('escolhaAcordes')?.classList.add('hidden');
+  revisarObjetivosDeProgresso();
   savePlayerData();
   showToast(`${n} acorde${n > 1 ? 's' : ''} guardado${n > 1 ? 's' : ''}. Veja em Composição.`);
 }
@@ -23932,6 +24022,7 @@ function desenharPautaDaComposicao() {
     const i = +b.dataset.slot;
     if (acordesEquipados[i]) {
       acordesEquipados.splice(i, 1);
+      revisarObjetivosDeProgresso();
       savePlayerData(); desenharComposicao();
     } else showToast('Escolha um acorde na lista de guardados.');
   }));
@@ -23977,6 +24068,7 @@ function desenharComposicao() {
     if (i >= 0) escalasEquipadas.splice(i, 1);
     else if (escalasEquipadas.length < MAX_ESCALAS_EQUIPADAS) escalasEquipadas.push(t);
     else { showToast(`Só ${MAX_ESCALAS_EQUIPADAS} escalas de cada vez.`); return; }
+    revisarObjetivosDeProgresso();
     savePlayerData(); desenharComposicao();
   }));
 
@@ -24007,6 +24099,7 @@ function desenharComposicao() {
     if (i >= 0) acordesEquipados.splice(i, 1);
     else if (acordesEquipados.length < MAX_ACORDES_EQUIPADOS) acordesEquipados.push(id);
     else { showToast(`Só ${MAX_ACORDES_EQUIPADOS} acordes de cada vez.`); return; }
+    revisarObjetivosDeProgresso();
     savePlayerData(); desenharComposicao();
   }));
 
@@ -24357,7 +24450,7 @@ let abaDeMissoes = 'jornada';
 // e o pergaminho nao tinha o que mostrar. Aqui entram as moedas de verdade do jogo.
 function pagarRecompensa(r) {
   if (!r) return;
-  if (r.moedas)    playerInventory.coins = (playerInventory.coins || 0) + r.moedas;
+  if (r.moedas)    playerCoins += r.moedas;
   if (r.claves)    claveCount += r.claves;
   if (r.partitura) playerInventory.partitura = (playerInventory.partitura || 0) + r.partitura;
   if (r.fragmento) {
@@ -24705,8 +24798,8 @@ const DEIXA_DA_CENA = {
   cap1_pipo_junto:  { feitas: ['amizade_importa'], missoes: ['madeira_e_pedra'],
                       bandeiras: ['pipo_no_grupo'], acompanhante: 'Pipo' },
   cap1_entrega:     { feitas: ['madeira_e_pedra'], bandeiras: ['entregou_com_pipo'] },
-  ponte:            { missoes: ['ponte_de_acordelot'] },
-  ferraria:         { feitas: ['ponte_de_acordelot'], missoes: ['martelo_do_ferreiro'] },
+  ponte:            {},
+  ferraria:         { missoes: ['martelo_do_ferreiro'] },
   ponte_obra:       { feitas: ['martelo_do_ferreiro'], missoes: ['consertar_ponte'] },
   ponte_pronta:     { feitas: ['consertar_ponte'] },
   ressonador:       { missoes: ['o_primeiro_ressonador'] },
@@ -24717,7 +24810,7 @@ const DEIXA_DA_CENA = {
   cap1_composicao:  { feitas: ['a_escala_maior'] },
   notas_sagradas:   {},
   cap1_patio:       { missoes: ['patrulha_do_patio'] },
-  cap1_esquecimento:{},
+  cap1_esquecimento:{ bandeiras: ['wins_sentiu_esquecimento'] },
   cap1_rapto:       { feitas: ['patrulha_do_patio'], missoes: ['memoria_do_pipo'],
                       bandeiras: ['pipo_levado'] },
   cap1_selo:        { feitas: ['memoria_do_pipo'], bandeiras: ['capitulo_1_fim'] },
@@ -24821,6 +24914,7 @@ function fecharPreTela() {
 document.getElementById('ptJogar')?.addEventListener('click', fecharPreTela);
 document.getElementById('mapaBtn')?.addEventListener('click', abrirMiniMapa);
 window.addEventListener('keydown', e => {
+  if (digitandoEmCampo(e)) return;
   if (e.code === 'KeyM' && dlg.state === DLG_STATE.CLOSED && !CUT.ativo) {
     document.getElementById('miniMapa')?.classList.contains('hidden') ? abrirMiniMapa() : fecharMiniMapa();
   }
@@ -25559,6 +25653,7 @@ function sincronizarBotaoDePet() {
 
 document.getElementById('habPet')?.addEventListener('click', () => usarHabilidadeDoPet());
 window.addEventListener('keydown', e => {
+  if (digitandoEmCampo(e)) return;
   if (e.repeat || !isPlayMode) return;
   if (e.key.toLowerCase() === 't' && !dlg.aberto && !CUT.ativo) usarHabilidadeDoPet();
 });
@@ -26739,9 +26834,9 @@ function closeBuildMenu() {
 //
 // TRÊS REGRAS QUE VALEM PARA TUDO AQUI:
 //
-// 1. LOGIN É OPCIONAL. O jogo continua inteiro sem conta, no localStorage, como sempre
-//    foi. A conta serve para levar o save de aparelho e para entrar na Arena. Obrigar
-//    login quebraria até o teste do dono, que joga em guia anônima.
+// 1. LOGIN VEM ANTES DA PARTIDA. O save local continua sendo a cópia de trabalho, mas
+//    uma sessão identifica de quem ele é antes de o motor liberar o modo jogo. A banca
+//    de testes é a única exceção explícita e vive num save separado.
 //
 // 2. O LOCAL É O QUE MANDA ENQUANTO SE JOGA. A nuvem recebe cópia; ela não fica
 //    mandando estado de volta no meio da partida. Save que muda sozinho durante o jogo
@@ -26920,8 +27015,17 @@ async function criarConta(email, senha, nome) {
 async function sairDaConta() {
   await NUVEM.sair();
   CONTA.sessao = null; CONTA.perfil = null;
-  showToast('Você saiu da conta. O jogo continua salvo neste aparelho.');
+  autenticacaoLiberada = false;
+  preTelaAberta = true;
+  showToast('Você saiu da conta. Entre novamente para continuar.');
   atualizarBotaoDeConta();
+  const portariaAberta = document.getElementById('portariaTela');
+  if (!portariaAberta || portariaAberta.classList.contains('hidden')) {
+    setTimeout(() => portariaDaConta().then(() => {
+      autenticacaoLiberada = true;
+      abrirPreTela();
+    }).catch(e => console.error('[Acordelot] nova autenticação:', e)), 0);
+  }
 }
 
 function traduzErroDeConta(m) {
@@ -27227,25 +27331,15 @@ function restaurarSessao() {
 // apaga uma tarde de jogo e não tem volta. Perguntando na PORTARIA, antes de existir save
 // desta sessão, o conflito quase nunca chega a nascer.
 //
-// Mas é PORTARIA, não muro. Ela só aparece quando adianta:
-//   · sem serviço de conta no ar (ou offline) ela nem abre — senão a primeira falha de
-//     rede tranca o jogador para fora do próprio jogo, que já roda inteiro no aparelho;
+// A portaria é obrigatória na publicação:
+//   · sem serviço de conta, mostra a falha e oferece nova tentativa sem iniciar o jogo;
 //   · quem já tem sessão guardada passa direto, sem redigitar nada;
-//   · a banca de testes passa direto — é o caminho de teste do dono;
-//   · e "jogar sem conta" é lembrado, para não virar pedágio a cada abertura. O botão do
-//     HUD continua lá para entrar depois.
-const CHAVE_SEM_CONTA = 'acordelot_sem_conta';
+//   · a banca de testes passa direto — é o caminho explícito do dono.
 
 async function portariaDaConta() {
-  if (BANCA_DE_TESTES) return;
+  if (BANCA_DE_TESTES) { autenticacaoLiberada = true; return; }
   await CONTA.pronta;                       // a sessão guardada já foi lida?
-  if (!NUVEM.disponivel()) return;          // sem nuvem não há o que perguntar
-  if (logado()) return;                     // já entrou antes, neste aparelho
-  // A dispensa guardada só vale enquanto "jogar sem conta" existir. Sem esta segunda
-  // condição, quem tivesse tocado no botão durante o teste continuaria entrando sem conta
-  // depois de o jogo abrir para valer — e o interruptor desligado não teria efeito
-  // nenhum sobre justamente quem já usou o atalho.
-  if (SELETOR_DE_CENA_LIGADO && localStorage.getItem(CHAVE_SEM_CONTA)) return;
+  if (logado()) { autenticacaoLiberada = true; return; }
 
   // Enquanto a portaria está de pé o mundo não pode andar sozinho. `preTelaAberta` já é
   // a trava que segura gatilho de cena, cena de mapa e conversa de NPC — reusá-la evita
@@ -27253,17 +27347,29 @@ async function portariaDaConta() {
   preTelaAberta = true;
 
   const el = caixaDeTela('portariaTela', 'conta-tela portaria', false);
+  if (!NUVEM.disponivel()) {
+    el.innerHTML = `
+      <div class="ct-caixa">
+        <h2>Conta indisponível</h2>
+        <p class="ct-sub">O serviço de autenticação não carregou. Confira a conexão e
+          tente novamente; a partida só começa depois que sua conta for identificada.</p>
+        <div class="ct-acoes ct-coluna">
+          <button class="ct-btn" data-recarregar>Tentar novamente</button>
+        </div>
+      </div>`;
+    el.classList.remove('hidden', 'so-fundo');
+    el.querySelector('[data-recarregar]').onclick = () => location.reload();
+    await new Promise(() => {});
+    return;
+  }
   el.innerHTML = `
     <div class="ct-caixa">
       <h2>Acordelot</h2>
-      <p class="ct-sub">Com conta, seu progresso acompanha você de aparelho e a Arena
-         abre. Sem conta, o jogo é o mesmo — só fica guardado neste aparelho.</p>
+      <p class="ct-sub">Entre antes de começar. Assim seu progresso acompanha você em
+         qualquer aparelho e sua partida já nasce ligada à conta certa.</p>
       <div class="ct-acoes ct-coluna">
         <button class="ct-btn" data-entrar>Entrar</button>
         <button class="ct-btn" data-criar>Criar conta</button>
-        ${SELETOR_DE_CENA_LIGADO
-          ? '<button class="ct-btn secundario" data-sem>Jogar sem conta (teste)</button>'
-          : ''}
       </div>
       <p class="ct-nota">A conta guarda seu progresso e é o que te coloca na Arena.</p>
     </div>`;
@@ -27272,15 +27378,6 @@ async function portariaDaConta() {
   await new Promise(pronto => {
     const sair = () => { el.classList.add('hidden'); preTelaAberta = false; pronto(); };
 
-    // "Jogar sem conta" só existe enquanto o jogo está em teste. Para o jogador a conta
-    // é obrigatória — sem ela não há Arena, não há progresso que acompanhe aparelho, e
-    // não há como ser adversário de ninguém. O interruptor é o MESMO que já tem de ser
-    // desligado antes de publicar (`SELETOR_DE_CENA_LIGADO`), de propósito: um
-    // interruptor a mais é um a mais para esquecer ligado no dia do lançamento.
-    el.querySelector('[data-sem]')?.addEventListener('click', () => {
-      localStorage.setItem(CHAVE_SEM_CONTA, '1');
-      sair();
-    });
     // Entrar e criar reaproveitam a tela de conta que já existe, em vez de repetir os
     // campos aqui: dois formulários com as mesmas regras divergem na primeira correção.
     for (const [attr, modo] of [['data-entrar', 'entrar'], ['data-criar', 'criar']]) {
@@ -27297,7 +27394,7 @@ async function portariaDaConta() {
           clearInterval(conferir);
           // Fechou sem entrar: a portaria volta, para a escolha não se perder no meio.
           if (!logado()) { el.classList.remove('so-fundo'); return; }
-          localStorage.removeItem(CHAVE_SEM_CONTA);
+          autenticacaoLiberada = true;
           sair();
         }, 400);
       };
@@ -27537,6 +27634,17 @@ function atualizarBotaoDeConta() {
 
 // `modo` vem da portaria: quem tocou em "Criar conta" lá não deve chegar aqui numa tela
 // escrita "Entrar", com um aviso vermelho mandando tocar de novo no que acabou de tocar.
+function ligarEnterDaConta(el, seletorDoBotao) {
+  el.querySelectorAll('input').forEach(campo => campo.addEventListener('keydown', e => {
+    const enter = e.key === 'Enter' || e.key === 'Return'
+      || e.code === 'Enter' || e.code === 'NumpadEnter' || e.keyCode === 13;
+    if (!enter) return;
+    e.preventDefault();
+    e.stopPropagation();
+    el.querySelector(seletorDoBotao)?.click();
+  }));
+}
+
 function abrirTelaDeConta(modo) {
   const el = caixaDeTela('contaTela', 'conta-tela');
   const p = CONTA.perfil;
@@ -27549,6 +27657,7 @@ function abrirTelaDeConta(modo) {
   // ou "não entrou", voltava a pedir e-mail e senha de quem acabou de digitar os dois.
   // Parece defeito e faz desistir. Aqui ela pede só o que falta: o nome.
   if (logado() && !p) {
+    el.dataset.modo = 'perfil';
     el.innerHTML = `
       <div class="ct-caixa">
         <button class="ct-x" data-fechar>✖</button>
@@ -27576,11 +27685,13 @@ function abrirTelaDeConta(modo) {
       if (r.erro) return erro(r.erro);
       // O save deste aparelho é o primeiro conteúdo da conta.
       conciliarSaves();
-      el.classList.add('hidden'); abrirTelaDeConta();
+      el.classList.add('hidden');
     };
+    ligarEnterDaConta(el, '[data-perfil]');
     return;
   }
 
+  el.dataset.modo = p ? 'perfil-pronto' : (modo === 'criar' ? 'criar' : 'entrar');
   el.innerHTML = p ? `
     <div class="ct-caixa">
       <button class="ct-x" data-fechar>✖</button>
@@ -27624,8 +27735,10 @@ function abrirTelaDeConta(modo) {
     const r = await entrarNaConta(document.getElementById('ctEmail').value.trim(),
                                   document.getElementById('ctSenha').value);
     if (r.erro) return erro(r.erro);
-    if (CONTA.perfil) conciliarSaves();
-    el.classList.add('hidden'); abrirTelaDeConta();
+    if (CONTA.perfil) {
+      conciliarSaves();
+      el.classList.add('hidden');
+    } else abrirTelaDeConta('perfil');
   });
   el.querySelector('[data-criar]')?.addEventListener('click', async () => {
     erro('');
@@ -27642,8 +27755,9 @@ function abrirTelaDeConta(modo) {
                                campoNome.value);
     if (r.erro) return erro(r.erro);
     if (r.aviso) return erro(r.aviso);
-    el.classList.add('hidden'); abrirTelaDeConta();
+    el.classList.add('hidden');
   });
+  ligarEnterDaConta(el, modo === 'criar' ? '[data-criar]' : '[data-entrar]');
 }
 
 // ── A ARENA ───────────────────────────────────────────────────────────────────────
