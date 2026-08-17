@@ -14606,7 +14606,7 @@ function loop(now){
 
 function quadro(now){
   frameCount++;
-  if(now-lastFPSTime>=1000){currentFPS=frameCount;frameCount=0;lastFPSTime=now;if(fpsDisplay)fpsDisplay.textContent=`${currentFPS} FPS`;if(statusFPS)statusFPS.textContent=`${currentFPS} FPS`;talvezCederResolucao();}
+  if(now-lastFPSTime>=1000){currentFPS=frameCount;frameCount=0;lastFPSTime=now;if(fpsDisplay)fpsDisplay.textContent=`${currentFPS} FPS`;if(statusFPS)statusFPS.textContent=`${currentFPS} FPS`;}
 
   if(engineMode==='worldmap')return;   // desenhado pelo editor de mundo, em canvas próprio
 
@@ -15126,25 +15126,17 @@ function comSuavizacao(largura, desenhar) {
   try { desenhar(); } finally { ctx.imageSmoothingEnabled = antes; }
 }
 
-// ── Teto de resolução que cede sozinho ────────────────────────────────────────────
+// ── Resolução física do cenário ────────────────────────────────────────────────────
 //
-// Um número fixo aqui erra nos dois sentidos: baixo demais borra o celular bom, alto
-// demais engasga o celular fraco, e não há como saber qual dos dois está na mão de quem
-// abriu o jogo. Então começa nítido e só desce quando o próprio aparelho mostrar que não
-// dá conta — três segundos seguidos abaixo de 45 quadros. É medida, não suposição.
-//
-// Desce, e não volta a subir: um aparelho que já engasgou vai engasgar de novo, e ficar
-// alternando entre dois tamanhos de canvas pisca a tela a cada troca.
-const TETO = { valor: 3, ruinsSeguidos: 0 };
-// Exposto para diagnóstico: quando alguém disser "está borrado", a primeira pergunta é
-// se o aparelho cedeu resolução ou se o teto nunca subiu. `TETO.valor` responde as duas.
+// O canvas precisa cobrir a densidade real da tela. A antiga economia automática
+// baixava este valor de 3 para 2 depois de três medições ruins de FPS — inclusive durante
+// a carga inicial — e nunca o restaurava. Em celulares de densidade alta isso descartava
+// de 20% a 33% dos pixels do cenário durante toda a sessão. Qualidade não pode mudar
+// silenciosamente: mantemos o teto que cobre as telas atuais e deixamos uma eventual
+// opção de desempenho para uma escolha explícita do jogador.
+const TETO = { valor: 3, modo: 'qualidade' };
+// Exposto para diagnóstico visual e testes automatizados.
 window.TETO = TETO;
-
-function talvezCederResolucao() {
-  if (TETO.valor <= 2 || !currentFPS) return;
-  TETO.ruinsSeguidos = currentFPS < 45 ? TETO.ruinsSeguidos + 1 : 0;
-  if (TETO.ruinsSeguidos >= 3) { TETO.valor = 2; setupHighDPICanvas(); }
-}
 
 function setupHighDPICanvas() {
   if (!canvas) return;
@@ -15159,15 +15151,10 @@ function setupHighDPICanvas() {
   // quatro vezes mais pixel do que a tela mostra, todo quadro. Como o canvas já é
   // `image-rendering: pixelated`, um pixel de desenho por pixel de tela é o que dá a
   // borda dura que a arte pede — supersampling aqui só amaciava o que não devia amaciar.
-  // O TETO É MEDIDO, NÃO CHUTADO.
-  //
   // Este número é literalmente "quantos pixels a tela tem para cada unidade do jogo".
   // Prendê-lo em 2 num celular de densidade 3 manda o navegador esticar um quadro de
-  // 2048 px para os ~2600 do painel — e, como o canvas é `image-rendering: pixelated`,
-  // essa esticada é sem suavização: sai serrilhado, não borrado. Foi essa a queda de
-  // nitidez. Mas o teto 2 nasceu de um motivo real: em densidade 3 o custo por quadro
-  // derrubava a taxa. Então em vez de escolher entre nitidez e fluidez de uma vez para
-  // todo aparelho, o teto começa alto e CEDE se o aparelho reclamar — ver `TETO`.
+  // 2048 px para os ~2600 do painel. O teto 3 evita essa ampliação destrutiva sem criar
+  // um buffer maior do que os aparelhos móveis atuais conseguem exibir.
   const escala = Math.min(TETO.valor, Math.max(1, (larguraCss * densidade) / SCREEN_W));
   const targetW = Math.round(SCREEN_W * escala);
   const targetH = Math.round(SCREEN_H * escala);
